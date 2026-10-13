@@ -71,6 +71,11 @@ func canAdmin(role string, resource string, method string) bool {
 			return resource == "api_key" || resource == "playground"
 		}
 		return resource == "overview" || resource == "project" || resource == "api_key" || resource == "usage" || resource == "audit" || resource == "model" || resource == "playground"
+	case "guest":
+		if write {
+			return resource == "api_key" || resource == "playground"
+		}
+		return resource == "overview" || resource == "project" || resource == "api_key" || resource == "usage" || resource == "audit" || resource == "model" || resource == "playground"
 	default:
 		return !write && resource == "overview"
 	}
