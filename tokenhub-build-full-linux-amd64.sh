@@ -14,7 +14,7 @@ for command in docker curl tar sha256sum awk find cp file git; do
   command -v "$command" >/dev/null || fail "Missing command: $command"
 done
 REPO_ROOT="$(cd "$REPO_ROOT" && pwd)"
-for path in backend/Dockerfile.native frontend/package-lock.json deploy/native/tokenhub.service data/model-catalog.yaml data/provider-catalog.json LICENSE; do
+for path in tokenhub-run backend/Dockerfile.native frontend/package-lock.json deploy/native/tokenhub.service data/model-catalog.yaml data/provider-catalog.json LICENSE; do
   [ -f "$REPO_ROOT/$path" ] || fail "Missing repository file: $path"
 done
 [ -d "$REPO_ROOT/data/builtin-plugins" ] || fail 'Missing builtin plugins'
@@ -76,12 +76,7 @@ cp -rL "${ROOTS[0]}/." "$STAGE/frontend/"
 cp -rL "$WORK/frontend/.next/static" "$STAGE/frontend/.next/static"
 cp -rL "$WORK/frontend/public" "$STAGE/frontend/public"
 
-cat > "$STAGE/bin/tokenhub-run" <<'LAUNCHER'
-#!/usr/bin/env bash
-set -Eeuo pipefail
-release_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-exec "$release_dir/bin/tokenhub"
-LAUNCHER
+cp "$REPO_ROOT/tokenhub-run" "$STAGE/bin/tokenhub-run"
 cp "$REPO_ROOT/deploy/native/tokenhub.service" "$STAGE/deploy/tokenhub.service"
 cp "$REPO_ROOT/data/model-catalog.yaml" "$STAGE/catalog/model-catalog.yaml"
 cp "$REPO_ROOT/data/provider-catalog.json" "$STAGE/catalog/provider-catalog.json"
@@ -107,4 +102,4 @@ cp "$WORK/$ASSET" "$OUTPUT_DIR/$ASSET"
   sha256sum -c "$ASSET.sha256"
 )
 printf '\nArchive: %s/%s\nChecksum: %s/%s.sha256\n' "$OUTPUT_DIR" "$ASSET" "$OUTPUT_DIR" "$ASSET"
-printf 'Full package built; its launcher runs only the Go backend. No deployment was performed.\n'
+printf 'Full package built; frontend is opt-in via TOKENHUB_ENABLE_FRONTEND=true. No deployment was performed.\n'

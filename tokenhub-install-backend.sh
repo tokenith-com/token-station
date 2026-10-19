@@ -22,6 +22,7 @@ SHA256_FILE=""
 TEMP_DIR=""
 PURGE=false
 CREATED_SERVICE_USER=false
+VALIDATE_ONLY=false
 
 usage() {
   cat <<'EOF'
@@ -33,6 +34,7 @@ Usage:
   bash tokenhub-install-backend.sh rollback --version VERSION --archive FILE [--sha256-file FILE]
   bash tokenhub-install-backend.sh uninstall [--purge]
   bash tokenhub-install-backend.sh status
+  Add --validate-only to install/upgrade/rollback to validate and stage without installing.
 
 The default checksum file is FILE.sha256. It must contain a sha256sum-format
 entry matching the archive basename, not a bare digest. Supply trusted local
@@ -170,6 +172,7 @@ parse_args() {
       -v|--version) [ "$#" -ge 2 ] || fail "$1 requires a value"; VERSION="$(normalize_version "$2")"; shift 2 ;;
       --archive) [ "$#" -ge 2 ] || fail "$1 requires a value"; ARCHIVE="$2"; shift 2 ;;
       --sha256-file) [ "$#" -ge 2 ] || fail "$1 requires a value"; SHA256_FILE="$2"; shift 2 ;;
+      --validate-only) VALIDATE_ONLY=true; shift ;;
       --purge) PURGE=true; shift ;;
       -h|--help) usage; exit 0 ;;
       *) fail "unknown argument: $1" ;;
@@ -181,6 +184,7 @@ parse_args() {
       [ "$PURGE" = false ] || fail "--purge is only valid for uninstall"
       SHA256_FILE="${SHA256_FILE:-${ARCHIVE}.sha256}" ;;
     uninstall|status|help)
+      [ "$VALIDATE_ONLY" = false ] || fail "--validate-only is only valid for deployment"
       [ -z "$VERSION$ARCHIVE$SHA256_FILE" ] || fail "archive and version options are only valid for deployment"
       [ "$COMMAND" = uninstall ] || [ "$PURGE" = false ] || fail "--purge is only valid for uninstall" ;;
     *) fail "unknown command: $COMMAND" ;;
@@ -191,7 +195,7 @@ require_platform() {
   [ "${EUID:-$(id -u)}" -eq 0 ] || fail "run this installer as root"
   [ "$(uname -s)" = Linux ] || fail "native installation supports Linux only"
   local tool first second
-  for tool in systemctl sha256sum curl tar sed awk find install od tr wc readlink mktemp cp mv ln chmod chown; do
+  for tool in systemctl sha256sum curl tar sed awk find install od tr wc readlink mktemp cp mv ln chmod chown cmp; do
     command -v "$tool" >/dev/null 2>&1 || fail "missing required command: $tool"
   done
   validate_managed_path "$INSTALL_ROOT" TOKENHUB_INSTALL_ROOT
@@ -214,7 +218,20 @@ require_platform() {
 }
 
 read_config_value() {
-  awk -v key="$2" 'index($0, key "=") == 1 { value=substr($0, length(key)+2); found=1 } END { if (found) print value }' "$1"
+  awk -v key="$2" '
+    { line=$0; sub(/^[ \t]+/, "", line) }
+    index(line, key "=") == 1 {
+      value=substr(line, length(key)+2); sub(/^[ \t]+/, "", value); sub(/[ \t]+$/, "", value)
+      quote=substr(value,1,1)
+      if (quote == "\"" || quote == sprintf("%c",39)) {
+        if (substr(value,length(value),1) != quote) exit 2
+        value=substr(value,2,length(value)-2)
+      }
+      if (value ~ /[\\\\\"\047]/) exit 2
+      found=1
+    }
+    END { if (found) print value }
+  ' "$1"
 }
 
 marker_content() {
@@ -336,15 +353,70 @@ stage_release() {
     [ -f "$staging/$path" ] || fail "full release archive is missing regular file $path"
   done
   [ "$(tr -d '[:space:]' <"$staging/VERSION")" = "$VERSION" ] || fail "archive VERSION does not match v$VERSION"
+  cp -- "$staging/bin/tokenhub-run" "$TEMP_DIR/packaged-tokenhub-run"
   cat >"$staging/bin/tokenhub-run" <<'EOF'
 #!/usr/bin/env bash
 set -Eeuo pipefail
-RELEASE_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd -P)"
-exec "$RELEASE_DIR/bin/tokenhub" "$@"
+
+release_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+
+case "${TOKENHUB_ENABLE_FRONTEND:-false}" in
+  false)
+    exec "$release_dir/bin/tokenhub" "$@"
+    ;;
+  true)
+    ;;
+  *)
+    echo "TOKENHUB_ENABLE_FRONTEND must be true or false" >&2
+    exit 1
+    ;;
+esac
+
+test -x "$release_dir/bin/node"
+test -f "$release_dir/frontend/server.js"
+
+backend_pid=""
+frontend_pid=""
+
+cleanup() {
+  trap - EXIT INT TERM
+  if [ -n "$frontend_pid" ]; then
+    kill -TERM "$frontend_pid" 2>/dev/null || true
+  fi
+  if [ -n "$backend_pid" ]; then
+    kill -TERM "$backend_pid" 2>/dev/null || true
+  fi
+  if [ -n "$frontend_pid" ]; then
+    wait "$frontend_pid" 2>/dev/null || true
+  fi
+  if [ -n "$backend_pid" ]; then
+    wait "$backend_pid" 2>/dev/null || true
+  fi
+}
+
+trap cleanup EXIT
+trap 'exit 0' INT TERM
+
+"$release_dir/bin/tokenhub" "$@" &
+backend_pid=$!
+
+(
+  cd "$release_dir/frontend"
+  exec env \
+    NODE_ENV=production \
+    HOSTNAME="${TOKENHUB_FRONTEND_HOST:-127.0.0.1}" \
+    PORT="${TOKENHUB_FRONTEND_PORT:-3000}" \
+    "$release_dir/bin/node" server.js
+) &
+frontend_pid=$!
+
+exit_code=0
+wait -n "$backend_pid" "$frontend_pid" || exit_code=$?
+exit "$exit_code"
 EOF
+  cmp -s "$TEMP_DIR/packaged-tokenhub-run" "$staging/bin/tokenhub-run" || fail "packaged launcher differs from the installer's canonical launcher"
   chmod 0755 "$staging/bin/tokenhub" "$staging/bin/node" "$staging/bin/tokenhub-run"
-  # Keep the complete frontend and Node payload; never execute the bundled Node.
-  info "Validated and staged full release v$VERSION for backend-only activation"
+  info "Validated and staged full release v$VERSION (frontend opt-in)"
 }
 
 ensure_service_user() {
@@ -443,6 +515,7 @@ install_or_upgrade() {
     validate_port "$(read_config_value "$CONFIG_DIR/tokenhub.env" TOKENHUB_HTTP_ADDR | awk -F: '{print $NF}')" "configured backend port"
   fi
   stage_release
+  if [ "$VALIDATE_ONLY" = true ]; then info "Validation complete; no installation mutations performed"; return; fi
   # All archive validation finishes before user/config/service mutations.
   ensure_service_user
   render_service
