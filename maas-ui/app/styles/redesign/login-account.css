@@ -1,0 +1,331 @@
+.login-account-shell {
+  min-height: 100dvh;
+  padding: 0;
+  display: block;
+  overflow: hidden;
+  background: #f4f7fd;
+}
+
+.login-account-stage {
+  width: 100%;
+  min-height: 100dvh;
+  height: auto;
+  border: 0;
+  border-radius: 0;
+  grid-template-columns: minmax(380px, 35%) minmax(0, 1fr);
+  overflow: visible;
+  background: #f4f7fd;
+  box-shadow: none;
+}
+
+.login-account-visual {
+  position: relative;
+  min-height: 100dvh;
+  overflow: hidden;
+  background: #eaf3ff url("../../../icons/layout-bg.svg") center / cover no-repeat;
+}
+
+.login-account-logo {
+  position: absolute;
+  top: 8px;
+  left: 28px;
+  z-index: 1;
+  width: 221px;
+  height: 42px;
+}
+
+.login-account-main {
+  min-width: 0;
+  min-height: 100dvh;
+  padding: clamp(38px, 7vh, 72px) 32px 14px;
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  justify-items: center;
+  overflow-y: auto;
+  background: #f4f7fd;
+  box-sizing: border-box;
+}
+
+.login-account-card {
+  width: min(360px, 100%);
+  align-self: center;
+  padding: 0;
+}
+
+.login-account-field {
+  min-width: 0;
+  display: block;
+}
+
+.login-account-field > span:first-child {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.login-account-field > input,
+.login-account-field .password-field > input {
+  width: 100%;
+  height: 42px;
+  min-height: 42px;
+  border: 1px solid #b8c1ce;
+  border-radius: 3px;
+  outline: 0;
+  padding: 0 10px;
+  background: #fff;
+  color: #324558;
+  font-size: 14px;
+  font-weight: 400;
+  box-sizing: border-box;
+}
+
+.login-account-field > input::placeholder,
+.login-account-field .password-field > input::placeholder {
+  color: #a3a9b2;
+}
+
+.login-account-field > input:focus,
+.login-account-field .password-field > input:focus {
+  border-color: #6e8dde;
+  box-shadow: 0 0 0 2px rgba(78, 105, 190, 0.1);
+}
+
+.login-account-card > .login-account-field + .login-account-field {
+  margin-top: 22px;
+}
+
+.login-account-card .password-toggle {
+  top: 5px;
+  right: 4px;
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: 3px;
+  color: #64768a;
+}
+
+.login-account-card .login-helper-row {
+  margin: 14px 0 38px;
+  gap: 10px;
+}
+
+.login-remember {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #536274;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.login-remember input {
+  width: 14px;
+  height: 14px;
+  margin: 0;
+  accent-color: #4e69be;
+}
+
+.login-account-footer i {
+  width: 1px;
+  height: 12px;
+  background: #c9d0da;
+}
+
+.login-account-card .login-error {
+  margin: -22px 0 14px;
+  border-radius: 3px;
+  padding: 9px 10px;
+  font-size: 12px;
+}
+
+.login-account-card .login-submit {
+  height: 42px;
+  border-radius: 3px;
+  background: #506bc2;
+  box-shadow: none;
+  font-size: 14px;
+  font-weight: 400;
+}
+
+.login-account-card .login-submit:hover {
+  background: #435eb5;
+  filter: none;
+}
+
+.login-otp-delivery {
+  min-height: 40px;
+  margin-top: 22px;
+  padding: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  border-radius: 3px;
+  background: #fff;
+  color: #ff4d4f;
+  font-size: 12px;
+  line-height: 20px;
+  box-sizing: border-box;
+}
+
+.login-otp-countdown {
+  flex-shrink: 0;
+  color: #7d889a;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.login-otp-link {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #506bc2;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.login-otp-delivery .login-otp-link {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.login-otp-link:hover {
+  color: #435eb5;
+  text-decoration: underline;
+}
+
+.login-otp-link:focus-visible {
+  outline: 2px solid #506bc2;
+  outline-offset: 4px;
+}
+
+.login-otp-code-row {
+  margin-top: 24px;
+  display: grid;
+  grid-template-columns: minmax(0, 180px) 106px;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+}
+
+.login-otp-code-row .login-submit:disabled {
+  opacity: .6;
+  cursor: not-allowed;
+}
+
+.login-otp-notice {
+  margin: 12px 0 0;
+  color: #7d889a;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.login-otp-error {
+  margin: 12px 0 0;
+  color: #ff4d4f;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.login-otp-back {
+  margin-top: 14px;
+  justify-self: start;
+}
+
+.login-account-footer {
+  padding-top: 30px;
+  display: grid;
+  justify-items: center;
+  gap: 5px;
+  color: #a8adb5;
+  font-size: 12px;
+  line-height: 1.25;
+  text-align: center;
+}
+
+.login-account-footer div {
+  margin-bottom: 5px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  color: #667385;
+}
+
+.login-account-footer a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.login-account-footer a:hover,
+.login-account-footer a:focus-visible {
+  text-decoration: underline;
+}
+
+.login-account-footer p {
+  margin: 0;
+}
+
+.login-account-footer small {
+  color: #b4b8bf;
+  font-size: 11px;
+}
+
+@media (max-width: 900px) {
+  .login-account-stage {
+    grid-template-columns: minmax(300px, 38%) minmax(0, 1fr);
+  }
+
+  .login-account-logo {
+    left: 20px;
+    width: 196px;
+    height: 37px;
+  }
+}
+
+@media (max-width: 700px) {
+  .login-account-shell {
+    overflow-y: auto;
+  }
+
+  .login-account-stage {
+    display: block;
+  }
+
+  .login-account-visual {
+    display: none;
+  }
+
+  .login-account-main {
+    min-height: 100dvh;
+    padding: 34px 20px 14px;
+  }
+}
+
+@media (max-width: 420px) {
+  .login-account-main {
+    padding-inline: 16px;
+  }
+
+  .login-account-card .login-helper-row {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
+
+@media (max-height: 680px) and (min-width: 701px) {
+  .login-account-main {
+    padding-top: 24px;
+  }
+
+  .login-account-card > .login-account-field + .login-account-field {
+    margin-top: 14px;
+  }
+
+  .login-account-card .login-helper-row {
+    margin-bottom: 18px;
+  }
+}

@@ -1,0 +1,208 @@
+import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { applyIdentityProviderTemplate, identityProviderEndpointDefaults, identityProviderTemplateOptionsFromData, identityProviderTemplatesFromData, LoginView } from "./auth";
+
+const baseProps = {
+  loading: false,
+  error: "",
+  baseURL: "http://localhost:8080",
+  identityProviders: [],
+  oauthReturnURL: "http://localhost:3000/overview",
+  language: "zh-CN" as const,
+  theme: "light" as const,
+  onLanguageChange: vi.fn(),
+  onThemeToggle: vi.fn(),
+};
+
+describe("LoginView", () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    window.history.replaceState(null, "", "/");
+  });
+
+  it("only shows OTP when otpLogin is supplied and delegates verification and return", async () => {
+    window.history.replaceState(null, "", "/?keep=value#section");
+    const user = userEvent.setup();
+    const onLogin = vi.fn();
+    const otpLogin = { identity: "admin@example.com", onVerify: vi.fn(), onBack: vi.fn() };
+    const { rerender } = render(<LoginView {...baseProps} onLogin={onLogin} />);
+    await user.type(screen.getByLabelText("密码"), "password");
+    rerender(<LoginView {...baseProps} onLogin={onLogin} otpLogin={otpLogin} />);
+
+    expect(screen.getByRole("form", { name: "手机号验证码认证" })).toBeInTheDocument();
+    expect(screen.getByLabelText("账号")).toHaveValue(otpLogin.identity);
+    expect(screen.queryByLabelText("密码")).not.toBeInTheDocument();
+    await user.type(screen.getByLabelText("验证码"), "123456");
+    await user.click(screen.getByRole("button", { name: "验证" }));
+    expect(otpLogin.onVerify).toHaveBeenCalledWith("123456");
+    expect(onLogin).not.toHaveBeenCalled();
+    await user.click(screen.getByRole("button", { name: "返回账号密码登录" }));
+    expect(otpLogin.onBack).toHaveBeenCalledOnce();
+    rerender(<LoginView {...baseProps} onLogin={onLogin} />);
+
+    expect(screen.getByLabelText("密码")).toHaveValue("");
+    expect(window.location.search).toBe("?keep=value");
+    expect(window.location.hash).toBe("#section");
+  });
+
+  it.each(["development", "production", "test"])("ignores the removed OTP preview parameter in %s", environment => {
+    vi.stubEnv("NODE_ENV", environment);
+    window.history.replaceState(null, "", "/?preview=otp");
+    render(<LoginView {...baseProps} onLogin={vi.fn()} />);
+
+    expect(screen.getByLabelText("密码")).toBeInTheDocument();
+    expect(screen.queryByRole("form", { name: "手机号验证码认证" })).not.toBeInTheDocument();
+  });
+
+  it("does not change the consumer login when the OTP preview parameter is present", () => {
+    vi.stubEnv("NODE_ENV", "development");
+    window.history.replaceState(null, "", "/?preview=otp");
+    render(<LoginView {...baseProps} portal="c" onLogin={vi.fn()} />);
+
+    expect(screen.getByLabelText("密码")).toBeInTheDocument();
+    expect(screen.queryByRole("form", { name: "手机号验证码认证" })).not.toBeInTheDocument();
+  });
+
+  it("keeps the consumer logo separate from its CSS illustration background", () => {
+    render(<LoginView {...baseProps} portal="c" onLogin={vi.fn()} />);
+
+    const visual = screen.getByLabelText("世纪利通 TokenStation");
+    expect(visual).toHaveClass("login-account-visual");
+    expect(visual.querySelector(".login-account-logo use")).toHaveAttribute("href", "/icons/sprite.svg#icon-layout-logo");
+    expect(visual.querySelector('use[href="/icons/sprite.svg#icon-layout-bg"]')).not.toBeInTheDocument();
+  });
+
+  it("renders the centered card login layout with TokenStation branding", () => {
+    const { container } = render(<LoginView {...baseProps} onLogin={vi.fn()} />);
+    expect(screen.getByRole("heading", { name: "欢迎回来" })).toBeInTheDocument();
+    expect(screen.getByText("登录您的账户以继续")).toBeInTheDocument();
+    expect(container.querySelector(".tc-login-title")).toHaveTextContent("TokenStation");
+    expect(container.querySelector(".login-utility-controls")).not.toBeInTheDocument();
+  });
+
+  it.each(["b", "c"] as const)("links to the company website on portal %s", portal => {
+    render(<LoginView {...baseProps} portal={portal} onLogin={vi.fn()} />);
+
+    const website = screen.getByRole("link", { name: "世纪利通官网" });
+    expect(website).toHaveAttribute("href", "https://www.century-lt.com/cn/");
+    expect(website).toHaveAttribute("target", "_blank");
+    expect(website).toHaveAttribute("rel", "noopener noreferrer");
+  });
+
+  it.each(["b", "c"] as const)("shows the updated footer copy on portal %s", portal => {
+    render(<LoginView {...baseProps} portal={portal} onLogin={vi.fn()} />);
+
+    expect(screen.getByText("世纪利通 版权所有 2024–2026")).toBeInTheDocument();
+    expect(screen.getByText("沪ICP备2023030709号")).toBeInTheDocument();
+    expect(screen.queryByText("申请试用")).not.toBeInTheDocument();
+    expect(screen.queryByText("Copyright Century-Lt Tech Inc. All Rights Reserved.")).not.toBeInTheDocument();
+    expect(screen.queryByText("沪ICP备15028292-1号")).not.toBeInTheDocument();
+  });
+
+  it("only exposes SMS registration on the consumer deployment", async () => {
+    const user = userEvent.setup();
+    const { rerender } = render(<LoginView {...baseProps} portal="b" onLogin={vi.fn()} />);
+    expect(screen.queryByRole("button", { name: "短信注册" })).not.toBeInTheDocument();
+    rerender(<LoginView {...baseProps} portal="c" captchaID="app-id" onLogin={vi.fn()} />);
+    await user.click(screen.getByRole("button", { name: "短信注册" }));
+    expect(screen.getByRole("heading", { name: "注册账号" })).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "已有账号？返回登录" }));
+    expect(screen.getByLabelText("账号")).toBeInTheDocument();
+  });
+
+  it.each(["b", "c"] as const)("submits the entered identity and password on portal %s", async portal => {
+    const user = userEvent.setup();
+    const onLogin = vi.fn();
+    render(<LoginView {...baseProps} portal={portal} onLogin={onLogin} />);
+
+    await user.type(screen.getByLabelText("账号"), "admin@example.com");
+    await user.type(screen.getByLabelText("密码"), "correct-horse");
+    await user.click(screen.getByRole("button", { name: "登录" }));
+
+    expect(onLogin).toHaveBeenCalledWith("admin@example.com", "correct-horse");
+    expect(screen.queryByText("保持登录状态")).not.toBeInTheDocument();
+  });
+
+  it("hides SSO actions when no identity providers are configured", () => {
+    render(<LoginView {...baseProps} onLogin={vi.fn()} />);
+
+    expect(screen.queryByText("或")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "SSO 企业单点登录" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /登录/ })).not.toBeInTheDocument();
+  });
+
+  it("shows server errors and configured SSO entry points", () => {
+    render(
+      <LoginView
+        {...baseProps}
+        error="login 401"
+        identityProviders={[{
+          id: "idp_google",
+          name: "company-google",
+          display_name: "Company Google",
+          provider_type: "oidc",
+          icon_key: "google",
+        }]}
+        onLogin={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText("login 401")).toHaveAttribute("class", "login-error");
+    const sso = screen.getByRole("link", { name: "使用 Company Google 登录" });
+    expect(sso).toHaveTextContent("Company Google");
+    expect(sso).toHaveAttribute("href", expect.stringContaining("/api/admin/auth/oauth/start"));
+    expect(sso).toHaveAttribute("href", expect.stringContaining("id=idp_google"));
+  });
+});
+
+describe("identity provider template plugins", () => {
+  it("adds identity provider templates from plugin capability metadata", () => {
+    const data = {
+      plugins: [{
+        id: "tokenhub.identity.acme",
+        name: "Acme Identity",
+        version: "1.0.0",
+        source: "marketplace",
+        kinds: ["admin_ui"],
+        placements: ["presentation"],
+        capabilities: [{
+          kind: "identity_provider_template",
+          name: "entry",
+          subject: "acme_sso",
+          value: JSON.stringify({
+            label: "Acme SSO",
+            provider_type: "oidc",
+            icon_key: "sso",
+            login_label: "Acme",
+            issuer_placeholder: "https://id.acme.example",
+            scopes: "openid profile email",
+            username_claim: "preferred_username",
+            endpoints: {
+              authorize_url: "{issuer}/authorize",
+              token_url: "{issuer}/token",
+              userinfo_url: "{issuer}/userinfo",
+            },
+          }),
+        }],
+      }],
+    };
+
+    const templates = identityProviderTemplatesFromData(data);
+    const acme = templates.find((template) => template.key === "acme_sso");
+
+    expect(identityProviderTemplateOptionsFromData(data)).toContainEqual({ value: "acme_sso", label: "Acme SSO" });
+    expect(acme?.loginLabel).toBe("Acme");
+    expect(identityProviderEndpointDefaults(acme!, "https://id.acme.example/tenant/")).toEqual({
+      authorize_url: "https://id.acme.example/tenant/authorize",
+      token_url: "https://id.acme.example/tenant/token",
+      userinfo_url: "https://id.acme.example/tenant/userinfo",
+    });
+    expect(applyIdentityProviderTemplate({}, "acme_sso", true, templates)).toEqual(expect.objectContaining({
+      provider_template: "acme_sso",
+      provider_type: "oidc",
+      login_label: "Acme",
+      scopes: "openid profile email",
+    }));
+  });
+});

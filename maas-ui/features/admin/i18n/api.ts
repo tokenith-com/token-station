@@ -1,0 +1,26 @@
+export const apiTranslations: Record<"en" | "ja", Record<string, string>> = {
+  en: {
+    "服务暂未开放": "Service unavailable",
+    "服务暂未开放，请联系管理员": "This service is unavailable. Please contact your administrator.",
+    "部分监控数据暂不可用": "Some monitoring data is currently unavailable.",
+    "登录接口未返回用户信息": "The login response did not include user information.",
+    "登录接口返回的用户信息不完整": "The login response contained incomplete user information.",
+    "登录接口未返回有效的会话令牌": "The login response did not include a valid session token.",
+    "登录接口未返回有效的会话到期时间": "The login response did not include a valid session expiry.",
+    "会话校验失败": "Session validation failed",
+    "会话已过期，请重新登录": "Your session has expired. Please log in again.",
+    "无法连接服务，请稍后重试或联系管理员": "Unable to connect. Please try again later or contact your administrator.",
+  },
+  ja: {
+    "服务暂未开放": "サービスは利用できません",
+    "服务暂未开放，请联系管理员": "このサービスは利用できません。管理者にお問い合わせください。",
+    "部分监控数据暂不可用": "一部の監視データは現在利用できません。",
+    "登录接口未返回用户信息": "ログイン応答にユーザー情報がありません。",
+    "登录接口返回的用户信息不完整": "ログイン応答のユーザー情報が不完全です。",
+    "登录接口未返回有效的会话令牌": "ログイン応答に有効なセッショントークンがありません。",
+    "登录接口未返回有效的会话到期时间": "ログイン応答に有効なセッション有効期限がありません。",
+    "会话校验失败": "セッションの検証に失敗しました",
+    "会话已过期，请重新登录": "セッションが期限切れです。再度ログインしてください。",
+    "无法连接服务，请稍后重试或联系管理员": "接続できません。後でもう一度試すか、管理者にお問い合わせください。",
+  },
+};

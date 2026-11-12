@@ -1,0 +1,655 @@
+.platform-accounts-content-panel {
+  padding: 16px 16px 38px;
+  background: #f1f2f7;
+}
+
+.platform-accounts-view {
+  min-width: 0;
+  width: 100%;
+  color: #324558;
+}
+
+.platform-accounts-title {
+  min-height: 24px;
+  margin-bottom: 14px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.platform-accounts-title > .svg-icon {
+  width: 8px;
+  height: 16px;
+}
+
+.platform-accounts-title h1 {
+  margin: 0;
+  color: #324558;
+  font-size: calc(16 * var(--content-font-unit, 1px));
+  font-weight: 500;
+  line-height: 1.2;
+}
+
+.platform-accounts-toolbar {
+  min-height: 30px;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.platform-account-create {
+  height: calc(28 * var(--content-font-unit, 1px));
+  border: 0;
+  border-radius: 4px;
+  padding: 0 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  background: #8a5fc4;
+  color: #fff;
+  font-size: calc(12 * var(--content-font-unit, 1px));
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.platform-account-create:hover {
+  background: #9a49b7;
+}
+
+.platform-account-filters {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.platform-account-search,
+.platform-account-select {
+  height: calc(28 * var(--content-font-unit, 1px));
+  border: 1px solid #dfe3e9;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  background: #fff;
+  color: #7b8794;
+  font-size: calc(12 * var(--content-font-unit, 1px));
+}
+
+.platform-account-search {
+  width: 188px;
+  padding: 0 8px;
+  gap: 6px;
+}
+
+.platform-account-search input {
+  min-width: 0;
+  width: 100%;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: #324558;
+  font-size: calc(12 * var(--content-font-unit, 1px));
+}
+
+.platform-account-search input::placeholder {
+  color: #a0a9b4;
+}
+
+.platform-account-select {
+  padding-left: 9px;
+  color: #59697a;
+  white-space: nowrap;
+}
+
+.platform-account-select select {
+  height: calc(26 * var(--content-font-unit, 1px));
+  max-width: 122px;
+  border: 0;
+  outline: 0;
+  padding: 0 24px 0 0;
+  background: transparent;
+  color: #324558;
+  font-size: calc(12 * var(--content-font-unit, 1px));
+  cursor: pointer;
+}
+
+.platform-account-table-wrap {
+  width: 100%;
+  min-width: 0;
+  overflow-x: auto;
+  border-top: 1px solid #e9ecf2;
+  border-bottom: 1px solid #e9ecf2;
+  background: #fff;
+}
+
+.platform-account-table {
+  width: 100%;
+  min-width: 1200px;
+  border-collapse: collapse;
+  table-layout: fixed;
+  font-size: calc(12 * var(--content-font-unit, 1px));
+}
+
+.platform-account-table th,
+.platform-account-table td {
+  height: calc(42 * var(--content-font-unit, 1px));
+  border-bottom: 1px solid #e9ecf2;
+  padding: 7px 12px;
+  color: #273849;
+  line-height: 1.35;
+  text-align: left;
+  vertical-align: middle;
+}
+
+.platform-account-table th {
+  background: #f5f7fa;
+  font-size: calc(12 * var(--content-font-unit, 1px));
+  font-weight: 500;
+}
+
+.platform-account-table tbody tr:nth-child(odd) td {
+  background: #fff;
+}
+
+.platform-account-table tbody tr:nth-child(even) td {
+  background: #f5f7fa;
+}
+
+.platform-account-table tbody tr:hover td {
+  background: #f4f7fb;
+}
+
+.platform-account-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.platform-account-table th:nth-child(1) {
+  width: 10%;
+}
+.platform-account-table th:nth-child(2) {
+  width: 13%;
+}
+.platform-account-table th:nth-child(3) {
+  width: 13%;
+}
+.platform-account-table th:nth-child(4) {
+  width: 11%;
+}
+.platform-account-table th:nth-child(5) {
+  width: 17%;
+}
+.platform-account-table th:nth-child(6) {
+  width: 8%;
+}
+.platform-account-table th:nth-child(7) {
+  width: 14%;
+}
+.platform-account-table th:nth-child(8) {
+  width: 14%;
+}
+
+.team-accounts-view .platform-account-table {
+  min-width: 1320px;
+}
+
+.team-accounts-view .platform-account-table th:nth-child(1) {
+  width: 9%;
+}
+
+.team-accounts-view .platform-account-table th:nth-child(2) {
+  width: 10%;
+}
+
+.team-accounts-view .platform-account-table th:nth-child(3) {
+  width: 11%;
+}
+
+.team-accounts-view .platform-account-table th:nth-child(4) {
+  width: 16%;
+}
+
+.team-accounts-view .platform-account-table th:nth-child(5) {
+  width: 10%;
+}
+
+.team-accounts-view .platform-account-table th:nth-child(6) {
+  width: 15%;
+}
+
+.team-accounts-view .platform-account-table th:nth-child(7) {
+  width: 8%;
+}
+
+.team-accounts-view .platform-account-table th:nth-child(8) {
+  width: 13%;
+}
+
+.team-accounts-view .platform-account-table th:nth-child(9) {
+  width: 8%;
+}
+
+.team-accounts-view .platform-account-table th:last-child,
+.team-accounts-view .platform-account-actions {
+  text-align: right;
+  justify-content: flex-end;
+}
+
+.team-accounts-view .platform-account-search {
+  width: 240px;
+}
+
+.team-accounts-view .platform-account-create {
+  background: #8a5fc4;
+}
+
+.team-accounts-view .platform-account-create:hover {
+  background: #9a49b7;
+}
+
+.platform-account-table .platform-account-role {
+  font-weight: 500;
+}
+
+.platform-account-table .platform-account-created-at {
+  color: #4c5e70;
+}
+
+.team-groups-view .platform-account-table {
+  min-width: 860px;
+}
+
+.team-groups-view .platform-account-table th:nth-child(1) {
+  width: 17%;
+}
+
+.team-groups-view .platform-account-table th:nth-child(2) {
+  width: 27%;
+}
+
+.team-groups-view .platform-account-table th:nth-child(3) {
+  width: 12%;
+}
+
+.team-groups-view .platform-account-table th:nth-child(4) {
+  width: 13%;
+}
+
+.team-groups-view .platform-account-table th:nth-child(5) {
+  width: 17%;
+}
+
+.team-groups-view .platform-account-table th:nth-child(6) {
+  width: 14%;
+}
+
+.team-groups-view .platform-account-table tbody td:nth-child(2),
+.team-groups-view .platform-account-table tbody td:nth-child(5) {
+  color: #4c5e70;
+}
+
+.team-groups-view .platform-account-table tbody td:nth-child(4) {
+  font-weight: 400;
+}
+
+.platform-account-table td:not(:last-child) {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.platform-account-status {
+  min-width: 52px;
+  height: 22px;
+  border: 1px solid currentColor;
+  border-radius: 3px;
+  padding: 0 7px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: calc(12 * var(--content-font-unit, 1px));
+  line-height: 1;
+}
+
+.platform-account-status.is-active {
+  color: #20ad82;
+  background: #effaf6;
+}
+
+.platform-account-status.is-disabled {
+  color: #ef9d34;
+  background: #fff8ed;
+}
+
+.platform-account-actions {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  white-space: nowrap;
+}
+
+.platform-account-actions button {
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: #000;
+  font-size: calc(12 * var(--content-font-unit, 1px));
+  cursor: pointer;
+}
+
+.platform-account-actions button.is-danger {
+  color: #f05b60;
+}
+
+.platform-account-actions button:disabled {
+  color: #b4bdc8;
+  cursor: not-allowed;
+}
+
+.platform-account-empty {
+  height: 100px !important;
+  color: #8a95a3 !important;
+  text-align: center !important;
+}
+
+.platform-account-pagination {
+  min-height: calc(48 * var(--content-font-unit, 1px));
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  color: #4c5e70;
+  font-size: calc(12 * var(--content-font-unit, 1px));
+}
+
+.platform-account-page-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.platform-account-page-controls button,
+.platform-account-page-controls select {
+  height: calc(28 * var(--content-font-unit, 1px));
+  border: 1px solid #dfe3e9;
+  border-radius: 4px;
+  background: #fff;
+  color: #4c5e70;
+  font-size: calc(12 * var(--content-font-unit, 1px));
+}
+
+.platform-account-page-controls button {
+  min-width: 28px;
+  padding: 0 7px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.platform-account-page-controls button.is-current {
+  border-color: #4d67be;
+  background: #4d67be;
+  color: #fff;
+}
+
+.platform-account-page-controls button:disabled {
+  color: #b4bdc8;
+  cursor: not-allowed;
+}
+
+.platform-account-page-controls select {
+  padding: 0 7px;
+  outline: 0;
+}
+
+.platform-account-backdrop {
+  padding: 14px;
+}
+
+/* Account dialogs share the standard .modal look (rounded card, divided header/footer, 44px fields). */
+.platform-account-dialog {
+  width: min(560px, 100%);
+  max-height: calc(100vh - 44px);
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: var(--shadow-lg);
+}
+
+.platform-account-dialog-header {
+  min-height: 64px;
+  border-bottom: 1px solid var(--border);
+  padding: 14px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.platform-account-dialog-header h2 {
+  margin: 0;
+  color: var(--ink);
+  font-size: 17px;
+  font-weight: 650;
+}
+
+.platform-account-dialog-header button {
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.platform-account-dialog-header button:hover {
+  background: var(--surface-3);
+  color: var(--ink);
+}
+
+.platform-account-dialog-body {
+  min-height: 0;
+  padding: 18px 20px 6px;
+}
+
+.platform-account-form-section + .platform-account-form-section {
+  margin-top: 8px;
+}
+
+.platform-account-form-section h3 {
+  margin: 0 0 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.platform-account-form-section h3 i {
+  width: 3px;
+  height: 14px;
+  border-radius: 2px;
+  background: linear-gradient(180deg, #8a5fc4, #121699);
+}
+
+.platform-account-form-fields {
+  display: grid;
+  gap: 0;
+}
+
+.platform-account-field {
+  margin-bottom: 18px;
+  display: grid;
+  gap: 7px;
+}
+
+.platform-account-field > span {
+  color: var(--ink-2);
+  font-size: 12.5px;
+  font-weight: 500;
+  line-height: 1.2;
+}
+
+.platform-account-field > span b {
+  margin-right: 3px;
+  color: #f05b60;
+  font-weight: 500;
+}
+
+.platform-account-field input,
+.platform-account-field select {
+  width: 100%;
+  min-height: 44px;
+  border: 1px solid var(--border-2);
+  border-radius: 11px;
+  outline: 0;
+  padding: 0 14px;
+  background: var(--surface-2);
+  color: var(--ink);
+  font-size: 14px;
+}
+
+.platform-account-field input:focus,
+.platform-account-field select:focus {
+  border-color: var(--accent);
+  background: var(--surface);
+  box-shadow: 0 0 0 3px var(--accent-weak);
+}
+
+.platform-account-field input:disabled,
+.platform-account-field select:disabled {
+  background: var(--surface-3);
+  color: var(--ink-3);
+  cursor: not-allowed;
+}
+
+.platform-account-role-field {
+  width: 100%;
+}
+
+.platform-account-form-error {
+  margin: 0 0 14px;
+  color: #f05b60;
+  font-size: 12.5px;
+}
+
+.platform-account-form-hint {
+  margin: -6px 0 18px;
+  border-radius: 10px;
+  padding: 10px 12px;
+  background: var(--accent-weak);
+  color: var(--ink-2);
+  font-size: 12.5px;
+  line-height: 1.6;
+}
+
+.platform-account-dialog-actions {
+  min-height: 60px;
+  border-top: 1px solid var(--border);
+  padding: 12px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.platform-account-dialog-actions button {
+  min-width: 72px;
+  min-height: 36px;
+  border-radius: 10px;
+  padding: 0 16px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.platform-account-cancel {
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--ink);
+}
+
+.platform-account-cancel:hover {
+  background: var(--surface-3);
+}
+
+.platform-account-confirm,
+.team-account-dialog .platform-account-confirm {
+  border: 1px solid transparent;
+  background: var(--accent);
+  color: var(--accent-ink, #fff);
+}
+
+.platform-account-confirm:hover {
+  filter: brightness(1.06);
+}
+
+.platform-account-dialog-actions button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.team-group-dialog {
+  min-height: 304px;
+}
+
+.team-group-dialog.is-edit {
+  min-height: 347px;
+}
+
+@media (max-width: 780px) {
+  .platform-accounts-content-panel {
+    padding: 16px 12px 28px;
+  }
+
+  .platform-accounts-toolbar {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .platform-account-filters {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+
+  .platform-account-search {
+    width: 100%;
+  }
+
+  .platform-account-dialog-header,
+  .platform-account-dialog-actions {
+    padding-right: 14px;
+    padding-left: 14px;
+  }
+
+  .platform-account-dialog-body {
+    padding-right: 14px;
+    padding-left: 14px;
+  }
+
+  .platform-account-role-field {
+    width: 100%;
+  }
+
+  .platform-account-pagination {
+    align-items: flex-start;
+    flex-direction: column;
+    padding: 10px 0;
+  }
+
+  .platform-account-page-controls {
+    max-width: 100%;
+    overflow-x: auto;
+  }
+}

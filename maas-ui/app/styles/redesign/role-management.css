@@ -1,0 +1,407 @@
+.role-management-content-panel {
+  padding: 16px 16px 38px;
+  background: #f1f2f7;
+}
+
+.role-management-view {
+  min-width: 0;
+  width: 100%;
+  color: #324558;
+}
+
+.role-management-title {
+  min-height: 24px;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.role-management-title > .svg-icon {
+  width: 8px;
+  height: 16px;
+}
+
+.role-management-title h1 {
+  margin: 0;
+  color: #324558;
+  font-size: calc(16 * var(--content-font-unit, 1px));
+  font-weight: 500;
+  line-height: 1.2;
+}
+
+.role-management-search {
+  width: 240px;
+  height: calc(28 * var(--content-font-unit, 1px));
+  margin-bottom: 16px;
+  border: 1px solid #cfd6df;
+  border-radius: 4px;
+  padding: 0 9px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  background: #fff;
+  color: #607184;
+}
+
+.role-management-search input {
+  min-width: 0;
+  width: 100%;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: #324558;
+  font-size: calc(12 * var(--content-font-unit, 1px));
+}
+
+.role-management-search input::placeholder {
+  color: #a0a9b4;
+}
+
+.role-management-table-wrap {
+  width: 100%;
+  min-width: 0;
+  overflow-x: auto;
+  border-top: 1px solid #e9ecf2;
+  border-bottom: 1px solid #e9ecf2;
+  background: #fff;
+}
+
+.role-management-table {
+  width: 100%;
+  min-width: 680px;
+  border-collapse: collapse;
+  table-layout: fixed;
+  font-size: calc(12 * var(--content-font-unit, 1px));
+}
+
+.role-management-table th,
+.role-management-table td {
+  height: calc(42 * var(--content-font-unit, 1px));
+  border-bottom: 1px solid #e9ecf2;
+  padding: 7px 12px;
+  color: #273849;
+  line-height: 1.35;
+  text-align: left;
+  vertical-align: middle;
+}
+
+.role-management-table th {
+  background: #f5f7fa;
+  font-weight: 500;
+}
+
+.role-management-table th:first-child {
+  width: 15%;
+}
+
+.role-management-table th:nth-child(2) {
+  width: 70%;
+}
+
+.role-management-table th:last-child {
+  width: 15%;
+  text-align: right;
+}
+
+.role-management-table tbody tr:nth-child(odd) td {
+  background: #fff;
+}
+
+.role-management-table tbody tr:nth-child(even) td {
+  background: #f5f7fa;
+}
+
+.role-management-table tbody tr:hover td {
+  background: #f4f7fb;
+}
+
+.role-management-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.role-management-table tbody td:last-child {
+  text-align: right;
+}
+
+.role-management-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 14px;
+  white-space: nowrap;
+}
+
+.role-management-actions button {
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: #000;
+  font-size: calc(12 * var(--content-font-unit, 1px));
+  cursor: pointer;
+}
+
+.role-management-actions button.is-danger {
+  color: #f05b60;
+}
+
+.role-management-actions button:disabled {
+  color: #b4bdc8;
+  cursor: not-allowed;
+}
+
+.role-management-empty {
+  height: 100px !important;
+  color: #8a95a3 !important;
+  text-align: center !important;
+}
+
+.role-management-pagination {
+  min-height: calc(56 * var(--content-font-unit, 1px));
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  color: #4c5e70;
+  font-size: calc(12 * var(--content-font-unit, 1px));
+}
+
+.role-management-pagination > div {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.role-management-pagination button,
+.role-management-pagination select {
+  height: calc(26 * var(--content-font-unit, 1px));
+  border: 1px solid #e4e8ee;
+  border-radius: 3px;
+  background: transparent;
+  color: #324558;
+  font-size: calc(12 * var(--content-font-unit, 1px));
+}
+
+.role-management-pagination button {
+  min-width: 26px;
+  padding: 0 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.role-management-pagination button.is-active {
+  border-color: #4d67be;
+  background: #4d67be;
+  color: #fff;
+}
+
+.role-management-pagination button:disabled {
+  border-color: transparent;
+  color: #a8b1bd;
+  cursor: not-allowed;
+}
+
+.role-management-pagination select {
+  margin-left: 4px;
+  padding: 0 5px;
+  background: #fff;
+}
+
+.role-management-backdrop {
+  padding: 14px;
+  background: rgba(0, 0, 0, 0.72);
+  backdrop-filter: none;
+}
+
+.role-management-dialog {
+  width: min(832px, 100%);
+  max-height: calc(100vh - 28px);
+  overflow: auto;
+  border-radius: 5px;
+  background: #fff;
+  color: #324558;
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.22);
+}
+
+.role-management-dialog-header {
+  min-height: 48px;
+  padding: 0 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.role-management-dialog-header h2 {
+  margin: 0;
+  color: #1d2129;
+  font-size: calc(16 * var(--content-font-unit, 1px));
+  font-weight: 500;
+}
+
+.role-management-dialog-header button {
+  width: calc(28 * var(--content-font-unit, 1px));
+  height: calc(28 * var(--content-font-unit, 1px));
+  border: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  color: #4c5e70;
+  cursor: pointer;
+}
+
+.role-management-dialog-body {
+  min-height: 202px;
+  padding: 8px 16px 18px;
+}
+
+.role-management-dialog-body h3 {
+  margin: 0 0 20px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #324558;
+  font-size: calc(14 * var(--content-font-unit, 1px));
+  font-weight: 500;
+}
+
+.role-management-dialog-body h3 i {
+  width: 3px;
+  height: 14px;
+  border-radius: 2px;
+  background: #3f7cf3;
+}
+
+.role-management-field {
+  display: grid;
+  gap: 7px;
+}
+
+.role-management-field + .role-management-field {
+  margin-top: 16px;
+}
+
+.role-management-field > span {
+  color: #4c5e70;
+  font-size: calc(12 * var(--content-font-unit, 1px));
+  line-height: 1.2;
+}
+
+.role-management-field > span b {
+  margin-right: 3px;
+  color: #f05b60;
+  font-weight: 500;
+}
+
+.role-management-field input,
+.role-management-field textarea {
+  width: 100%;
+  border: 1px solid #cfd6df;
+  border-radius: 3px;
+  outline: 0;
+  padding: 0 9px;
+  background: #fff;
+  color: #324558;
+  font: inherit;
+  font-size: calc(12 * var(--content-font-unit, 1px));
+}
+
+.role-management-field input {
+  height: calc(28 * var(--content-font-unit, 1px));
+}
+
+.role-management-field textarea {
+  min-height: calc(28 * var(--content-font-unit, 1px));
+  max-height: 500px;
+  padding-top: 6px;
+  overflow-y: hidden;
+  resize: none;
+}
+
+.role-management-field input:disabled {
+  background: #f5f7fa;
+  color: #7b8794;
+  cursor: not-allowed;
+}
+
+.role-management-field input:focus,
+.role-management-field textarea:focus {
+  border-color: #7fa7f8;
+  box-shadow: 0 0 0 2px rgba(63, 124, 243, 0.1);
+}
+
+.role-management-field input::placeholder,
+.role-management-field textarea::placeholder {
+  color: #b4bdc8;
+}
+
+.role-management-form-error {
+  margin: 7px 0 0;
+  color: #f05b60;
+  font-size: calc(12 * var(--content-font-unit, 1px));
+}
+
+.role-management-dialog-actions {
+  min-height: 53px;
+  border-top: 1px solid #e4e7ed;
+  padding: 0 16px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.role-management-dialog-actions button {
+  min-width: 56px;
+  height: calc(28 * var(--content-font-unit, 1px));
+  border-radius: 3px;
+  padding: 0 13px;
+  font-size: calc(12 * var(--content-font-unit, 1px));
+  cursor: pointer;
+}
+
+.role-management-cancel {
+  border: 1px solid #cfd6df;
+  background: #fff;
+  color: #4c5e70;
+}
+
+.role-management-confirm {
+  border: 1px solid #4d67be;
+  background: #4d67be;
+  color: #fff;
+}
+
+.role-management-dialog-actions button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+@media (max-width: 780px) {
+  .role-management-content-panel {
+    padding: 16px 12px 28px;
+  }
+
+  .role-management-search {
+    width: 100%;
+  }
+
+  .role-management-pagination {
+    align-items: flex-start;
+    flex-direction: column;
+    padding: 12px 0;
+  }
+
+  .role-management-dialog-header,
+  .role-management-dialog-actions {
+    padding-right: 14px;
+    padding-left: 14px;
+  }
+
+  .role-management-dialog-body {
+    padding-right: 14px;
+    padding-left: 14px;
+  }
+}

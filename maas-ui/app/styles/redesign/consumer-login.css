@@ -1,0 +1,125 @@
+.consumer-login-shell .login-account-stage {
+  grid-template-columns: minmax(380px, 37.36%) minmax(0, 1fr);
+}
+
+.consumer-login-shell .login-account-main {
+  padding-top: clamp(60px, 16vh, 130px);
+  background: #f7f8fc;
+}
+
+.consumer-login-shell .login-account-card {
+  align-self: start;
+}
+
+.consumer-login-shell .login-account-logo {
+  top: 0;
+  left: 0;
+  width: 253px;
+  height: 42px;
+}
+
+.consumer-login-shell .login-helper-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 34px;
+}
+
+.consumer-login-shell .login-account-card .login-submit,
+.consumer-login-shell .consumer-auth-link {
+  font-weight: 400;
+}
+
+.consumer-auth-link {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #506bc2;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.consumer-auth-link:disabled {
+  cursor: default;
+  opacity: .6;
+}
+
+.consumer-auth-link:focus-visible {
+  outline: 2px solid #506bc2;
+  outline-offset: 4px;
+}
+
+.consumer-registration-heading {
+  margin-bottom: 22px;
+}
+
+.consumer-registration-heading h1 {
+  margin: 0 0 7px;
+  color: #324558;
+  font-size: 21px;
+}
+
+.consumer-registration-heading p,
+.consumer-form-note {
+  margin: 0;
+  color: #667385;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.consumer-registration .login-account-field + .login-account-field {
+  margin-top: 14px;
+}
+
+.consumer-sms-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.consumer-code-button {
+  min-width: 112px;
+  border: 1px solid #b8c1ce;
+  border-radius: 3px;
+  padding: 0 10px;
+  background: #fff;
+  color: #506bc2;
+  white-space: nowrap;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.consumer-code-button:disabled {
+  color: #8b94a3;
+  cursor: default;
+}
+
+.consumer-login-shell .consumer-registration .login-error {
+  margin: 14px 0;
+  overflow-wrap: anywhere;
+}
+
+.consumer-form-note {
+  margin: 12px 0;
+}
+
+.consumer-registration .login-submit {
+  width: 100%;
+  margin-top: 22px;
+}
+
+.consumer-back {
+  display: block;
+  margin: 18px auto 0;
+}
+
+@media (max-width: 700px) {
+  .consumer-login-shell .login-account-stage { display: block; }
+  .consumer-login-shell .login-account-main { padding-top: 80px; }
+  .consumer-login-shell .login-helper-row { flex-direction: row; }
+}
+
+@media (max-height: 840px) {
+  .consumer-login-shell:has(.consumer-registration) .login-account-main { padding-top: 30px; }
+}
