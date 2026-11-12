@@ -23,6 +23,7 @@ import (
 )
 
 type Server struct {
+	monitoringObservations           monitoringObservationCache
 	semanticRouter                   semanticEvaluator
 	pluginRuntimeMu                  sync.RWMutex
 	pluginLifecycleMu                sync.Mutex
@@ -48,6 +49,7 @@ type Server struct {
 	credentialRefresh                *ProviderCredentialRefreshService
 	payloadRetention                 *requestPayloadRetentionService
 	providerMonitoring               *providerMonitoringScheduler
+	providerCatalogSync              *providerCatalogScheduler
 	mux                              *http.ServeMux
 	publicGatewayOperations          map[gatewayOperation]bool
 	config                           Config
@@ -174,6 +176,7 @@ func newWithConfig(store Store, config Config, dependencies ApplicationDependenc
 		Timeout:       providerCatalogUpstreamTimeout,
 	}
 	if gormStore, ok := store.(*GormStore); ok {
+		gormStore.nativeRefreshes.resume()
 		gormStore.providerProxyPolicy = providerProxyPolicy
 	}
 	providerRuntime := newBuiltinProviderRuntime(builtinProviderRuntimeDependencies{
@@ -189,6 +192,7 @@ func newWithConfig(store Store, config Config, dependencies ApplicationDependenc
 		panic(err)
 	}
 	providerCatalog := newProviderCatalogService(store, config.ProviderCatalogFile, catalogClient)
+	providerCatalog.SetUpstreamURL(config.ProviderCatalogUpstreamURL)
 	providerCatalog.UsePluginCatalogTypes(pluginBootstrap.adapterRegistry)
 	s := &Server{
 		store:                            store,
@@ -240,6 +244,7 @@ func newWithConfig(store Store, config Config, dependencies ApplicationDependenc
 		providerProxyPolicy: providerProxyPolicy,
 	}
 	s.providerMonitoring = newProviderMonitoringScheduler(store, s.runProviderMonitoring)
+	s.providerCatalogSync = newProviderCatalogScheduler(store, s.runProviderCatalogSync)
 	s.pluginBackgroundRunner.SetSchedulerSnapshotLocker(s.pluginRuntimeMu.RLocker())
 	s.installServerPluginHandlers(&pluginBootstrap)
 	if err := pluginmeta.NewRuntime(config.PluginDir).CompleteRuntimeRestart(); err != nil {
@@ -491,6 +496,7 @@ func modelIDFromPath(r *http.Request) (string, error) {
 }
 
 type modelListItem struct {
+	pricingUnavailable   bool
 	ID                   string `json:"id"`
 	Created              int64  `json:"created"`
 	Object               string `json:"object"`
@@ -513,6 +519,7 @@ func buildModelListItem(model Model) modelListItem {
 		inputPrice = model.EmbeddingPriceUSDPer1M
 	}
 	return modelListItem{
+		pricingUnavailable:   model.pricingUnavailable,
 		ID:                   model.Name,
 		Created:              modelCreatedUnix(model),
 		Object:               "model",

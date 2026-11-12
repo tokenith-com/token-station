@@ -117,6 +117,9 @@ func (s *Server) routes() {
 	}
 	s.registerDynamicGETRoute("/api/admin/provider-catalog/{catalog_id}", s.handleAdminProviderCatalogItem, s.adminMethodNotAllowed("provider", http.MethodGet))
 	s.mux.HandleFunc("/api/admin/provider-catalog/", s.handleAdminProviderCatalogItem)
+	// Top-level path keeps the mux method sets disjoint from the
+	// /api/admin/provider-catalog/{catalog_id} subtree routes.
+	s.registerSingleMethodRoute(http.MethodPost, "/api/admin/provider-catalog-sync", s.handleAdminProviderCatalogSyncPost, s.adminMethodNotAllowed("provider", http.MethodPost))
 	s.registerSingleMethodRoute(http.MethodGet, "/api/admin/provider-adapters", s.handleAdminProviderAdapters, s.adminMethodNotAllowed("providers", http.MethodGet))
 	s.registerSingleMethodRoute(http.MethodGet, "/api/admin/plugins", s.handleAdminPlugins, s.adminMethodNotAllowed("providers", http.MethodGet))
 	s.registerSingleMethodRoute(http.MethodGet, "/api/admin/plugins/{plugin_id}/detail", s.handleAdminPluginDetailGet, s.adminMethodNotAllowed("providers", http.MethodGet))
@@ -139,6 +142,7 @@ func (s *Server) routes() {
 	s.registerSingleMethodRoute(http.MethodPost, "/api/admin/provider-account-oauth/openai/generate-auth-url", s.handleAdminOpenAIAccountOAuthGenerateAuthURL, s.adminMethodNotAllowed("provider", http.MethodPost))
 	s.registerSingleMethodRoute(http.MethodPost, "/api/admin/provider-account-oauth/openai/exchange-code", s.handleAdminOpenAIAccountOAuthExchangeCode, s.adminMethodNotAllowed("provider", http.MethodPost))
 	s.registerSingleMethodRoute(http.MethodGet, "/api/admin/provider-account-oauth/openai/oauth/callback", s.handleOpenAIAccountOAuthCallbackGet, jsonMethodNotAllowed(http.MethodGet))
+	s.registerSingleMethodRoute(http.MethodGet, "/auth/callback", s.handleChatGPTSubscriptionCallback, jsonMethodNotAllowed(http.MethodGet))
 	s.registerMethodRoutes("/api/admin/api-keys", func(allowedMethods string) http.HandlerFunc {
 		return s.adminMethodNotAllowed("api_key", allowedMethods)
 	},

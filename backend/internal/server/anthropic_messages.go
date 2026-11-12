@@ -208,15 +208,14 @@ func (s *Server) decodeAnthropicMessagesRequest(w http.ResponseWriter, r *http.R
 	if !ok || len(messages) == 0 {
 		return anthropicMessagesRequest{}, NewHTTPError(http.StatusBadRequest, "missing_messages", "messages are required")
 	}
-	allowSystemMessages := anthropicBetaEnabled(r.Header.Get("anthropic-beta"), anthropicMidConversationSystemBeta)
 	for _, item := range messages {
 		message, ok := item.(map[string]any)
 		if !ok {
 			return anthropicMessagesRequest{}, NewHTTPError(http.StatusBadRequest, "invalid_message", "each message must be an object")
 		}
 		role, _ := message["role"].(string)
-		if role != "user" && role != "assistant" && !(allowSystemMessages && role == "system") {
-			return anthropicMessagesRequest{}, NewHTTPError(http.StatusBadRequest, "invalid_message", "message role must be user or assistant")
+		if role != "user" && role != "assistant" && role != "system" {
+			return anthropicMessagesRequest{}, NewHTTPError(http.StatusBadRequest, "invalid_message", "message role must be user, assistant, or system")
 		}
 		if _, exists := message["content"]; !exists {
 			return anthropicMessagesRequest{}, NewHTTPError(http.StatusBadRequest, "invalid_message", "message content is required")
@@ -236,17 +235,8 @@ func (s *Server) decodeAnthropicMessagesRequest(w http.ResponseWriter, r *http.R
 	}, nil
 }
 
-func anthropicBetaEnabled(header string, target string) bool {
-	for _, beta := range strings.Split(header, ",") {
-		if strings.TrimSpace(beta) == target {
-			return true
-		}
-	}
-	return false
-}
-
 func keyCanAccessModel(store Store, key APIKey, model string) bool {
-	for _, candidate := range store.AccessibleModels(key) {
+	for _, candidate := range accessibleModelMembership(store, key) {
 		if candidate.Name == model || candidate.ID == model {
 			return true
 		}

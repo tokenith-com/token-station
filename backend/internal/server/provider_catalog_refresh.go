@@ -15,15 +15,38 @@ const (
 	providerCatalogUpstreamURL     = "https://raw.githubusercontent.com/ThinkInAIXYZ/PublicProviderConf/dev/dist/all.json"
 	providerCatalogUpstreamTimeout = 15 * time.Second
 	providerCatalogMaxBytes        = 16 << 20
+	// defaultProviderCatalogSyncIntervalSeconds backs the daily background
+	// refresh of the public catalog. Operators can override it with
+	// TOKENHUB_PROVIDER_CATALOG_SYNC_INTERVAL_SECONDS; zero disables the
+	// scheduler entirely for air-gapped deployments.
+	defaultProviderCatalogSyncIntervalSeconds = 24 * 60 * 60
 )
 
-// These entries are reviewed against first-party documentation and must not be
+// providerCatalogFreshInterval is how long a previously fetched upstream
+// snapshot satisfies an admin refresh without re-downloading the multi-megabyte
+// catalog. Reads outside this window still work from the stored snapshot; only
+// the explicit sync endpoint bypasses it.
+var providerCatalogFreshInterval = 24 * time.Hour
+
+// These entries are reviewed against documentation or pinned upstream presets and must not be
 // replaced by an older upstream snapshot during an explicit catalog refresh.
 var curatedLocalProviderCatalogs = map[string]bool{
-	"stepfun":        true,
-	"stepfun-global": true,
-	"stepfun-plan":   true,
-	"stepfun-ai":     true,
+	"stepfun":                            true,
+	"stepfun-global":                     true,
+	"stepfun-plan":                       true,
+	"stepfun-ai":                         true,
+	"baidu-qianfan-personal":             true,
+	"baidu-qianfan-team":                 true,
+	"huawei-maas-token-plan":             true,
+	"volcengine-coding-plan":             true,
+	"volcengine-agent-plan":              true,
+	"qwen-token-plan":                    true,
+	"kimi-code-global":                   true,
+	"tencent-token-plan-enterprise-intl": true,
+	"clinepass":                          true,
+	"ollama-cloud":                       true,
+	"commandcode":                        true,
+	"nous":                               true,
 }
 
 type providerCatalogHTTPClient interface {

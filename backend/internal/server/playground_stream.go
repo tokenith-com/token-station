@@ -492,6 +492,11 @@ func (s *Server) newPlaygroundCallContext(user AdminUser, model string, startedA
 
 func (s *Server) preparePlaygroundRoutedCall(ctx context.Context, req ChatCompletionRequest, call CallContext) (RoutedCall, error) {
 	routed := RoutedCall{Call: call}
+	var err error
+	routed.Call.Model, err = resolvePlaygroundModelPricing(s.store, call.Model)
+	if err != nil {
+		return routed, err
+	}
 	routes, err := s.store.SelectRouteCandidates(req.Model)
 	if err != nil {
 		err = s.annotateRoutingPolicyForCandidateError(&routed.Call, err)
@@ -545,7 +550,7 @@ func (s *Server) executeRoutedPlaygroundStream(
 				}
 				attemptResult, attemptUsage, attemptErr = s.streamPlaygroundResponses(ctx, r, prepared, upstreamReq, routed.Call, events, routed.Call.RequestID)
 				if providerResourceModelUnsupportedError(attemptErr) {
-					s.removeProviderResourceModel(routeResourceID(prepared), prepared.ProviderModel)
+					s.removeProviderResourceModel(ctx, prepared)
 				}
 			} else {
 				upstreamReq := req
@@ -626,7 +631,7 @@ func (s *Server) streamPlaygroundResponses(
 	}
 	opened, err := streamAdapter.OpenResponses(ctx, route.Provider, route.ProviderModel, req, r.Header)
 	if err != nil {
-		return playgroundStreamResult{}, Usage{}, err
+		return playgroundStreamResult{}, subscriptionJSONFailureUsage(err), err
 	}
 	defer opened.Body.Close()
 	sink := newPlaygroundDeltaSink(events, requestID)

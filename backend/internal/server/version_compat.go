@@ -19,15 +19,15 @@ type CompatibilityManifest struct {
 }
 
 // CurrentCompatibilityManifest is this release's declaration. This release
-// requires the metering evidence, audit correlation, Jev response binding,
-// image-job worker instance, and media task binding expansions. Version 9
-// adds usage window indexes without changing read/write compatibility with
-// version 8. Startup applies the indexes before admitting requests.
+// requires all registered expansions, including version 10's persistent OAuth
+// tables and version 11's Responses image continuations. Startup applies these
+// additive tables before admitting requests; historical releases keep their
+// existing compatibility declarations.
 func CurrentCompatibilityManifest() CompatibilityManifest {
 	return CompatibilityManifest{
-		TargetVersion: 9,
-		MinCompatible: 8,
-		MaxCompatible: 9,
+		TargetVersion: 11,
+		MinCompatible: 11,
+		MaxCompatible: 11,
 	}
 }
 

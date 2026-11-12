@@ -252,7 +252,7 @@ func (s *Server) handleResponses(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var req ResponsesRequest
-	if err := s.decodeJSONLimit(w, r, &req, s.config.MaxMultimodalRequestBytes); err != nil {
+	if err := s.decodeJSONLimit(w, r, &req, s.responsesDecodeLimit()); err != nil {
 		writeError(w, r, err)
 		return
 	}
@@ -403,6 +403,11 @@ func (s *Server) handleResponses(w http.ResponseWriter, r *http.Request) {
 		writeError(w, r, err)
 		return
 	}
+	if err := s.applyResponsesImageStore(r.Context(), &routed, &req, r.Header); err != nil {
+		s.finishFailedRoutedCall(r, routed, nil, Usage{}, err, auditPayload)
+		writeError(w, r, err)
+		return
+	}
 	if req.Stream {
 		s.handleStreamingResponses(w, r, routed, req, auditPayload)
 		return
@@ -414,6 +419,7 @@ func (s *Server) handleResponses(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	upstreamResponseID := jevResponseID(resp)
+	captureResponsesImageOutput(&req, resp)
 	s.store.MarkRouteUsed(route.Route.ID)
 	s.store.MarkProviderResourceUsed(routeResourceID(route))
 	resp, err = s.runGatewayResponsePostHooks(r.Context(), routed.Call, route, resp, providerRouteProtocolResponses)
@@ -435,6 +441,11 @@ func (s *Server) handleResponses(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err := s.bindJevResponse(r.Context(), routed.Call, route, map[string]string{"id": upstreamResponseID}, jevResponseID(resp)); err != nil {
+		s.finishFailedRoutedCall(r, routed, attempts, usage, err, auditPayload)
+		writeError(w, r, err)
+		return
+	}
+	if err := s.rememberResponsesImageStore(r.Context(), routed.Call, route, r.Header, req, map[string]string{"id": upstreamResponseID}); err != nil {
 		s.finishFailedRoutedCall(r, routed, attempts, usage, err, auditPayload)
 		writeError(w, r, err)
 		return
@@ -606,6 +617,11 @@ func (s *Server) handleAdminPlaygroundChat(w http.ResponseWriter, r *http.Reques
 		})
 		writeError(w, r, routeErr)
 	}
+	routed.Call.Model, err = resolvePlaygroundModelPricing(s.store, routed.Call.Model)
+	if err != nil {
+		finishRoutingFailure(err)
+		return
+	}
 	routes, err := s.store.SelectRouteCandidates(req.Model)
 	if err != nil {
 		finishRoutingFailure(err)
@@ -703,6 +719,7 @@ func executeRoutedWithStore[T any](
 	// without invoking the callback, so a local counter would undercount them.
 	call func(context.Context, RouteSelection, bool, int) (T, Usage, error),
 ) (T, RouteSelection, Usage, []RouteAttempt, error) {
+	ctx = withSubscriptionCaller(ctx, routed.Call.Project.ID, routed.Call.Key.ID)
 	var zero T
 	var lastErr error = ErrProviderMissing
 	var cumulativeTokens int64
