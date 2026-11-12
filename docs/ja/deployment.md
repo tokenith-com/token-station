@@ -393,6 +393,8 @@ docker inspect --format 'memory={{.HostConfig.Memory}} memory_swap={{.HostConfig
 | `TOKENHUB_SQLITE_BACKUP_DIR` | `/app/data/backups` | バックアップ出力ディレクトリ |
 | `TOKENHUB_MODEL_CATALOG_FILE` | `/opt/tokenhub/current/catalog/model-catalog.yaml` | 管理対象デプロイの標準モデルカタログファイル |
 | `TOKENHUB_PROVIDER_CATALOG_FILE` | `/opt/tokenhub/current/catalog/provider-catalog.json` | 管理対象デプロイの Provider テンプレートと候補モデルのカタログファイル |
+| `TOKENHUB_PROVIDER_CATALOG_UPSTREAM_URL` | 組み込みの公開カタログ URL | 手動更新や有効化した定期同期に使う任意の URL。明示的に空にするとローカルカタログのみ使用 |
+| `TOKENHUB_PROVIDER_CATALOG_SYNC_INTERVAL_SECONDS` | `0` | カタログの定期同期間隔（秒）。未設定または `0` の場合は定期同期を無効化。例えば `86400` を指定すると毎日同期 |
 | `TOKENHUB_PLUGIN_DIR` | `/app/plugins` | 起動時にスキャンされ、プラグインのライフサイクル操作後にホットリロードされる永続的なパッケージディレクトリ。複数インスタンス構成では全レプリカで同じプラグインバージョンを調整する必要があります |
 | `TOKENHUB_PLUGIN_MARKETPLACE_URL` | 空 | 管理画面がプラグイン一覧を閲覧するための HTTPS プラグイン市場インデックス URL（オンライン索引は検証まで探索専用） |
 | `TOKENHUB_SEED_DEMO` | `false` | デモデータを投入するか |

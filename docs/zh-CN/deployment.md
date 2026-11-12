@@ -393,6 +393,8 @@ docker inspect --format 'memory={{.HostConfig.Memory}} memory_swap={{.HostConfig
 | `TOKENHUB_SQLITE_BACKUP_DIR` | `/app/data/backups` | 备份目录 |
 | `TOKENHUB_MODEL_CATALOG_FILE` | `/opt/tokenhub/current/catalog/model-catalog.yaml` | 托管部署中的标准模型目录文件 |
 | `TOKENHUB_PROVIDER_CATALOG_FILE` | `/opt/tokenhub/current/catalog/provider-catalog.json` | 托管部署中的 Provider 模板与候选模型目录文件 |
+| `TOKENHUB_PROVIDER_CATALOG_UPSTREAM_URL` | 内置公共目录地址 | 手动刷新或已启用定时同步时使用的可选目录地址。显式设为空时仅使用本地目录 |
+| `TOKENHUB_PROVIDER_CATALOG_SYNC_INTERVAL_SECONDS` | `0` | 目录定时同步间隔，单位为秒。未设置或设为 `0` 时关闭定时同步。例如设为 `86400` 可启用每日同步 |
 | `TOKENHUB_PLUGIN_DIR` | `/app/plugins` | 持久化插件包目录，后端启动时扫描，并在插件生命周期操作后热加载；多实例部署必须协调所有副本使用相同插件版本 |
 | `TOKENHUB_PLUGIN_MARKETPLACE_URL` | 空 | HTTPS 插件市场索引 URL，供管理后台浏览插件列表；在线索引在完成验证前仅用于发现 |
 | `TOKENHUB_SEED_DEMO` | `false` | 是否写入演示数据 |

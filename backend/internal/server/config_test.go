@@ -151,10 +151,8 @@ func TestConfigFromEnvEnablesResponseWorkerStartup(t *testing.T) {
 }
 
 // TestConfigFromEnvPreservesProviderCatalogDisableValues covers the two opt-outs the
-// deployment documentation offers for air-gapped installs: an empty upstream URL serves
-// only the bundled catalog, and a zero interval stops the daily scheduler. Both are
-// explicit values, so they must survive ConfigFromEnv instead of being replaced by the
-// public URL and the 86400-second default.
+// deployment documentation offers for offline use: an empty upstream URL serves
+// the bundled catalog, and a zero interval disables scheduled refresh.
 func TestConfigFromEnvPreservesProviderCatalogDisableValues(t *testing.T) {
 	t.Setenv("TOKENHUB_PROVIDER_CATALOG_UPSTREAM_URL", "")
 	t.Setenv("TOKENHUB_PROVIDER_CATALOG_SYNC_INTERVAL_SECONDS", "0")
@@ -168,9 +166,8 @@ func TestConfigFromEnvPreservesProviderCatalogDisableValues(t *testing.T) {
 	}
 }
 
-// TestConfigFromEnvDefaultsProviderCatalogWhenUnset keeps the other half of the
-// contract: an operator who never sets the variables still gets the public upstream and
-// the daily interval.
+// Unset options preserve the deployed behavior: use the public directory for
+// manual refresh and keep scheduled refresh disabled.
 func TestConfigFromEnvDefaultsProviderCatalogWhenUnset(t *testing.T) {
 	previousURL, hadURL := os.LookupEnv("TOKENHUB_PROVIDER_CATALOG_UPSTREAM_URL")
 	previousInterval, hadInterval := os.LookupEnv("TOKENHUB_PROVIDER_CATALOG_SYNC_INTERVAL_SECONDS")
@@ -197,20 +194,18 @@ func TestConfigFromEnvDefaultsProviderCatalogWhenUnset(t *testing.T) {
 	if config.ProviderCatalogUpstreamURL != providerCatalogUpstreamURL {
 		t.Fatalf("unset upstream URL = %q, want %q", config.ProviderCatalogUpstreamURL, providerCatalogUpstreamURL)
 	}
-	if config.ProviderCatalogSyncIntervalSeconds != defaultProviderCatalogSyncIntervalSeconds {
-		t.Fatalf("unset interval = %d, want %d", config.ProviderCatalogSyncIntervalSeconds, defaultProviderCatalogSyncIntervalSeconds)
+	if config.ProviderCatalogSyncIntervalSeconds != 0 {
+		t.Fatalf("unset interval = %d, want scheduled refresh disabled", config.ProviderCatalogSyncIntervalSeconds)
 	}
 }
 
-// TestConfigFromEnvRejectsMalformedProviderCatalogInterval keeps a malformed value from
-// being read as the documented zero-shaped disable switch.
-func TestConfigFromEnvRejectsMalformedProviderCatalogInterval(t *testing.T) {
-	for _, value := range []string{"-1", "daily", "86400s"} {
+func TestConfigFromEnvRequiresPositiveProviderCatalogIntervalForScheduling(t *testing.T) {
+	for value, want := range map[string]int{"86400": 86400, "-1": 0, "daily": 0, "86400s": 0} {
 		t.Run(value, func(t *testing.T) {
 			t.Setenv("TOKENHUB_PROVIDER_CATALOG_SYNC_INTERVAL_SECONDS", value)
 			config := ConfigFromEnv()
-			if config.ProviderCatalogSyncIntervalSeconds != defaultProviderCatalogSyncIntervalSeconds {
-				t.Fatalf("malformed interval %q = %d, want the default %d", value, config.ProviderCatalogSyncIntervalSeconds, defaultProviderCatalogSyncIntervalSeconds)
+			if config.ProviderCatalogSyncIntervalSeconds != want {
+				t.Fatalf("interval %q = %d, want %d", value, config.ProviderCatalogSyncIntervalSeconds, want)
 			}
 		})
 	}

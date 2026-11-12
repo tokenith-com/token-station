@@ -393,6 +393,8 @@ Options: `--rebuild`, `--reset` to drop the local database, `--backend-port N`, 
 | `TOKENHUB_SQLITE_BACKUP_DIR` | `/app/data/backups` | Backup output directory |
 | `TOKENHUB_MODEL_CATALOG_FILE` | `/opt/tokenhub/current/catalog/model-catalog.yaml` | Standard model catalog file in managed deployments |
 | `TOKENHUB_PROVIDER_CATALOG_FILE` | `/opt/tokenhub/current/catalog/provider-catalog.json` | Provider templates and candidate-model catalog file in managed deployments |
+| `TOKENHUB_PROVIDER_CATALOG_UPSTREAM_URL` | Built-in public catalog URL | Optional URL for manual catalog refresh and scheduled sync when enabled. An explicitly empty value uses only the local catalog |
+| `TOKENHUB_PROVIDER_CATALOG_SYNC_INTERVAL_SECONDS` | `0` | Scheduled catalog sync interval in seconds. Zero or unset disables scheduled sync. For example, `86400` enables daily sync |
 | `TOKENHUB_PLUGIN_DIR` | `/app/plugins` | Persistent plugin package directory scanned at startup and reloaded after plugin lifecycle operations; multi-instance deployments must coordinate the same package version across replicas |
 | `TOKENHUB_PLUGIN_MARKETPLACE_URL` | empty | HTTPS plugin-marketplace index URL used by the admin console to browse plugin listings; online indexes are discovery-only until verified |
 | `TOKENHUB_SEED_DEMO` | `false` | Whether to seed demo data |
