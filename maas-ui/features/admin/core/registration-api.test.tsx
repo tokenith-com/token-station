@@ -1,33 +1,43 @@
-import { describe, expect, it, vi } from "vitest";
-import { registerConsumer, sendRegistrationSMS, type CaptchaProof } from "./registration-api";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { completeActivation, consumeActivationTokenFromURL, requestActivation, verifyActivation } from "./registration-api";
 
-const proof = { lot_number: "lot", captcha_output: "output+&", pass_token: "proof", gen_time: "123" };
+afterEach(() => vi.unstubAllGlobals());
 
-describe("SMS registration API", () => {
-  it("posts all captcha fields as form data and returns the SMS session", async () => {
-    const fetcher = vi.fn().mockResolvedValue(Response.json({ code: 200, message: "sms_sent", session_id: "sms-session" }));
+describe("email activation API", () => {
+  it("posts the email as JSON and returns the resend window", async () => {
+    const fetcher = vi.fn().mockResolvedValue(Response.json({ email: "a@example.com", expires_at: "2026-11-14T00:00:00Z", resend_after_secs: 60 }));
     vi.stubGlobal("fetch", fetcher);
-    await expect(sendRegistrationSMS("13800000000", proof)).resolves.toBe("sms-session");
+    await expect(requestActivation("a@example.com", "cap_1", "ABCD")).resolves.toMatchObject({ resend_after_secs: 60 });
     const [url, init] = fetcher.mock.calls[0];
-    expect(url).toBe("/api/backend/api/admin/auth/sendsms");
-    expect(init.headers["content-type"]).toBe("application/x-www-form-urlencoded");
-    expect(Object.fromEntries(new URLSearchParams(init.body))).toEqual({ ...proof, mobile: "13800000000" });
+    expect(String(url)).toMatch(/\/api\/admin\/auth\/register\/activation$/);
+    expect(init.method).toBe("POST");
+    expect(JSON.parse(init.body)).toEqual({ email: "a@example.com", captcha_id: "cap_1", captcha_answer: "ABCD" });
   });
 
-  it("rejects incomplete captcha proofs without sending SMS", async () => {
-    const fetcher = vi.fn();
+  it("maps backend error codes to localized messages", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(Response.json({ error: { code: "email_already_registered", message: "exists" } }, { status: 409 })));
+    await expect(requestActivation("a@example.com", "cap_1", "ABCD")).rejects.toThrow("该邮箱已注册，请直接登录");
+  });
+
+  it("verifies the token through the query string", async () => {
+    const fetcher = vi.fn().mockResolvedValue(Response.json({ email: "a@example.com", expires_at: "x" }));
     vi.stubGlobal("fetch", fetcher);
-    await expect(sendRegistrationSMS("13800000000", {} as CaptchaProof)).rejects.toThrow("图形验证");
-    expect(fetcher).not.toHaveBeenCalled();
+    await expect(verifyActivation("t+/=")).resolves.toMatchObject({ email: "a@example.com" });
+    expect(String(fetcher.mock.calls[0][0])).toMatch(/activation\/verify\?token=t%2B%2F%3D$/);
   });
 
-  it.each(["ExpiredCode", "InvalidCode", "EmailExists", "MobileExists"])("rejects HTTP 200 business failure %s", async message => {
-    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(Response.json({ code: 401, message })));
-    await expect(registerConsumer({ email: "a@example.com", name: "", password: "password1", mobile: "13800000000", code: "123456", session_id: "sms" })).rejects.toThrow();
+  it("completes activation with the confirmed password", async () => {
+    const fetcher = vi.fn().mockResolvedValue(Response.json({ user: {} }));
+    vi.stubGlobal("fetch", fetcher);
+    await completeActivation("token", "password1", "password1");
+    expect(JSON.parse(fetcher.mock.calls[0][1].body)).toEqual({ token: "token", password: "password1", confirm_password: "password1" });
   });
 
-  it("does not accept a successful SMS response without a session", async () => {
-    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(Response.json({ code: 200, message: "sms_sent" })));
-    await expect(sendRegistrationSMS("13800000000", proof)).rejects.toThrow("会话信息");
+  it("removes the activation token from the URL fragment", () => {
+    const replace = vi.fn();
+    expect(consumeActivationTokenFromURL("https://hub.example.com/login?x=1#activation_token=abc", replace)).toBe("abc");
+    expect(replace).toHaveBeenCalledWith("/login?x=1");
+    expect(consumeActivationTokenFromURL("https://hub.example.com/#other=1", replace)).toBe("");
+    expect(replace).toHaveBeenCalledTimes(1);
   });
 });

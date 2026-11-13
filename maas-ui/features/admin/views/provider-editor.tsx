@@ -1014,7 +1014,7 @@ export function ProviderUpsertModal({
         method: targetProviderID ? "PATCH" : "POST",
         body: JSON.stringify(mode === "edit" && provider ? preserveRetrievalCatalog(payload, provider) : payload),
       });
-      if (!resp.ok) throw new Error(await readAdminError(resp, `${targetProviderID ? tx("更新") : tx("创建")} ${tx("Provider 渠道")}`));
+      if (!resp.ok) throw new Error(await readAdminError(resp, `${targetProviderID ? tx("更新") : tx("创建")} ${tx("供应商")}`));
       const result = (await resp.json()) as { imported_models?: number; provider?: Provider };
       let accountResourceCreated = false;
       if (mode === "create" && credentialMode === "account_integration") {
@@ -1062,7 +1062,7 @@ export function ProviderUpsertModal({
         <div className="modal-header">
           <div>
             <p className="eyebrow">{tx(mode === "edit" ? "编辑" : "新增")}</p>
-            <h2>{tx(mode === "create" ? createStep === 0 ? "选择供应商" : "添加供应商" : "Provider 渠道")}</h2>
+            <h2>{tx(mode === "create" ? createStep === 0 ? "选择供应商" : "添加供应商" : "供应商")}</h2>
           </div>
           <button className="icon-button" onClick={onClose} type="button" title={tx("关闭")}>×</button>
         </div>

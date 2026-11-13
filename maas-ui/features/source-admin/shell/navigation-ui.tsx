@@ -144,7 +144,6 @@ export function Sidebar({
         <div className="account-avatar">{userInitial(user)}</div>
         <div className="account-meta">
           <strong>{displayText(user.name) || user.username}</strong>
-          <span>{roleLabel(user.role)}</span>
         </div>
         <button className="account-logout" onClick={onLogout} type="button" title={tx("退出登录")}>
           <LogOut size={15} />
@@ -261,7 +260,7 @@ export function navPathForView(user: AdminUser, view: ViewKey) {
 export function pageHeaderCrumbs(user: AdminUser, view: ViewKey, meta: { title: string }) {
   const path = navPathForView(user, view);
   const pathGroup = path.group || pageHeaderFallbackGroup(view, user);
-  const crumbs: { label: string; view?: ViewKey }[] = [{ label: "TokenHub", view: "overview" }];
+  const crumbs: { label: string; view?: ViewKey }[] = [{ label: "TokenStation", view: "overview" }];
   if (pathGroup) crumbs.push({ label: pathGroup });
   if (path.parent) crumbs.push({ label: path.parent });
   crumbs.push({ label: path.label || meta.title });
@@ -329,7 +328,7 @@ export function pageHeaderChips(view: ViewKey, data: AppData, user: AdminUser) {
     case "billing":
       return [
         { label: "请求", value: formatNumber(data.summary.request_count) },
-        { label: "成本", value: `$${formatMoney(data.summary.estimated_cost_usd)}` },
+        { label: "成本", value: `¥${formatMoney(data.summary.estimated_cost_usd)}` },
       ];
     case "audit":
       return [

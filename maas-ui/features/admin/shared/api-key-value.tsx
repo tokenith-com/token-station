@@ -1,32 +1,31 @@
 import { Check, Copy, Eye, EyeOff } from "lucide-react";
 import { useState } from "react";
-import type { APIKey } from "../core/types";
+import type { ApiContext, APIKey } from "../core/types";
 import { tx } from "../i18n/runtime";
+import { backendRequest } from "../core/api-client";
 
-const issuedKeyStorageKey = "tokenhub.issued-api-keys";
+// The console registers its authenticated context here so table cells can fetch
+// the full key on demand without threading the session through every renderer.
+let secretContext: ApiContext | null = null;
 
-function readIssuedKeys(): string[] {
+export function configureAPIKeySecretContext(ctx: ApiContext) {
+  secretContext = ctx;
+}
+
+export async function fetchAPIKeySecret(keyID: string): Promise<{ ok: true; value: string } | { ok: false; message: string }> {
+  if (!secretContext?.adminToken) return { ok: false, message: tx("获取完整 Key 失败") };
   try {
-    const value = JSON.parse(window.localStorage.getItem(issuedKeyStorageKey) || "[]");
-    return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : [];
+    const resp = await backendRequest(`/api/admin/api-keys/${encodeURIComponent(keyID)}/secret`, {
+      headers: { authorization: `Bearer ${secretContext.adminToken}` },
+    });
+    if (resp.status === 409) return { ok: false, message: tx("该 Key 创建于旧版本，未保存完整值，请轮换后复制") };
+    if (!resp.ok) return { ok: false, message: tx("获取完整 Key 失败") };
+    const payload = (await resp.json()) as { api_key?: unknown };
+    if (typeof payload.api_key !== "string" || !payload.api_key) return { ok: false, message: tx("获取完整 Key 失败") };
+    return { ok: true, value: payload.api_key };
   } catch {
-    return [];
+    return { ok: false, message: tx("获取完整 Key 失败") };
   }
-}
-
-// 后端列表只返回前后缀，完整 Key 仅在创建/轮换时返回一次，这里缓存到本机浏览器供列表查看与复制。
-export function rememberIssuedKey(value: string) {
-  const key = value.trim();
-  if (!key) return;
-  const keys = readIssuedKeys().filter(item => item !== key);
-  window.localStorage.setItem(issuedKeyStorageKey, JSON.stringify([key, ...keys].slice(0, 200)));
-}
-
-function fullKeyValue(key: APIKey) {
-  const raw = (key as APIKey & { key?: string; api_key?: string }).key ?? (key as APIKey & { key?: string; api_key?: string }).api_key;
-  if (raw) return raw;
-  if (!key.key_prefix || !key.key_suffix) return "";
-  return readIssuedKeys().find(item => item.startsWith(key.key_prefix) && item.endsWith(key.key_suffix)) ?? "";
 }
 
 // navigator.clipboard 仅在 HTTPS/localhost 可用，内网 http 访问时退回 execCommand。
@@ -57,9 +56,10 @@ async function writeClipboard(text: string) {
 
 export function APIKeyValue({ apiKey }: { apiKey: APIKey }) {
   const [visible, setVisible] = useState(false);
+  const [fullKey, setFullKey] = useState("");
+  const [pending, setPending] = useState(false);
   const [copyNotice, setCopyNotice] = useState<{ ok: boolean; text: string } | null>(null);
   const copied = copyNotice?.ok === true;
-  const fullKey = fullKeyValue(apiKey);
   const displayValue = fullKey || `${apiKey.key_prefix}...${apiKey.key_suffix}`;
 
   function showNotice(ok: boolean, text: string) {
@@ -67,28 +67,42 @@ export function APIKeyValue({ apiKey }: { apiKey: APIKey }) {
     window.setTimeout(() => setCopyNotice(null), 2000);
   }
 
-  async function copyKey() {
-    if (!fullKey) {
-      showNotice(false, tx("本机未保存完整 Key，请轮换后复制"));
+  async function resolveFullKey() {
+    if (fullKey) return fullKey;
+    setPending(true);
+    const result = await fetchAPIKeySecret(apiKey.id);
+    setPending(false);
+    if (!result.ok) {
+      showNotice(false, result.message);
+      return "";
+    }
+    setFullKey(result.value);
+    return result.value;
+  }
+
+  async function toggleVisible() {
+    if (visible) {
+      setVisible(false);
       return;
     }
-    if (await writeClipboard(fullKey)) showNotice(true, tx("已复制"));
+    await resolveFullKey();
+    setVisible(true);
+  }
+
+  async function copyKey() {
+    const value = await resolveFullKey();
+    if (!value) return;
+    if (await writeClipboard(value)) showNotice(true, tx("已复制"));
     else showNotice(false, tx("复制失败"));
   }
 
   return (
     <div className="personal-api-key-value" onClick={event => event.stopPropagation()}>
       <span title={visible ? displayValue : undefined}>{visible ? displayValue : "********"}</span>
-      <button aria-label={tx(visible ? "隐藏 Key" : "显示 Key")} onClick={() => setVisible(current => !current)} title={tx(visible ? "隐藏 Key" : "显示 Key")} type="button">
+      <button aria-label={tx(visible ? "隐藏 Key" : "显示 Key")} disabled={pending} onClick={() => void toggleVisible()} title={tx(visible ? "隐藏 Key" : "显示 Key")} type="button">
         {visible ? <EyeOff size={14} /> : <Eye size={14} />}
       </button>
-      <button
-        aria-label={tx("复制 Key")}
-        className={copied ? "is-copied" : undefined}
-        onClick={() => void copyKey()}
-        title={fullKey ? tx("复制 Key") : tx("完整 Key 仅在创建或轮换时返回，本机未保存")}
-        type="button"
-      >
+      <button aria-label={tx("复制 Key")} className={copied ? "is-copied" : undefined} disabled={pending} onClick={() => void copyKey()} title={tx("复制 Key")} type="button">
         {copied ? <Check size={14} /> : <Copy size={14} />}
       </button>
       {copyNotice && (

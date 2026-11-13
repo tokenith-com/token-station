@@ -11,14 +11,14 @@ describe("current sidebar after 0.9 merge", () => {
     vi.stubGlobal("fetch", fetch);
     const user: AdminUser = { id: role, username: role, name: role, email: "", role, status: "active" };
     const onSelect = vi.fn();
-    render(<Sidebar activeView="overview" user={user} onSelect={onSelect} onLogout={vi.fn()} collapsed={false} onToggleCollapse={vi.fn()} openGroups={{}} onToggleGroup={vi.fn()} />);
+    render(<Sidebar activeView="overview" user={user} onSelect={onSelect} collapsed={false} onToggleCollapse={vi.fn()} openGroups={{}} onToggleGroup={vi.fn()} />);
     expect(screen.getByText("TokenStation")).toBeInTheDocument();
     const items = navGroupsForUser(user).flatMap(g => g.items.flatMap(i => isNavParentItem(i) ? i.children : [i]));
     for (const item of items) {
       fireEvent.click(screen.getByRole("button", { name: item.label }));
       expect(onSelect).toHaveBeenLastCalledWith(item.view);
     }
-    if (role !== "admin") expect(screen.queryByRole("button", { name: "Provider 渠道" })).not.toBeInTheDocument();
+    if (role !== "admin") expect(screen.queryByRole("button", { name: "供应商" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /版本|^v/ })).not.toBeInTheDocument();
     expect(fetch).not.toHaveBeenCalled();
   });

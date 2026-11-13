@@ -98,6 +98,7 @@ import { resourceConfigFor } from "../resources/settings-config";
 import { APIKeyWizardModal, UserImportModal } from "../views/modals";
 import { ConfirmDialog, providerTypeOptionsFromData } from "../shared/ui";
 import { currentOAuthReturnURL, LoginView, ResetPasswordView } from "../shared/auth";
+import { readActivationToken } from "../shared/consumer-activation";
 import { PortalHome } from "../shared/portal-home";
 import { PageHeader, Sidebar, StatusStack, TopNav } from "./navigation-ui";
 import { AuditView } from "../views/audit";
@@ -109,13 +110,14 @@ import { ModelDirectoryView } from "../views/model-directory";
 import { RouteStrategyView } from "../views/model-catalog";
 import { OverviewView } from "../views/overview";
 import { PersonalAPIKeysView } from "../views/personal-api-keys";
-import { rememberIssuedKey } from "../shared/api-key-value";
+import { configureAPIKeySecretContext } from "../shared/api-key-value";
 import { APIKeyAccessDialogs } from "../shared/api-key-access";
 import { APIKeyUsageView } from "../views/api-key-usage";
 import { PlaygroundPage } from "../views/playground";
 import { PlatformAccountsView, type PlatformAccountValues } from "../views/platform-accounts";
 import { TeamGroupsView, type TeamGroupValues } from "../views/team-groups";
-import { UnavailableAccountService } from "../views/guest-billing";
+import { BalanceRechargeView } from "../views/balance-recharge";
+import { GuestCostDetailsView } from "../views/guest-cost-details";
 import { ProviderUpsertModal } from "../views/provider-editor";
 import { ProjectWorkspace, type ProjectWorkspaceMode } from "../views/project-workspace";
 import { consoleResourceActions } from "./console-resource-actions";
@@ -132,14 +134,14 @@ const themeStorageKey = "tokenhub.theme";
 
 // 超管右侧内容区使用 tokenhub 源码前端；Maas-ui 专属页面，以及需与其他角色保持一致的
 // 用量、模型目录、演练场页面仍走 Maas-ui 原实现。
-const maasOnlyViews = new Set<ViewKey>(["balance-recharge", "invoices", "usage", "models", "playground"]);
+const maasOnlyViews = new Set<ViewKey>(["balance-recharge", "usage", "models", "playground"]);
 function usesSourceAdminContent(user: AdminUser, view: ViewKey) {
   if (appRole(user.role) !== "admin") return false;
   return !maasOnlyViews.has(view);
 }
 const apiKeyPageSize = 1000;
 
-type ConsoleProps = { defaultBaseURL: string; portal?: Portal; captchaID?: string };
+type ConsoleProps = { defaultBaseURL: string; portal?: Portal };
 
 export function AdminConsole(props: ConsoleProps) {
   return (
@@ -149,7 +151,7 @@ export function AdminConsole(props: ConsoleProps) {
   );
 }
 
-function AdminConsoleContent({ defaultBaseURL, portal = "b", captchaID = "" }: ConsoleProps) {
+function AdminConsoleContent({ defaultBaseURL, portal = "b" }: ConsoleProps) {
   // 静态部署下浏览器始终直连后端；必须在子组件发出第一个请求之前完成配置（纯赋值、可重复执行）。
   configureBackendBaseURL(defaultBaseURL);
   const pathname = usePathname();
@@ -197,6 +199,7 @@ function AdminConsoleContent({ defaultBaseURL, portal = "b", captchaID = "" }: C
 
   const [reportHistory, setReportHistory] = useState<ReportExportHistoryItem[]>([]);
   const [resetToken, setResetToken] = useState("");
+  const [activationLinkOpen, setActivationLinkOpen] = useState(false);
 
   const api = useMemo(() => ({ baseURL, adminToken }), [baseURL, adminToken]);
   const providerTypeOptions = providerTypeOptionsFromData(data);
@@ -279,6 +282,15 @@ function AdminConsoleContent({ defaultBaseURL, portal = "b", captchaID = "" }: C
         clearOAuthAuthorizationResponse();
         clearPendingOAuthLogin();
         setResetToken(passwordResetToken);
+        setBootstrapped(true);
+        return;
+      }
+      if (readActivationToken()) {
+        // An email activation link must reach the activation form even when
+        // another account is signed in on this browser.
+        clearSavedSession(portal);
+        setCurrentUser(null);
+        setActivationLinkOpen(true);
         setBootstrapped(true);
         return;
       }
@@ -465,9 +477,7 @@ function AdminConsoleContent({ defaultBaseURL, portal = "b", captchaID = "" }: C
     return () => window.removeEventListener("tokenhub-issued-key", onIssuedKey);
   }, []);
 
-  useEffect(() => {
-    if (issuedKey && isIssuedAPIKey(issuedKey)) rememberIssuedKey(issuedKey);
-  }, [issuedKey]);
+  useEffect(() => configureAPIKeySecretContext(api), [api]);
 
   async function load(view: ViewKey = activeView) {
     if (!adminToken || !currentUser) return;
@@ -838,7 +848,7 @@ function AdminConsoleContent({ defaultBaseURL, portal = "b", captchaID = "" }: C
     }
     if (data.providers.length === 0) {
       setNotice("");
-      setError(tx("请先新增 Provider 渠道，再配置路由策略。"));
+      setError(tx("请先新增供应商，再配置路由策略。"));
       selectView("providers");
       return;
     }
@@ -949,7 +959,6 @@ function AdminConsoleContent({ defaultBaseURL, portal = "b", captchaID = "" }: C
         oauthReturnURL={oauthReturnURL}
         theme={theme}
         portal={portal}
-        captchaID={captchaID}
         otpLogin={
           pendingLoginOTP
             ? {
@@ -970,7 +979,7 @@ function AdminConsoleContent({ defaultBaseURL, portal = "b", captchaID = "" }: C
     );
     if (portal !== "b") return loginView;
     return (
-      <PortalHome forceOpen={Boolean(loginError || pendingLoginOTP)} language={language} onLanguageChange={changeLanguage} onThemeToggle={toggleTheme} theme={theme}>
+      <PortalHome forceOpen={Boolean(loginError || pendingLoginOTP || activationLinkOpen)} language={language} onLanguageChange={changeLanguage} onThemeToggle={toggleTheme} theme={theme}>
         {loginView}
       </PortalHome>
     );
@@ -1071,7 +1080,7 @@ function AdminConsoleContent({ defaultBaseURL, portal = "b", captchaID = "" }: C
   const isTeamResourceView = accountManagementRole === "team_leader" && ["usage", "gateway", "api-keys", "projects"].includes(activeView);
   const isMemberKeyListView = activeView === "api-keys" && accountManagementRole === "user";
   const isPersonalUsageView = activeView === "usage" && ["user", "guest"].includes(accountManagementRole);
-  const isGuestCostView = accountManagementRole === "guest" && ["billing", "balance-recharge", "invoices"].includes(activeView);
+  const isGuestCostView = accountManagementRole === "guest" && ["billing", "balance-recharge"].includes(activeView);
 
   return (
     <ModalErrorProvider
@@ -1083,7 +1092,6 @@ function AdminConsoleContent({ defaultBaseURL, portal = "b", captchaID = "" }: C
           activeView={activeView}
           onSelect={selectView}
           user={currentUser}
-          onLogout={() => void logout()}
           collapsed={sidebarCollapsed}
           onToggleCollapse={() => setSidebarCollapsed(value => !value)}
           openGroups={openNavGroups}
@@ -1093,6 +1101,7 @@ function AdminConsoleContent({ defaultBaseURL, portal = "b", captchaID = "" }: C
         <section className="workspace">
           <TopNav
             activeView={activeView}
+            api={api}
             data={data}
             user={currentUser}
             theme={theme}
@@ -1129,20 +1138,8 @@ function AdminConsoleContent({ defaultBaseURL, portal = "b", captchaID = "" }: C
                       ? "content-panel role-management-content-panel"
                       : "content-panel"
             }>
-            {activeView === "playground" ||
-            activeView === "overview" ||
-            activeView === "models" ||
-            activeView === "routes" ||
-            isProviderView ||
-            isAccountManagementView ||
-            isTeamGroupsView ||
-            isRoleManagementView ||
-            isMemberAuditView ||
-            isMemberGatewayView ||
-            isPersonalAPIKeysView ||
-            isPersonalUsageView ||
-            isGuestCostView ? null : (
-              <PageHeader activeView={activeView} data={data} meta={activeMeta} user={currentUser} />
+            {activeView === "playground" || activeView === "overview" ? null : (
+              <PageHeader activeView={activeView} data={data} meta={activeMeta} user={currentUser} onSelect={selectView} />
             )}
 
             <StatusStack error={error} notice={notice} onClearError={() => setError("")} onClearNotice={() => setNotice("")} />
@@ -1162,7 +1159,13 @@ function AdminConsoleContent({ defaultBaseURL, portal = "b", captchaID = "" }: C
             {activeView === "overview" ? (
               <OverviewView api={api} data={data} user={currentUser} onSelectView={selectView} />
             ) : activeView === "playground" ? (
-              <PlaygroundPage api={api} data={data} canViewRoutes={canAccessView(currentUser, "routes")} />
+              <PlaygroundPage
+                api={api}
+                data={data}
+                canViewRoutes={canAccessView(currentUser, "routes")}
+                currentUserID={currentUser.id}
+                onCreateKey={canAccessView(currentUser, "api-keys") ? () => selectView("api-keys") : undefined}
+              />
             ) : activeView === "gateway" ? (
               <GatewayView
                 api={api}
@@ -1177,11 +1180,9 @@ function AdminConsoleContent({ defaultBaseURL, portal = "b", captchaID = "" }: C
             ) : activeView === "usage" ? (
               <UsageView api={api} data={data} user={currentUser} />
             ) : activeView === "balance-recharge" && accountManagementRole === "guest" ? (
-              <UnavailableAccountService service="recharge" />
-            ) : activeView === "invoices" && accountManagementRole === "guest" ? (
-              <UnavailableAccountService service="invoices" />
+              <BalanceRechargeView api={api} />
             ) : activeView === "billing" ? (
-              <BillingView data={data} user={currentUser} />
+              accountManagementRole === "guest" ? <GuestCostDetailsView api={api} data={data} /> : <BillingView data={data} user={currentUser} />
             ) : activeView === "audit" ? (
               <AuditView api={api} data={data} user={currentUser} />
             ) : activeView === "database-status" ? (

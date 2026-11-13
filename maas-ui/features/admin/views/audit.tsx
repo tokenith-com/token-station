@@ -1,7 +1,6 @@
 import { RequestErrorSummary, requestErrorInfo } from "./request-error-summary";
 import { Activity, AlertCircle, Check, Copy, Gauge, Search, ShieldCheck } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import { SvgIcon } from "../../../components/svg-icon";
 import { appRole, canViewAdminAudit } from "../core/navigation";
 import { type AdminUser, type ApiContext, type AppData, type RequestDetail, type RequestLogPage, type RequestLogPagination, type RequestLogSummary, type RequestPayloadLog } from "../core/types";
 import { auditRequestPagePath, auditRequestTimeRangeParameters, type AuditRequestStatus, type AuditRequestTimeRange } from "../domain/audit-request-page";
@@ -183,12 +182,7 @@ export function AuditView({ api, data, user }: { api: ApiContext; data: AppData;
 
   return (
     <div className={`audit-view${memberRequestLogView ? " member-audit-view" : ""}`}>
-      {memberRequestLogView ? (
-        <div className="member-audit-title">
-          <SvgIcon name="overview-icon" size={16} />
-          <h1>{tx("请求日志")}</h1>
-        </div>
-      ) : (
+      {memberRequestLogView ? null : (
         <div className="audit-tabs" role="tablist" aria-label={tx("日志类型")}>
           <button
             type="button"
@@ -499,8 +493,8 @@ export function RequestDetailPanel({
         </div>
         <div className="request-usage-total">
           <UsageStat label="总量" value={detail.usage.length ? formatNumber(usageTotals.total_tokens) : "—"} />
-          <UsageStat label="对外计费" value={detail.usage.length ? `$${formatMoney(usageTotals.estimated_cost_usd)}` : "—"} />
-          {showProviderCost ? <UsageStat label="渠道真实成本" value={detail.usage.length ? `$${formatMoney(usageTotals.provider_cost_usd)}` : "—"} /> : null}
+          <UsageStat label="对外计费" value={detail.usage.length ? `¥${formatMoney(usageTotals.estimated_cost_usd)}` : "—"} />
+          {showProviderCost ? <UsageStat label="渠道真实成本" value={detail.usage.length ? `¥${formatMoney(usageTotals.provider_cost_usd)}` : "—"} /> : null}
         </div>
       </div>
 

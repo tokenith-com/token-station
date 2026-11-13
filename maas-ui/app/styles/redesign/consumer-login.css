@@ -71,29 +71,78 @@
   margin-top: 14px;
 }
 
-.consumer-sms-row {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 10px;
-  margin-top: 14px;
+.consumer-agreement-consent {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px;
+  margin-top: 16px;
+  font-size: 12px;
+  color: #5b6474;
 }
 
-.consumer-code-button {
-  min-width: 112px;
-  border: 1px solid #b8c1ce;
-  border-radius: 3px;
-  padding: 0 10px;
-  background: #fff;
+.consumer-agreement-consent input {
+  margin: 0 6px 0 0;
+}
+
+.consumer-agreement-link {
+  border: 0;
+  padding: 0;
+  background: none;
   color: #506bc2;
-  white-space: nowrap;
-  font-size: 12px;
+  font: inherit;
   cursor: pointer;
 }
 
-.consumer-code-button:disabled {
-  color: #8b94a3;
-  cursor: default;
+.consumer-agreement-link:hover,
+.consumer-agreement-link:focus-visible {
+  text-decoration: underline;
 }
+
+.consumer-agreement-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(15, 23, 42, 0.45);
+}
+
+.consumer-agreement-dialog {
+  display: flex;
+  flex-direction: column;
+  width: min(720px, 100%);
+  max-height: min(80vh, 760px);
+  border-radius: 8px;
+  background: #fff;
+  color: #1f2937;
+  box-shadow: 0 20px 48px rgba(15, 23, 42, 0.25);
+  outline: none;
+}
+
+.consumer-agreement-dialog header,
+.consumer-agreement-dialog footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 20px;
+}
+
+.consumer-agreement-dialog header { border-bottom: 1px solid #e5e7eb; }
+.consumer-agreement-dialog footer { justify-content: flex-end; border-top: 1px solid #e5e7eb; }
+.consumer-agreement-dialog h2 { margin: 0; font-size: 18px; }
+
+.consumer-agreement-body {
+  overflow-y: auto;
+  padding: 16px 20px;
+  font-size: 13px;
+  line-height: 1.8;
+}
+
+.consumer-agreement-body h3 { margin: 18px 0 6px; font-size: 14px; }
+.consumer-agreement-body p { margin: 0 0 8px; }
 
 .consumer-login-shell .consumer-registration .login-error {
   margin: 14px 0;

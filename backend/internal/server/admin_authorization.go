@@ -103,6 +103,12 @@ func normalizeAdminRole(role string) string {
 	}
 }
 
+// isConsumerRole reports whether the role is an individual consumer account,
+// which never belongs to a team.
+func isConsumerRole(role string) bool {
+	return normalizeAdminRole(role) == "guest"
+}
+
 func isPlatformAdminRole(role string) bool {
 	role = normalizeAdminRole(role)
 	return role == "admin" || role == "system_admin"
@@ -462,6 +468,10 @@ func (s *Server) visibleAPIKeyIDSet(user AdminUser) map[string]bool {
 	out := map[string]bool{}
 	for _, key := range s.filterAPIKeysForUser(user, s.store.ListAPIKeys()) {
 		out[key.ID] = true
+	}
+	// Playground calls are recorded with the caller's user ID as the API key ID.
+	if user.ID != "" {
+		out[user.ID] = true
 	}
 	return out
 }

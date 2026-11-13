@@ -144,7 +144,7 @@ function formatPlaygroundUSD(value?: number) {
     ? "-"
     : playgroundNumberFormatter(playgroundUSDFormatters, {
       style: "currency",
-      currency: "USD",
+      currency: "CNY",
       currencyDisplay: "narrowSymbol",
       minimumFractionDigits: 6,
       maximumFractionDigits: 6,
@@ -234,22 +234,40 @@ function routeHasDetails(payload?: PlaygroundChatPayload) {
   return Boolean(route?.route_id || route?.provider_id || route?.resource_id || route?.provider_model);
 }
 
-export function PlaygroundPage({ api, data, canViewRoutes }: { api: ApiContext; data: AppData; canViewRoutes: boolean }) {
+type PlaygroundProps = {
+  api: ApiContext;
+  data: AppData;
+  canViewRoutes: boolean;
+  currentUserID: string;
+  onCreateKey?: () => void;
+};
+
+// Playground traffic is billed to one of the caller's own keys, mirroring the
+// backend ownership rule so the selector never offers a key the server rejects.
+function playgroundKeyOwnedBy(key: AppData["keys"][number], userID: string) {
+  const owner = key.owner_user_id?.trim();
+  return owner ? owner === userID : key.metadata?.created_by === userID;
+}
+
+export function PlaygroundPage(props: PlaygroundProps) {
   return (
     <section className="playground-page">
-      <PlaygroundPanel api={api} data={data} canViewRoutes={canViewRoutes} />
+      <PlaygroundPanel {...props} />
     </section>
   );
 }
 
-export function PlaygroundPanel({ api, data, canViewRoutes }: { api: ApiContext; data: AppData; canViewRoutes: boolean }) {
+export function PlaygroundPanel({ api, data, canViewRoutes, currentUserID, onCreateKey }: PlaygroundProps) {
   const models = useMemo(() => {
     const candidates = playgroundModels(data, canViewRoutes);
     return canViewRoutes ? candidates.filter((model) => activeRouteCount(model.name, data) > 0) : candidates;
   }, [data, canViewRoutes]);
-  const projects = useMemo(() => data.projects.filter((project) => !project.status || project.status === "active"), [data.projects]);
+  const keys = useMemo(
+    () => (data.keys ?? []).filter((key) => key.status === "active" && playgroundKeyOwnedBy(key, currentUserID)),
+    [data.keys, currentUserID],
+  );
   const [modelName, setModelName] = useState(models[0]?.name ?? "");
-  const [projectID, setProjectID] = useState(projects[0]?.id ?? "");
+  const [apiKeyID, setAPIKeyID] = useState(keys[0]?.id ?? "");
   const [pendingModelName, setPendingModelName] = useState("");
   const [turns, setTurns] = useState<PlaygroundTurn[]>([]);
   const [draft, setDraft] = useState("");
@@ -323,9 +341,8 @@ export function PlaygroundPanel({ api, data, canViewRoutes }: { api: ApiContext;
   }, [changeModelName, modelName, models]);
 
   useEffect(() => {
-    if (!projectID && projects[0]?.id) setProjectID(projects[0].id);
-    if (projectID && !projects.some((project) => project.id === projectID)) setProjectID(projects[0]?.id ?? "");
-  }, [projectID, projects]);
+    if (!keys.some((key) => key.id === apiKeyID)) setAPIKeyID(keys[0]?.id ?? "");
+  }, [apiKeyID, keys]);
 
   useEffect(() => {
     conversationImageBytesRef.current = conversationImageBytes;
@@ -383,7 +400,7 @@ export function PlaygroundPanel({ api, data, canViewRoutes }: { api: ApiContext;
 
   function buildPayload(messages: PlaygroundRequestMessage[], requestModel: string) {
     const payload: Record<string, unknown> = {
-      project_id: projectID,
+      api_key_id: apiKeyID,
       model: requestModel,
       messages,
       max_tokens: clampPlaygroundMaxTokens(numericParameter(maxTokens), maxTokenLimit),
@@ -475,7 +492,7 @@ export function PlaygroundPanel({ api, data, canViewRoutes }: { api: ApiContext;
   function sendMessage(event?: FormEvent<HTMLFormElement>) {
     event?.preventDefault();
     const content = draft.trim();
-    if ((!content && images.length === 0) || !modelName || !projectID || loading || imageUploadPendingRef.current) return;
+    if ((!content && images.length === 0) || !modelName || !apiKeyID || loading || imageUploadPendingRef.current) return;
     if (hasConversationImages && !supportsImages) {
       setError(tx("当前模型未声明图片输入能力。"));
       return;
@@ -499,7 +516,7 @@ export function PlaygroundPanel({ api, data, canViewRoutes }: { api: ApiContext;
   }
 
   function rerunTurn(turnID: string) {
-    if (loading || !projectID) return;
+    if (loading || !apiKeyID) return;
     const turnIndex = turns.findIndex((turn) => turn.id === turnID);
     if (turnIndex < 0) return;
     const candidate = createCandidate(modelName);
@@ -652,12 +669,20 @@ export function PlaygroundPanel({ api, data, canViewRoutes }: { api: ApiContext;
         <div className="playground-config-body">
           <h2>{tx("模型配置")}</h2>
           <label className="playground-field">
-            <span>{tx("选择项目")}</span>
-            <select value={projectID} onChange={(event) => setProjectID(event.target.value)} disabled={projects.length === 0 || loading}>
-              {projects.length === 0 ? <option value="">{tx("暂无可选项目")}</option> : null}
-              {projects.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}
+            <span>{tx("选择 API Key")}</span>
+            <select value={apiKeyID} onChange={(event) => setAPIKeyID(event.target.value)} disabled={keys.length === 0 || loading}>
+              {keys.length === 0 ? <option value="">{tx("暂无可用 API Key")}</option> : null}
+              {keys.map((key) => <option key={key.id} value={key.id}>{`${key.name} · ${key.key_prefix}…${key.key_suffix}`}</option>)}
             </select>
           </label>
+          {keys.length === 0 ? (
+            <div className="playground-key-empty" role="note">
+              <p>{tx("请先创建 API Key 才能使用模型演练场，演练产生的用量将计入所选 Key。")}</p>
+              {onCreateKey ? <button type="button" className="secondary" onClick={onCreateKey}>{tx("去创建 API Key")}</button> : null}
+            </div>
+          ) : (
+            <p className="playground-key-hint">{tx("演练产生的用量和费用将计入所选 API Key。")}</p>
+          )}
           <label className="playground-field">
             <span>{tx("系统提示")}</span>
             <textarea value={systemPrompt} onChange={(event) => setSystemPrompt(event.target.value)} disabled={loading} />
@@ -787,7 +812,7 @@ export function PlaygroundPanel({ api, data, canViewRoutes }: { api: ApiContext;
                         {formatPlaygroundInteger(index + 1)}
                       </button>
                     )) : null}
-                    <button type="button" onClick={() => rerunTurn(turn.id)} disabled={loading || !projectID} title={tx("从这一轮重新生成，并移除后续分支")}>
+                    <button type="button" onClick={() => rerunTurn(turn.id)} disabled={loading || !apiKeyID} title={tx("从这一轮重新生成，并移除后续分支")}>
                       <RotateCcw size={13} />{tx("重跑")}
                     </button>
                   </div>
@@ -825,7 +850,7 @@ export function PlaygroundPanel({ api, data, canViewRoutes }: { api: ApiContext;
               if (!event.repeat) sendMessage();
             }}
             placeholder={tx("输入用于诊断模型的消息...")}
-            disabled={loading || models.length === 0 || projects.length === 0}
+            disabled={loading || models.length === 0 || keys.length === 0}
           />
           <div className="playground-composer-actions">
             <div className="playground-composer-tools">
@@ -859,7 +884,7 @@ export function PlaygroundPanel({ api, data, canViewRoutes }: { api: ApiContext;
             {loading ? (
               <button className="playground-stop-button" type="button" onClick={() => activeRequestRef.current?.abort()} title={tx("停止生成")}><Square size={16} /></button>
             ) : (
-              <button className="playground-send-button" disabled={imageUploadPending || (!draft.trim() && images.length === 0) || models.length === 0 || projects.length === 0} type="submit" title={tx("发送")}><Send size={18} /></button>
+              <button className="playground-send-button" disabled={imageUploadPending || (!draft.trim() && images.length === 0) || models.length === 0 || keys.length === 0} type="submit" title={tx("发送")}><Send size={18} /></button>
             )}
           </div>
         </form>

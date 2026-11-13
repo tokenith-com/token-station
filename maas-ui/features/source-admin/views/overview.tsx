@@ -47,7 +47,7 @@ export function OverviewView({
     },
     {
       label: "总成本",
-      value: `$${formatMoney(data.summary.estimated_cost_usd)}`,
+      value: `¥${formatMoney(data.summary.estimated_cost_usd)}`,
       icon: CircleDollarSign,
       delta: overviewDeltaLabel(costValues),
       values: costValues,
@@ -211,7 +211,7 @@ export function RoleUsageMonitorDashboard({
         <UsageMonitorKPI label="请求量" value={formatNumber(stats.requests)} detail={countWithUnit(stats.failedRequests, "次失败", "failed", "件失敗", "failed")} icon={BarChart3} tone="blue" />
         <UsageMonitorKPI label="成功率" value={`${stats.successRate.toFixed(stats.successRate >= 99 ? 1 : 2)}%`} detail={`${formatNumber(stats.successRequests)} / ${formatNumber(stats.requests)}`} icon={Check} tone="green" />
         <UsageMonitorKPI label="平均延迟" value={latencyDisplay(stats.avgLatencyMS)} detail={stats.zeroLatencyRequests > 0 ? countWithUnit(stats.zeroLatencyRequests, "次无延迟记录", "zero-latency", "件の遅延なし", "zero-latency") : tx("最近请求")} icon={Gauge} tone="red" />
-        <UsageMonitorKPI label="总成本" value={`$${formatDashboardMoney(stats.cost)}`} detail={`${tx("总 Token")} ${compactNumber(stats.totalTokens)}`} icon={CircleDollarSign} tone="amber" />
+        <UsageMonitorKPI label="总成本" value={`¥${formatDashboardMoney(stats.cost)}`} detail={`${tx("总 Token")} ${compactNumber(stats.totalTokens)}`} icon={CircleDollarSign} tone="amber" />
         <UsageMonitorKPI label="Token 消耗" value={compactNumber(stats.totalTokens)} detail={`${tx("输入")} ${compactNumber(stats.inputTokens)} / ${tx("输出")} ${compactNumber(stats.outputTokens)}`} icon={Database} tone="purple" />
       </div>
 
@@ -917,7 +917,7 @@ export function OverviewProviderShare({ rows }: { rows: Array<{ id: string; labe
       <div className="overview-share-content">
         <div className="overview-donut" style={{ background: overviewDonutGradient(rows) }}>
           <div>
-            <strong>{totalCost > 0 ? `$${compactNumber(totalCost)}` : "$0"}</strong>
+            <strong>{totalCost > 0 ? `¥${compactNumber(totalCost)}` : "¥0"}</strong>
             <span>{tx("总成本")}</span>
           </div>
         </div>
@@ -1007,7 +1007,7 @@ export function overviewMetricValue(points: UsagePoint[], metric: OverviewMetric
 }
 
 export function overviewMetricDisplay(value: number, metric: OverviewMetricKey) {
-  if (metric === "cost") return `$${formatMoney(value)}`;
+  if (metric === "cost") return `¥${formatMoney(value)}`;
   if (metric === "tokens") return compactNumber(value);
   return formatNumber(Math.round(value || 0));
 }

@@ -4,7 +4,6 @@ import { type ApiContext, type BillingConnector } from "../core/types";
 import { apiKeyAuditLabel, findProvider, providerResourceAuditLabel } from "../domain/entities";
 import { useModalError } from "../shared/modal-error";
 import { appRole } from "../core/navigation";
-import { SvgIcon } from "../../../components/svg-icon";
 import { type AdminUser, type AppData, type Summary, type UsageBreakdownRow } from "../core/types";
 import type { UsageReport } from "../core/usage-report-types";
 import { costCenterLabel, projectName, providerCostDetailRows, teamLabel, usageMemberLabel } from "../domain/entities";
@@ -19,10 +18,6 @@ export function UsageView({ api, data, user }: { api: ApiContext; data: AppData;
   const role = appRole(user.role);
   const showExecutiveReport = role === "admin";
   return <>
-    {!["admin", "team_leader"].includes(role) ? <div className="platform-accounts-title personal-usage-title">
-      <SvgIcon name="overview-icon" size={16} />
-      <h1>{tx("用量统计")}</h1>
-    </div> : null}
     <GlobalUsageView key={`${api.baseURL}:${user.id}:${user.role}`} api={api} data={data} user={user} renderReport={showExecutiveReport ? (scopedData, periodLabel) => <>
     <ExecutiveUsageReport data={scopedData} periodLabel={periodLabel} />
     <AdminUIReportTemplates api={api} data={scopedData} />
@@ -81,7 +76,7 @@ export function ExecutiveUsageReport({ data, periodLabel = tx("全部") }: { dat
         <ExecutiveKPI label="总 Token 消耗" value={compactNumber(totalTokens)} detail={tokenDetail} />
         <ExecutiveKPI label="覆盖部门" value={formatNumber(departments.length)} detail={departmentDetail} />
         <ExecutiveKPI label="活跃成员" value={formatNumber(activeMembers)} detail={generatedDetail} />
-        <ExecutiveKPI label="估算成本" value={`$${formatMoney(data.summary.estimated_cost_usd)}`} detail={requestDetail} />
+        <ExecutiveKPI label="估算成本" value={`¥${formatMoney(data.summary.estimated_cost_usd)}`} detail={requestDetail} />
       </div>
 
       <div className="executive-grid">
@@ -358,7 +353,7 @@ export function BillingView({ data, user }: { data: AppData; user: AdminUser }) 
           row.id,
           formatNumber(row.request_count),
           compactNumber(row.total_tokens),
-          `$${formatMoney(row.estimated_cost_usd)}`,
+          `¥${formatMoney(row.estimated_cost_usd)}`,
         ])}
       />
     </DataSection>
@@ -372,7 +367,7 @@ export function BillingView({ data, user }: { data: AppData; user: AdminUser }) 
           usageMemberLabel(data, row.id),
           formatNumber(row.request_count),
           compactNumber(row.total_tokens),
-          `$${formatMoney(row.estimated_cost_usd)}`,
+          `¥${formatMoney(row.estimated_cost_usd)}`,
         ])}
       />
     </DataSection>
@@ -396,7 +391,7 @@ export function BillingView({ data, user }: { data: AppData; user: AdminUser }) 
               row.id,
               formatNumber(row.request_count),
               compactNumber(row.total_tokens),
-              `$${formatMoney(row.estimated_cost_usd)}`,
+              `¥${formatMoney(row.estimated_cost_usd)}`,
             ])}
           />
         </DataSection>
@@ -408,7 +403,7 @@ export function BillingView({ data, user }: { data: AppData; user: AdminUser }) 
               row.id,
               formatNumber(row.request_count),
               compactNumber(row.total_tokens),
-              `$${formatMoney(row.estimated_cost_usd)}`,
+              `¥${formatMoney(row.estimated_cost_usd)}`,
             ])}
           />
         </DataSection>
@@ -445,7 +440,7 @@ export function DailyUsageSection({ data, user, report: daily }: { data: AppData
       <div className="executive-kpi-grid">
         <ExecutiveKPI label="今日 Token 消耗" value={compactNumber(summary.total_tokens)} detail={tokenDetail} />
         <ExecutiveKPI label="今日请求" value={formatNumber(summary.request_count)} detail={countWithUnit(summary.usage_record_count ?? summary.request_count, "条用量记录", "usage record", "件の利用記録")} />
-        <ExecutiveKPI label="今日估算成本" value={`$${formatMoney(summary.estimated_cost_usd)}`} detail={tx("按当前可见记录汇总")} />
+        <ExecutiveKPI label="今日估算成本" value={`¥${formatMoney(summary.estimated_cost_usd)}`} detail={tx("按当前可见记录汇总")} />
         <ExecutiveKPI label="今日缓存读" value={compactNumber(summary.cached_input_tokens ?? 0)} detail={cacheHitRate(summary.cached_input_tokens ?? 0, summary.input_tokens)} />
       </div>
 
@@ -503,7 +498,7 @@ function DailyUsageTable({ title, label, rows, nameForRow, paginationKey }: { ti
           formatNumber(row.request_count),
           compactNumber(row.total_tokens),
           compactNumber(row.cached_input_tokens ?? 0),
-          `$${formatMoney(row.estimated_cost_usd)}`,
+          `¥${formatMoney(row.estimated_cost_usd)}`,
         ])}
       />
     </article>
@@ -737,7 +732,7 @@ function BillingConnectorEditor({ api, connector, onClose, onSaved }: { api: Api
   const updateType = (type: BillingConnector["type"]) => setValues((current) => ({
     ...current,
     type,
-    currency: type === "aliyun" ? "CNY" : "USD",
+    currency: type === "aliyun" ? "CNY" : "CNY",
     endpoint: type === "oneapi" ? "/api/log/self" : current.endpoint,
   }));
   return (
@@ -789,7 +784,7 @@ function billingConnectorFormValues(connector?: BillingConnector) {
     base_url: connector?.base_url ?? "",
     schedule_interval_minutes: String(connector?.schedule_interval_minutes ?? 60),
     rate_limit_per_second: config.rate_limit_per_second ?? "5",
-    currency: config.currency ?? (connectorType === "aliyun" ? "CNY" : "USD"),
+    currency: config.currency ?? (connectorType === "aliyun" ? "CNY" : "CNY"),
     api_token: "",
     endpoint: config.endpoint ?? "/api/log/self",
     quota_per_unit: config.quota_per_unit ?? "500000",

@@ -168,7 +168,7 @@ func doJSON(t *testing.T, handler http.Handler, method string, path string, payl
 	}
 	rr := httptest.NewRecorder()
 	handler.ServeHTTP(rr, req)
-	return responseBody{Code: rr.Code, Body: rr.Body.String()}
+	return responseBody{Code: rr.Code, Header: rr.Header(), Body: rr.Body.String()}
 }
 
 func minInt(a int, b int) int {

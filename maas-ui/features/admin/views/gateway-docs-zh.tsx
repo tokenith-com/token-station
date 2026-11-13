@@ -119,7 +119,7 @@ export function gatewayChineseDocs(stats: GatewayDocBundle): GatewayDocBundle {
             description: "管理员负责全局 Provider、模型目录、路由策略、身份源、角色权限、安全审计和成本治理。",
             notesTitle: "上线顺序",
             notes: [
-              "先在 Provider Channels 配置上游 Base URL、凭证、资源组和健康检查。",
+              "先在供应商中配置上游 Base URL、凭证、资源组和健康检查。",
               "在 Model Catalog 中维护对业务开放的标准模型名、能力标签和价格口径。",
               "在 Routing Policies 中为每个可用模型配置至少一条启用路由。",
               "在 System Settings 中配置身份源、角色权限、默认策略、审计保留和企业集成。",

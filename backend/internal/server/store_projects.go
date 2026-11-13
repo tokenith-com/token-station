@@ -454,6 +454,11 @@ func (s *GormStore) CreateAPIKey(projectID string, key APIKey, rawSecret string)
 	}
 	key.ProjectID = projectID
 	key.KeyHash = HashSecret(rawSecret)
+	ciphertext, err := s.encryptSecretStrict(rawSecret)
+	if err != nil {
+		return APIKey{}, "", err
+	}
+	key.KeyCiphertext = ciphertext
 	key.KeyPrefix = prefix
 	key.KeySuffix = suffix
 	if key.CreatedAt.IsZero() {
@@ -513,6 +518,20 @@ func (s *GormStore) GetAPIKey(id string) (APIKey, bool) {
 	}
 	hydrateAPIKey(&key)
 	return publicKey(key), true
+}
+
+// RevealAPIKey decrypts the stored plaintext of an API key. Keys created before
+// encrypted storage existed have no ciphertext and cannot be revealed.
+func (s *GormStore) RevealAPIKey(id string) (string, error) {
+	var key APIKey
+	if err := s.criticalReadDatabase().Select("id", "key_ciphertext").First(&key, "id = ?", id).Error; err != nil {
+		return "", notFound(err, "api_key_not_found", "API key not found")
+	}
+	secret := s.decryptSecret(key.KeyCiphertext)
+	if key.KeyCiphertext == "" || secret == "" || secret == key.KeyCiphertext {
+		return "", NewHTTPError(http.StatusConflict, "api_key_secret_unavailable", "API key plaintext is not stored; rotate the key to obtain a retrievable secret")
+	}
+	return secret, nil
 }
 
 func (s *GormStore) UpdateAPIKey(id string, patch APIKey) (APIKey, error) {
@@ -614,7 +633,11 @@ func (s *GormStore) RotateAPIKey(id string, graceUntil *time.Time) (APIKey, stri
 	var newKey APIKey
 	newSecret := s.generateAPIKeySecret()
 	prefix, suffix := PrefixSuffix(newSecret)
-	err := s.db.Transaction(func(tx *gorm.DB) error {
+	newCiphertext, err := s.encryptSecretStrict(newSecret)
+	if err != nil {
+		return APIKey{}, "", err
+	}
+	err = s.db.Transaction(func(tx *gorm.DB) error {
 		if err := s.lockScopeForUpdate(tx, "api_key", id); err != nil {
 			return err
 		}
@@ -626,6 +649,7 @@ func (s *GormStore) RotateAPIKey(id string, graceUntil *time.Time) (APIKey, stri
 		newKey = oldKey
 		newKey.ID = NewID("key")
 		newKey.KeyHash = HashSecret(newSecret)
+		newKey.KeyCiphertext = newCiphertext
 		newKey.KeyPrefix = prefix
 		newKey.KeySuffix = suffix
 		newKey.RotatedFromID = oldKey.ID

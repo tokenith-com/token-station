@@ -8,7 +8,12 @@ import (
 	"time"
 )
 
-const defaultProjectID = "prj_default"
+const (
+	defaultProjectID       = "prj_default"
+	consumerProjectID      = "prj_consumer"
+	consumerCostCenterCode = "c-platform"
+	defaultCostCenterCode  = "default-platform"
+)
 
 // RunStartupBootstrap reapplies idempotent startup data on every process start
 // while serializing replicas through a cluster-wide lease. The contextual
@@ -154,6 +159,8 @@ func BootstrapBaseDataWithConfig(store Store, config Config) error {
 		return err
 	}
 	seedDefaultProject(store)
+	seedConsumerCostCenter(store)
+	seedConsumerProject(store)
 	if err := seedBuiltinProviderCatalog(store); err != nil {
 		return err
 	}
@@ -197,8 +204,51 @@ func seedDefaultProject(store Store) {
 		Name:        "Default Project Space",
 		TeamID:      "team_platform",
 		OwnerUserID: "usr_admin",
-		CostCenter:  "AI-PLATFORM",
+		CostCenter:  defaultCostCenterCode,
 		Status:      StatusActive,
+	})
+}
+
+// seedConsumerProject creates the dedicated project that holds API keys of
+// consumer (guest) accounts, keeping them separate from the default project.
+func seedConsumerProject(store Store) {
+	if existing, ok := store.GetProject(consumerProjectID); ok {
+		// Earlier builds seeded the consumer project under the platform cost
+		// center; move it to the consumer cost center once.
+		if existing.CostCenter == "AI-PLATFORM" {
+			existing.CostCenter = consumerCostCenterCode
+			_, _ = store.UpdateProject(consumerProjectID, existing)
+		}
+		return
+	}
+	store.CreateProject(Project{
+		ID:          consumerProjectID,
+		Name:        "C端普通用户项目",
+		TeamID:      "team_platform",
+		OwnerUserID: "usr_admin",
+		CostCenter:  consumerCostCenterCode,
+		Status:      StatusActive,
+	})
+}
+
+// seedConsumerCostCenter ensures a cost center with the consumer code exists,
+// unless an operator already created one with the same code.
+func seedConsumerCostCenter(store Store) {
+	for _, existing := range store.ListResources("cost-centers") {
+		if code, _ := existing.Fields["code"].(string); code == consumerCostCenterCode {
+			return
+		}
+	}
+	seedResourceIfMissing(store, "cost-centers", AdminResource{
+		ID:          "cc_consumer",
+		Name:        "C端成本中心",
+		Description: "Cost attribution for self-registered consumer accounts.",
+		Status:      StatusActive,
+		Fields: map[string]any{
+			"code":               consumerCostCenterCode,
+			"monthly_budget_usd": 0,
+			"owner":              "usr_admin",
+		},
 	})
 }
 
@@ -245,7 +295,7 @@ func seedDefaultOrgResources(store Store) error {
 		Status:      StatusActive,
 		Fields: map[string]any{
 			"owner":       "usr_admin",
-			"cost_center": "AI-PLATFORM",
+			"cost_center": defaultCostCenterCode,
 		},
 	})
 	seedResourceIfMissing(store, "cost-centers", AdminResource{
@@ -254,7 +304,7 @@ func seedDefaultOrgResources(store Store) error {
 		Description: "Cost attribution for platform engineering and shared AI infrastructure.",
 		Status:      StatusActive,
 		Fields: map[string]any{
-			"code":               "AI-PLATFORM",
+			"code":               defaultCostCenterCode,
 			"department":         "Platform Engineering",
 			"owner":              "usr_admin",
 			"monthly_budget_usd": 5000,
@@ -327,36 +377,48 @@ func seedDefaultRoleConfigs(store Store) {
 	roles := []AdminResource{
 		{
 			ID:          "role_user",
-			Name:        "Regular User",
+			Name:        "团队普通用户",
 			Description: "Can create personal API keys and view personal request logs and usage.",
 			Status:      StatusActive,
 			Fields: map[string]any{
 				"role_key":     "user",
-				"display_name": "Regular User",
+				"display_name": "团队普通用户",
+				"data_scope":   "self",
+				"assignable":   true,
+			},
+		},
+		{
+			ID:          "role_guest",
+			Name:        "C端普通用户",
+			Description: "Individual consumer account that manages personal API keys, available models, usage, and request logs.",
+			Status:      StatusActive,
+			Fields: map[string]any{
+				"role_key":     "guest",
+				"display_name": "C端普通用户",
 				"data_scope":   "self",
 				"assignable":   true,
 			},
 		},
 		{
 			ID:          "role_team_leader",
-			Name:        "Team Leader",
+			Name:        "团队管理者",
 			Description: "Manages team members and views team usage and cost.",
 			Status:      StatusActive,
 			Fields: map[string]any{
 				"role_key":     "team_leader",
-				"display_name": "Team Leader",
+				"display_name": "团队管理者",
 				"data_scope":   "team",
 				"assignable":   true,
 			},
 		},
 		{
 			ID:          "role_admin",
-			Name:        "Platform Admin",
+			Name:        "平台超管",
 			Description: "Manages platform settings, Providers, model routes, users, and governance policies.",
 			Status:      StatusActive,
 			Fields: map[string]any{
 				"role_key":     "admin",
-				"display_name": "Platform Admin",
+				"display_name": "平台超管",
 				"data_scope":   "global",
 				"assignable":   true,
 			},
@@ -460,7 +522,7 @@ func seedAdminResources(store Store) error {
 		Status:      StatusActive,
 		Fields: map[string]any{
 			"scope":         "cost_center",
-			"scope_id":      "AI-PLATFORM",
+			"scope_id":      defaultCostCenterCode,
 			"period":        "monthly",
 			"period_ref":    time.Now().UTC().Format("2006-01"),
 			"amount_usd":    5000,

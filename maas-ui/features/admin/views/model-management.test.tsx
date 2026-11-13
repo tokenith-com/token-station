@@ -58,10 +58,10 @@ describe("Model creation progressive disclosure", () => {
     expect(screen.getByRole("button", { name: "高级模型设置" })).toHaveAttribute("aria-expanded", "false");
     expect(screen.getByLabelText("系列")).not.toBeVisible();
     expect(screen.getByLabelText("对外模型 ID")).toBeVisible();
-    expect(screen.getByLabelText(/^对外输入价 USD\/1M/)).toBeVisible();
-    expect(screen.getByLabelText(/^对外缓存写价 USD\/1M/)).not.toBeVisible();
-    expect(screen.getByLabelText(/^对外 5 分钟缓存写价 USD\/1M/)).not.toBeVisible();
-    expect(screen.getByLabelText(/^对外 1 小时缓存写价 USD\/1M/)).not.toBeVisible();
+    expect(screen.getByLabelText(/^对外输入价 ¥\/1M/)).toBeVisible();
+    expect(screen.getByLabelText(/^对外缓存写价 ¥\/1M/)).not.toBeVisible();
+    expect(screen.getByLabelText(/^对外 5 分钟缓存写价 ¥\/1M/)).not.toBeVisible();
+    expect(screen.getByLabelText(/^对外 1 小时缓存写价 ¥\/1M/)).not.toBeVisible();
     expect(screen.getByLabelText(/^分时价格配置（JSON）/)).not.toBeVisible();
     expect(screen.getByRole("button", { name: "创建对外模型" })).toBeDisabled();
     await user.click(screen.getByRole("checkbox", { name: "Test Provider / upstream-model" }));
@@ -87,9 +87,9 @@ describe("Model creation progressive disclosure", () => {
     const user = await selectTemplate();
     await user.click(screen.getByRole("button", { name: "高级模型设置" }));
     const priceEdits = [
-      { label: /^对外缓存写价 USD\/1M/, value: "0.25" },
-      { label: /^对外 5 分钟缓存写价 USD\/1M/, value: "0.5" },
-      { label: /^对外 1 小时缓存写价 USD\/1M/, value: "1" },
+      { label: /^对外缓存写价 ¥\/1M/, value: "0.25" },
+      { label: /^对外 5 分钟缓存写价 ¥\/1M/, value: "0.5" },
+      { label: /^对外 1 小时缓存写价 ¥\/1M/, value: "1" },
     ];
     const pricingPeriods = screen.getByLabelText(/^分时价格配置（JSON）/);
     expect(pricingPeriods).toHaveValue(JSON.stringify(template.pricing_periods, null, 2));

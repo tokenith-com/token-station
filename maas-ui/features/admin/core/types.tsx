@@ -1277,7 +1277,6 @@ export type ViewKey =
   | "cost-centers"
   | "approval-flows"
   | "approvals"
-  | "invoices"
   | "balance-recharge"
   | "reports"
   | "usage"
@@ -1291,7 +1290,7 @@ export type ViewKey =
   | "security-policies"
   | "sqlite-backups"
   | "database-status"
-  | "announcements"
+  | "announcements" | "role-configs"
   | "identity-providers"
   | "settings";
 
@@ -1314,7 +1313,6 @@ export const viewRoutes: Record<ViewKey, string> = {
   "cost-centers": "/cost-centers",
   "approval-flows": "/approval-flows",
   approvals: "/approvals",
-  invoices: "/invoices",
   "balance-recharge": "/balance-recharge",
   reports: "/reports",
   usage: "/usage",
@@ -1329,6 +1327,7 @@ export const viewRoutes: Record<ViewKey, string> = {
   "sqlite-backups": "/sqlite-backups",
   "database-status": "/database-status",
   announcements: "/announcements",
+  "role-configs": "/role-configs",
   "identity-providers": "/identity-providers",
   settings: "/settings",
 };

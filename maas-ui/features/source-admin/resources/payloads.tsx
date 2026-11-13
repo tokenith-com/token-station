@@ -461,8 +461,8 @@ export function projectQuotaSummary(data: AppData, project: Project) {
     quotaSummaryPart(quota, "monthly_requests", "月请求"),
     quotaSummaryPart(quota, "daily_tokens", "日 Token"),
     quotaSummaryPart(quota, "monthly_tokens", "月 Token"),
-    quotaSummaryPart(quota, "daily_cost_usd", "日成本", "$"),
-    quotaSummaryPart(quota, "monthly_cost_usd", "月成本", "$"),
+    quotaSummaryPart(quota, "daily_cost_usd", "日成本", "¥"),
+    quotaSummaryPart(quota, "monthly_cost_usd", "月成本", "¥"),
     quotaSummaryPart(quota, "max_concurrency", "并发"),
   ].filter(Boolean);
   return parts.slice(0, 2).join(" · ") || "不限额";
@@ -913,7 +913,7 @@ export function loadRequestLabel(name: string) {
   if (name.startsWith("resource:")) return resourceKindLabel(name.slice("resource:".length));
   const labels: Record<string, string> = {
     overview: "总览数据",
-    providers: "Provider 渠道",
+    providers: "供应商",
     "provider-resources": "Provider 账号资源",
     "api-keys": "Key 管理",
     routes: "路由策略",
@@ -935,7 +935,7 @@ export function resourceLabelFromPath(path: string) {
   if (path.includes("/api/admin/projects/") && path.endsWith("/keys")) return "项目 Key 发放";
   if (path.includes("/api/admin/api-keys")) return "Key 管理";
   if (path.includes("/api/admin/routing-rules")) return "路由策略";
-  if (path.includes("/api/admin/providers")) return "Provider 渠道";
+  if (path.includes("/api/admin/providers")) return "供应商";
   if (path.includes("/api/admin/users")) return "用户管理";
   if (path.includes("/api/admin/approvals")) return "审批记录";
   if (path.includes("/api/admin/sqlite/backups")) return "数据备份";

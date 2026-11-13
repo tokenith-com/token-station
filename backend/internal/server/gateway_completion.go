@@ -114,8 +114,6 @@ func (s *Server) finishCall(completion GatewayCallCompletion) {
 	completion.Call.RouteAttempts = attemptsWithoutErrorText(completion.Attempts)
 	s.store.RecordRouteAttempts(completion.Call.RequestID, completion.Attempts)
 	switch completion.Kind {
-	case CompletionKindPlayground:
-		s.store.RecordPlaygroundRequest(completion.Call, completion.Route, completion.StatusCode, completion.ErrorCode, completion.ClientIP, completion.UserAgent)
 	case CompletionKindRejected:
 		// RecordRejectedRequest already ran. It mints the request ID the caller has to
 		// echo back to the client, so it cannot be deferred to here.

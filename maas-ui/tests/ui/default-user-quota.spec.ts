@@ -28,13 +28,13 @@ for (const scenario of ["save", "failed-save"] as const) {
     await page.getByRole("combobox", { name: "作用域", exact: true }).selectOption("user");
     const target = page.getByRole("combobox", { name: /^作用域对象/ });
     await target.selectOption("all_users");
-    await page.getByRole("spinbutton", { name: "月成本 USD", exact: true }).fill("50");
+    await page.getByRole("spinbutton", { name: "月成本 ¥", exact: true }).fill("50");
     await capture(page, testInfo, target.locator(".."), `default-user-${scenario}-target`, "默认用户额度：独立额度与严格合并说明");
     await page.getByRole("button", { name: "保存", exact: true }).click();
     if (scenario === "failed-save") {
       await expect(page.getByRole("alert").getByText("Policy could not be saved", { exact: true })).toBeVisible();
       await expect(target).toHaveValue("all_users");
-      await expect(page.getByRole("spinbutton", { name: "月成本 USD", exact: true })).toHaveValue("50");
+      await expect(page.getByRole("spinbutton", { name: "月成本 ¥", exact: true })).toHaveValue("50");
       return;
     }
     const row = page.getByRole("row").filter({ hasText: "Default monthly allowance" });
@@ -42,7 +42,7 @@ for (const scenario of ["save", "failed-save"] as const) {
     await expect(row).toContainText("所有用户（每人独立额度）");
     await row.getByRole("button", { name: "编辑", exact: true }).click();
     await expect(target).toHaveValue("all_users");
-    await page.getByRole("spinbutton", { name: "月成本 USD", exact: true }).fill("25");
+    await page.getByRole("spinbutton", { name: "月成本 ¥", exact: true }).fill("25");
     await page.getByRole("button", { name: "保存", exact: true }).click();
     await expect(target).toHaveCount(0);
     await expect(row).toContainText("按用户分别统计");

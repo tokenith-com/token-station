@@ -80,7 +80,7 @@ test(`retrieval-layout inventory-${mobile ? "mobile" : "desktop"}`, async ({ pag
   const editor = page.locator(".provider-modal");
   await editor.getByRole("tab", { name: "模型", exact: true }).click();
   const inventory = editor.locator(".provider-model-inventory");
-  await expect(inventory.getByText("缓存读成本 USD/1M", { exact: true })).toHaveCount(0);
+  await expect(inventory.getByText("缓存读成本 ¥/1M", { exact: true })).toHaveCount(0);
   await expect(inventory.getByText("输入成本尚未确认（不阻断已有线路）", { exact: true })).toBeVisible();
   await capture(page, testInfo, editor, `unconfirmed-cost-${mobile ? "mobile" : "desktop"}`, "零输入成本未确认提示", "viewport");
   await inventory.getByLabel("输入成本 USD/1M: bge-m3", { exact: true }).fill("0.4");

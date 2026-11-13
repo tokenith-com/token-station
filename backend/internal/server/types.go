@@ -129,6 +129,7 @@ type APIKey struct {
 	Name            string            `json:"name"`
 	Group           string            `json:"group,omitempty" gorm:"index"`
 	KeyHash         string            `json:"-" gorm:"uniqueIndex"`
+	KeyCiphertext   string            `json:"-" gorm:"column:key_ciphertext;-:migration"`
 	KeyPrefix       string            `json:"key_prefix"`
 	KeySuffix       string            `json:"key_suffix"`
 	AllowedModels   map[string]bool   `json:"-" gorm:"-"`

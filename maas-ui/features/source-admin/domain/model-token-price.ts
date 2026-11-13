@@ -13,5 +13,5 @@ export function modelTokenPriceMetric(model: Model): string {
 
 export function formatRetrievalUSD(value: number): string {
   if (!Number.isFinite(value) || value < 0) return "—";
-  return new Intl.NumberFormat(languageLocale(), { style: "currency", currency: "USD", minimumFractionDigits: 6, maximumFractionDigits: 6 }).format(value);
+  return new Intl.NumberFormat(languageLocale(), { style: "currency", currency: "CNY", currencyDisplay: "narrowSymbol", minimumFractionDigits: 6, maximumFractionDigits: 6 }).format(value);
 }

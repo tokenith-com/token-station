@@ -113,7 +113,7 @@ export function gatewayJapaneseDocs(stats: GatewayDocBundle): GatewayDocBundle {
             description: "管理者は Provider、モデルカタログ、ルーティング、ID プロバイダー、権限、監査、コスト統制を管理します。",
             notesTitle: "公開前チェック",
             notes: [
-              "Provider Channels で上流 Base URL、認証情報、リソースグループ、ヘルスチェックを設定します。",
+              "プロバイダーで上流 Base URL、認証情報、リソースグループ、ヘルスチェックを設定します。",
               "Model Catalog で業務に公開する標準モデル名、能力タグ、価格単位を管理します。",
               "Routing Policies で公開モデルごとに少なくとも 1 つの有効ルートを設定します。",
               "System Settings で ID プロバイダー、ロール権限、既定ポリシー、監査保持期間、企業連携を設定します。",

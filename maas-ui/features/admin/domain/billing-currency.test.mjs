@@ -47,8 +47,8 @@ test("statement rates accept positive exact decimals within backend precision", 
 });
 
 test("statement preferences preserve valid currency rates without inventing defaults", () => {
-  assert.deepEqual(readStatementCurrencyPreferences(null), { currency: "USD", rates: {} });
-  assert.deepEqual(readStatementCurrencyPreferences("invalid"), { currency: "USD", rates: {} });
-  assert.deepEqual(readStatementCurrencyPreferences(JSON.stringify({ currency: "CNY", rates: { CNY: "7.25", JPY: "150", RUB: "0", USD: "7", EUR: "1" } })), { currency: "CNY", rates: { CNY: "7.25", JPY: "150" } });
-  assert.deepEqual(readStatementCurrencyPreferences(JSON.stringify({ currency: "EUR", rates: {} })), { currency: "USD", rates: {} });
+  assert.deepEqual(readStatementCurrencyPreferences(null), { currency: "CNY", rates: {} });
+  assert.deepEqual(readStatementCurrencyPreferences("invalid"), { currency: "CNY", rates: {} });
+  assert.deepEqual(readStatementCurrencyPreferences(JSON.stringify({ currency: "JPY", rates: { JPY: "150", RUB: "0", CNY: "7", EUR: "1" } })), { currency: "JPY", rates: { JPY: "150" } });
+  assert.deepEqual(readStatementCurrencyPreferences(JSON.stringify({ currency: "EUR", rates: {} })), { currency: "CNY", rates: {} });
 });

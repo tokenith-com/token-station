@@ -115,7 +115,7 @@ export function ReconciliationManager({ api, data, loading, onReload }: { api: A
             <strong key={`${rule.id}:name`}>{rule.name}</strong>,
             connectorNames.get(rule.connector_id) || rule.connector_id,
             <span key={`${rule.id}:matching`}>{reconciliationGranularityLabel(rule.granularity)}<small>{(rule.match_dimensions ?? []).map(reconciliationDimensionLabel).join(" · ")}</small></span>,
-            `${formatReconciliationMoney(rule.amount_tolerance, rule.currency || "USD")} / ${formatRatio(rule.ratio_tolerance)}`,
+            `${formatReconciliationMoney(rule.amount_tolerance, rule.currency || "CNY")} / ${formatRatio(rule.ratio_tolerance)}`,
             `${rule.schedule_interval_minutes > 0 ? formatMinutes(rule.schedule_interval_minutes) : tx("手动")} / ${formatMinutes(rule.billing_delay_minutes)}`,
             <span key={`${rule.id}:status`}><StatusPill status={rule.status} /> <small>v{formatReconciliationNumber(rule.version)}</small></span>,
             <div className="billing-row-actions" key={`${rule.id}:actions`}>
@@ -136,8 +136,8 @@ export function ReconciliationManager({ api, data, loading, onReload }: { api: A
             <span key={`${run.id}:period`}><strong>{ruleNames.get(run.rule_id) || run.rule_id}</strong><small>{formatReconciliationDate(run.period_start)} – {formatReconciliationDate(run.period_end)}</small></span>,
             <span key={`${run.id}:status`}><StatusPill status={run.status} />{run.locked_at ? <small>{tx("已锁定")}</small> : null}</span>,
             [run.matched_count, run.provider_only_count, run.tokenhub_only_count, run.amount_mismatch_count].map(formatReconciliationNumber).join(" / "),
-            `${formatReconciliationMoney(run.provider_amount, run.currency || "USD")} / ${formatReconciliationMoney(run.tokenhub_amount, run.currency || "USD")}`,
-            formatReconciliationMoney(run.difference_amount, run.currency || "USD"),
+            `${formatReconciliationMoney(run.provider_amount, run.currency || "CNY")} / ${formatReconciliationMoney(run.tokenhub_amount, run.currency || "CNY")}`,
+            formatReconciliationMoney(run.difference_amount, run.currency || "CNY"),
             <span key={`${run.id}:hash`}>{reconciliationTemplate(tx("规则版本：v{version}"), { version: formatReconciliationNumber(run.rule_version) })}<small>{reconciliationTemplate(tx("输入指纹：{fingerprint}"), { fingerprint: shortHash(run.input_hash) })}</small></span>,
             <div className="billing-row-actions" key={`${run.id}:actions`}>
               <button className="icon-button subtle" disabled={Boolean(busy)} onClick={() => void loadDetail(run.id)} title={tx("查看差异明细")} type="button"><Eye size={15} /></button>
@@ -245,7 +245,7 @@ function ReconciliationRuleEditor({ api, connectors, onClose, onSaved }: { api: 
       name: "", connector_id: connectors[0]?.id ?? "", granularity: supportsDetail ? "detail" : "day",
       match_dimensions: supportsDetail ? ["request_id", "model", "currency"] : ["model", "currency"],
       amount_tolerance: "0.01", ratio_tolerance: "0.01", time_window_minutes: "15", billing_delay_minutes: "60",
-      schedule_interval_minutes: "0", timezone: "UTC", currency: "USD", usd_exchange_rate: "1", dimension_mappings: "{}",
+      schedule_interval_minutes: "0", timezone: "UTC", currency: "CNY", usd_exchange_rate: "1", dimension_mappings: "{}",
     };
   });
   const [busy, setBusy] = useState(false);
@@ -336,8 +336,8 @@ function ReconciliationRuleEditor({ api, connectors, onClose, onSaved }: { api: 
           <label className="field"><span>{tx("明细时间窗口（分钟）")}</span><input min="0" max="1440" type="number" value={values.time_window_minutes} onChange={(event) => update("time_window_minutes", event.target.value)} /></label>
           <label className="field"><span>{tx("账单延迟（分钟）")}</span><input min="0" max="43200" type="number" value={values.billing_delay_minutes} onChange={(event) => update("billing_delay_minutes", event.target.value)} /></label>
           <label className="field"><span>{tx("定时周期（分钟，0 为手动）")}</span><input min="0" max="43200" type="number" value={values.schedule_interval_minutes} onChange={(event) => update("schedule_interval_minutes", event.target.value)} /></label>
-          <label className="field"><span>{tx("币种")}</span><input maxLength={3} placeholder="USD" value={values.currency} onChange={(event) => update("currency", event.target.value.toUpperCase())} required /></label>
-          <label className="field"><span>{tx("USD 汇率（1 USD = 目标币种）")}</span><input inputMode="decimal" value={values.usd_exchange_rate} onChange={(event) => update("usd_exchange_rate", event.target.value)} required /></label>
+          <label className="field"><span>{tx("币种")}</span><input maxLength={3} placeholder="CNY" value={values.currency} onChange={(event) => update("currency", event.target.value.toUpperCase())} required /></label>
+          <label className="field"><span>{tx("CNY 汇率（1 CNY = 目标币种）")}</span><input inputMode="decimal" value={values.usd_exchange_rate} onChange={(event) => update("usd_exchange_rate", event.target.value)} required /></label>
           <label className="field reconciliation-wide-field"><span>{tx("Provider 维度映射（JSON）")}</span><textarea rows={5} value={values.dimension_mappings} onChange={(event) => update("dimension_mappings", event.target.value)} /><small>{tx("外部值映射到 TokenHub 的 Provider、资源账号、模型或项目标识。")}</small></label>
           {error ? <div className="billing-inline-error reconciliation-wide-field" role="alert">{error}</div> : null}
         </div>
@@ -480,7 +480,7 @@ function reconciliationErrorCodeLabel(code: string) {
     case "invalid_reconciliation_currency": return tx("请输入有效的三字母币种代码");
     case "reconciliation_request_id_required": return tx("明细对账必须包含请求 ID 维度");
     case "invalid_reconciliation_tolerance": return tx("对账容差必须是有效的非负数");
-    case "invalid_reconciliation_exchange_rate": return tx("USD 汇率必须是有效的正数");
+    case "invalid_reconciliation_exchange_rate": return tx("CNY 汇率必须是有效的正数");
     case "invalid_reconciliation_window": return tx("明细时间窗口无效");
     case "invalid_reconciliation_timezone": return tx("对账时区无效");
     case "invalid_reconciliation_mapping": return tx("对账维度映射无效");

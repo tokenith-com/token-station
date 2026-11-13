@@ -30,9 +30,10 @@ export function adminUserConfig(): ResourceConfig<AdminUser> {
       { key: "email", label: "邮箱", required: true },
       { key: "password", label: "密码", type: "password", placeholder: "编辑时留空则不修改" },
       { key: "role", label: "角色", type: "select", optionsFromData: roleSelectOptions, required: true },
-      { key: "team_id", label: "主团队", type: "select", optionsFromData: teamSelectOptions, help: "主团队用于默认责任和成本归属。" },
+      { key: "team_id", label: "主团队", type: "select", optionsFromData: teamSelectOptions, visible: (values) => values.role !== "guest", help: "主团队用于默认责任和成本归属。" },
       {
         key: "team_ids",
+        visible: (values) => values.role !== "guest",
         label: "其他团队",
         type: "multi-select",
         optionsFromData: (data, _currentUser, values) => teamSelectOptions(data).filter((option) => option.value !== values?.team_id),

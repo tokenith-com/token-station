@@ -143,7 +143,7 @@ export function gatewayEnglishDocs(stats: GatewayDocStats): GatewayDocBundle {
             ],
             notesTitle: "Production setup order",
             notes: [
-              "Configure upstream Base URLs, credentials, resource groups, and health checks in Provider Channels.",
+              "Configure upstream Base URLs, credentials, resource groups, and health checks in Providers.",
               "Maintain standard public model names, capability tags, context windows, and price units in Model Catalog.",
               "Create at least one enabled routing rule for every model that should be visible and callable.",
               "Configure identity providers, role permissions, default policies, audit retention, and enterprise integrations in System Settings.",

@@ -105,6 +105,7 @@ export function loadPlanForView(user: AdminUser, view: ViewKey): LoadPlan {
     case "playground":
       plan.overview = true;
       plan.models = true;
+      plan.keys = can("api-keys");
       plan.routes = can("routes");
       break;
     case "gateway":
@@ -273,12 +274,9 @@ export function loadPlanForView(user: AdminUser, view: ViewKey): LoadPlan {
     case "notification-channels":
     case "monitors":
     case "announcements":
+    case "role-configs":
     case "identity-providers":
       addResourceDependency(plan, view);
-      break;
-    case "invoices":
-      // Backend invoices are cost statements, not the guest VAT invoice service.
-      if (appRole(user.role) !== "guest") addResourceDependency(plan, view);
       break;
     case "balance-recharge":
       break;

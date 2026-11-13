@@ -933,6 +933,40 @@ func TestAdminUserAPIStoresPrimaryAndAdditionalTeams(t *testing.T) {
 	if user.TeamID != "team_primary" || !equalStringSlices(user.TeamIDs, []string{"team_primary", "team_secondary"}) {
 		t.Fatalf("unexpected normalized team memberships: primary=%s teams=%v", user.TeamID, user.TeamIDs)
 	}
+
+	guestCreated := doJSON(t, app, http.MethodPost, "/api/admin/users", map[string]any{
+		"username": "api-consumer-user",
+		"name":     "API Consumer User",
+		"email":    "api-consumer-user@tokenhub.local",
+		"password": "member123456",
+		"role":     "guest",
+		"team_id":  "team_primary",
+		"team_ids": []string{"team_secondary"},
+		"status":   StatusActive,
+	}, "")
+	if guestCreated.Code != http.StatusCreated {
+		t.Fatalf("consumer user create failed: %d %s", guestCreated.Code, guestCreated.Body)
+	}
+	var guest AdminUser
+	if err := json.Unmarshal([]byte(guestCreated.Body), &guest); err != nil {
+		t.Fatal(err)
+	}
+	if guest.TeamID != "" || len(guest.TeamIDs) != 0 {
+		t.Fatalf("consumer user must not belong to a team: primary=%s teams=%v", guest.TeamID, guest.TeamIDs)
+	}
+	guestPatched := doJSON(t, app, http.MethodPatch, "/api/admin/users/"+guest.ID, map[string]any{
+		"team_id":  "team_primary",
+		"team_ids": []string{"team_secondary"},
+	}, "")
+	if guestPatched.Code != http.StatusOK {
+		t.Fatalf("consumer user patch failed: %d %s", guestPatched.Code, guestPatched.Body)
+	}
+	if err := json.Unmarshal([]byte(guestPatched.Body), &guest); err != nil {
+		t.Fatal(err)
+	}
+	if guest.TeamID != "" || len(guest.TeamIDs) != 0 {
+		t.Fatalf("consumer user patch must not assign a team: primary=%s teams=%v", guest.TeamID, guest.TeamIDs)
+	}
 }
 
 func TestProjectTeamRemovalAndTeamDeletionAreSafe(t *testing.T) {

@@ -5,7 +5,6 @@ import { type AdminResource, type AdminUser, type ApiContext, type APIKey, type 
 import { filterRows } from "../domain/catalog";
 import { readPath, rowID, stringifyValue } from "../domain/entities";
 import { formatNumber, formatTime } from "../domain/formatting";
-import { settingsTabLabel } from "../domain/labels";
 import { LanguageSwitcher, languageOptionLabel } from "../i18n/language-switcher";
 import { type AppLanguage, countWithLabel, displayText, languageOptions, translatedCell, tx } from "../i18n/runtime";
 import { defaultFormValues, testProviderEgress } from "../resources/payloads";
@@ -26,7 +25,6 @@ export function SettingsView({
   api,
   activeTab,
   language,
-  onTabChange,
   onLanguageChange,
   onRestoreModelCatalog,
   onCreate,
@@ -39,7 +37,6 @@ export function SettingsView({
   api: ApiContext;
   activeTab: SettingsTabKey;
   language: AppLanguage;
-  onTabChange: (tab: SettingsTabKey) => void;
   onLanguageChange: (language: AppLanguage) => void;
   onRestoreModelCatalog: () => void;
   onCreate: (config: ResourceConfig<AdminResource>) => void;
@@ -62,20 +59,6 @@ export function SettingsView({
 
   return (
     <div className="settings-view">
-      <div className="settings-tabs" role="tablist" aria-label={tx("系统设置分类")}>
-        {configs.map((config) => (
-          <button
-            aria-selected={activeConfig.view === config.view}
-            className={activeConfig.view === config.view ? "settings-tab active" : "settings-tab"}
-            key={config.view}
-            onClick={() => onTabChange(config.view as SettingsTabKey)}
-            role="tab"
-            type="button"
-          >
-            {settingsTabLabel(config.view as SettingsTabKey)}
-          </button>
-        ))}
-      </div>
       {activeConfig.view === "settings" ? (
         <>
           <SystemSettingsPanel

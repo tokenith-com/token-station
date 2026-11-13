@@ -576,7 +576,7 @@ export const enTranslations: Record<string, string> = {
     "系统管理员": "System Admin",
     "安全审计": "Security Auditor",
     "团队 Leader": "Team Leader",
-    "普通用户": "Regular User",
+    "普通用户": "Regular User", "平台超管": "Platform Super Admin", "团队管理者": "Team Manager", "团队普通用户": "Team Member", "C端普通用户": "Individual User",
     "全局": "Global",
     "本人": "Self",
     "可分配": "Assignable",

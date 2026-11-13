@@ -10,11 +10,11 @@ export const expectedMenus: Record<AppRole, string[]> = {
     "billing", "quota-policies", "cost-centers",
     "monitors", "alerts", "alert-events", "notification-channels", "alert-deliveries",
     "security-policies", "sqlite-backups", "database-status", "announcements", "plugins",
-    "users", "settings",
+    "users", "role-configs", "identity-providers", "settings",
   ],
   team_leader: ["overview", "usage", "models", "api-keys", "gateway", "projects", "users", "audit"],
   user: ["overview", "models", "playground", "api-keys", "gateway", "usage", "audit"],
-  guest: ["overview", "models", "playground", "api-keys", "gateway", "usage", "audit", "billing", "balance-recharge", "invoices"],
+  guest: ["overview", "models", "playground", "api-keys", "gateway", "usage", "audit", "billing", "balance-recharge"],
 };
 describe("custom role menus retained during upstream merge", () => {
   it.each(Object.keys(expectedMenus) as AppRole[])("preserves the %s menu and access", role => {
@@ -29,6 +29,6 @@ describe("custom role menus retained during upstream merge", () => {
 
   it("retains the custom provider label in the admin navigation", () => {
     const aiResources = adminNavGroups.find((group) => group.title === "AI资源");
-    expect(aiResources?.items).toEqual(expect.arrayContaining([expect.objectContaining({ view: "providers", label: "Provider 渠道" })]));
+    expect(aiResources?.items).toEqual(expect.arrayContaining([expect.objectContaining({ view: "providers", label: "供应商" })]));
   });
 });

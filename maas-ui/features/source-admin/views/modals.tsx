@@ -590,7 +590,7 @@ export function APIKeyWizardModal({
                 <ReviewItem label="TPM" value={values.token_limit_tpm || tx("继承上级")} />
                 <ReviewItem label="最大并发" value={values.max_concurrency || "-"} />
                 <ReviewItem label="日请求" value={values.daily_requests || "-"} />
-                <ReviewItem label="月成本 USD" value={values.monthly_cost_usd || "-"} />
+                <ReviewItem label="月成本 ¥" value={values.monthly_cost_usd || "-"} />
               </div>
             </section>
           ) : null}

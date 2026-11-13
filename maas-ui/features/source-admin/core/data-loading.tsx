@@ -259,6 +259,7 @@ export function loadPlanForView(user: AdminUser, view: ViewKey): LoadPlan {
     case "notification-channels":
     case "monitors":
     case "announcements":
+    case "role-configs":
     case "identity-providers":
       addResourceDependency(plan, view);
       break;

@@ -52,6 +52,18 @@ func (s *Server) routes() {
 	s.registerSingleMethodRoute(http.MethodPost, "/api/admin/auth/logout", s.handleAdminLogout, jsonMethodNotAllowed(http.MethodPost))
 	s.registerSingleMethodRoute(http.MethodGet, "/api/admin/auth/me", s.handleAdminMe, s.adminAuthenticationMethodNotAllowed(http.MethodGet))
 	s.registerSingleMethodRoute(http.MethodPost, "/api/admin/auth/reset-password", s.handleAdminResetPassword, jsonMethodNotAllowed(http.MethodPost))
+	s.registerSingleMethodRoute(http.MethodPost, "/api/admin/auth/register/activation", s.handleConsumerRegisterActivation, jsonMethodNotAllowed(http.MethodPost))
+	s.registerSingleMethodRoute(http.MethodGet, "/api/admin/auth/register/captcha", s.handleConsumerRegisterCaptcha, jsonMethodNotAllowed(http.MethodGet))
+	s.registerSingleMethodRoute(http.MethodGet, "/api/admin/auth/activation/verify", s.handleConsumerActivationVerify, jsonMethodNotAllowed(http.MethodGet))
+	s.registerSingleMethodRoute(http.MethodPost, "/api/admin/auth/activation/complete", s.handleConsumerActivationComplete, jsonMethodNotAllowed(http.MethodPost))
+	s.registerSingleMethodRoute(http.MethodGet, "/api/admin/consumer/wallet", s.handleConsumerWallet, jsonMethodNotAllowed(http.MethodGet))
+	s.registerMethodRoutes("/api/admin/consumer/recharge-orders", func(allowedMethods string) http.HandlerFunc {
+		return jsonMethodNotAllowed(allowedMethods)
+	},
+		methodRoute{Method: http.MethodGet, Handler: s.handleConsumerRechargeOrders},
+		methodRoute{Method: http.MethodPost, Handler: s.handleConsumerRechargeOrderCreate},
+	)
+	s.registerSingleMethodRoute(http.MethodPost, "/api/admin/consumer/recharge-orders/{order_id}/simulate-pay", s.handleConsumerRechargeOrderSimulatePay, jsonMethodNotAllowed(http.MethodPost))
 	s.registerSingleMethodRoute(http.MethodGet, "/api/admin/auth/identity-providers", s.handleAdminAuthIdentityProviders, jsonMethodNotAllowed(http.MethodGet))
 	s.registerSingleMethodRoute(http.MethodGet, "/api/admin/auth/oauth/start", s.handleAdminOAuthStart, jsonMethodNotAllowed(http.MethodGet))
 	s.registerSingleMethodRoute(http.MethodGet, "/api/admin/auth/oauth/callback", s.handleAdminOAuthCallback, jsonMethodNotAllowed(http.MethodGet))
@@ -154,6 +166,7 @@ func (s *Server) routes() {
 		methodRoute{Method: http.MethodDelete, Handler: s.handleAdminAPIKeyDelete},
 	)
 	s.registerSingleMethodRoute(http.MethodGet, "/api/admin/api-keys/{key_id}/usage", s.handleAdminAPIKeyUsageGet, s.adminAPIKeyMethodNotAllowed(http.MethodGet))
+	s.registerSingleMethodRoute(http.MethodGet, "/api/admin/api-keys/{key_id}/secret", s.handleAdminAPIKeySecretGet, s.adminAPIKeyMethodNotAllowed(http.MethodGet))
 	s.registerSingleMethodRoute(http.MethodPost, "/api/admin/api-keys/{key_id}/rotate", s.handleAdminAPIKeyRotatePost, s.adminAPIKeyMethodNotAllowed(http.MethodPost))
 	s.mux.HandleFunc("/api/admin/api-keys/", s.handleAdminAPIKeyItem)
 	s.registerAdminAnalyticsCredentialRoutes()

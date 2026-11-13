@@ -350,8 +350,8 @@ func TestBootstrapBaseDataSeedsGovernanceResources(t *testing.T) {
 	}
 
 	roles := store.ListResources("role-configs")
-	if len(roles) != 3 {
-		t.Fatalf("expected three role configs, got %+v", roles)
+	if len(roles) != 4 {
+		t.Fatalf("expected four role configs, got %+v", roles)
 	}
 	roleKeys := map[string]bool{}
 	for _, role := range roles {
@@ -360,7 +360,7 @@ func TestBootstrapBaseDataSeedsGovernanceResources(t *testing.T) {
 			t.Fatalf("unexpected role config: %+v", role)
 		}
 	}
-	for _, key := range []string{"user", "team_leader", "admin"} {
+	for _, key := range []string{"user", "guest", "team_leader", "admin"} {
 		if !roleKeys[key] {
 			t.Fatalf("expected seeded role key %s, got %+v", key, roleKeys)
 		}

@@ -38,7 +38,7 @@ describe("UsageView project attribution", () => {
 
     const projectSection = (await screen.findByRole("heading", { name: "项目归因" })).closest("section")!;
     const projects = within(projectSection);
-    const cost = new Intl.NumberFormat("zh-CN", { style: "currency", currency: "USD" }).format(0.25);
+    const cost = new Intl.NumberFormat("zh-CN", { style: "currency", currency: "CNY", currencyDisplay: "narrowSymbol" }).format(0.25);
     expect(projects.getByRole("row", { name: `Design Platform 2 150 20 ${cost}` })).toBeInTheDocument();
     expect(projects.queryByRole("cell", { name: "prj_design" })).not.toBeInTheDocument();
     expect(projects.getByRole("cell", { name: "prj_archived" })).toBeInTheDocument();

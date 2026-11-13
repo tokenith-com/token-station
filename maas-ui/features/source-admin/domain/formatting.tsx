@@ -402,8 +402,8 @@ export function modelCapabilities(model: ProviderCatalogModel) {
 export function formatModelPrice(model: ProviderCatalogModel) {
   const input = model.input_price_usd_per_1m ?? 0;
   const output = model.output_price_usd_per_1m ?? 0;
-  if (!input && !output) return "$-";
-  return `$${formatMoney(input)}/$${formatMoney(output)}`;
+  if (!input && !output) return "¥-";
+  return `¥${formatMoney(input)}/¥${formatMoney(output)}`;
 }
 
 export function modelToForm(item: Model) {

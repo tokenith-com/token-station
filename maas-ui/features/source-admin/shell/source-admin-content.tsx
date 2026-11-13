@@ -5,7 +5,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { type LoadedData, loadPlanForView, mergeLoadedData } from "../core/data-loading";
 import { canAccessView, defaultViewForRole, rememberRecentView, standaloneViewMeta } from "../core/navigation";
 import { clearProviderAccountOAuthResultFromLocation, hasPendingProviderAccountOAuthResult, isOAuthAuthorizationResponse, readOAuthLoginResult, readProviderAccountOAuthResultFromLocation, savePendingProviderAccountOAuthResult } from "../core/session";
-import { notificationChannelDefaultType, notificationChannelTypes, type AdapterDescriptor, type AdminResource, type AdminUIContribution, type AdminUser, type AlertDelivery, type AlertEvent, type APIKey, type AppData, type ApprovalRequest, type AuditEvent, type BillingConnector, type BillingRecord, type BillingSyncRun, type ConfirmState, type GatewayChainPlan, languageStorageKey, type ModalState, type Model, type ModelRoute, type ModelRoutePolicy, type PluginActionDescriptor, type PluginBackgroundJobDescriptor, type PluginBackgroundJobRunRecord, type PluginDescriptor, type PluginMarketplacePlugin, type Project, type Provider, type ProviderCatalogEntry, type ProviderModel, type ProviderMonitoringSnapshot, type ProviderResource, type ReconciliationRule, type ReconciliationRun, type ReportExportHistoryItem, type RequestLog, type ResourceAction, type ResourceConfig, type SettingsTabKey, type SQLiteBackup, type ToolbarAction, type UsageBreakdown, type UsageDaily, type UsagePoint, type ViewKey, viewRoutes } from "../core/types";
+import { notificationChannelDefaultType, notificationChannelTypes, type AdapterDescriptor, type AdminResource, type AdminUIContribution, type AdminUser, type AlertDelivery, type AlertEvent, type APIKey, type AppData, type ApprovalRequest, type AuditEvent, type BillingConnector, type BillingRecord, type BillingSyncRun, type ConfirmState, type GatewayChainPlan, languageStorageKey, type ModalState, type Model, type ModelRoute, type ModelRoutePolicy, type PluginActionDescriptor, type PluginBackgroundJobDescriptor, type PluginBackgroundJobRunRecord, type PluginDescriptor, type PluginMarketplacePlugin, type Project, type Provider, type ProviderCatalogEntry, type ProviderModel, type ProviderMonitoringSnapshot, type ProviderResource, type ReconciliationRule, type ReconciliationRun, type ReportExportHistoryItem, type RequestLog, type ResourceAction, type ResourceConfig, type SQLiteBackup, type ToolbarAction, type UsageBreakdown, type UsageDaily, type UsagePoint, type ViewKey, viewRoutes } from "../core/types";
 import { emptyData, emptySummary, filterByModelCategory, filterRows } from "../domain/catalog";
 import { filterAPIKeys } from "../domain/api-key-filter";
 import { auditRequestPagePath } from "../domain/audit-request-page";
@@ -80,7 +80,6 @@ export function SourceAdminContent({ baseURL, adminToken, currentUser, language,
   const [query, setQuery] = useState("");
   const [modelCategoryFilter, setModelCategoryFilter] = useState("all");
   const [routeModelQuery, setRouteModelQuery] = useState("");
-  const [settingsTab, setSettingsTab] = useState<SettingsTabKey>("settings");
   const [securityPolicyTab, setSecurityPolicyTab] = useState<"access" | "content">("access");
   const [modal, setModal] = useState<ModalState<any> | null>(null);
   const [modalSaveError, setModalSaveError] = useState<{ source: typeof modal; message: string } | null>(null);
@@ -580,7 +579,7 @@ export function SourceAdminContent({ baseURL, adminToken, currentUser, language,
     }
     if (data.providers.length === 0) {
       setNotice("");
-      setError(tx("请先新增 Provider 渠道，再配置路由策略。"));
+      setError(tx("请先新增供应商，再配置路由策略。"));
       selectView("providers");
       return;
     }
@@ -756,13 +755,12 @@ export function SourceAdminContent({ baseURL, adminToken, currentUser, language,
             )
           ) : activeView === "plugin-pages" ? (
             <PluginPageView activePageKey={activePluginPageKey} api={api} data={data} onSelectPage={selectPluginPage} />
-          ) : activeView === "settings" ? (
+          ) : activeView === "settings" || activeView === "role-configs" || activeView === "identity-providers" ? (
             <SettingsView
               api={api}
               data={data}
-              activeTab={settingsTab}
+              activeTab={activeView}
               language={language}
-              onTabChange={setSettingsTab}
               onLanguageChange={onLanguageChange}
               onRestoreModelCatalog={() => setConfirmRestoreModels(true)}
               onCreate={(config) => setModal({ config })}

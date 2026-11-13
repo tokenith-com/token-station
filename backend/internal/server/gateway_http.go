@@ -525,16 +525,13 @@ func (s *Server) handleAdminPlaygroundChat(w http.ResponseWriter, r *http.Reques
 	}
 	req.Stream = false
 	req.StreamOptions = nil
-	guardrailProjectID, err := s.resolvePlaygroundGuardrailProjectID(user, playgroundReq.ProjectID)
-	if err != nil {
-		writeError(w, r, err)
+	startedAt := time.Now()
+	call, ok := s.admitPlaygroundCall(w, r, user, playgroundReq.APIKeyID, req, startedAt)
+	if !ok {
 		return
 	}
-
-	startedAt := time.Now()
-	call := s.newPlaygroundCallContext(user, req.Model, startedAt)
+	guardrailProjectID := call.Project.ID
 	requestID := call.RequestID
-	w.Header().Set("x-request-id", requestID)
 	if err := s.runGatewayAuthContextHooks(r.Context(), &call, r.Header); err != nil {
 		httpErr := AsHTTPError(err)
 		requestAuditPayload := guardrailAuditSummary{Model: req.Model}
@@ -617,6 +614,7 @@ func (s *Server) handleAdminPlaygroundChat(w http.ResponseWriter, r *http.Reques
 		})
 		writeError(w, r, routeErr)
 	}
+	var err error
 	routed.Call.Model, err = resolvePlaygroundModelPricing(s.store, routed.Call.Model)
 	if err != nil {
 		finishRoutingFailure(err)
@@ -1470,18 +1468,4 @@ func (s *Server) authenticate(r *http.Request) (Project, APIKey, error) {
 		return s.store.ValidateAPIKey(apiKey, s.clientIP(r))
 	}
 	return Project{}, APIKey{}, ErrInvalidAPIKey
-}
-
-// playgroundModel resolves the catalog entry for a playground request so its usage
-// is priced like any other call. It falls back to a name-only model when the catalog
-// does not know the name, which keeps the console usable against a model that was
-// just removed.
-func playgroundModel(store Store, name string) Model {
-	name = strings.TrimSpace(name)
-	for _, model := range store.ListModels() {
-		if model.Name == name {
-			return model
-		}
-	}
-	return Model{Name: name, Status: StatusActive}
 }

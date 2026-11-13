@@ -69,7 +69,8 @@
 @import "./styles/redesign/personal-api-keys.css";
 @import "./styles/redesign/personal-usage.css";
 @import "./styles/redesign/role-management.css";
-@import "./styles/redesign/guest-billing.css";
+@import "./styles/redesign/balance-recharge.css";
+@import "./styles/redesign/cost-details.css";
 @import "./styles/legacy/model-create-modal.css";
 @import "./styles/redesign/desktop-typography.css";
 @import "./styles/redesign/team-resources.css";

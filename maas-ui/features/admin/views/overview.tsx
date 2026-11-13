@@ -3,7 +3,7 @@ import { type ReactNode, useEffect, useState } from "react";
 import { SvgIcon } from "@/components/svg-icon";
 import { appRole, canAccessView } from "../core/navigation";
 import { type AdminUser, type ApiContext, type AppData, type AppRole, type RequestLog, type UsageBreakdownRow, type UsagePoint, type ViewKey } from "../core/types";
-import { findProvider, providerResourceAuditLabel } from "../domain/entities";
+import { apiKeyAuditLabel, findProvider, providerResourceAuditLabel } from "../domain/entities";
 import { compactNumber, formatDashboardMoney, formatMoney, formatNumber, playgroundModels } from "../domain/formatting";
 import { countWithUnit, languageLocale, tx } from "../i18n/runtime";
 import { hasUsage } from "./usage-billing";
@@ -59,7 +59,7 @@ export function OverviewView({
     },
     {
       label: "总成本",
-      value: `$${formatMoney(data.summary.estimated_cost_usd)}`,
+      value: `¥${formatMoney(data.summary.estimated_cost_usd)}`,
       icon: CircleDollarSign,
       delta: overviewDeltaLabel(costValues),
       values: costValues,
@@ -163,7 +163,7 @@ export function OverviewView({
 function RoleOverviewContent({ data }: { data: AppData }) {
   const stats = roleUsageMonitorStats(data);
   const modelCostRows = usageDashboardCostRows(data.breakdown.models ?? [], (row) => modelDisplayName(data, row.id)).slice(0, 5);
-  const accountRows = usageDashboardAccountRows(data).slice(0, 5);
+  const apiKeyRows = usageDashboardAPIKeyRows(data).slice(0, 5);
   const failures = data.logs
     .filter((log) => requestLogFailed(log))
     .sort((left, right) => right.created_at.localeCompare(left.created_at))
@@ -185,7 +185,7 @@ function RoleOverviewContent({ data }: { data: AppData }) {
           detail={`${formatNumber(stats.successRequests)} / ${formatNumber(stats.requests)}`} />
         <TokenKpiCard icon={<Gauge size={20} strokeWidth={2} />} label="平均延时" tone="purple" value={formatNumber(Math.round(stats.avgLatencyMS))} unit="ms"
           detail={tx("最近请求")} />
-        <TokenKpiCard icon={<CircleDollarSign size={20} strokeWidth={2} />} label="总成本" tone="purple" accent prefix="$" value={formatDashboardMoney(stats.cost)}
+        <TokenKpiCard icon={<CircleDollarSign size={20} strokeWidth={2} />} label="总成本" tone="purple" accent prefix="¥" value={formatDashboardMoney(stats.cost)}
           detail={`${tx("总 Token")} ${compactNumber(stats.totalTokens)}`} />
         <TokenKpiCard icon={<Database size={20} strokeWidth={2} />} label="Token 消耗" tone="violet" value={totalTokenMetric.amount} unit={totalTokenMetric.unit}
           detail={`${tx("输入")} ${compactNumber(stats.inputTokens)}  /  ${tx("输出")} ${compactNumber(stats.outputTokens)}`} />
@@ -230,7 +230,7 @@ function RoleOverviewContent({ data }: { data: AppData }) {
 
       <div className="usage-monitor-bottom-grid role-overview-bottom-grid">
         <UsageCostRankPanel title="模型成本排行" empty="暂无模型成本数据" rows={modelCostRows} />
-        <UsageCostRankPanel title="账号成本排行" empty="暂无账号成本数据" rows={accountRows} />
+        <UsageCostRankPanel title="API Key 成本排行" empty="暂无 API Key 成本数据" rows={apiKeyRows} />
         <RecentFailurePanel logs={failures} data={data} />
       </div>
     </section>
@@ -249,7 +249,7 @@ export function RoleUsageMonitorDashboard({
   const role = appRole(user.role);
   const stats = roleUsageMonitorStats(data);
   const modelCostRows = usageDashboardCostRows(data.breakdown.models ?? [], (row) => modelDisplayName(data, row.id)).slice(0, 5);
-  const accountRows = usageDashboardAccountRows(data).slice(0, 5);
+  const apiKeyRows = usageDashboardAPIKeyRows(data).slice(0, 5);
   const failures = data.logs
     .filter((log) => requestLogFailed(log))
     .sort((left, right) => right.created_at.localeCompare(left.created_at))
@@ -289,7 +289,7 @@ export function RoleUsageMonitorDashboard({
         <UsageMonitorKPI label="请求量" value={formatNumber(stats.requests)} detail={countWithUnit(stats.failedRequests, "次失败", "failed", "件失敗", "failed")} icon={BarChart3} tone="blue" />
         <UsageMonitorKPI label="成功率" value={`${stats.successRate.toFixed(stats.successRate >= 99 ? 1 : 2)}%`} detail={`${formatNumber(stats.successRequests)} / ${formatNumber(stats.requests)}`} icon={Check} tone="green" />
         <UsageMonitorKPI label="平均延迟" value={latencyDisplay(stats.avgLatencyMS)} detail={stats.zeroLatencyRequests > 0 ? countWithUnit(stats.zeroLatencyRequests, "次无延迟记录", "zero-latency", "件の遅延なし", "zero-latency") : tx("最近请求")} icon={Gauge} tone="red" />
-        <UsageMonitorKPI label="总成本" value={`$${formatDashboardMoney(stats.cost)}`} detail={`${tx("总 Token")} ${compactNumber(stats.totalTokens)}`} icon={CircleDollarSign} tone="amber" />
+        <UsageMonitorKPI label="总成本" value={`¥${formatDashboardMoney(stats.cost)}`} detail={`${tx("总 Token")} ${compactNumber(stats.totalTokens)}`} icon={CircleDollarSign} tone="amber" />
         <UsageMonitorKPI label="Token 消耗" value={compactNumber(stats.totalTokens)} detail={`${tx("输入")} ${compactNumber(stats.inputTokens)} / ${tx("输出")} ${compactNumber(stats.outputTokens)}`} icon={Database} tone="purple" />
       </div>
 
@@ -332,7 +332,7 @@ export function RoleUsageMonitorDashboard({
 
       <div className="usage-monitor-bottom-grid">
         <UsageCostRankPanel title="模型成本排行" empty="暂无模型成本数据" rows={modelCostRows} />
-        <UsageCostRankPanel title="账号成本排行" empty="暂无账号成本数据" rows={accountRows} />
+        <UsageCostRankPanel title="API Key 成本排行" empty="暂无 API Key 成本数据" rows={apiKeyRows} />
         <RecentFailurePanel logs={failures} data={data} />
       </div>
     </section>
@@ -994,7 +994,7 @@ export function OverviewProviderShare({ rows }: { rows: Array<{ id: string; labe
       <div className="overview-share-content">
         <div className="overview-donut" style={{ background: overviewDonutGradient(rows) }}>
           <div>
-            <strong>{totalCost > 0 ? `$${compactNumber(totalCost)}` : "$0"}</strong>
+            <strong>{totalCost > 0 ? `¥${compactNumber(totalCost)}` : "¥0"}</strong>
             <span>{tx("总成本")}</span>
           </div>
         </div>
@@ -1065,7 +1065,7 @@ export function overviewMetricValue(points: UsagePoint[], metric: OverviewMetric
 }
 
 export function overviewMetricDisplay(value: number, metric: OverviewMetricKey) {
-  if (metric === "cost") return `$${formatMoney(value)}`;
+  if (metric === "cost") return `¥${formatMoney(value)}`;
   if (metric === "tokens") return compactNumber(value);
   return formatNumber(Math.round(value || 0));
 }
@@ -1249,10 +1249,8 @@ export function usageDashboardCostRows(rows: UsageBreakdownRow[], labelFor: (row
     .sort((left, right) => right.cost - left.cost || right.total_tokens - left.total_tokens || right.request_count - left.request_count);
 }
 
-export function usageDashboardAccountRows(data: AppData): UsageDashboardRankRow[] {
-  const resourceRows = usageDashboardCostRows(data.breakdown.provider_resources ?? [], (row) => providerResourceAuditLabel(data, row.id));
-  if (resourceRows.length) return resourceRows;
-  return usageDashboardCostRows(data.breakdown.providers ?? [], (row) => findProvider(data, row.id)?.name || row.id);
+export function usageDashboardAPIKeyRows(data: AppData): UsageDashboardRankRow[] {
+  return usageDashboardCostRows(data.breakdown.api_keys ?? [], (row) => apiKeyAuditLabel(data, row.id));
 }
 
 export function modelDisplayName(data: AppData, modelID: string) {

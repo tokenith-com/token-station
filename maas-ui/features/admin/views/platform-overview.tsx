@@ -61,7 +61,7 @@ export function PlatformOverviewContent({ api, data }: { api: ApiContext; data: 
             unit={compactTotalTokens.match(/[KM]$/)?.[0]}
             value={compactTotalTokens.replace(/[KM]$/, "")}
           />
-          <OverviewKpi label="总成本" prefix="$" tone="indigo" value={formatMoney(data.summary.estimated_cost_usd)} />
+          <OverviewKpi label="总成本" prefix="¥" tone="indigo" value={formatMoney(data.summary.estimated_cost_usd)} />
           <OverviewKpi label="Provider" tone="violet" value={`${formatNumber(activeProviders)} / ${formatNumber(data.providers.length)}`} />
         </div>
 
@@ -375,12 +375,12 @@ function niceChartMaximum(value: number) {
 }
 
 function formatTooltipValue(value: number, metric: OverviewMetric) {
-  if (metric === "cost") return `$${formatMoney(value)}`;
+  if (metric === "cost") return `¥${formatMoney(value)}`;
   if (metric === "tokens") return compactNumber(Math.round(value));
   return formatNumber(Math.round(value));
 }
 
 function formatAxisValue(value: number, metric: OverviewMetric) {
-  if (metric === "cost") return `$${value >= 100 ? value.toFixed(0) : value.toFixed(1)}`;
+  if (metric === "cost") return `¥${value >= 100 ? value.toFixed(0) : value.toFixed(1)}`;
   return compactNumber(Math.round(value));
 }

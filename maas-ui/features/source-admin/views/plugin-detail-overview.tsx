@@ -134,7 +134,7 @@ export function PluginOverview({
         </div>
       </section>
 
-      <details className="plugin-technical-details">
+      <details open className="plugin-technical-details">
         <summary>
           <Braces size={17} aria-hidden="true" />
           <span><strong>{tx("开发者信息")}</strong><small>{tx("供插件开发和故障排查使用，普通使用无需展开。")}</small></span>

@@ -34,7 +34,7 @@ describe("BillingRateCards", () => {
     expect(container.querySelectorAll(".rate-card-weekdays input:checked + span")).toHaveLength(5);
   });
 
-  it("formats exact original and USD preview amounts in Japanese", async () => {
+  it("formats exact original and CNY preview amounts in Japanese", async () => {
     setActiveLanguage("ja");
     vi.stubGlobal("fetch", vi.fn(async () => Response.json({
       snapshot: {}, charge: { amount: "123456789012345678.123456789", currency: "CNY", usd: "1234567.89" },
@@ -42,6 +42,6 @@ describe("BillingRateCards", () => {
     const { container } = render(<BillingRateCards api={{ baseURL: "http://localhost:8080", adminToken: "admin-token" }} data={emptyData()} />);
     fireEvent.submit(container.querySelector("form")!);
     expect(await screen.findByText("元 123,456,789,012,345,678.123456789")).toBeInTheDocument();
-    expect(screen.getByText("$1,234,567.89")).toBeInTheDocument();
+    expect(screen.getAllByText("元 1,234,567.89")[0]).toBeInTheDocument();
   });
 });

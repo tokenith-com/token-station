@@ -442,3 +442,49 @@ func TestUserRequestLogScopeRunsBeforePagination(t *testing.T) {
 		t.Fatalf("hidden logs must not participate in metadata: pagination=%+v summary=%+v", payload.Pagination, payload.Summary)
 	}
 }
+
+func TestGuestSeesOwnPlaygroundRequestLogs(t *testing.T) {
+	store := NewMemoryStore()
+	guest, err := store.CreateAdminUser(AdminUser{
+		Username: "playground-guest",
+		Email:    "playground-guest@tokenhub.local",
+		Role:     "guest",
+		Status:   StatusActive,
+	}, "guest123456")
+	if err != nil {
+		t.Fatal(err)
+	}
+	createdAt := time.Date(2026, time.November, 13, 6, 0, 0, 0, time.UTC)
+	for _, log := range []RequestLog{
+		{ID: "log_pg_own", RequestID: "pg_own", ProjectID: "admin_playground", APIKeyID: guest.ID, StatusCode: http.StatusOK, CreatedAt: createdAt},
+		{ID: "log_pg_other", RequestID: "pg_other", ProjectID: "admin_playground", APIKeyID: "usr_someone_else", StatusCode: http.StatusOK, CreatedAt: createdAt},
+	} {
+		if err := store.db.Create(&log).Error; err != nil {
+			t.Fatal(err)
+		}
+	}
+	app := New(store).Handler()
+	login := doJSON(t, app, http.MethodPost, "/api/admin/auth/login", map[string]any{
+		"identity": guest.Email,
+		"password": "guest123456",
+	}, "")
+	var credentials struct {
+		Token string `json:"token"`
+	}
+	if err := json.Unmarshal([]byte(login.Body), &credentials); err != nil {
+		t.Fatal(err)
+	}
+	response := doJSON(t, app, http.MethodGet, "/api/admin/audit/requests", nil, credentials.Token)
+	if response.Code != http.StatusOK {
+		t.Fatalf("expected guest request logs 200, got %d: %s", response.Code, response.Body)
+	}
+	var payload struct {
+		Data []RequestLog `json:"data"`
+	}
+	if err := json.Unmarshal([]byte(response.Body), &payload); err != nil {
+		t.Fatal(err)
+	}
+	if len(payload.Data) != 1 || payload.Data[0].RequestID != "pg_own" {
+		t.Fatalf("guest should see only own playground log, got %+v", payload.Data)
+	}
+}

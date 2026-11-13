@@ -45,8 +45,7 @@
 }
 
 .version-check,
-.brand .sidebar-toggle,
-.console-topbar-account {
+.brand .sidebar-toggle {
   display: none;
 }
 
@@ -292,6 +291,9 @@
   gap: 0;
   background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(8px);
+  /* backdrop-filter creates a stacking context; lift it so dropdowns overlay page content. */
+  position: relative;
+  z-index: 60;
 }
 
 .console-topbar-menu,
@@ -402,7 +404,7 @@
   z-index: 80;
   top: calc(100% + 6px);
   right: 0;
-  width: 150px;
+  width: 220px;
   padding: 5px;
   border: 1px solid #e2e6ed;
   border-radius: 6px;
@@ -428,6 +430,56 @@
 .console-account-menu button:hover {
   background: #f3f5f8;
   color: #5f3a8e;
+}
+
+.console-account-menu-profile {
+  display: grid;
+  grid-template-columns: calc(30 * var(--content-font-unit, 1px)) minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  padding: 6px 9px 9px;
+  margin-bottom: 3px;
+  border-bottom: 1px solid #eef0f4;
+}
+
+.console-account-menu-profile small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.console-topbar-balance {
+  height: calc(34 * var(--content-font-unit, 1px));
+  padding: 0 12px;
+  border: 1px solid #e6dcf5;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #f7f2fd;
+  color: #5f3a8e;
+  font-size: calc(12 * var(--content-font-unit, 1px));
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.console-topbar-balance strong {
+  font-size: calc(13 * var(--content-font-unit, 1px));
+  font-variant-numeric: tabular-nums;
+}
+
+.console-topbar-balance:hover {
+  border-color: #c9aef0;
+}
+
+[data-theme="dark"] .console-topbar-balance {
+  border-color: var(--border);
+  background: var(--surface-3);
+  color: #c9aef0;
+}
+
+[data-theme="dark"] .console-account-menu-profile {
+  border-color: var(--border);
 }
 
 .view-overview .content-panel {

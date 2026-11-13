@@ -84,6 +84,11 @@ type Server struct {
 	// production dial validates the server certificate against the platform
 	// roots; tests inject the in-process fake server's certificate here.
 	smtpRootCAs *x509.CertPool
+	// consumerCaptcha holds in-memory registration CAPTCHA challenges keyed by
+	// challenge id. It is intentionally ephemeral: a restart simply invalidates
+	// outstanding challenges.
+	consumerCaptchaMu sync.Mutex
+	consumerCaptcha   map[string]consumerCaptchaChallenge
 }
 
 func New(store Store) *Server {

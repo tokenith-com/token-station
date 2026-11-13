@@ -84,7 +84,7 @@ function UsageTable({ title, label, rows, name, paginationKey }: {
 }
 
 function usageMoney(value: number) {
-  return new Intl.NumberFormat(languageLocale(), { style: "currency", currency: "USD", minimumFractionDigits: 2, maximumFractionDigits: 6 }).format(value);
+  return new Intl.NumberFormat(languageLocale(), { style: "currency", currency: "CNY", currencyDisplay: "narrowSymbol", minimumFractionDigits: 2, maximumFractionDigits: 6 }).format(value);
 }
 
 function usageWindowLabel(report: UsageReport) {

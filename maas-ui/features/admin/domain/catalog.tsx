@@ -325,8 +325,8 @@ export function modelCatalogFilterLabel(categories: Array<{ key: string; label: 
 }
 
 export function priceMetric(value: number | undefined) {
-  if (!value) return "$-";
-  return `$${formatMoney(value)}/Mt`;
+  if (!value) return "¥-";
+  return `¥${formatMoney(value)}/Mt`;
 }
 
 export function modelCategory(model: Model | ProviderCatalogModel | undefined, dataOrDefinitions?: Pick<AppData, "plugins" | "providerAdapters"> | ReturnType<typeof modelCategoryDefinitionsFromData>) {

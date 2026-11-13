@@ -1,6 +1,5 @@
 import { ChevronLeft, ChevronRight, Plus, Search, X } from "lucide-react";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
-import { SvgIcon } from "../../../components/svg-icon";
 import { type AdminUser, type AppData } from "../core/types";
 import { firstActiveTeam, roleDisplayLabel, roleSelectOptions, userTeamIDs, userTeamLabels } from "../domain/entities";
 import { tx } from "../i18n/runtime";
@@ -56,12 +55,7 @@ export function PlatformAccountsView({
   const visibleUsers = filteredUsers.slice(pagination.startIndex, pagination.endIndex);
 
   return (
-    <section className={`platform-accounts-view${isTeamView ? " team-accounts-view" : ""}`} aria-labelledby="platform-accounts-title">
-      <div className="platform-accounts-title">
-        <SvgIcon name="overview-icon" size={16} />
-        <h1 id="platform-accounts-title">{tx(isTeamView ? "团队用户列表" : "平台账户")}</h1>
-      </div>
-
+    <section className={`platform-accounts-view${isTeamView ? " team-accounts-view" : ""}`} aria-label={tx(isTeamView ? "团队用户列表" : "平台账户")}>
       <div className="platform-accounts-toolbar">
         <button className="platform-account-create" onClick={() => setDialog({ mode: "create" })} type="button">
           <Plus size={14} />
@@ -273,6 +267,11 @@ function PlatformAccountDialog({
     const changingPassword = isCreate || state.mode === "reset" || (isTeamView && isEdit && Boolean(values.password || values.confirmPassword));
     if (changingPassword && values.password !== values.confirmPassword) {
       setValidationError(tx("两次输入的密码不一致"));
+      return;
+    }
+    // Consumer accounts never belong to a team.
+    if (values.role === "guest") {
+      await onSubmit({ ...values, team_id: "", team_ids: "" });
       return;
     }
     const teamID = values.team_id || defaultTeamID;

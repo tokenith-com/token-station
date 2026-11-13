@@ -1,4 +1,4 @@
-import { Activity, AlertCircle, BarChart3, Bell, Boxes, CreditCard, Database, FileCheck2, FileText, Gauge, KeyRound, LayoutDashboard, Puzzle, Send, Server, Settings, ShieldCheck, Sparkles, Users, WalletCards } from "lucide-react";
+import { Activity, AlertCircle, BarChart3, Bell, Boxes, CreditCard, Database, FileText, Gauge, KeyRound, LayoutDashboard, Puzzle, Send, Server, Settings, ShieldCheck, Sparkles, Users, WalletCards } from "lucide-react";
 import { type AdminUser, type AppData, type AppRole, type NavItem, type NavLeafItem, type NavParentItem, recentViewsStorageKey, type TopSearchItem, type ViewKey, viewRoutes } from "./types";
 import { modelCapabilitySummary } from "../domain/entities";
 import { tx } from "../i18n/runtime";
@@ -41,7 +41,6 @@ export const guestNavGroups: NavGroup[] = [
     items: [
       { view: "billing", label: "费用明细", icon: FileText },
       { view: "balance-recharge", label: "余额充值", icon: CreditCard },
-      { view: "invoices", label: "发票开具", icon: FileCheck2 },
     ],
   },
 ];
@@ -90,8 +89,8 @@ export const adminNavGroups: NavGroup[] = [
     title: "AI资源",
     icon: Boxes,
     items: [
-      { view: "providers", label: "Provider 渠道", icon: Server },
-      { view: "models", label: "模型目录/模型广场", icon: Boxes },
+      { view: "providers", label: "供应商", icon: Server },
+      { view: "models", label: "模型目录", icon: Boxes },
       { view: "routes", label: "路由策略", icon: Gauge },
       { view: "playground", label: "模型演练场", icon: Send },
       { view: "routing-policies", label: "作用域策略", icon: ShieldCheck },
@@ -143,7 +142,9 @@ export const adminNavGroups: NavGroup[] = [
     icon: Settings,
     items: [
       { view: "users", label: "平台账号", icon: Users },
-      { view: "settings", label: "角色管理", icon: ShieldCheck },
+      { view: "role-configs", label: "角色配置", icon: ShieldCheck },
+      { view: "identity-providers", label: "身份源", icon: KeyRound },
+      { view: "settings", label: "基础设置", icon: Settings },
     ],
   },
 ];
@@ -182,10 +183,6 @@ export const standaloneViewMeta: Partial<Record<ViewKey, { title: string; descri
     title: "余额充值",
     description: "",
   },
-  invoices: {
-    title: "发票开具",
-    description: "",
-  },
   audit: {
     title: "请求日志",
     description: "查看最近请求日志、状态码、模型路由和延迟。",
@@ -210,11 +207,11 @@ export const standaloneViewMeta: Partial<Record<ViewKey, { title: string; descri
 
 export const roleViewAccess: Record<AppRole, ViewKey[]> = {
   admin: (Object.keys(viewRoutes) as ViewKey[]).filter(
-    (view) => !["project-members", "approval-flows", "invoices", "balance-recharge"].includes(view),
+    (view) => !["project-members", "approval-flows", "balance-recharge"].includes(view),
   ),
   team_leader: ["overview", "gateway", "playground", "models", "projects", "api-keys", "teams", "users", "usage", "billing", "audit", "approvals"],
   user: ["overview", "gateway", "playground", "models", "api-keys", "usage", "audit"],
-  guest: ["overview", "gateway", "playground", "models", "api-keys", "usage", "audit", "billing", "balance-recharge", "invoices"],
+  guest: ["overview", "gateway", "playground", "models", "api-keys", "usage", "audit", "billing", "balance-recharge"],
 };
 
 export function appRole(role: string): AppRole {
@@ -429,9 +426,9 @@ export function topQuickActionsForUser(user: AdminUser): NavLeafItem[] {
   const role = appRole(user.role);
   const candidates: Record<AppRole, NavLeafItem[]> = {
     admin: [
-      { view: "providers", label: "Provider 渠道", icon: Server },
+      { view: "providers", label: "供应商", icon: Server },
       { view: "routes", label: "路由策略", icon: Gauge },
-      { view: "settings", label: "角色管理", icon: Settings },
+      { view: "role-configs", label: "角色配置", icon: Settings },
     ],
     team_leader: [
       { view: "projects", label: "项目空间", icon: LayoutDashboard },

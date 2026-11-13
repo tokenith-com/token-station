@@ -15,6 +15,7 @@ func TestModelPricingSourcePlaygroundUsesReferenceAcrossRoutes(t *testing.T) {
 		t.Run(map[bool]string{false: "chat", true: "stream"}[stream], func(t *testing.T) {
 			store, source := pricingSourceFixture(t)
 			project := store.CreateProject(Project{Name: "Playground pricing", Status: StatusActive})
+			keyID := createPlaygroundTestKey(t, store, project.ID, "")
 			model := linkedPricingModel(source)
 			store.AddModel(model)
 			store.AddProvider(Provider{ID: "actual-route", Name: "Serving provider", Type: ProviderMock, Status: StatusActive, Healthy: true})
@@ -24,7 +25,7 @@ func TestModelPricingSourcePlaygroundUsesReferenceAcrossRoutes(t *testing.T) {
 			if stream {
 				path += "/stream"
 			}
-			response := doJSON(t, New(store).Handler(), http.MethodPost, path, map[string]any{"project_id": project.ID, "model": model.Name, "messages": []ChatMessage{{Role: "user", Content: "price reference"}}}, "")
+			response := doJSON(t, New(store).Handler(), http.MethodPost, path, map[string]any{"api_key_id": keyID, "model": model.Name, "messages": []ChatMessage{{Role: "user", Content: "price reference"}}}, "")
 			if response.Code != http.StatusOK {
 				t.Fatalf("playground failed: %d %s", response.Code, response.Body)
 			}
@@ -49,7 +50,7 @@ func TestModelPricingSourcePlaygroundUsesReferenceAcrossRoutes(t *testing.T) {
 			}
 			source.Status = StatusDisabled
 			store.AddProviderModel(source)
-			response = doJSON(t, New(store).Handler(), http.MethodPost, path, map[string]any{"project_id": project.ID, "model": model.Name, "messages": []ChatMessage{{Role: "user", Content: "unavailable"}}}, "")
+			response = doJSON(t, New(store).Handler(), http.MethodPost, path, map[string]any{"api_key_id": keyID, "model": model.Name, "messages": []ChatMessage{{Role: "user", Content: "unavailable"}}}, "")
 			if response.Code != http.StatusServiceUnavailable || !strings.Contains(response.Body, "model_pricing_source_unavailable") {
 				t.Fatalf("playground did not reject unavailable reference: %d %s", response.Code, response.Body)
 			}

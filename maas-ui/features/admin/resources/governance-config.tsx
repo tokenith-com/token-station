@@ -30,9 +30,10 @@ export function adminUserConfig(): ResourceConfig<AdminUser> {
       { key: "email", label: "邮箱", required: true },
       { key: "password", label: "密码", type: "password", placeholder: "编辑时留空则不修改" },
       { key: "role", label: "角色", type: "select", optionsFromData: data => roleSelectOptions(data), required: true },
-      { key: "team_id", label: "主团队", type: "select", optionsFromData: teamSelectOptions, help: "主团队用于默认责任和成本归属。" },
+      { key: "team_id", label: "主团队", type: "select", optionsFromData: teamSelectOptions, visible: (values) => values.role !== "guest", help: "主团队用于默认责任和成本归属。" },
       {
         key: "team_ids",
+        visible: (values) => values.role !== "guest",
         label: "其他团队",
         type: "multi-select",
         optionsFromData: (data, _currentUser, values) => teamSelectOptions(data).filter((option) => option.value !== values?.team_id),
@@ -199,7 +200,7 @@ export function costCenterConfig(): ResourceConfig<AdminResource> {
     { key: "code", label: "成本中心编码", required: true },
     { key: "owner", label: "负责人" },
     { key: "department", label: "部门" },
-    { key: "monthly_budget_usd", label: "月预算 USD", type: "number" },
+    { key: "monthly_budget_usd", label: "月预算 ¥", type: "number" },
   ];
   return {
     ...genericResourceConfig("cost-centers", "成本中心", "企业内部部门、成本中心和预算归属配置", fields),
@@ -208,7 +209,7 @@ export function costCenterConfig(): ResourceConfig<AdminResource> {
       { key: "name", label: "名称" },
       { key: "department", label: "部门", render: (item) => stringifyValue(item.fields?.department) || "-" },
       { key: "owner", label: "负责人", render: (item) => stringifyValue(item.fields?.owner) || "-" },
-      { key: "monthly_budget_usd", label: "月预算", render: (item) => `$${formatMoney(numberFromUnknown(item.fields?.monthly_budget_usd))}` },
+      { key: "monthly_budget_usd", label: "月预算", render: (item) => `¥${formatMoney(numberFromUnknown(item.fields?.monthly_budget_usd))}` },
       { key: "status", label: "状态", render: (item) => <StatusPill status={item.status} /> },
     ],
   };
@@ -218,7 +219,7 @@ export function approvalFlowConfig(): ResourceConfig<AdminResource> {
   const fields: FieldConfig[] = [
     { key: "trigger", label: "触发条件", type: "select", options: ["api_key_create", "budget_change", "model_access", "quota_increase", "invoice_confirm", "invoice_reject"], required: true },
     { key: "approver_role", label: "审批角色", type: "select", options: ["admin", "project_admin"], required: true },
-    { key: "threshold_usd", label: "金额阈值 USD", type: "number" },
+    { key: "threshold_usd", label: "金额阈值 ¥", type: "number" },
     { key: "sla_hours", label: "SLA 小时", type: "number" },
   ];
   return {
@@ -227,7 +228,7 @@ export function approvalFlowConfig(): ResourceConfig<AdminResource> {
       { key: "name", label: "名称" },
       { key: "trigger", label: "触发条件", render: (item) => approvalTriggerLabel(stringifyValue(item.fields?.trigger)) },
       { key: "approver_role", label: "审批角色", render: (item) => roleLabel(stringifyValue(item.fields?.approver_role)) },
-      { key: "threshold_usd", label: "金额阈值", render: (item) => numberFromUnknown(item.fields?.threshold_usd) > 0 ? `$${formatMoney(numberFromUnknown(item.fields?.threshold_usd))}` : "不限" },
+      { key: "threshold_usd", label: "金额阈值", render: (item) => numberFromUnknown(item.fields?.threshold_usd) > 0 ? `¥${formatMoney(numberFromUnknown(item.fields?.threshold_usd))}` : "不限" },
       { key: "sla_hours", label: "SLA", render: (item) => numberFromUnknown(item.fields?.sla_hours) > 0 ? `${numberFromUnknown(item.fields?.sla_hours)}h` : "-" },
       { key: "status", label: "状态", render: (item) => <StatusPill status={item.status} /> },
     ],

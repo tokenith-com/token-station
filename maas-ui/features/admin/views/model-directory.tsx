@@ -2,7 +2,6 @@
 
 import { AlertTriangle, Boxes, CircleCheck, Plus, Search } from "lucide-react";
 import { useMemo, useState } from "react";
-import { SvgIcon } from "../../../components/svg-icon";
 import { type ApiContext, type AppData, type AppRole, type Model, type ResourceConfig } from "../core/types";
 import { modelCategory, modelCategoryLabel } from "../domain/catalog";
 import { findProvider, modelRoutesFor } from "../domain/entities";
@@ -23,8 +22,7 @@ export function ModelDirectoryView({ role, ...props }: ModelDirectoryProps & { r
     return <div className="team-available-models"><NativeModelDirectoryView {...props} readOnly /></div>;
   }
   return (
-    <section className={`team-available-models model-directory-view ${props.readOnly ? "is-read-only" : "is-admin"}`} aria-labelledby="model-directory-page-title">
-      <div className="model-directory-page-title"><SvgIcon name="overview-icon" size={16} /><h1 id="model-directory-page-title">{tx("模型目录/模型广场")}</h1></div>
+    <section className={`team-available-models model-directory-view ${props.readOnly ? "is-read-only" : "is-admin"}`}>
       <NativeModelDirectoryView {...props} />
     </section>
   );
@@ -110,8 +108,8 @@ function NativeModelDirectoryView({
           title={hasImportedProviderModels ? "还没有对外模型" : "先引入可用的 Provider 模型"}
           description={hasImportedProviderModels
             ? "从内置模型目录中挑选对外模型，再选择已引入的 Provider 模型并设置统一对外价格。"
-            : "先在 Provider 渠道添加上游服务并选择要引入的模型；Provider 模型价格用于记录真实成本与审计。"}
-          actionLabel={hasImportedProviderModels ? "新建对外模型" : "前往 Provider 渠道"}
+            : "先在供应商添加上游服务并选择要引入的模型；Provider 模型价格用于记录真实成本与审计。"}
+          actionLabel={hasImportedProviderModels ? "新建对外模型" : "前往供应商"}
           onAction={hasImportedProviderModels ? onCreateModel : onOpenProviders}
         />
       </DataSection>

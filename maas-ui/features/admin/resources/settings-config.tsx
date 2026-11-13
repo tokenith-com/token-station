@@ -52,6 +52,7 @@ function createResourceConfigs(): Partial<Record<ViewKey, ResourceConfig<any>>> 
     { key: "notify_mode", label: "通知模式", type: "select", options: ["silent", "popup"], required: true },
     { key: "target", label: "目标对象" },
   ]),
+  "role-configs": roleConfig(),
   "identity-providers": identityProviderConfig(),
   settings: systemSettingConfig(),
   };
@@ -92,8 +93,8 @@ function quotaPolicyConfig(): ResourceConfig<AdminResource> {
     { key: "monthly_requests", label: "月请求", type: "number" },
     { key: "daily_tokens", label: "日 Token", type: "number" },
     { key: "monthly_tokens", label: "月 Token", type: "number" },
-    { key: "daily_cost_usd", label: "日成本 USD", type: "number" },
-    { key: "monthly_cost_usd", label: "月成本 USD", type: "number" },
+    { key: "daily_cost_usd", label: "日成本 ¥", type: "number" },
+    { key: "monthly_cost_usd", label: "月成本 ¥", type: "number" },
     { key: "max_concurrency", label: "最大并发", type: "number" },
   ]);
   return {
@@ -126,7 +127,7 @@ function formatQuotaUsage(template: string, usage: { requests: number; total_tok
   return formatTranslationTemplate(template, {
     requests: new Intl.NumberFormat(locale).format(usage.requests || 0),
     tokens: new Intl.NumberFormat(locale).format(usage.total_tokens || 0),
-    cost: new Intl.NumberFormat(locale, { style: "currency", currency: "USD", maximumFractionDigits: 6 }).format(usage.cost_usd || 0),
+    cost: new Intl.NumberFormat(locale, { style: "currency", currency: "CNY", currencyDisplay: "narrowSymbol", maximumFractionDigits: 6 }).format(usage.cost_usd || 0),
   });
 }
 
