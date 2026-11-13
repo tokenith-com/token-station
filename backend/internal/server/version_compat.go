@@ -18,16 +18,14 @@ type CompatibilityManifest struct {
 	MaxCompatible int64 `json:"max_compatible"`
 }
 
-// CurrentCompatibilityManifest is this release's declaration. This release
-// requires all registered expansions, including version 10's persistent OAuth
-// tables and version 11's Responses image continuations. Startup applies these
-// additive tables before admitting requests; historical releases keep their
-// existing compatibility declarations.
+// CurrentCompatibilityManifest declares the schema required by this release.
+// Startup applies pending expansions, including the payment tables, before
+// accepting requests.
 func CurrentCompatibilityManifest() CompatibilityManifest {
 	return CompatibilityManifest{
-		TargetVersion: 11,
-		MinCompatible: 11,
-		MaxCompatible: 11,
+		TargetVersion: 13,
+		MinCompatible: 13,
+		MaxCompatible: 13,
 	}
 }
 

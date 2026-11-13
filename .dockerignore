@@ -11,6 +11,8 @@ output
 **/.next
 **/node_modules
 backend/data
+backend/.env
+deploy/payment-local/
 backend/tokenhub
 data/*
 !data/model-catalog.yaml

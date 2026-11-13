@@ -395,6 +395,7 @@ docker inspect --format 'memory={{.HostConfig.Memory}} memory_swap={{.HostConfig
 | `TOKENHUB_PROVIDER_CATALOG_FILE` | `/opt/tokenhub/current/catalog/provider-catalog.json` | 管理対象デプロイの Provider テンプレートと候補モデルのカタログファイル |
 | `TOKENHUB_PROVIDER_CATALOG_UPSTREAM_URL` | 組み込みの公開カタログ URL | 手動更新や有効化した定期同期に使う任意の URL。明示的に空にするとローカルカタログのみ使用 |
 | `TOKENHUB_PROVIDER_CATALOG_SYNC_INTERVAL_SECONDS` | `0` | カタログの定期同期間隔（秒）。未設定または `0` の場合は定期同期を無効化。例えば `86400` を指定すると毎日同期 |
+| `TOKENHUB_PAYMENT_CONFIG_FILE` | — | 任意の決済 YAML パス。空欄の場合は決済を無効化します。[設定例](../../deploy/payment.example.yaml)を参照してください。 |
 | `TOKENHUB_PLUGIN_DIR` | `/app/plugins` | 起動時にスキャンされ、プラグインのライフサイクル操作後にホットリロードされる永続的なパッケージディレクトリ。複数インスタンス構成では全レプリカで同じプラグインバージョンを調整する必要があります |
 | `TOKENHUB_PLUGIN_MARKETPLACE_URL` | 空 | 管理画面がプラグイン一覧を閲覧するための HTTPS プラグイン市場インデックス URL（オンライン索引は検証まで探索専用） |
 | `TOKENHUB_SEED_DEMO` | `false` | デモデータを投入するか |
@@ -440,6 +441,12 @@ docker inspect --format 'memory={{.HostConfig.Memory}} memory_swap={{.HostConfig
 | `TOKENHUB_RESPONSE_RESULT_TTL_SECONDS` | `3600` | 完了後に暗号化されたリクエストと結果 payload を保持する期間 |
 | `TOKENHUB_RESPONSE_MAX_QUEUED_JOBS` | `1000` | 1 つのデプロイで受け付ける待機中および実行中のバックグラウンド Responses ジョブの上限 |
 | `TOKENHUB_API` | 空 | `tokenhub-migrate` CLI が対象とする Admin API の URL。この CLI のみが読み取り、バックエンドサーバーは読み取りません。`--to` で上書きされます |
+
+ネイティブデプロイでは既存のサービス環境にパスを設定します。Compose では上書き設定で設定と認証情報のファイルを読み取り専用でマウントし、コンテナ内のパスを指定します。バックエンドの実行ユーザーに読み取り権限を与えてください。加盟店番号、アプリ ID、Alipay の販売者 ID、WeChat Pay の検証公開鍵 ID、ファイルパス、公開 HTTPS コールバック URL を YAML に設定します。秘密鍵と WeChat API v3 キーは個別のサーバーファイルに保存します。
+
+ローカルのチェックアウトでは、Git の追跡対象外である `deploy/payment-local/` に決済 YAML と認証情報を配置します。相対パスの基準は YAML のディレクトリです。Docker Compose ではメイン設定と同じディレクトリの上書き設定から `./payment-local` を `/run/tokenstation/payment` に読み取り専用でマウントし、`TOKENHUB_PAYMENT_CONFIG_FILE` に `/run/tokenstation/payment/payment.yaml` を指定します。コンテナ内の実行ユーザーに読み取り権限を与えてください。
+
+YAML の `alipay.api_methods` で `alipay.trade.page.pay`（Alipay の決済ページ URL）または `alipay.trade.precreate`（対面決済の QR コード）を有効にします。新規注文の既定値はリストの先頭です。リストを省略すると従来の `precreate` が使われます。 チャージプラン API は有効な方式を `alipay_api_methods` で返します。Alipay の注文時は任意の `api_method` で既定以外の方式を選択できます。ウェブ決済は `pay_url`、対面決済は `qr_code` を返します。いずれも設定した販売者 ID を使って通知を検証します。
 
 Compose で任意の Redis 課金コンポーネントを実行する場合は、通常のコマンドに overlay ファイルを追加します。
 

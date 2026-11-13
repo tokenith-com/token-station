@@ -6,6 +6,7 @@ import "net/http"
 // endpoint and changing how the server is built stay separate edits.
 
 func (s *Server) routes() {
+	s.paymentRoutes()
 	s.registerSingleMethodRoute(http.MethodGet, "/livez", s.handleLive, jsonMethodNotAllowed(http.MethodGet))
 	s.registerSingleMethodRoute(http.MethodGet, "/readyz", s.handleHealth, jsonMethodNotAllowed(http.MethodGet))
 	s.registerSingleMethodRoute(http.MethodGet, "/healthz", s.handleHealth, jsonMethodNotAllowed(http.MethodGet))

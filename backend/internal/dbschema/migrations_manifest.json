@@ -94,6 +94,24 @@
       "checksum": "22670204472977364b5706f2c8f252cc624ff8f49339f7dfc0be3f72be4e057f",
       "lock_timeout_seconds": 30,
       "statement_budget": 10
+    },
+    {
+      "version": 12,
+      "name": "add-direct-payments-and-wallets",
+      "phase": "expand",
+      "dialect": "",
+      "checksum": "4c5e63dc35e61b5885895b414977ad59631c92a4d305fbed65e12cddadc6999a",
+      "lock_timeout_seconds": 30,
+      "statement_budget": 12
+    },
+    {
+      "version": 13,
+      "name": "add-payment-checkout-method-and-url",
+      "phase": "expand",
+      "dialect": "",
+      "checksum": "7d82635a877fcb295d057840ba271b7890253208625b941b48f3cd7894f2fffe",
+      "lock_timeout_seconds": 30,
+      "statement_budget": 3
     }
   ]
 }

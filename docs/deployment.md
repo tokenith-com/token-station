@@ -395,6 +395,7 @@ Options: `--rebuild`, `--reset` to drop the local database, `--backend-port N`, 
 | `TOKENHUB_PROVIDER_CATALOG_FILE` | `/opt/tokenhub/current/catalog/provider-catalog.json` | Provider templates and candidate-model catalog file in managed deployments |
 | `TOKENHUB_PROVIDER_CATALOG_UPSTREAM_URL` | Built-in public catalog URL | Optional URL for manual catalog refresh and scheduled sync when enabled. An explicitly empty value uses only the local catalog |
 | `TOKENHUB_PROVIDER_CATALOG_SYNC_INTERVAL_SECONDS` | `0` | Scheduled catalog sync interval in seconds. Zero or unset disables scheduled sync. For example, `86400` enables daily sync |
+| `TOKENHUB_PAYMENT_CONFIG_FILE` | — | Optional payment YAML path. An empty value disables payments. See [the example](../deploy/payment.example.yaml). |
 | `TOKENHUB_PLUGIN_DIR` | `/app/plugins` | Persistent plugin package directory scanned at startup and reloaded after plugin lifecycle operations; multi-instance deployments must coordinate the same package version across replicas |
 | `TOKENHUB_PLUGIN_MARKETPLACE_URL` | empty | HTTPS plugin-marketplace index URL used by the admin console to browse plugin listings; online indexes are discovery-only until verified |
 | `TOKENHUB_SEED_DEMO` | `false` | Whether to seed demo data |
@@ -443,6 +444,12 @@ Options: `--rebuild`, `--reset` to drop the local database, `--backend-port N`, 
 | `TOKENHUB_DB_MAX_IDLE_CONNS` | `5` | Maximum idle database connections (PostgreSQL only) |
 | `TOKENHUB_DB_CONN_MAX_LIFETIME_MINUTES` | `30` | Maximum connection lifetime in minutes (PostgreSQL only) |
 | `TOKENHUB_API` | empty | Target Admin API for the `tokenhub-migrate` CLI. Read only by that CLI, never by the running server; overridden by `--to` |
+
+For native deployments, set the path in the existing service environment. In Compose, mount the configuration and credential files read-only using an override and use their container paths. Verify that the backend service user can read them. Configure the merchant IDs, application IDs, Alipay seller ID, WeChat Pay verification public key ID, file paths and public HTTPS callback URLs in the YAML. Keep private keys and the WeChat API v3 key in separate server files.
+
+For a local checkout, put the payment YAML and credentials in the ignored `deploy/payment-local/` directory. Relative credential paths resolve from the YAML directory. With Docker Compose, mount `./payment-local` from an override alongside the main Compose file to `/run/tokenstation/payment` read-only and set `TOKENHUB_PAYMENT_CONFIG_FILE` to `/run/tokenstation/payment/payment.yaml`. Ensure the container service user can read the files.
+
+Set `alipay.api_methods` in the YAML to enable `alipay.trade.page.pay` for an Alipay checkout URL or `alipay.trade.precreate` for a QR code. The first listed method is the default for new orders. Omitting the list keeps the existing precreate default. The recharge plans endpoint exposes enabled methods in `alipay_api_methods`. For an Alipay order, send the optional `api_method` field when selecting a nondefault method. The response contains `pay_url` for website payment or `qr_code` for precreate. Use the configured seller ID to validate callbacks in either mode.
 
 To run the optional Redis billing component with Compose, add the overlay file to the normal command:
 

@@ -17,12 +17,14 @@ import (
 	"tokenhub/backend/internal/billing"
 	billingadapters "tokenhub/backend/internal/billing/adapters"
 	"tokenhub/backend/internal/guardrails"
+	"tokenhub/backend/internal/payment"
 	pluginmeta "tokenhub/backend/internal/plugin"
 	"tokenhub/backend/internal/reconciliation"
 	reconciliationpersistence "tokenhub/backend/internal/reconciliation/persistence"
 )
 
 type Server struct {
+	payments                         *paymentService
 	monitoringObservations           monitoringObservationCache
 	semanticRouter                   semanticEvaluator
 	pluginRuntimeMu                  sync.RWMutex
@@ -97,6 +99,7 @@ func NewWithConfig(store Store, config Config) *Server {
 // ApplicationDependencies are the domain capabilities supplied by the
 // composition root. They are deliberately separate from Store.
 type ApplicationDependencies struct {
+	Payment              *payment.Service
 	Repository           billing.Repository
 	ReconciliationReader reconciliationpersistence.BillingSource
 	ReconciliationStore  reconciliation.Store
@@ -303,6 +306,10 @@ func newWithConfig(store Store, config Config, dependencies ApplicationDependenc
 		}
 	}
 	s.installTraceEmitter(config)
+	if db, ok := store.(*GormStore); ok && dependencies.Payment != nil {
+		s.payments = &paymentService{config: dependencies.Payment, store: db}
+		s.payments.start()
+	}
 	s.routes()
 	if config.ResponseWorkerStartupEnabled {
 		// Every replica must poll the durable queue even when it was empty at startup.

@@ -71,12 +71,14 @@ for var_entry in "${BACKEND_VAR_DEFAULTS[@]}"; do
   fi
 done
 
-# The variables below stay out of BACKEND_VAR_DEFAULTS because neither is a plain
-# default. TOKENHUB_DATABASE_URL must keep its empty value rather than gain one: if it
+# The variables below stay out of BACKEND_VAR_DEFAULTS because their handling
+# differs from a plain default. TOKENHUB_DATABASE_URL must keep its empty value rather than gain one: if it
 # is not explicitly set in the shell, backend's godotenv loads it from backend/.env, so
 # PostgreSQL config there can take effect, and passing an empty value would override it.
 # If neither exists, backend falls back to its own default (SQLite).
 TOKENHUB_DATABASE_URL="${TOKENHUB_DATABASE_URL:-}"
+# An unset payment path is also read from backend/.env.
+TOKENHUB_PAYMENT_CONFIG_FILE="${TOKENHUB_PAYMENT_CONFIG_FILE:-}"
 # TOKENHUB_API_BASE_URL is derived: it falls back through NEXT_PUBLIC_API_BASE_URL to
 # the public base URL resolved above, so it has to be assigned after the loop.
 TOKENHUB_API_BASE_URL="${TOKENHUB_API_BASE_URL:-${NEXT_PUBLIC_API_BASE_URL:-$TOKENHUB_PUBLIC_BASE_URL}}"
@@ -181,6 +183,9 @@ log "Starting backend: $TOKENHUB_HTTP_ADDR"
   done
   if [ -n "$TOKENHUB_DATABASE_URL" ]; then
     backend_env+=(TOKENHUB_DATABASE_URL="$TOKENHUB_DATABASE_URL")
+  fi
+  if [ -n "$TOKENHUB_PAYMENT_CONFIG_FILE" ]; then
+    backend_env+=(TOKENHUB_PAYMENT_CONFIG_FILE="$TOKENHUB_PAYMENT_CONFIG_FILE")
   fi
   exec env "${backend_env[@]}" "$BACKEND_BIN"
 ) &

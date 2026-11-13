@@ -46,6 +46,7 @@ backend/internal/server/data/
 .env
 .env.*
 !.env.example
+/deploy/payment-local/
 
 # Logs
 *.log

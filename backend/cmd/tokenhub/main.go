@@ -13,6 +13,7 @@ import (
 
 	"github.com/joho/godotenv"
 	"tokenhub/backend/internal/dbcli"
+	"tokenhub/backend/internal/payment"
 	"tokenhub/backend/internal/server"
 )
 
@@ -52,6 +53,10 @@ func main() {
 		config = prepared
 		err = config.ValidateForStartup()
 	}
+	var payments *payment.Service
+	if err == nil {
+		payments, err = payment.Load(config.PaymentConfigFile)
+	}
 	if err != nil {
 		log.Printf("[tokenhub] startup blocked by configuration: %v", err)
 		if serveErr := serveStartupBlocked(addr, config.GracefulShutdownSeconds); serveErr != nil {
@@ -87,7 +92,9 @@ func main() {
 		log.Fatalf("record startup guard success: %v", err)
 	}
 
-	app := server.NewWithConfigAndDependencies(store, config, server.ApplicationDependenciesForStore(store))
+	dependencies := server.ApplicationDependenciesForStore(store)
+	dependencies.Payment = payments
+	app := server.NewWithConfigAndDependencies(store, config, dependencies)
 	app.StartBillingScheduler()
 	catalogInitCtx, cancelCatalogInit := context.WithTimeout(context.Background(), 30*time.Second)
 	if initialized, initErr := app.InitializeProviderCatalog(catalogInitCtx); initErr != nil {

@@ -395,6 +395,7 @@ docker inspect --format 'memory={{.HostConfig.Memory}} memory_swap={{.HostConfig
 | `TOKENHUB_PROVIDER_CATALOG_FILE` | `/opt/tokenhub/current/catalog/provider-catalog.json` | 托管部署中的 Provider 模板与候选模型目录文件 |
 | `TOKENHUB_PROVIDER_CATALOG_UPSTREAM_URL` | 内置公共目录地址 | 手动刷新或已启用定时同步时使用的可选目录地址。显式设为空时仅使用本地目录 |
 | `TOKENHUB_PROVIDER_CATALOG_SYNC_INTERVAL_SECONDS` | `0` | 目录定时同步间隔，单位为秒。未设置或设为 `0` 时关闭定时同步。例如设为 `86400` 可启用每日同步 |
+| `TOKENHUB_PAYMENT_CONFIG_FILE` | — | 可选的支付 YAML 路径。留空时关闭支付。参见[配置示例](../../deploy/payment.example.yaml)。 |
 | `TOKENHUB_PLUGIN_DIR` | `/app/plugins` | 持久化插件包目录，后端启动时扫描，并在插件生命周期操作后热加载；多实例部署必须协调所有副本使用相同插件版本 |
 | `TOKENHUB_PLUGIN_MARKETPLACE_URL` | 空 | HTTPS 插件市场索引 URL，供管理后台浏览插件列表；在线索引在完成验证前仅用于发现 |
 | `TOKENHUB_SEED_DEMO` | `false` | 是否写入演示数据 |
@@ -440,6 +441,12 @@ docker inspect --format 'memory={{.HostConfig.Memory}} memory_swap={{.HostConfig
 | `TOKENHUB_RESPONSE_RESULT_TTL_SECONDS` | `3600` | 任务完成后加密请求与结果载荷的保留时长 |
 | `TOKENHUB_RESPONSE_MAX_QUEUED_JOBS` | `1000` | 单个部署接受的后台 Responses 排队和运行任务上限 |
 | `TOKENHUB_API` | 空 | `tokenhub-migrate` CLI 的目标 Admin API 地址。仅由该 CLI 读取，后端服务不会读取；可被 `--to` 覆盖 |
+
+原生部署在现有服务环境中设置此路径。Compose 部署通过覆盖文件以只读方式挂载配置和凭据，并填写容器内路径。确保后端服务用户可读取这些文件。YAML 填写商户号、应用 ID、支付宝卖家 ID、微信支付验签公钥 ID、凭据文件路径和公网 HTTPS 回调地址。私钥和微信 API v3 密钥保存在独立的服务器文件中。
+
+在本地检出目录中，将支付 YAML 和凭据放入 Git 忽略的 `deploy/payment-local/`。凭据相对路径以 YAML 所在目录为基准。Docker Compose 可通过与主配置同目录的覆盖文件，将 `./payment-local` 只读挂载到 `/run/tokenstation/payment`，并将 `TOKENHUB_PAYMENT_CONFIG_FILE` 指向 `/run/tokenstation/payment/payment.yaml`。确保容器内服务用户有读取权限。
+
+在 YAML 中通过 `alipay.api_methods` 启用 `alipay.trade.page.pay`（支付宝收银台链接）或 `alipay.trade.precreate`（当面付二维码）。第一项是新订单默认方式，省略列表时默认使用当面付。 充值档位接口通过 `alipay_api_methods` 返回已启用的方式。支付宝下单可通过可选字段 `api_method` 选择非默认方式。电脑网站支付返回 `pay_url`，当面付返回 `qr_code`。两种方式都使用配置中的卖家 ID 校验回调。
 
 如需通过 Compose 运行可选 Redis 计费组件，请在常规命令中追加 overlay 文件：
 
