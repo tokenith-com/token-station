@@ -76,6 +76,9 @@ func (s *Server) executeRoutedChat(
 		if transformErr := s.runGatewayChatRequestTransformHooks(ctx, routed.Call, route, &upstreamReq); transformErr != nil {
 			return nil, Usage{}, transformErr
 		}
+		if err := s.dispatchChatWallet(ctx, routed.Call, route, upstreamReq); err != nil {
+			return nil, Usage{}, err
+		}
 		if resp, usage, handled, err := s.runGatewayProviderCallHooks(ctx, routed.Call, route, upstreamReq, providerRouteProtocolChatCompletions); err != nil || handled {
 			return resp, usage, err
 		}

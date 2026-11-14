@@ -42,11 +42,17 @@ type paymentOrder struct {
 func (paymentOrder) TableName() string { return "payment_orders" }
 
 type userWallet struct {
-	UserID     string `gorm:"primaryKey" json:"user_id"`
-	Currency   string `gorm:"primaryKey" json:"currency"`
-	BalanceFen int64  `json:"balance_fen"`
-	FrozenFen  int64  `json:"frozen_fen"`
-	UpdatedAt  int64  `gorm:"autoUpdateTime:false" json:"updated_at,omitempty"`
+	UserID              string `gorm:"primaryKey" json:"user_id"`
+	Currency            string `gorm:"primaryKey" json:"currency"`
+	BalanceFen          int64  `json:"balance_fen"`
+	FrozenFen           int64  `json:"frozen_fen"`
+	BalanceMicros       int64  `json:"balance_micros"`
+	ReservedUsageMicros int64  `json:"reserved_usage_micros"`
+	UpdatedAt           int64  `gorm:"autoUpdateTime:false" json:"updated_at,omitempty"`
+}
+
+func (w userWallet) availableMicros() int64 {
+	return w.BalanceMicros - w.FrozenFen*walletMicrosPerFen - w.ReservedUsageMicros
 }
 
 func (userWallet) TableName() string { return "user_wallets" }
@@ -176,7 +182,7 @@ func (s *GormStore) settlePayment(ctx context.Context, order paymentOrder, resul
 			return err
 		}
 		if err := tx.Model(&wallet).Where("user_id = ? AND currency = ?", order.UserID, order.Currency).
-			Updates(map[string]any{"balance_fen": gorm.Expr("balance_fen + ?", order.AmountFen), "updated_at": now}).Error; err != nil {
+			Updates(map[string]any{"balance_fen": gorm.Expr("balance_fen + ?", order.AmountFen), "balance_micros": gorm.Expr("balance_micros + ?", order.AmountFen*walletMicrosPerFen), "updated_at": now}).Error; err != nil {
 			return err
 		}
 		return createWalletTransaction(tx, order, "recharge", order.AmountFen, now)
@@ -221,7 +227,7 @@ func (s *GormStore) reservePaymentRefund(ctx context.Context, order paymentOrder
 		if changed.RowsAffected != 1 {
 			return NewHTTPError(409, "order_not_refundable", "Only paid orders can be refunded")
 		}
-		reserved := tx.Model(&userWallet{}).Where("user_id = ? AND currency = ? AND balance_fen - frozen_fen >= ?", order.UserID, order.Currency, order.AmountFen).
+		reserved := tx.Model(&userWallet{}).Where("user_id = ? AND currency = ? AND balance_micros - frozen_fen * ? - reserved_usage_micros >= ?", order.UserID, order.Currency, walletMicrosPerFen, order.AmountFen*walletMicrosPerFen).
 			Updates(map[string]any{"frozen_fen": gorm.Expr("frozen_fen + ?", order.AmountFen), "updated_at": refund.CreatedAt})
 		if reserved.Error != nil {
 			return reserved.Error
@@ -276,6 +282,7 @@ func (s *GormStore) settlePaymentRefund(ctx context.Context, order paymentOrder,
 		updates := map[string]any{"frozen_fen": gorm.Expr("frozen_fen - ?", refund.AmountFen), "updated_at": now}
 		if result.Status == payment.Succeeded {
 			updates["balance_fen"] = gorm.Expr("balance_fen - ?", refund.AmountFen)
+			updates["balance_micros"] = gorm.Expr("balance_micros - ?", refund.AmountFen*walletMicrosPerFen)
 		}
 		wallet := tx.Model(&userWallet{}).Where("user_id = ? AND currency = ? AND frozen_fen >= ?", order.UserID, order.Currency, refund.AmountFen).Updates(updates)
 		if wallet.Error != nil {

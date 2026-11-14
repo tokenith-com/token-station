@@ -8,7 +8,7 @@ import (
 )
 
 func TestProviderCreateUsesPluginDefaultBaseURL(t *testing.T) {
-	server := New(NewMemoryStore())
+	server := newManagedTestServer(t, newTestMemoryStore(t))
 	providerType := "default_base_url_plugin"
 	descriptor := pluginmeta.BuiltInProvider("tokenhub.provider.default-base-url", "Default Base URL", []string{providerType}, []string{string(AdapterCapabilityChat)})
 	descriptor.Capabilities = append(descriptor.Capabilities, pluginmeta.CapabilityDescriptor{
@@ -36,7 +36,7 @@ func TestProviderCreateUsesPluginDefaultBaseURL(t *testing.T) {
 }
 
 func TestProviderCreateUsesBuiltInPluginDefaultBaseURL(t *testing.T) {
-	server := New(NewMemoryStore())
+	server := newManagedTestServer(t, newTestMemoryStore(t))
 
 	provider, _, _, err := server.providerForCreate(context.Background(), ProviderCreateRequest{
 		Name:    "OpenAI",
@@ -53,7 +53,7 @@ func TestProviderCreateUsesBuiltInPluginDefaultBaseURL(t *testing.T) {
 }
 
 func TestProviderCreateUsesPluginDefaultCatalogProviderType(t *testing.T) {
-	server := New(NewMemoryStore())
+	server := newManagedTestServer(t, newTestMemoryStore(t))
 	providerType := "default_catalog_plugin"
 	descriptor := pluginmeta.BuiltInProvider("tokenhub.provider.default-catalog", "Default Catalog", []string{providerType}, []string{string(AdapterCapabilityChat)})
 	descriptor.Capabilities = append(descriptor.Capabilities, pluginmeta.CapabilityDescriptor{
@@ -87,7 +87,7 @@ func TestProviderCreateUsesPluginDefaultCatalogProviderType(t *testing.T) {
 }
 
 func TestProviderStoreCreateUsesConfiguredPluginDefaultBaseURL(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	store.ConfigureProviderTypeDefaults(map[string]string{
 		"default_base_url_plugin": "https://default.example/v1/",
 	})

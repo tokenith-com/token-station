@@ -162,6 +162,9 @@ func (p *paymentService) start() {
 				return
 			case <-timer.C:
 				p.reconcileDue(ctx)
+				if err := p.store.reconcileWalletUsage(ctx); err != nil && ctx.Err() == nil {
+					log.Print("wallet usage recovery failed")
+				}
 			}
 		}
 	}()

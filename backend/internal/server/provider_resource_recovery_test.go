@@ -35,7 +35,7 @@ func (a recoveryProbeAdapter) Probe(ctx context.Context, provider Provider, reso
 // breaker in two calls.
 func newProbeRecoveryServer(t *testing.T, probeErr error, calls *int) (*GormStore, *Server, string) {
 	t.Helper()
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	store.failureThreshold = 2
 	provider := store.AddProvider(Provider{
 		ID:      "prv_probe",
@@ -57,7 +57,7 @@ func newProbeRecoveryServer(t *testing.T, probeErr error, calls *int) (*GormStor
 	if err != nil {
 		t.Fatal(err)
 	}
-	server := New(store)
+	server := newManagedTestServer(t, store)
 	server.adapterRegistry.Register("probe_test", recoveryProbeAdapter{err: probeErr, calls: calls}, AdapterCapabilityProbe)
 	return store, server, resource.ID
 }
@@ -117,7 +117,7 @@ func TestProbeFailureLeavesResourceUnhealthy(t *testing.T) {
 }
 
 func TestProbeMethodRequiresDeclaredCapability(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	provider := store.AddProvider(Provider{
 		ID:      "prv_probe_undeclared",
 		Name:    "Undeclared Probe Provider",
@@ -138,7 +138,7 @@ func TestProbeMethodRequiresDeclaredCapability(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	server := New(store)
+	server := newManagedTestServer(t, store)
 	calls := 0
 	server.adapterRegistry.Register(ProviderMock, recoveryProbeAdapter{calls: &calls})
 
@@ -317,7 +317,7 @@ func TestRecoverProviderResourceRejectsUnknownID(t *testing.T) {
 }
 
 func TestCooldownWindowBackoff(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	store.failureThreshold = 3
 	store.cooldownDuration = 100 * time.Second
 	store.cooldownMax = 800 * time.Second
@@ -344,7 +344,7 @@ func TestCooldownWindowBackoff(t *testing.T) {
 }
 
 func TestCooldownWindowHandlesDegenerateConfig(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	store.failureThreshold = 2
 	store.cooldownDuration = 300 * time.Second
 
@@ -363,7 +363,7 @@ func TestCooldownWindowHandlesDegenerateConfig(t *testing.T) {
 }
 
 func TestFailureCountSaturates(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	store.failureThreshold = 3
 	store.cooldownDuration = 100 * time.Second
 	store.cooldownMax = 800 * time.Second
@@ -520,7 +520,7 @@ func TestGatewayRecoversAfterCooldownExpires(t *testing.T) {
 	store.failureThreshold = 2
 	failing := true
 	upstreamCalls := 0
-	server := New(store)
+	server := newManagedTestServer(t, store)
 	server.adapterRegistry.Register("flaky_resource", flakyAdapter{failing: &failing, calls: &upstreamCalls}, AdapterCapabilityChat)
 	app := server.Handler()
 
@@ -577,7 +577,7 @@ func TestGatewayReparksResourceWhenHalfOpenTrialFails(t *testing.T) {
 	store, secret, resourceID := newResourceRoutedStore(t, "flaky_resource")
 	store.failureThreshold = 2
 	failing := true
-	server := New(store)
+	server := newManagedTestServer(t, store)
 	server.adapterRegistry.Register("flaky_resource", flakyAdapter{failing: &failing}, AdapterCapabilityChat)
 	app := server.Handler()
 

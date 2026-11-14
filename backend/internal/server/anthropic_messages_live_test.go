@@ -40,7 +40,7 @@ func TestClaudeCodeLiveE2E(t *testing.T) {
 		upstreamModel = "ep-20260110190602-xswg5"
 	}
 
-	st := NewMemoryStore()
+	st := newTestMemoryStore(t)
 	project := st.CreateProject(Project{Name: "claude-code-live", Status: StatusActive})
 	if _, _, err := st.CreateAPIKey(project.ID, APIKey{
 		Name:    "claude-code-live",
@@ -80,7 +80,7 @@ func TestClaudeCodeLiveE2E(t *testing.T) {
 		Strategy:      RouteStrategyPriorityOnly,
 	})
 
-	app := New(st)
+	app := newManagedTestServer(t, st)
 	liveAdapter := liveCredentialAdapter{
 		apiKey:   upstreamAPIKey,
 		delegate: OpenAICompatibleAdapter{},

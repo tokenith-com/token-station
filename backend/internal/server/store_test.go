@@ -291,7 +291,7 @@ func TestEffectiveCacheReadPriceUsesMetadataEstimateWhenUnconfigured(t *testing.
 }
 
 func TestEmbeddingModelDoesNotStoreCacheReadPrice(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	created := store.AddModel(Model{
 		Name:                   "embedding-cache-price",
 		Modality:               "embedding",
@@ -316,7 +316,7 @@ func TestEmbeddingModelDoesNotStoreCacheReadPrice(t *testing.T) {
 }
 
 func TestFinishCallPersistsCachedInputTokensInUsageAggregates(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	call := CallContext{
 		RequestID: "req_cached_usage",
 		Project:   Project{ID: "project_cached_usage"},
@@ -374,7 +374,7 @@ func TestFinishCallPersistsCachedInputTokensInUsageAggregates(t *testing.T) {
 		t.Fatalf("summary cached input tokens = %#v, want 400", got)
 	}
 
-	breakdown := New(store).usageBreakdownFromRecords(store.ListUsageRecords(), indexProjectsByID(store.ListProjects()))
+	breakdown := newManagedTestServer(t, store).usageBreakdownFromRecords(store.ListUsageRecords(), indexProjectsByID(store.ListProjects()))
 	models, ok := breakdown["models"].([]map[string]any)
 	if !ok || len(models) != 1 {
 		t.Fatalf("model breakdown = %#v, want one row", breakdown["models"])
@@ -388,7 +388,7 @@ func TestFinishCallPersistsCachedInputTokensInUsageAggregates(t *testing.T) {
 // FinishCall path: a completion carrying negative upstream usage must leave
 // the persisted day quota counters untouched instead of subtracting from them.
 func TestFinishCallNegativeUsageDoesNotShrinkQuotaCounters(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	project := store.CreateProject(Project{Name: "Negative Usage", Status: StatusActive})
 	key, _, err := store.CreateAPIKey(project.ID, APIKey{
 		Name:    "negative-usage",
@@ -443,7 +443,7 @@ func TestFinishCallNegativeUsageDoesNotShrinkQuotaCounters(t *testing.T) {
 // completion clock instead counted a request in one period and charged its
 // tokens to another whenever the two disagreed across a day boundary.
 func TestFinishCallSettlesUsageInTheAdmissionPeriod(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	project := store.CreateProject(Project{Name: "Admission Period", Status: StatusActive})
 	key, _, err := store.CreateAPIKey(project.ID, APIKey{
 		Name:    "admission-period",
@@ -487,7 +487,7 @@ func TestFinishCallSettlesUsageInTheAdmissionPeriod(t *testing.T) {
 }
 
 func TestDeleteAdminUserProtectsLastActivePlatformAdmin(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	admin := createTestAdminUser(t, store, "only-admin", "admin")
 	member := createTestAdminUser(t, store, "member", "user")
 
@@ -509,7 +509,7 @@ func TestUpdateAdminUserProtectsLastActivePlatformAdmin(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			store := NewMemoryStore()
+			store := newTestMemoryStore(t)
 			admin := createTestAdminUser(t, store, "only-admin-"+tt.name, "system_admin")
 			createTestAdminUser(t, store, "member-"+tt.name, "user")
 
@@ -521,7 +521,7 @@ func TestUpdateAdminUserProtectsLastActivePlatformAdmin(t *testing.T) {
 }
 
 func TestAdminUserChangesAllowedWhenAnotherAdminRemains(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	first := createTestAdminUser(t, store, "first-admin", "admin")
 	createTestAdminUser(t, store, "second-admin", "system_admin")
 
@@ -576,7 +576,7 @@ func TestLegacyProjectTeamMigrationPreservesAccess(t *testing.T) {
 	if len(legacyTeams) != 1 || legacyTeams[0].ID != "team_legacy" || legacyTeams[0].Status != StatusActive {
 		t.Fatalf("legacy project team resource was not migrated as active: %+v", legacyTeams)
 	}
-	server := New(store)
+	server := newManagedTestServer(t, store)
 	if server.canAccessProject(AdminUser{ID: "usr_member", Role: "user", TeamID: "team_legacy"}, project) {
 		t.Fatal("legacy migration must not grant new access to ordinary same-team users")
 	}
@@ -621,7 +621,7 @@ func TestLegacyUserTeamMigrationPreservesLogin(t *testing.T) {
 }
 
 func TestConcurrentProjectTeamLinkIsUnique(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	store.CreateResource("teams", AdminResource{ID: "team_primary", Name: "Primary Team", Status: StatusActive})
 	store.CreateResource("teams", AdminResource{ID: "team_shared", Name: "Shared Team", Status: StatusActive})
 	project := store.CreateProject(Project{Name: "Concurrent Team Project", TeamID: "team_primary", Status: StatusActive})

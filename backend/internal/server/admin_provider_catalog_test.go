@@ -14,11 +14,11 @@ import (
 )
 
 func TestAdminCreatesProviderModelAndRoute(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	if err := SeedDemoData(store); err != nil {
 		t.Fatal(err)
 	}
-	app := New(store).Handler()
+	app := newManagedTestServer(t, store).Handler()
 
 	providerResp := doJSON(t, app, http.MethodPost, "/api/admin/providers", map[string]any{
 		"name":     "Local vLLM",
@@ -99,7 +99,7 @@ func TestAdminCreatesProviderModelAndRoute(t *testing.T) {
 }
 
 func TestAdminRouteRejectsKnownModelProviderProtocolMismatch(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	if err := SeedDemoData(store); err != nil {
 		t.Fatal(err)
 	}
@@ -107,7 +107,7 @@ func TestAdminRouteRejectsKnownModelProviderProtocolMismatch(t *testing.T) {
 	store.AddProviderModel(ProviderModel{ProviderID: provider.ID, UpstreamModel: "gpt-5.6-luna", Status: StatusActive})
 	store.AddModel(Model{Name: "gpt-5.6-luna", Modality: "chat", Status: StatusActive, Metadata: map[string]string{"endpoints": "responses,chat/completions"}})
 
-	response := doJSON(t, New(store).Handler(), http.MethodPost, "/api/admin/routing-rules", map[string]any{
+	response := doJSON(t, newManagedTestServer(t, store).Handler(), http.MethodPost, "/api/admin/routing-rules", map[string]any{
 		"model_name": "gpt-5.6-luna", "provider_id": provider.ID, "provider_model": "gpt-5.6-luna", "status": StatusActive,
 	}, "")
 	if response.Code != http.StatusBadRequest || !strings.Contains(response.Body, `"code":"route_protocol_mismatch"`) {
@@ -116,14 +116,14 @@ func TestAdminRouteRejectsKnownModelProviderProtocolMismatch(t *testing.T) {
 }
 
 func TestAdminModelCreateRejectsInitialRouteProtocolMismatch(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	if err := SeedDemoData(store); err != nil {
 		t.Fatal(err)
 	}
 	provider := store.AddProvider(Provider{ID: "prv_initial_anthropic", Name: "Native Anthropic", Type: ProviderAnthropic, Status: StatusActive, Healthy: true})
 	store.AddProviderModel(ProviderModel{ProviderID: provider.ID, UpstreamModel: "responses-only", Status: StatusActive})
 
-	response := doJSON(t, New(store).Handler(), http.MethodPost, "/api/admin/models", map[string]any{
+	response := doJSON(t, newManagedTestServer(t, store).Handler(), http.MethodPost, "/api/admin/models", map[string]any{
 		"name": "responses-only", "modality": "chat", "metadata": map[string]string{"endpoints": "responses"},
 		"routes": []map[string]any{{"provider_id": provider.ID, "provider_model": "responses-only", "status": StatusActive}},
 	}, "")
@@ -133,7 +133,7 @@ func TestAdminModelCreateRejectsInitialRouteProtocolMismatch(t *testing.T) {
 }
 
 func TestAdminRouteAllowsCatalogModelWithMatchingProviderProtocol(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	if err := SeedDemoData(store); err != nil {
 		t.Fatal(err)
 	}
@@ -141,7 +141,7 @@ func TestAdminRouteAllowsCatalogModelWithMatchingProviderProtocol(t *testing.T) 
 	store.AddProviderModel(ProviderModel{ProviderID: provider.ID, UpstreamModel: "gpt-5.6-luna", Status: StatusActive})
 	store.AddModel(Model{Name: "gpt-5.6-luna", Modality: "chat", Status: StatusActive, Metadata: map[string]string{"endpoints": "responses,chat/completions"}})
 
-	response := doJSON(t, New(store).Handler(), http.MethodPost, "/api/admin/routing-rules", map[string]any{
+	response := doJSON(t, newManagedTestServer(t, store).Handler(), http.MethodPost, "/api/admin/routing-rules", map[string]any{
 		"model_name": "gpt-5.6-luna", "provider_id": provider.ID, "provider_model": "gpt-5.6-luna", "status": StatusActive,
 	}, "")
 	if response.Code != http.StatusCreated {
@@ -150,7 +150,7 @@ func TestAdminRouteAllowsCatalogModelWithMatchingProviderProtocol(t *testing.T) 
 }
 
 func TestAdminProviderConfigurationFailsEarlyAndPatchPreservesFields(t *testing.T) {
-	app := newTestServer()
+	app := newTestServer(t)
 
 	invalid := doJSON(t, app, http.MethodPost, "/api/admin/providers", map[string]any{
 		"name":     "Invalid Adapter",
@@ -219,7 +219,7 @@ func TestAdminTestsUnsavedProviderConnection(t *testing.T) {
 	}))
 	defer upstream.Close()
 
-	app := newTestServer()
+	app := newTestServer(t)
 	resp := doJSON(t, app, http.MethodPost, "/api/admin/providers/test-connection", map[string]any{
 		"name":     "DeepSeek",
 		"type":     "deepseek",
@@ -266,7 +266,7 @@ func TestAdminTestsUnsavedAnthropicProviderAuthentication(t *testing.T) {
 			}))
 			defer upstream.Close()
 
-			app := newTestServer()
+			app := newTestServer(t)
 			resp := doJSON(t, app, http.MethodPost, "/api/admin/providers/test-connection", map[string]any{
 				"name":                "Anthropic",
 				"type":                ProviderAnthropic,
@@ -291,7 +291,7 @@ func TestAdminSavedAnthropicProviderCatalogAuthentication(t *testing.T) {
 	}))
 	defer upstream.Close()
 
-	app := newTestServer()
+	app := newTestServer(t)
 	created := doJSON(t, app, http.MethodPost, "/api/admin/providers", map[string]any{
 		"id":                  "prv_anthropic_bearer",
 		"name":                "Anthropic Bearer",
@@ -334,7 +334,7 @@ func TestAdminSavedAnthropicProviderCatalogAuthentication(t *testing.T) {
 }
 
 func TestAdminValidatesAnthropicProviderAuthentication(t *testing.T) {
-	app := newTestServer()
+	app := newTestServer(t)
 	valid := doJSON(t, app, http.MethodPost, "/api/admin/providers", map[string]any{
 		"id":                  "prv_anthropic_bearer",
 		"name":                "Anthropic Bearer",
@@ -375,8 +375,8 @@ func TestAdminValidatesAnthropicProviderAuthentication(t *testing.T) {
 }
 
 func TestAdminPersistsPluginProviderAuthenticationMode(t *testing.T) {
-	store := NewMemoryStore()
-	server := New(store)
+	store := newTestMemoryStore(t)
+	server := newManagedTestServer(t, store)
 	providerType := "auth_mode_plugin_provider"
 	pluginID := "tokenhub.provider.auth-mode-plugin"
 	descriptor := pluginmeta.BuiltInProvider(pluginID, "Auth Mode Plugin", []string{providerType}, []string{string(AdapterCapabilityChat)})
@@ -467,7 +467,7 @@ func TestAdminPersistsPluginProviderAuthenticationMode(t *testing.T) {
 }
 
 func TestAdminProviderConnectionTestRequiresCredentials(t *testing.T) {
-	app := newTestServer()
+	app := newTestServer(t)
 	for _, testCase := range []struct {
 		name string
 		body map[string]any
@@ -486,7 +486,7 @@ func TestAdminProviderConnectionTestRequiresCredentials(t *testing.T) {
 }
 
 func TestAdminProviderCatalogAndInventoryImport(t *testing.T) {
-	app := newTestServer()
+	app := newTestServer(t)
 
 	catalogResp := doJSON(t, app, http.MethodGet, "/api/admin/provider-catalog/openai", nil, "")
 	if catalogResp.Code != http.StatusOK {
@@ -531,11 +531,11 @@ func TestAdminProviderCatalogAndInventoryImport(t *testing.T) {
 }
 
 func TestAdminProviderCreationRejectsAutomaticRouteCreation(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	if err := SeedDemoData(store); err != nil {
 		t.Fatal(err)
 	}
-	app := New(store).Handler()
+	app := newManagedTestServer(t, store).Handler()
 
 	created := doJSON(t, app, http.MethodPost, "/api/admin/providers", map[string]any{
 		"catalog_id":      "openai",
@@ -557,11 +557,11 @@ func TestAdminProviderCreationRejectsAutomaticRouteCreation(t *testing.T) {
 }
 
 func TestAdminProviderUpdateRejectsAutomaticRouteCreation(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	if err := SeedDemoData(store); err != nil {
 		t.Fatal(err)
 	}
-	app := New(store).Handler()
+	app := newManagedTestServer(t, store).Handler()
 
 	updated := doJSON(t, app, http.MethodPatch, "/api/admin/providers/prv_mock", map[string]any{
 		"name":          "Must Not Change",
@@ -578,7 +578,7 @@ func TestAdminProviderUpdateRejectsAutomaticRouteCreation(t *testing.T) {
 }
 
 func TestAdminKimiCodingTemplateImportsOfficialModels(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	config := Config{
 		AdminToken:             "dev_admin_token",
 		BootstrapAdminPassword: "kimi-coding-test-password",
@@ -588,7 +588,7 @@ func TestAdminKimiCodingTemplateImportsOfficialModels(t *testing.T) {
 	if err := BootstrapBaseDataWithConfig(store, config); err != nil {
 		t.Fatal(err)
 	}
-	server := NewWithConfig(store, config)
+	server := newManagedTestServerWithConfig(t, store, config)
 	if _, err := server.InitializeProviderCatalog(context.Background()); err != nil {
 		t.Fatal(err)
 	}
@@ -660,7 +660,7 @@ func TestAdminKimiCodingTemplateImportsOfficialModels(t *testing.T) {
 }
 
 func TestAdminCustomProviderCatalogLoadsUpstreamModels(t *testing.T) {
-	app := newTestServer()
+	app := newTestServer(t)
 	seenAuth := ""
 	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/v1/models" {
@@ -742,7 +742,7 @@ func TestAdminCustomProviderCatalogLoadsUpstreamModels(t *testing.T) {
 }
 
 func TestAdminProviderCreateImportsSubmittedModelsForPluginCatalog(t *testing.T) {
-	server := NewWithConfig(NewMemoryStore(), Config{AdminToken: "plugin-create-admin"})
+	server := newManagedTestServerWithConfig(t, newTestMemoryStore(t), Config{AdminToken: "plugin-create-admin"})
 	providerType := "submitted_models_provider"
 	pluginID := "tokenhub.provider.submitted-models"
 	if err := server.adapterRegistry.RegisterPlugin(pluginmeta.Descriptor{
@@ -794,7 +794,7 @@ func TestAdminProviderCreateImportsSubmittedModelsForPluginCatalog(t *testing.T)
 }
 
 func TestAdminAnthropicProviderCatalogLoadsVersionedUpstreamModels(t *testing.T) {
-	app := newTestServer()
+	app := newTestServer(t)
 	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/anthropic/v1/models" {
 			t.Fatalf("unexpected upstream path %s", r.URL.Path)
@@ -857,11 +857,11 @@ func TestProviderCatalogUsesStandardModelCategories(t *testing.T) {
 }
 
 func TestAdminImportsProviderModelWithoutPublishing(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	if err := SeedDemoData(store); err != nil {
 		t.Fatal(err)
 	}
-	app := New(store).Handler()
+	app := newManagedTestServer(t, store).Handler()
 
 	imported := doJSON(t, app, http.MethodPost, "/api/admin/provider-models/import", map[string]any{
 		"provider_id": "prv_mock",
@@ -895,11 +895,11 @@ func TestAdminImportsProviderModelWithoutPublishing(t *testing.T) {
 }
 
 func TestAdminRejectsProviderModelImportPublication(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	if err := SeedDemoData(store); err != nil {
 		t.Fatal(err)
 	}
-	app := New(store).Handler()
+	app := newManagedTestServer(t, store).Handler()
 
 	imported := doJSON(t, app, http.MethodPost, "/api/admin/provider-models/import", map[string]any{
 		"provider_id": "prv_mock",
@@ -925,11 +925,11 @@ func TestAdminRejectsProviderModelImportPublication(t *testing.T) {
 }
 
 func TestAdminProviderCreationImportsSelectedModelsWithoutPublishing(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	if err := SeedDemoData(store); err != nil {
 		t.Fatal(err)
 	}
-	app := New(store).Handler()
+	app := newManagedTestServer(t, store).Handler()
 
 	created := doJSON(t, app, http.MethodPost, "/api/admin/providers", map[string]any{
 		"id":              "prv_inventory_only",
@@ -967,11 +967,11 @@ func TestAdminProviderCreationImportsSelectedModelsWithoutPublishing(t *testing.
 }
 
 func TestAdminProviderCreationImportsSelectedCodexModels(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	if err := SeedDemoData(store); err != nil {
 		t.Fatal(err)
 	}
-	app := New(store).Handler()
+	app := newManagedTestServer(t, store).Handler()
 
 	created := doJSON(t, app, http.MethodPost, "/api/admin/providers", map[string]any{
 		"id":              "prv_codex_selected",
@@ -1008,11 +1008,11 @@ func TestAdminProviderCreationImportsSelectedCodexModels(t *testing.T) {
 }
 
 func TestAdminRejectsDeletingProviderModelUsedByRoute(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	if err := SeedDemoData(store); err != nil {
 		t.Fatal(err)
 	}
-	app := New(store).Handler()
+	app := newManagedTestServer(t, store).Handler()
 	var providerModel ProviderModel
 	for _, item := range store.ListProviderModels() {
 		if item.ProviderID == "prv_mock" && item.UpstreamModel == "mock-chat" {
@@ -1031,7 +1031,7 @@ func TestAdminRejectsDeletingProviderModelUsedByRoute(t *testing.T) {
 }
 
 func TestAdminUpdatesProviderModelInventory(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	if err := SeedDemoData(store); err != nil {
 		t.Fatal(err)
 	}
@@ -1042,7 +1042,7 @@ func TestAdminUpdatesProviderModelInventory(t *testing.T) {
 		Modality:      "chat",
 		Status:        StatusActive,
 	})
-	app := New(store).Handler()
+	app := newManagedTestServer(t, store).Handler()
 
 	updated := doJSON(t, app, http.MethodPatch, "/api/admin/provider-models/"+providerModel.ID, map[string]any{
 		"display_name":   "Edited Provider Model",
@@ -1069,7 +1069,7 @@ func TestAdminUpdatesProviderModelInventory(t *testing.T) {
 }
 
 func TestAdminDeletesUnusedProviderModelInventory(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	if err := SeedDemoData(store); err != nil {
 		t.Fatal(err)
 	}
@@ -1079,7 +1079,7 @@ func TestAdminDeletesUnusedProviderModelInventory(t *testing.T) {
 		DisplayName:   "Unused Model",
 		Status:        StatusActive,
 	})
-	app := New(store).Handler()
+	app := newManagedTestServer(t, store).Handler()
 
 	deleted := doJSON(t, app, http.MethodDelete, "/api/admin/provider-models/"+providerModel.ID, nil, "")
 	if deleted.Code != http.StatusNoContent {
@@ -1093,7 +1093,7 @@ func TestAdminDeletesUnusedProviderModelInventory(t *testing.T) {
 }
 
 func TestAdminDeletingProviderRemovesProviderModelInventory(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	if err := SeedDemoData(store); err != nil {
 		t.Fatal(err)
 	}
@@ -1110,7 +1110,7 @@ func TestAdminDeletingProviderRemovesProviderModelInventory(t *testing.T) {
 		DisplayName:   "Cascade Model",
 		Status:        StatusActive,
 	})
-	app := New(store).Handler()
+	app := newManagedTestServer(t, store).Handler()
 
 	deleted := doJSON(t, app, http.MethodDelete, "/api/admin/providers/"+provider.ID, nil, "")
 	if deleted.Code != http.StatusNoContent {
@@ -1124,7 +1124,7 @@ func TestAdminDeletingProviderRemovesProviderModelInventory(t *testing.T) {
 }
 
 func TestAdminRouteUpdateRequiresImportedProviderModelInventory(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	if err := SeedDemoData(store); err != nil {
 		t.Fatal(err)
 	}
@@ -1138,7 +1138,7 @@ func TestAdminRouteUpdateRequiresImportedProviderModelInventory(t *testing.T) {
 	if route.ID == "" {
 		t.Fatal("expected demo route for provider inventory update")
 	}
-	app := New(store).Handler()
+	app := newManagedTestServer(t, store).Handler()
 
 	updated := doJSON(t, app, http.MethodPatch, "/api/admin/routing-rules/"+route.ID, map[string]any{
 		"provider_model": "vendor/changed-upstream",
@@ -1161,11 +1161,11 @@ func TestAdminRouteUpdateRequiresImportedProviderModelInventory(t *testing.T) {
 }
 
 func TestAdminCreatesExternalModelWithValidatedImportedRoute(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	if err := SeedDemoData(store); err != nil {
 		t.Fatal(err)
 	}
-	app := New(store).Handler()
+	app := newManagedTestServer(t, store).Handler()
 
 	invalid := doJSON(t, app, http.MethodPost, "/api/admin/models", map[string]any{
 		"name":   "invalid-partial-model",
@@ -1225,7 +1225,7 @@ func TestAdminCreatesExternalModelWithValidatedImportedRoute(t *testing.T) {
 }
 
 func TestAdminExternalModelCreationRollsBackWhenRouteWriteFails(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	if err := SeedDemoData(store); err != nil {
 		t.Fatal(err)
 	}
@@ -1246,7 +1246,7 @@ func TestAdminExternalModelCreationRollsBackWhenRouteWriteFails(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	created := doJSON(t, New(store).Handler(), http.MethodPost, "/api/admin/models", map[string]any{
+	created := doJSON(t, newManagedTestServer(t, store).Handler(), http.MethodPost, "/api/admin/models", map[string]any{
 		"name":     "atomic-route-failure",
 		"modality": "chat",
 		"status":   StatusActive,
@@ -1270,11 +1270,11 @@ func TestAdminExternalModelCreationRollsBackWhenRouteWriteFails(t *testing.T) {
 }
 
 func TestAdminRejectsUnimportedAndDuplicateProviderModelRoutes(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	if err := SeedDemoData(store); err != nil {
 		t.Fatal(err)
 	}
-	app := New(store).Handler()
+	app := newManagedTestServer(t, store).Handler()
 
 	unimported := doJSON(t, app, http.MethodPost, "/api/admin/routing-rules", map[string]any{
 		"model_name":     "gpt-4.1-mini",
@@ -1298,7 +1298,7 @@ func TestAdminRejectsUnimportedAndDuplicateProviderModelRoutes(t *testing.T) {
 }
 
 func TestAdminCodexImageVirtualModelRouteRequiresSupportedProviderInventory(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	store.AddModel(Model{Name: codexImageModelName, Modality: "image", Status: StatusActive})
 	codexProvider := store.AddProvider(Provider{
 		ID: "prv_codex_image_route", Name: "Codex Image Route", Type: ProviderOpenAICodex, Status: StatusActive, Healthy: true,
@@ -1306,7 +1306,7 @@ func TestAdminCodexImageVirtualModelRouteRequiresSupportedProviderInventory(t *t
 	otherProvider := store.AddProvider(Provider{
 		ID: "prv_openai_image_route", Name: "OpenAI Image Route", Type: ProviderOpenAI, Status: StatusActive, Healthy: true,
 	})
-	app := New(store).Handler()
+	app := newManagedTestServer(t, store).Handler()
 
 	wrongProvider := doJSON(t, app, http.MethodPost, "/api/admin/routing-rules", map[string]any{
 		"model_name": codexImageModelName, "provider_id": otherProvider.ID,
@@ -1367,7 +1367,7 @@ func TestAdminCodexImageVirtualModelRouteRequiresSupportedProviderInventory(t *t
 }
 
 func TestExternalModelRoleSurvivesCandidateCatalogRefresh(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	external := store.AddModel(Model{
 		Name:     "catalog-backed-external",
 		Modality: "chat",
@@ -1395,7 +1395,7 @@ func TestExternalModelRoleSurvivesCandidateCatalogRefresh(t *testing.T) {
 // arrives as %2F and must be looked up under its decoded value, while
 // malformed escapes are rejected.
 func TestAdminProviderCatalogItemDecodesEscapedID(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	entry := ProviderCatalogEntry{
 		ID:          "vendor/model-with-slash",
 		Name:        "Vendor Model",
@@ -1409,7 +1409,7 @@ func TestAdminProviderCatalogItemDecodesEscapedID(t *testing.T) {
 	if err := store.SaveProviderCatalogSnapshot([]ProviderCatalogEntry{entry}, "test", time.Now().UTC()); err != nil {
 		t.Fatal(err)
 	}
-	app := New(store).Handler()
+	app := newManagedTestServer(t, store).Handler()
 
 	resp := doJSON(t, app, http.MethodGet, "/api/admin/provider-catalog/vendor%2Fmodel-with-slash", nil, "")
 	if resp.Code != http.StatusOK {
@@ -1424,7 +1424,7 @@ func TestAdminProviderCatalogItemDecodesEscapedID(t *testing.T) {
 // route create ordering: when the route write itself fails, the model
 // directory must not be marked external as if the route had been created.
 func TestAdminRouteCreationDoesNotMarkExternalModelWhenRouteWriteFails(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	if err := SeedDemoData(store); err != nil {
 		t.Fatal(err)
 	}
@@ -1446,7 +1446,7 @@ func TestAdminRouteCreationDoesNotMarkExternalModelWhenRouteWriteFails(t *testin
 		t.Fatal(err)
 	}
 
-	created := doJSON(t, New(store).Handler(), http.MethodPost, "/api/admin/routing-rules", map[string]any{
+	created := doJSON(t, newManagedTestServer(t, store).Handler(), http.MethodPost, "/api/admin/routing-rules", map[string]any{
 		"model_name":     "atomic-route-model",
 		"provider_id":    "prv_mock",
 		"provider_model": "atomic-upstream",

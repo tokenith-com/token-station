@@ -282,7 +282,7 @@ func TestAdminCodexImageCapabilityInvalidatesReplacementCredentials(t *testing.T
 }
 
 func TestAdminCodexImageCapabilityReplacementScopesRouteInvalidation(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	syncBuiltInImageCapabilityProfilesForTest(store)
 	provider := store.AddProvider(Provider{ID: "prv_codex_route_scope", Name: "Codex Route Scope", Type: ProviderOpenAICodex, Status: StatusActive, Healthy: true})
 	newAccount := func(id, group string) ProviderResource {
@@ -620,7 +620,7 @@ func TestAdminCodexImageCapabilityRequiresReauthorizationWithoutRoute(t *testing
 }
 
 func TestCodexImageRouteBackfillPreservesDisabledRoute(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	provider := store.AddProvider(Provider{
 		ID: "prv_codex_backfill", Name: "Codex Backfill", Type: ProviderOpenAICodex, Status: StatusActive, Healthy: true,
 	})
@@ -668,7 +668,7 @@ func TestCodexImageRouteBackfillPreservesDisabledRoute(t *testing.T) {
 }
 
 func TestProviderImageRouteBackfillUsesPluginProfiles(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	profile := providerImageCapabilityRouteProfile{
 		ProviderType:        "kimi_subscription",
 		ResourceType:        "kimi_subscription_account",
@@ -708,7 +708,7 @@ func TestProviderImageRouteBackfillUsesPluginProfiles(t *testing.T) {
 }
 
 func TestProviderImageRouteProfilesComeFromPluginSync(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	if profiles := store.providerImageCapabilityRouteProfiles(); len(profiles) != 0 {
 		t.Fatalf("store image profiles = %+v, want none before plugin sync", profiles)
 	}
@@ -786,7 +786,7 @@ func syncBuiltInImageCapabilityProfilesForTest(store *GormStore) {
 
 func newCodexImageCapabilityTestServer(t *testing.T, baseURL string) (*GormStore, *Server, ProviderResource) {
 	t.Helper()
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	provider := store.AddProvider(Provider{
 		ID: "prv_codex_image_capability", Name: "Codex Image Capability", Type: ProviderOpenAICodex, Status: StatusActive, Healthy: true,
 	})

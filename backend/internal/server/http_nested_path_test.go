@@ -11,11 +11,11 @@ import (
 // provider-resource action parsing: /quota and /refresh-token must keep
 // dispatching to their handlers alongside the /health and /test suffixes.
 func TestAdminProviderResourceActionSuffixRouting(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	if err := BootstrapBaseData(store); err != nil {
 		t.Fatal(err)
 	}
-	app := New(store).Handler()
+	app := newManagedTestServer(t, store).Handler()
 
 	quota := doJSON(t, app, http.MethodGet, "/api/admin/provider-resources/res-missing/quota", nil, "")
 	if !strings.Contains(quota.Body, "provider_resource_not_found") {
@@ -87,11 +87,11 @@ func TestSplitEscapedAdminPath(t *testing.T) {
 // TestAdminResourceDeleteWithSlashedID guards the end-to-end path: a team
 // whose ID contains "/" must be reachable through the generic resource route.
 func TestAdminResourceDeleteWithSlashedID(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	if err := BootstrapBaseData(store); err != nil {
 		t.Fatal(err)
 	}
-	app := New(store).Handler()
+	app := newManagedTestServer(t, store).Handler()
 	store.CreateResource("teams", AdminResource{ID: "litellm/team/core", Name: "Core", Status: StatusActive})
 
 	deleted := doJSON(t, app, http.MethodDelete, "/api/admin/resources/teams/litellm%2Fteam%2Fcore", nil, "")

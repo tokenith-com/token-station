@@ -23,7 +23,7 @@ func TestTranscriptionHookOutputFailureRetainsDuration(t *testing.T) {
 			{name: "explicit zero overrides body", evidence: `"duration":12.5`, explicitUsage: `{"total_tokens":0}`},
 		} {
 			t.Run(protocol+"/"+tc.name, func(t *testing.T) {
-				server := New(NewMemoryStore())
+				server := New(newTestMemoryStore(t))
 				t.Cleanup(func() { _ = server.Shutdown(context.Background()) })
 				body := `{"text":"` + strings.Repeat("a", 256) + `",` + tc.evidence + `}`
 				limit := 128

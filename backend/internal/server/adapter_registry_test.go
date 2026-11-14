@@ -163,7 +163,7 @@ var builtinAdapterPlugins = map[string]string{
 }
 
 func TestBuiltinAdaptersResolveWithUnchangedCapabilities(t *testing.T) {
-	server := New(NewMemoryStore())
+	server := newManagedTestServer(t, newTestMemoryStore(t))
 
 	for adapterType, want := range builtinAdapterCapabilities {
 		adapter, err := server.adapterRegistry.Resolve(adapterType)
@@ -195,7 +195,7 @@ func TestBuiltinAdaptersResolveWithUnchangedCapabilities(t *testing.T) {
 }
 
 func TestAdapterDescriptorsExposeProviderPolicy(t *testing.T) {
-	server := New(NewMemoryStore())
+	server := newManagedTestServer(t, newTestMemoryStore(t))
 
 	mock, ok := server.adapterRegistry.Describe(ProviderMock)
 	if !ok {
@@ -433,7 +433,7 @@ func TestAdapterRegisterPreservesPluginPolicyWhenReplacingAdapter(t *testing.T) 
 }
 
 func TestBuiltinProviderPluginsExposeAdapterCapabilities(t *testing.T) {
-	server := New(NewMemoryStore())
+	server := newManagedTestServer(t, newTestMemoryStore(t))
 
 	plugins := server.adapterRegistry.ListPlugins()
 	if len(plugins) < len(builtinAdapterPlugins) {
@@ -577,7 +577,7 @@ func TestPluginAdapterDescriptorExposesRouteResourcePolicy(t *testing.T) {
 }
 
 func TestReconcileProviderPluginPoliciesPersistsBuiltinProviderPolicy(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	provider := store.AddProvider(Provider{
 		ID:      "prv_legacy_codex_policy",
 		Name:    "Legacy Codex Policy",
@@ -592,7 +592,7 @@ func TestReconcileProviderPluginPoliciesPersistsBuiltinProviderPolicy(t *testing
 		t.Fatal(err)
 	}
 
-	NewWithConfig(store, Config{AdminToken: "dev_admin_token"})
+	newManagedTestServerWithConfig(t, store, Config{AdminToken: "dev_admin_token"})
 
 	stored, ok := store.GetProvider(provider.ID)
 	if !ok {
@@ -607,7 +607,7 @@ func TestReconcileProviderPluginPoliciesPersistsBuiltinProviderPolicy(t *testing
 }
 
 func TestReconcileProviderPluginPoliciesPersistsExternalProviderPolicy(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	providerType := "external_policy_provider"
 	provider := store.AddProvider(Provider{
 		ID:      "prv_external_policy",
@@ -653,7 +653,7 @@ func TestReconcileProviderPluginPoliciesPersistsExternalProviderPolicy(t *testin
 }
 
 func TestBuiltinCodexProviderPluginExposesResourceTypeMetadata(t *testing.T) {
-	server := New(NewMemoryStore())
+	server := newManagedTestServer(t, newTestMemoryStore(t))
 	descriptor, ok := server.adapterRegistry.plugins.Describe("tokenhub.provider.openai-codex")
 	if !ok {
 		t.Fatal("Codex provider plugin is missing")
@@ -700,7 +700,7 @@ func TestBuiltinCodexProviderPluginExposesResourceTypeMetadata(t *testing.T) {
 }
 
 func TestBuiltinCodexAdminUIContributesFingerprintResourceForm(t *testing.T) {
-	server := New(NewMemoryStore())
+	server := newManagedTestServer(t, newTestMemoryStore(t))
 	var found bool
 	for _, contribution := range server.adminUI.List() {
 		if contribution.PluginID != "tokenhub.provider.openai-codex" || contribution.ID != "fingerprint" {
@@ -740,7 +740,7 @@ func descriptorHasPluginCapability(descriptor pluginmeta.Descriptor, capability 
 }
 
 func TestGatewayStagesRemainHostInternal(t *testing.T) {
-	server := New(NewMemoryStore())
+	server := newManagedTestServer(t, newTestMemoryStore(t))
 
 	if _, ok := server.pluginRegistry.Describe(tokenHubCoreGatewayChainPluginID); ok {
 		t.Fatal("host gateway stages were exposed as a plugin")
@@ -790,7 +790,7 @@ permissions:
       - request_body
 `)
 
-	server := NewWithConfig(NewMemoryStore(), Config{AdminToken: "dev_admin_token", PluginDir: pluginDir})
+	server := newManagedTestServerWithConfig(t, newTestMemoryStore(t), Config{AdminToken: "dev_admin_token", PluginDir: pluginDir})
 	descriptor, ok := server.pluginRegistry.Describe("tokenhub.local-privacy")
 	if !ok {
 		t.Fatal("local plugin descriptor was not loaded")
@@ -839,7 +839,7 @@ permissions:
 		t.Fatal(err)
 	}
 
-	server := NewWithConfig(NewMemoryStore(), Config{AdminToken: "dev_admin_token", PluginDir: pluginDir})
+	server := newManagedTestServerWithConfig(t, newTestMemoryStore(t), Config{AdminToken: "dev_admin_token", PluginDir: pluginDir})
 	descriptor, ok := server.pluginRegistry.Describe("tokenhub.local-disabled-privacy")
 	if !ok {
 		t.Fatal("disabled local plugin descriptor was not loaded")
@@ -897,7 +897,7 @@ capabilities:
 		t.Fatal(err)
 	}
 
-	server := NewWithConfig(NewMemoryStore(), Config{AdminToken: "dev_admin_token", PluginDir: pluginDir})
+	server := newManagedTestServerWithConfig(t, newTestMemoryStore(t), Config{AdminToken: "dev_admin_token", PluginDir: pluginDir})
 	contributions := server.adminUI.List()
 	var found bool
 	for _, contribution := range contributions {
@@ -960,7 +960,7 @@ printf '{"response":{},"usage":{}}'
 		t.Fatal(err)
 	}
 
-	server := NewWithConfig(NewMemoryStore(), Config{AdminToken: "dev_admin_token", PluginDir: pluginDir})
+	server := newManagedTestServerWithConfig(t, newTestMemoryStore(t), Config{AdminToken: "dev_admin_token", PluginDir: pluginDir})
 	if descriptor, ok := server.adapterRegistry.Describe("catalog_stdio"); ok {
 		t.Fatalf("quarantined provider command registered an adapter: %+v", descriptor)
 	}
@@ -994,7 +994,7 @@ printf '{"response":{},"usage":{}}'
 }
 
 func TestResolveReportsUnregisteredAdapterType(t *testing.T) {
-	server := New(NewMemoryStore())
+	server := newManagedTestServer(t, newTestMemoryStore(t))
 
 	if _, err := server.adapterRegistry.Resolve("not_a_provider"); AsHTTPError(err).Code != "provider_adapter_missing" {
 		t.Fatalf("resolving an unknown type returned %v, want provider_adapter_missing", err)
@@ -1008,7 +1008,7 @@ func TestResolveReportsUnregisteredAdapterType(t *testing.T) {
 // and OpenAI image generation, so a wrong registration would only surface as a
 // runtime downgrade rather than a compile error.
 func TestRegistryResolvesConcreteAdapterTypes(t *testing.T) {
-	server := New(NewMemoryStore())
+	server := newManagedTestServer(t, newTestMemoryStore(t))
 
 	anthropic, ok := resolveTypedAdapter[AnthropicAdapter](server.adapterRegistry, ProviderAnthropic)
 	if !ok {
@@ -1026,7 +1026,7 @@ func TestRegistryResolvesConcreteAdapterTypes(t *testing.T) {
 }
 
 func TestRegisterTestAdapterInjectsAndOverridesWithoutTouchingCapabilities(t *testing.T) {
-	server := New(NewMemoryStore())
+	server := newManagedTestServer(t, newTestMemoryStore(t))
 	injected := MockAdapter{}
 
 	registerTestAdapter(server, "injected_type", injected)

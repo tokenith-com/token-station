@@ -307,6 +307,7 @@ func newWithConfig(store Store, config Config, dependencies ApplicationDependenc
 	}
 	s.installTraceEmitter(config)
 	if db, ok := store.(*GormStore); ok && dependencies.Payment != nil {
+		db.prepaidUsage = dependencies.Payment.PrepaidUsage
 		s.payments = &paymentService{config: dependencies.Payment, store: db}
 		s.payments.start()
 	}

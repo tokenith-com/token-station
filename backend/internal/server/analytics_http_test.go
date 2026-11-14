@@ -15,10 +15,10 @@ import (
 )
 
 func TestProjectAnalyticsCredentialQueriesOnlyScopedTokenCosts(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	project := store.CreateProject(Project{Name: "Agent Analytics Project", Status: StatusActive})
 	otherProject := store.CreateProject(Project{Name: "Hidden Analytics Project", Status: StatusActive})
-	app := New(store).Handler()
+	app := newManagedTestServer(t, store).Handler()
 
 	created := doJSON(t, app, http.MethodPost, "/api/admin/analytics/credentials", map[string]any{
 		"name":       "local-cost-agent",
@@ -124,10 +124,10 @@ func TestProjectAnalyticsCredentialQueriesOnlyScopedTokenCosts(t *testing.T) {
 }
 
 func TestOrganizationAnalyticsCredentialFiltersAndAggregatesTokenCosts(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	project := store.CreateProject(Project{Name: "Aggregate Analytics Project", Status: StatusActive})
 	otherProject := store.CreateProject(Project{Name: "Other Aggregate Project", Status: StatusActive})
-	app := New(store).Handler()
+	app := newManagedTestServer(t, store).Handler()
 	token := createAnalyticsCredentialToken(t, app, map[string]any{
 		"name": "organization-cost-agent", "scope_type": AnalyticsScopeOrganization,
 	})
@@ -214,9 +214,9 @@ func TestOrganizationAnalyticsCredentialFiltersAndAggregatesTokenCosts(t *testin
 }
 
 func TestTokenCostCursorPaginatesSnapshotAndWatermarkSupportsIncrementalPull(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	project := store.CreateProject(Project{Name: "Cursor Analytics Project", Status: StatusActive})
-	app := New(store).Handler()
+	app := newManagedTestServer(t, store).Handler()
 	token := createAnalyticsCredentialToken(t, app, map[string]any{
 		"name": "cursor-cost-agent", "scope_type": AnalyticsScopeProject, "project_id": project.ID,
 	})
@@ -293,9 +293,9 @@ func TestTokenCostCursorPaginatesSnapshotAndWatermarkSupportsIncrementalPull(t *
 }
 
 func TestTokenCostWatermarkPreservesOriginalFiltersAndAggregation(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	project := store.CreateProject(Project{Name: "Watermark Query Project", Status: StatusActive})
-	app := New(store).Handler()
+	app := newManagedTestServer(t, store).Handler()
 	token := createAnalyticsCredentialToken(t, app, map[string]any{
 		"name": "watermark-query-agent", "scope_type": AnalyticsScopeOrganization,
 	})
@@ -361,9 +361,9 @@ func TestTokenCostWatermarkPreservesOriginalFiltersAndAggregation(t *testing.T) 
 }
 
 func TestTokenCostAnalyticsExportsCSVWithStableSchemaHeaders(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	project := store.CreateProject(Project{Name: "CSV Analytics Project", Status: StatusActive})
-	app := New(store).Handler()
+	app := newManagedTestServer(t, store).Handler()
 	token := createAnalyticsCredentialToken(t, app, map[string]any{
 		"name": "csv-cost-agent", "scope_type": AnalyticsScopeProject, "project_id": project.ID,
 	})
@@ -407,7 +407,7 @@ func TestTokenCostAnalyticsExportsCSVWithStableSchemaHeaders(t *testing.T) {
 }
 
 func TestAnalyticsCredentialsAreReadOnlyScopedRevocableAndBounded(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	project := store.CreateProject(Project{Name: "Security Analytics Project", Status: StatusActive})
 	otherProject := store.CreateProject(Project{Name: "Forbidden Analytics Project", Status: StatusActive})
 	if _, err := store.CreateAdminUser(AdminUser{
@@ -427,7 +427,7 @@ func TestAnalyticsCredentialsAreReadOnlyScopedRevocableAndBounded(t *testing.T) 
 	if err != nil {
 		t.Fatal(err)
 	}
-	app := New(store).Handler()
+	app := newManagedTestServer(t, store).Handler()
 
 	forbiddenCreate := doJSON(t, app, http.MethodPost, "/api/admin/analytics/credentials", map[string]any{
 		"name": "forbidden-agent", "scope_type": AnalyticsScopeProject, "project_id": project.ID,
@@ -494,7 +494,7 @@ func TestAnalyticsCredentialsAreReadOnlyScopedRevocableAndBounded(t *testing.T) 
 }
 
 func TestTokenCostAnalyticsKeepsLargeQueriesIndexedAndPageBounded(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	project := store.CreateProject(Project{Name: "Large Analytics Project", Status: StatusActive})
 	now := time.Now().UTC().Truncate(time.Second)
 	logs := make([]RequestLog, 1200)
@@ -577,7 +577,7 @@ func TestTokenCostAnalyticsKeepsLargeQueriesIndexedAndPageBounded(t *testing.T) 
 }
 
 func TestTokenCostAnalyticsUsesAnIsolatedReadPool(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	project := store.CreateProject(Project{Name: "Isolated Analytics Project", Status: StatusActive})
 	analyticsSQL, err := store.analyticsDB.DB()
 	if err != nil {
@@ -605,7 +605,7 @@ func TestTokenCostAnalyticsUsesAnIsolatedReadPool(t *testing.T) {
 }
 
 func TestTokenCostAggregateMatchesAdminUsageMetrics(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	project := store.CreateProject(Project{Name: "Parity Analytics Project", Status: StatusActive})
 	now := time.Now().UTC().Truncate(time.Second)
 	createAnalyticsRequest(t, store, RequestLog{
@@ -658,7 +658,7 @@ func TestTokenCostAggregateMatchesAdminUsageMetrics(t *testing.T) {
 }
 
 func TestTokenCostAnalyticsSupportsHourDayAndMonthBuckets(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	project := store.CreateProject(Project{Name: "Bucket Analytics Project", Status: StatusActive})
 	occurredAt := time.Date(2026, time.July, 4, 13, 25, 0, 0, time.UTC)
 	createAnalyticsRequest(t, store, RequestLog{

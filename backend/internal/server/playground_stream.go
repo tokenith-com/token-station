@@ -52,6 +52,7 @@ type playgroundTiming struct {
 }
 
 type playgroundStreamPayload struct {
+	Wallet       *walletUsageReceipt      `json:"wallet,omitempty"`
 	Type         string                   `json:"type"`
 	Status       string                   `json:"status"`
 	Response     any                      `json:"response,omitempty"`
@@ -263,6 +264,10 @@ func (s *Server) handleAdminPlaygroundChatStream(w http.ResponseWriter, r *http.
 		return
 	}
 	call := s.newPlaygroundCallContext(user, req.Model, admittedAt)
+	if err := s.setPlaygroundWalletPayer(&call, user, guardrailProjectID); err != nil {
+		writeError(w, r, err)
+		return
+	}
 	w.Header().Set("x-request-id", call.RequestID)
 	if err := s.runGatewayAuthContextHooks(r.Context(), &call, r.Header); err != nil {
 		httpErr := AsHTTPError(err)
@@ -377,6 +382,9 @@ func (s *Server) handleAdminPlaygroundChatStream(w http.ResponseWriter, r *http.
 	}
 
 	routed, err := s.preparePlaygroundRoutedCall(r.Context(), req, call)
+	if err == nil {
+		err = s.reserveChatWallet(r.Context(), routed.Call, &req)
+	}
 	if err != nil {
 		httpErr := AsHTTPError(err)
 		s.finishRoutedCall(r, GatewayCallCompletion{
@@ -431,6 +439,7 @@ func (s *Server) handleAdminPlaygroundChatStream(w http.ResponseWriter, r *http.
 		"model": req.Model, "route": playgroundRouteSummary(route), "usage": usage, "attempts": len(attempts),
 	})
 	payload := playgroundStreamPayload{
+		Wallet:    s.playgroundWalletReceipt(routed.Call),
 		Type:      "completed",
 		Status:    "completed",
 		Response:  result.Response,
@@ -544,6 +553,9 @@ func (s *Server) executeRoutedPlaygroundStream(
 			var attemptUsage Usage
 			var attemptErr error
 			if useResponses {
+				if routed.Call.walletPayer != "" {
+					return playgroundStreamResult{}, Usage{}, walletUsageError()
+				}
 				upstreamReq := responsesReq
 				if omitReasoningEffort {
 					upstreamReq = withoutResponsesReasoningEffort(upstreamReq)
@@ -586,6 +598,9 @@ func (s *Server) streamPlaygroundChat(
 		bufferedReq := req
 		bufferedReq.Stream = false
 		bufferedReq.StreamOptions = nil
+		if err := s.dispatchChatWallet(ctx, call, route, bufferedReq); err != nil {
+			return playgroundStreamResult{}, Usage{}, err
+		}
 		response, usage, invokeErr := adapter.Chat(ctx, route.Provider, route.ProviderModel, bufferedReq)
 		result := playgroundStreamResult{Response: response, Text: playgroundResponseText(response), Mode: "buffered"}
 		if invokeErr == nil && result.Text != "" {
@@ -693,7 +708,8 @@ func (s *Server) finishFailedPlaygroundStream(
 		"model": req.Model, "attempts": playgroundRouteAttempts(attempts), "error": code,
 	})
 	payload := playgroundStreamPayload{
-		Type: state, Status: state, Response: result.Response,
+		Wallet: s.playgroundWalletReceipt(routed.Call),
+		Type:   state, Status: state, Response: result.Response,
 		Route: playgroundRouteForUser(user, route, usage), Usage: playgroundUsageForUser(user, usage),
 		Attempts:  playgroundAttemptsForUser(user, attempts),
 		Timing:    newPlaygroundTiming(routed.Call.StartedAt, result, completedAt, usage),
@@ -800,4 +816,18 @@ func playgroundResponseText(response any) string {
 		}
 	}
 	return ""
+}
+
+// playgroundModel resolves the catalog entry for a playground request so its usage
+// is priced like any other call. It falls back to a name-only model when the catalog
+// does not know the name, which keeps the console usable against a model that was
+// just removed.
+func playgroundModel(store Store, name string) Model {
+	name = strings.TrimSpace(name)
+	for _, model := range store.ListModels() {
+		if model.Name == name {
+			return model
+		}
+	}
+	return Model{Name: name, Status: StatusActive}
 }

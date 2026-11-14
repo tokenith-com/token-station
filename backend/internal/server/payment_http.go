@@ -20,6 +20,9 @@ func (s *Server) paymentRoutes() {
 		methodRoute{Method: "GET", Handler: s.listOwnPaymentOrders}, methodRoute{Method: "POST", Handler: s.createPaymentOrder})
 	s.registerSingleMethodRoute("GET", "/api/admin/recharge/orders/{order_no}", s.getOwnPaymentOrder, jsonMethodNotAllowed("GET"))
 	s.registerSingleMethodRoute("GET", "/api/admin/wallet", s.getPaymentWallet, jsonMethodNotAllowed("GET"))
+	s.registerSingleMethodRoute("GET", "/api/admin/wallet/usage", s.listOwnWalletUsage, jsonMethodNotAllowed("GET"))
+	s.registerSingleMethodRoute("GET", "/api/admin/payment-wallet/usage", s.listOperatorWalletUsage, jsonMethodNotAllowed("GET"))
+	s.registerSingleMethodRoute("POST", "/api/admin/payment-wallet/usage/{request_id}/resolve", s.resolveOperatorWalletUsage, jsonMethodNotAllowed("POST"))
 	s.registerSingleMethodRoute("GET", "/api/admin/wallet/transactions", s.listWalletTransactions, jsonMethodNotAllowed("GET"))
 	s.registerSingleMethodRoute("GET", "/api/admin/payment-orders", s.listAdminPaymentOrders, jsonMethodNotAllowed("GET"))
 	s.registerSingleMethodRoute("POST", "/api/admin/payment-orders/{order_no}/reconcile", s.reconcilePaymentOrder, jsonMethodNotAllowed("POST"))
@@ -218,6 +221,7 @@ func (s *Server) getOwnPaymentOrder(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) getPaymentWallet(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Cache-Control", "no-store")
 	user, ok := s.paymentUser(w, r, false)
 	if !ok {
 		return
@@ -230,8 +234,10 @@ func (s *Server) getPaymentWallet(w http.ResponseWriter, r *http.Request) {
 	}
 	writeJSON(w, 200, struct {
 		userWallet
-		AvailableFen int64 `json:"available_fen"`
-	}{wallet, wallet.BalanceFen - wallet.FrozenFen})
+		AvailableFen    int64 `json:"available_fen"`
+		AvailableMicros int64 `json:"available_micros"`
+		PrepaidUsage    bool  `json:"prepaid_usage"`
+	}{wallet, wallet.availableMicros() / walletMicrosPerFen, wallet.availableMicros(), s.payments.config.PrepaidUsage})
 }
 
 func (s *Server) listWalletTransactions(w http.ResponseWriter, r *http.Request) {

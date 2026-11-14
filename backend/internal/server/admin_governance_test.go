@@ -12,11 +12,11 @@ import (
 )
 
 func TestAdminCreatesAPIKeyUnderDefaultProject(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	if err := BootstrapBaseData(store); err != nil {
 		t.Fatal(err)
 	}
-	app := New(store).Handler()
+	app := newManagedTestServer(t, store).Handler()
 
 	resp := doJSON(t, app, http.MethodPost, "/api/admin/projects/"+defaultProjectID+"/keys", map[string]any{
 		"name":           "Default Project Key",
@@ -49,7 +49,7 @@ func TestAdminCreatesAPIKeyUnderDefaultProject(t *testing.T) {
 }
 
 func TestAdminCanClearAllAPIKeyLimits(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	if err := BootstrapBaseData(store); err != nil {
 		t.Fatal(err)
 	}
@@ -70,7 +70,7 @@ func TestAdminCanClearAllAPIKeyLimits(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	app := New(store).Handler()
+	app := newManagedTestServer(t, store).Handler()
 
 	resp := doJSON(t, app, http.MethodPatch, "/api/admin/api-keys/key_clear_limits", map[string]any{
 		"name": "Renamed Key",
@@ -101,7 +101,7 @@ func TestAdminCanClearAllAPIKeyLimits(t *testing.T) {
 }
 
 func TestAdminCanClearAllAPIKeyLimitsAfterApproval(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	if err := BootstrapBaseData(store); err != nil {
 		t.Fatal(err)
 	}
@@ -118,7 +118,7 @@ func TestAdminCanClearAllAPIKeyLimitsAfterApproval(t *testing.T) {
 		Status: StatusActive,
 		Fields: map[string]any{"trigger": "quota_increase", "approver_role": "admin"},
 	})
-	app := New(store).Handler()
+	app := newManagedTestServer(t, store).Handler()
 
 	resp := doJSON(t, app, http.MethodPatch, "/api/admin/api-keys/"+key.ID, map[string]any{
 		"limits": QuotaLimits{},
@@ -146,7 +146,7 @@ func TestAdminCanClearAllAPIKeyLimitsAfterApproval(t *testing.T) {
 }
 
 func TestUserCreatesPersonalAPIKeyWithoutProjectMembership(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	if err := BootstrapBaseData(store); err != nil {
 		t.Fatal(err)
 	}
@@ -160,7 +160,7 @@ func TestUserCreatesPersonalAPIKeyWithoutProjectMembership(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	app := New(store).Handler()
+	app := newManagedTestServer(t, store).Handler()
 
 	login := doJSON(t, app, http.MethodPost, "/api/admin/auth/login", map[string]any{
 		"identity": user.Username,
@@ -206,7 +206,7 @@ func TestUserCreatesPersonalAPIKeyWithoutProjectMembership(t *testing.T) {
 }
 
 func TestUserCanReadRoutedAdminModels(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	store.CreateResource("teams", AdminResource{ID: "team_platform", Name: "Platform Team", Status: StatusActive})
 	if _, err := store.CreateAdminUser(AdminUser{
 		Username: "model.viewer",
@@ -221,7 +221,7 @@ func TestUserCanReadRoutedAdminModels(t *testing.T) {
 	store.AddModel(Model{Name: "text-embedding-3-small", Modality: "embedding", Status: StatusActive})
 	store.AddRoute(ModelRoute{ModelName: "gpt-4.1-mini", ProviderID: "provider_mock", ProviderModel: "mock-chat", Status: StatusActive})
 	store.AddRoute(ModelRoute{ModelName: "text-embedding-3-small", ProviderID: "provider_mock", ProviderModel: "mock-embedding", Status: StatusDisabled})
-	app := New(store).Handler()
+	app := newManagedTestServer(t, store).Handler()
 
 	login := doJSON(t, app, http.MethodPost, "/api/admin/auth/login", map[string]any{
 		"identity": "model.viewer@tokenhub.local",
@@ -258,7 +258,7 @@ func TestUserCanReadRoutedAdminModels(t *testing.T) {
 }
 
 func TestAdminCannotDeleteOwnAccount(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	actor, err := store.CreateAdminUser(AdminUser{
 		Username: "platform.admin",
 		Email:    "platform.admin@tokenhub.local",
@@ -277,7 +277,7 @@ func TestAdminCannotDeleteOwnAccount(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	app := New(store).Handler()
+	app := newManagedTestServer(t, store).Handler()
 
 	login := doJSON(t, app, http.MethodPost, "/api/admin/auth/login", map[string]any{
 		"identity": "platform.admin@tokenhub.local",
@@ -318,7 +318,7 @@ func TestAdminCannotDeleteOwnAccount(t *testing.T) {
 }
 
 func TestBootstrapBaseDataSeedsGovernanceResources(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	if err := BootstrapBaseData(store); err != nil {
 		t.Fatal(err)
 	}
@@ -376,12 +376,12 @@ func TestBootstrapBaseDataSeedsGovernanceResources(t *testing.T) {
 }
 
 func TestAdminImportsUsersFromExistingSystemCSV(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	if err := BootstrapBaseData(store); err != nil {
 		t.Fatal(err)
 	}
 	messages := configureTestSMTPChannel(t, store)
-	app := New(store).Handler()
+	app := newManagedTestServer(t, store).Handler()
 
 	content := "username,name,email,role,team_id,status\nimported_user,导入用户,imported@example.com,user,team_platform,active\n"
 	resp := doJSON(t, app, http.MethodPost, "/api/admin/users/import", map[string]any{
@@ -424,7 +424,7 @@ func TestAdminImportsUsersFromExistingSystemCSV(t *testing.T) {
 }
 
 func TestBootstrapUsesConfiguredAdminPassword(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	config := ConfigFromEnv()
 	config.BootstrapAdminPassword = "configured-bootstrap-password"
 	if err := BootstrapBaseDataWithConfig(store, config); err != nil {
@@ -440,13 +440,13 @@ func TestBootstrapUsesConfiguredAdminPassword(t *testing.T) {
 }
 
 func TestAdminImportsUsersFromHeaderlessCSV(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	if err := BootstrapBaseData(store); err != nil {
 		t.Fatal(err)
 	}
 	store.CreateResource("teams", AdminResource{ID: "team_UK8jwEcIIoFmNVmJ", Name: "Imported Team", Status: StatusActive})
 	messages := configureTestSMTPChannel(t, store)
-	app := New(store).Handler()
+	app := newManagedTestServer(t, store).Handler()
 
 	content := "xiemengjun,谢孟军,xiemengjun@e-lead.cn,admin,team_UK8jwEcIIoFmNVmJ,active\n" +
 		"lisk,李世康,lisk@e-lead.cn,admin,team_UK8jwEcIIoFmNVmJ,active\n"
@@ -466,7 +466,7 @@ func TestAdminImportsUsersFromHeaderlessCSV(t *testing.T) {
 }
 
 func TestGatewayRejectsUnauthorizedModel(t *testing.T) {
-	app := newTestServer()
+	app := newTestServer(t)
 	resp := doJSON(t, app, http.MethodPost, "/v1/chat/completions", map[string]any{
 		"model": "not-allowed",
 		"messages": []map[string]any{
@@ -482,7 +482,7 @@ func TestGatewayRejectsUnauthorizedModel(t *testing.T) {
 }
 
 func TestGatewayQuotaExceeded(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	project := store.CreateProject(Project{Name: "Limited"})
 	_, secret, err := store.CreateAPIKey(project.ID, APIKey{
 		Name:    "limited",
@@ -496,7 +496,7 @@ func TestGatewayQuotaExceeded(t *testing.T) {
 	mock := store.AddProvider(Provider{Name: "Mock", Type: ProviderMock, Status: StatusActive, Healthy: true})
 	store.AddModel(Model{Name: "gpt-4.1-mini", Modality: "chat", Status: StatusActive})
 	store.AddRoute(ModelRoute{ModelName: "gpt-4.1-mini", ProviderID: mock.ID, ProviderModel: "mock-chat", Status: StatusActive})
-	app := New(store).Handler()
+	app := newManagedTestServer(t, store).Handler()
 
 	for i := 0; i < 2; i++ {
 		resp := doJSON(t, app, http.MethodPost, "/v1/chat/completions", map[string]any{
@@ -515,7 +515,7 @@ func TestGatewayQuotaExceeded(t *testing.T) {
 }
 
 func TestQuotaPolicyAppliesAtRuntime(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	store.CreateResource("teams", AdminResource{ID: "team_policy", Name: "Policy Team", Status: StatusActive})
 	project := store.CreateProject(Project{Name: "Policy Limited", TeamID: "team_policy"})
 	_, secret, err := store.CreateAPIKey(project.ID, APIKey{
@@ -539,7 +539,7 @@ func TestQuotaPolicyAppliesAtRuntime(t *testing.T) {
 	mock := store.AddProvider(Provider{Name: "Mock", Type: ProviderMock, Status: StatusActive, Healthy: true})
 	store.AddModel(Model{Name: "gpt-4.1-mini", Modality: "chat", Status: StatusActive})
 	store.AddRoute(ModelRoute{ModelName: "gpt-4.1-mini", ProviderID: mock.ID, ProviderModel: "mock-chat", Status: StatusActive})
-	app := New(store).Handler()
+	app := newManagedTestServer(t, store).Handler()
 
 	for i := 0; i < 2; i++ {
 		resp := doJSON(t, app, http.MethodPost, "/v1/chat/completions", map[string]any{
@@ -558,7 +558,7 @@ func TestQuotaPolicyAppliesAtRuntime(t *testing.T) {
 }
 
 func TestBudgetExceededBlocksRuntimeCalls(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	project := store.CreateProject(Project{Name: "Budget Limited", CostCenter: "CC-BLOCK"})
 	apiKey, secret, err := store.CreateAPIKey(project.ID, APIKey{
 		Name:    "budget-key",
@@ -598,7 +598,7 @@ func TestBudgetExceededBlocksRuntimeCalls(t *testing.T) {
 	mock := store.AddProvider(Provider{Name: "Mock", Type: ProviderMock, Status: StatusActive, Healthy: true})
 	store.AddModel(Model{Name: "gpt-4.1-mini", Modality: "chat", Status: StatusActive})
 	store.AddRoute(ModelRoute{ModelName: "gpt-4.1-mini", ProviderID: mock.ID, ProviderModel: "mock-chat", Status: StatusActive})
-	app := New(store).Handler()
+	app := newManagedTestServer(t, store).Handler()
 
 	blocked := doJSON(t, app, http.MethodPost, "/v1/chat/completions", map[string]any{
 		"model": "gpt-4.1-mini",
@@ -626,7 +626,7 @@ func TestBudgetExceededBlocksRuntimeCalls(t *testing.T) {
 }
 
 func TestRuntimeBudgetUsesActualUsageInsteadOfCachedUsedField(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	project := store.CreateProject(Project{Name: "Fresh Budget", CostCenter: "CC-FRESH"})
 	_, secret, err := store.CreateAPIKey(project.ID, APIKey{
 		Name:    "fresh-budget-key",
@@ -652,7 +652,7 @@ func TestRuntimeBudgetUsesActualUsageInsteadOfCachedUsedField(t *testing.T) {
 	mock := store.AddProvider(Provider{Name: "Mock", Type: ProviderMock, Status: StatusActive, Healthy: true})
 	store.AddModel(Model{Name: "gpt-4.1-mini", Modality: "chat", Status: StatusActive})
 	store.AddRoute(ModelRoute{ModelName: "gpt-4.1-mini", ProviderID: mock.ID, ProviderModel: "mock-chat", Status: StatusActive})
-	app := New(store).Handler()
+	app := newManagedTestServer(t, store).Handler()
 
 	resp := doJSON(t, app, http.MethodPost, "/v1/chat/completions", map[string]any{
 		"model": "gpt-4.1-mini",
@@ -666,7 +666,7 @@ func TestRuntimeBudgetUsesActualUsageInsteadOfCachedUsedField(t *testing.T) {
 }
 
 func TestAPIKeyIPAllowlistAndRotation(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	project := store.CreateProject(Project{Name: "Key Ops"})
 	key, secret, err := store.CreateAPIKey(project.ID, APIKey{
 		Name:        "restricted",
@@ -700,7 +700,7 @@ func TestAPIKeyIPAllowlistAndRotation(t *testing.T) {
 }
 
 func TestAPIKeyStatusUpdatePreservesExpiration(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	project := store.CreateProject(Project{Name: "Expiring Key Ops"})
 	expiresAt := time.Now().UTC().Add(24 * time.Hour).Truncate(time.Second)
 	key, _, err := store.CreateAPIKey(project.ID, APIKey{
@@ -724,7 +724,7 @@ func TestAPIKeyStatusUpdatePreservesExpiration(t *testing.T) {
 }
 
 func TestAdminCreatesProjectAndKey(t *testing.T) {
-	app := newTestServer()
+	app := newTestServer(t)
 	project := doJSON(t, app, http.MethodPost, "/api/admin/projects", map[string]any{
 		"name":    "Production App",
 		"team_id": "team_platform",
@@ -754,9 +754,9 @@ func TestAdminCreatesProjectAndKey(t *testing.T) {
 }
 
 func TestAdminProjectCreateRequiresExistingActivePrimaryTeam(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	store.CreateResource("teams", AdminResource{ID: "team_inactive", Name: "Inactive Team", Status: StatusDisabled})
-	app := New(store).Handler()
+	app := newManagedTestServer(t, store).Handler()
 
 	missing := doJSON(t, app, http.MethodPost, "/api/admin/projects", map[string]any{
 		"name":    "Missing Team Project",
@@ -778,7 +778,7 @@ func TestAdminProjectCreateRequiresExistingActivePrimaryTeam(t *testing.T) {
 }
 
 func TestAPIKeyGenerationUsesSystemSettings(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	if err := BootstrapBaseData(store); err != nil {
 		t.Fatal(err)
 	}
@@ -795,7 +795,7 @@ func TestAPIKeyGenerationUsesSystemSettings(t *testing.T) {
 			"api_key_random_length": 32,
 		},
 	})
-	app := New(store).Handler()
+	app := newManagedTestServer(t, store).Handler()
 
 	key := doJSON(t, app, http.MethodPost, "/api/admin/projects/"+defaultProjectID+"/keys", map[string]any{
 		"name":           "custom-format-key",
@@ -837,7 +837,7 @@ func TestAPIKeyGenerationUsesSystemSettings(t *testing.T) {
 }
 
 func TestApprovalFlowInterceptsAPIKeyCreate(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	project := store.CreateProject(Project{Name: "Approval Project"})
 	store.CreateResource("approval-flows", AdminResource{
 		Name:   "Key approval",
@@ -847,7 +847,7 @@ func TestApprovalFlowInterceptsAPIKeyCreate(t *testing.T) {
 			"approver_role": "admin",
 		},
 	})
-	app := New(store).Handler()
+	app := newManagedTestServer(t, store).Handler()
 
 	key := doJSON(t, app, http.MethodPost, "/api/admin/projects/"+project.ID+"/keys", map[string]any{
 		"name":           "needs-approval",
@@ -897,9 +897,9 @@ func TestApprovalFlowInterceptsAPIKeyCreate(t *testing.T) {
 }
 
 func TestProjectQuotaIncreaseApprovalCreatesAndLinksPolicy(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	project := store.CreateProject(Project{Name: "Quota Project", Status: StatusActive})
-	app := New(store).Handler()
+	app := newManagedTestServer(t, store).Handler()
 
 	request := doJSON(t, app, http.MethodPost, "/api/admin/projects/"+project.ID+"/quota-increase", map[string]any{
 		"name": "Quota Project 提升额度",
@@ -943,7 +943,7 @@ func TestProjectQuotaIncreaseApprovalCreatesAndLinksPolicy(t *testing.T) {
 }
 
 func TestLinkedTeamQuotaPermissionsAndPrimaryTeamApprovalResponsibility(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	for _, teamID := range []string{"team_primary", "team_viewer", "team_maintainer"} {
 		store.CreateResource("teams", AdminResource{ID: teamID, Name: teamID, Status: StatusActive})
 	}
@@ -1014,7 +1014,7 @@ func TestLinkedTeamQuotaPermissionsAndPrimaryTeamApprovalResponsibility(t *testi
 	if err != nil {
 		t.Fatal(err)
 	}
-	app := New(store).Handler()
+	app := newManagedTestServer(t, store).Handler()
 
 	viewerRequest := doJSON(t, app, http.MethodPost, "/api/admin/projects/"+project.ID+"/quota-increase", map[string]any{
 		"fields": map[string]any{"daily_requests": 200},
@@ -1152,7 +1152,7 @@ func TestApprovalProjectIDSupportsDirectAndScopedPayloads(t *testing.T) {
 }
 
 func TestAPIKeyUpdateApprovalUsesProjectPrimaryTeam(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	for _, teamID := range []string{"team_key_primary", "team_key_secondary"} {
 		store.CreateResource("teams", AdminResource{ID: teamID, Name: teamID, Status: StatusActive})
 	}
@@ -1200,7 +1200,7 @@ func TestAPIKeyUpdateApprovalUsesProjectPrimaryTeam(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	app := New(store).Handler()
+	app := newManagedTestServer(t, store).Handler()
 
 	requested := doJSON(t, app, http.MethodPatch, "/api/admin/api-keys/"+key.ID, map[string]any{
 		"allowed_models": []string{"new-model"},
@@ -1235,7 +1235,7 @@ func TestAPIKeyUpdateApprovalUsesProjectPrimaryTeam(t *testing.T) {
 }
 
 func TestTeamLeaderScopedResourceFilteringUsesConstantQueries(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	store.CreateResource("teams", AdminResource{
 		ID:     "team_filter",
 		Name:   "Filter Team",
@@ -1279,7 +1279,7 @@ func TestTeamLeaderScopedResourceFilteringUsesConstantQueries(t *testing.T) {
 			Fields: map[string]any{"scope": "project", "scope_id": project.ID},
 		}))
 	}
-	server := New(store)
+	server := newManagedTestServer(t, store)
 
 	for _, test := range []struct {
 		name  string

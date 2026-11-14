@@ -84,7 +84,7 @@ func exchangeAdminOAuthCodeForTest(t *testing.T, handler http.Handler, code stri
 }
 
 func TestIdentityProviderMutationsRequirePlatformAdmin(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	_, err := store.CreateAdminUser(AdminUser{
 		Username: "platform-admin", Email: "platform-admin@example.test", Role: "admin", Status: StatusActive,
 	}, "platform-password")
@@ -104,7 +104,7 @@ func TestIdentityProviderMutationsRequirePlatformAdmin(t *testing.T) {
 	provider := store.CreateResource("identity-providers", AdminResource{
 		ID: "idp_existing", Name: "Existing IdP", Status: StatusActive,
 	})
-	app := NewWithConfig(store, Config{AdminToken: "platform-token"}).Handler()
+	app := newManagedTestServerWithConfig(t, store, Config{AdminToken: "platform-token"}).Handler()
 
 	read := doJSON(t, app, http.MethodGet, "/api/admin/resources/identity-providers", nil, securitySession.Token)
 	if read.Code != http.StatusOK || !strings.Contains(read.Body, provider.ID) {
@@ -132,14 +132,14 @@ func TestIdentityProviderMutationsRequirePlatformAdmin(t *testing.T) {
 }
 
 func TestOAuthProvisioningDoesNotBindByUsername(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	existing, err := store.CreateAdminUser(AdminUser{
 		Username: "platform-admin", Email: "admin@example.test", Role: "admin", Status: StatusActive,
 	}, "platform-password")
 	if err != nil {
 		t.Fatal(err)
 	}
-	server := New(store)
+	server := newManagedTestServer(t, store)
 	provider := AdminResource{
 		ID: "idp_untrusted_username", Name: "Enterprise SSO", Status: StatusActive,
 		Fields: map[string]any{"username_claim": "preferred_username", "email_claim": "email", "default_role": "user"},
@@ -172,14 +172,14 @@ func TestOAuthProvisioningDoesNotBindByUsername(t *testing.T) {
 }
 
 func TestOAuthProvisioningRejectsExplicitlyUnverifiedEmail(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	existing, err := store.CreateAdminUser(AdminUser{
 		Username: "platform-admin", Email: "admin@example.test", Role: "admin", Status: StatusActive,
 	}, "platform-password")
 	if err != nil {
 		t.Fatal(err)
 	}
-	server := New(store)
+	server := newManagedTestServer(t, store)
 	provider := AdminResource{
 		ID: "idp_unverified_email", Name: "Enterprise SSO", Status: StatusActive,
 		Fields: map[string]any{"username_claim": "preferred_username", "email_claim": "email", "default_role": "user"},
@@ -218,7 +218,7 @@ func TestOAuthProvisioningRejectsExplicitlyUnverifiedEmail(t *testing.T) {
 }
 
 func TestSafeOAuthReturnURLIgnoresOriginAndReferer(t *testing.T) {
-	server := NewWithConfig(NewMemoryStore(), Config{
+	server := NewWithConfig(newTestMemoryStore(t), Config{
 		PublicBaseURL:      "https://api.tokenhub.example",
 		CORSAllowedOrigins: []string{"not-an-origin", "https://console.tokenhub.example:8443"},
 	})
@@ -267,7 +267,7 @@ func TestSafeOAuthReturnURLIgnoresOriginAndReferer(t *testing.T) {
 
 func TestOAuthLoopbackReturnURLRequiresExactConfiguredOrigin(t *testing.T) {
 	request := httptest.NewRequest(http.MethodGet, "http://127.0.0.1:8080/api/admin/auth/oauth/start", nil)
-	unconfigured := NewWithConfig(NewMemoryStore(), Config{})
+	unconfigured := NewWithConfig(newTestMemoryStore(t), Config{})
 	t.Cleanup(func() { _ = unconfigured.Shutdown(t.Context()) })
 	for _, candidate := range []string{
 		"http://127.0.0.1:8080/settings",
@@ -280,7 +280,7 @@ func TestOAuthLoopbackReturnURLRequiresExactConfiguredOrigin(t *testing.T) {
 		}
 	}
 
-	corsConfigured := NewWithConfig(NewMemoryStore(), Config{CORSAllowedOrigins: []string{"http://localhost:3000"}})
+	corsConfigured := NewWithConfig(newTestMemoryStore(t), Config{CORSAllowedOrigins: []string{"http://localhost:3000"}})
 	t.Cleanup(func() { _ = corsConfigured.Shutdown(t.Context()) })
 	if got := corsConfigured.safeOAuthReturnURL("http://localhost:3000/settings?tab=sso", request); got != "http://localhost:3000/settings?tab=sso" {
 		t.Fatalf("configured loopback CORS origin was rejected: %q", got)
@@ -296,7 +296,7 @@ func TestOAuthLoopbackReturnURLRequiresExactConfiguredOrigin(t *testing.T) {
 		}
 	}
 
-	publicConfigured := NewWithConfig(NewMemoryStore(), Config{PublicBaseURL: "http://127.0.0.1:4000/base"})
+	publicConfigured := NewWithConfig(newTestMemoryStore(t), Config{PublicBaseURL: "http://127.0.0.1:4000/base"})
 	t.Cleanup(func() { _ = publicConfigured.Shutdown(t.Context()) })
 	if got := publicConfigured.safeOAuthReturnURL("http://127.0.0.1:4000/settings", request); got != "http://127.0.0.1:4000/settings" {
 		t.Fatalf("configured loopback public origin was rejected: %q", got)
@@ -307,7 +307,7 @@ func TestOAuthLoopbackReturnURLRequiresExactConfiguredOrigin(t *testing.T) {
 }
 
 func TestAdminOAuthStartRequiresS256PKCE(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	store.CreateResource("identity-providers", AdminResource{
 		ID: "idp_pkce", Name: "PKCE IdP", Status: StatusActive,
 		Fields: map[string]any{
@@ -316,7 +316,7 @@ func TestAdminOAuthStartRequiresS256PKCE(t *testing.T) {
 			"redirect_uri": "https://tokenhub.example/api/admin/auth/oauth/callback",
 		},
 	})
-	app := New(store).Handler()
+	app := newManagedTestServer(t, store).Handler()
 
 	for _, rawURL := range []string{
 		"/api/admin/auth/oauth/start?id=idp_pkce",
@@ -338,7 +338,7 @@ func TestAdminOAuthStartRequiresS256PKCE(t *testing.T) {
 }
 
 func TestOAuthCallbackURLUsesOnlyConfiguredOrTrustedOrigins(t *testing.T) {
-	untrusted := NewWithConfig(NewMemoryStore(), Config{})
+	untrusted := newManagedTestServerWithConfig(t, newTestMemoryStore(t), Config{})
 	request := httptest.NewRequest(http.MethodGet, "https://api.tokenhub.example/api/admin/auth/oauth/start", nil)
 	request.RemoteAddr = "198.51.100.7:4321"
 	request.Header.Set("X-Forwarded-Proto", "http")
@@ -348,13 +348,13 @@ func TestOAuthCallbackURLUsesOnlyConfiguredOrTrustedOrigins(t *testing.T) {
 		t.Fatalf("untrusted forwarded headers changed callback: callback=%q err=%v", got, err)
 	}
 
-	configured := NewWithConfig(NewMemoryStore(), Config{PublicBaseURL: "https://public.tokenhub.example/base"})
+	configured := newManagedTestServerWithConfig(t, newTestMemoryStore(t), Config{PublicBaseURL: "https://public.tokenhub.example/base"})
 	got, err = configured.oauthCallbackURL(request)
 	if err != nil || got != "https://public.tokenhub.example/api/admin/auth/oauth/callback" {
 		t.Fatalf("public base callback = %q, err=%v", got, err)
 	}
 
-	trusted := NewWithConfig(NewMemoryStore(), Config{TrustedProxyCIDRs: []string{"10.0.0.0/8"}})
+	trusted := newManagedTestServerWithConfig(t, newTestMemoryStore(t), Config{TrustedProxyCIDRs: []string{"10.0.0.0/8"}})
 	trustedRequest := httptest.NewRequest(http.MethodGet, "http://tokenhub-backend:8080/api/admin/auth/oauth/start", nil)
 	trustedRequest.RemoteAddr = "10.0.0.8:4321"
 	trustedRequest.Header.Set("X-Forwarded-Proto", "https")
@@ -366,7 +366,7 @@ func TestOAuthCallbackURLUsesOnlyConfiguredOrTrustedOrigins(t *testing.T) {
 }
 
 func TestIdentityProviderRedirectURIRejectsInsecureExternalHTTP(t *testing.T) {
-	server := New(NewMemoryStore())
+	server := newManagedTestServer(t, newTestMemoryStore(t))
 	request := httptest.NewRequest(http.MethodGet, "http://localhost:8080/api/admin/auth/oauth/start", nil)
 	provider := AdminResource{Fields: map[string]any{"redirect_uri": "http://oauth.example/api/admin/auth/oauth/callback"}}
 	if _, err := server.identityProviderRedirectURI(provider, request); AsHTTPError(err).Code != "insecure_redirect_uri" {
@@ -379,7 +379,7 @@ func TestIdentityProviderRedirectURIRejectsInsecureExternalHTTP(t *testing.T) {
 }
 
 func TestAdminOAuthStateCookieIsBrowserBoundAndSingleUse(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	store.CreateResource("identity-providers", AdminResource{
 		ID: "idp_browser_bound", Name: "Browser-bound IdP", Status: StatusActive,
 		Fields: map[string]any{
@@ -388,7 +388,7 @@ func TestAdminOAuthStateCookieIsBrowserBoundAndSingleUse(t *testing.T) {
 			"redirect_uri": "https://tokenhub.example/api/admin/auth/oauth/callback",
 		},
 	})
-	app := NewWithConfig(store, Config{PublicBaseURL: "https://tokenhub.example", SecretKey: "test-secret"}).Handler()
+	app := newManagedTestServerWithConfig(t, store, Config{PublicBaseURL: "https://tokenhub.example", SecretKey: "test-secret"}).Handler()
 	startRequest := httptest.NewRequest(http.MethodGet, adminOAuthStartURLForTest(t, "https://tokenhub.example/api/admin/auth/oauth/start?id=idp_browser_bound"), nil)
 	startResponse := httptest.NewRecorder()
 	app.ServeHTTP(startResponse, startRequest)
@@ -445,7 +445,7 @@ func TestAdminOAuthTokenExchangeErrorsDoNotLeakIntoRedirects(t *testing.T) {
 	}))
 	t.Cleanup(providerAPI.Close)
 
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	store.CreateResource("identity-providers", AdminResource{
 		ID: "idp_error_redaction", Name: "Error Redaction IdP", Status: StatusActive,
 		Fields: map[string]any{
@@ -454,7 +454,7 @@ func TestAdminOAuthTokenExchangeErrorsDoNotLeakIntoRedirects(t *testing.T) {
 			"redirect_uri": "https://tokenhub.example/api/admin/auth/oauth/callback",
 		},
 	})
-	app := NewWithConfig(store, Config{PublicBaseURL: "https://tokenhub.example", SecretKey: "test-secret"}).Handler()
+	app := newManagedTestServerWithConfig(t, store, Config{PublicBaseURL: "https://tokenhub.example", SecretKey: "test-secret"}).Handler()
 	startRequest := httptest.NewRequest(http.MethodGet, adminOAuthStartURLForTest(t, "https://tokenhub.example/api/admin/auth/oauth/start?id=idp_error_redaction"), nil)
 	startResponse := httptest.NewRecorder()
 	app.ServeHTTP(startResponse, startRequest)
@@ -515,7 +515,7 @@ func TestAdminOAuthAuthorizationIsPKCEBoundToIdentityProvider(t *testing.T) {
 	}))
 	t.Cleanup(providerAPI.Close)
 
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	store.CreateResource("identity-providers", AdminResource{
 		ID: "idp_pkce_bound", Name: "PKCE Bound IdP", Status: StatusActive,
 		Fields: map[string]any{
@@ -527,7 +527,7 @@ func TestAdminOAuthAuthorizationIsPKCEBoundToIdentityProvider(t *testing.T) {
 			"username_claim": "preferred_username", "email_claim": "email",
 		},
 	})
-	app := NewWithConfig(store, Config{PublicBaseURL: "https://tokenhub.example", SecretKey: "test-secret"}).Handler()
+	app := newManagedTestServerWithConfig(t, store, Config{PublicBaseURL: "https://tokenhub.example", SecretKey: "test-secret"}).Handler()
 
 	startResponse := httptest.NewRecorder()
 	app.ServeHTTP(startResponse, httptest.NewRequest(http.MethodGet, adminOAuthStartURLForTest(t, "https://tokenhub.example/api/admin/auth/oauth/start?id=idp_pkce_bound"), nil))
@@ -587,7 +587,7 @@ func TestAdminOAuthAuthorizationIsPKCEBoundToIdentityProvider(t *testing.T) {
 }
 
 func TestAdminOAuthExchangeIsPKCEBoundAndSingleUse(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	user, err := store.CreateAdminUser(AdminUser{
 		Username: "oauth-user", Email: "oauth-user@example.test", Role: "user", Status: StatusActive,
 	}, "oauth-password")
@@ -599,7 +599,7 @@ func TestAdminOAuthExchangeIsPKCEBoundAndSingleUse(t *testing.T) {
 	if err := store.SaveAdminOAuthExchange(adminOAuthExchange{Code: code, CodeChallenge: challenge, UserID: user.ID}); err != nil {
 		t.Fatal(err)
 	}
-	app := New(store).Handler()
+	app := newManagedTestServer(t, store).Handler()
 
 	requestBody := []byte(`{"code":"single-use-exchange-code","code_verifier":"wrong-verifier-that-is-still-long-enough-1234567890"}`)
 	wrongVerifier := httptest.NewRequest(http.MethodPost, "/api/admin/auth/oauth/exchange", bytes.NewReader(requestBody))
@@ -804,7 +804,7 @@ func openAdminOAuthClockSkewSQLiteStores(t *testing.T, databaseTime time.Time) (
 }
 
 func TestAdminOAuthStartBoundsPendingFlowsPerSourceAndProvider(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	store.CreateResource("identity-providers", AdminResource{
 		ID: "idp_flow_limit", Name: "Flow Limit IdP", Status: StatusActive,
 		Fields: map[string]any{
@@ -858,7 +858,7 @@ func TestAdminOAuthStartBoundsPendingFlowsPerSourceAndProvider(t *testing.T) {
 }
 
 func TestAdminOAuthFlowClientScopeLimitSpansProviders(t *testing.T) {
-	store := NewMemoryStoreWithConfig(Config{SecretKey: "oauth-client-scope-secret"})
+	store := newTestMemoryStoreWithConfig(t, Config{SecretKey: "oauth-client-scope-secret"})
 	limits := adminOAuthFlowLimits{ClientScopeProvider: 2, ClientScope: 2, Global: 10}
 	flow := func(state string, source string, providerID string) adminOAuthFlow {
 		return adminOAuthFlow{

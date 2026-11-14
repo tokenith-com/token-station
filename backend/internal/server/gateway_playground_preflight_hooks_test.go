@@ -12,11 +12,11 @@ import (
 )
 
 func TestPlaygroundChatStreamRunsPrivacyAndContextOptimizeHooks(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	if err := SeedDemoData(store); err != nil {
 		t.Fatal(err)
 	}
-	server := New(store)
+	server := newManagedTestServer(t, store)
 	privacyHook := pluginmeta.GatewayHookDescriptor{
 		PluginID:      "tokenhub.test-playground",
 		HookID:        "privacy",
@@ -89,12 +89,12 @@ func TestPlaygroundChatStreamRunsPrivacyAndContextOptimizeHooks(t *testing.T) {
 }
 
 func TestPlaygroundRoutedCallRunsRouteCandidateHooks(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	store.AddProvider(Provider{ID: "prv_a", Name: "Provider A", Type: ProviderMock, Status: StatusActive, Healthy: true})
 	store.AddProvider(Provider{ID: "prv_b", Name: "Provider B", Type: ProviderMock, Status: StatusActive, Healthy: true})
 	store.AddRoute(ModelRoute{ID: "route_a", ModelName: "gpt-playground-candidates", ProviderID: "prv_a", ProviderModel: "mock-a", Status: StatusActive, Priority: 1, Weight: 100, Strategy: RouteStrategyPriorityOnly})
 	store.AddRoute(ModelRoute{ID: "route_b", ModelName: "gpt-playground-candidates", ProviderID: "prv_b", ProviderModel: "mock-b", Status: StatusActive, Priority: 1, Weight: 100, Strategy: RouteStrategyPriorityOnly})
-	server := New(store)
+	server := newManagedTestServer(t, store)
 	hook := pluginmeta.GatewayHookDescriptor{
 		PluginID:      "tokenhub.test-playground-router",
 		HookID:        "select-b",

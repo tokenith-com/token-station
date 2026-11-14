@@ -20,7 +20,7 @@ func TestRetrievalCatalogSurvivesProviderSettingsPatch(t *testing.T) {
 		{"explicit_overrides_catalog", "cohere", "jina", "jina", "jina"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			store := NewMemoryStore()
+			store := newTestMemoryStore(t)
 			options := map[string]string{
 				"catalog_source": "saved-source", "doc_url": "https://docs.example/retrieval",
 				"embedding_protocol": tc.configured, "rerank_protocol": tc.configured,
@@ -29,7 +29,7 @@ func TestRetrievalCatalogSurvivesProviderSettingsPatch(t *testing.T) {
 				options["catalog_id"] = tc.catalog
 			}
 			provider := store.AddProvider(Provider{ID: "preserved-catalog", Name: "Original", Type: ProviderOpenAICompatible, BaseURL: "https://upstream.example/v1", APIKey: "synthetic-key", Status: StatusActive, Healthy: true, Options: options})
-			app := New(store)
+			app := newManagedTestServer(t, store)
 			defer func() { _ = app.Shutdown(context.Background()) }()
 			resp := doJSON(t, app.Handler(), http.MethodPatch, "/api/admin/providers/"+provider.ID, map[string]any{
 				"name": "Updated", "type": ProviderOpenAICompatible,
@@ -77,13 +77,13 @@ func TestRetrievalCatalogPreservationWithDiscoveryImports(t *testing.T) {
 		{"explicit_type_change", "cohere", "local", true, true, false},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			store := NewMemoryStore()
+			store := newTestMemoryStore(t)
 			original := map[string]string{}
 			if tc.originalCatalog != "" {
 				original = map[string]string{"catalog_id": tc.originalCatalog, "catalog_source": "saved-source", "doc_url": "https://saved.example/docs"}
 			}
 			provider := store.AddProvider(Provider{ID: "catalog-import", Name: "Original", Type: ProviderOpenAICompatible, BaseURL: "https://upstream.example/v1", APIKey: "synthetic-key", Status: StatusActive, Healthy: true, Options: cloneStringMap(original)})
-			app := New(store)
+			app := newManagedTestServer(t, store)
 			defer func() { _ = app.Shutdown(context.Background()) }()
 			payload := map[string]any{
 				"name": "Updated", "type": tc.targetType, "catalog_id": "custom", "preserve_catalog": tc.preserve,
@@ -130,8 +130,8 @@ func TestRetrievalCatalogPreservationWithDiscoveryImports(t *testing.T) {
 }
 
 func TestRetrievalCatalogPreservationDoesNotAffectCreate(t *testing.T) {
-	store := NewMemoryStore()
-	app := New(store)
+	store := newTestMemoryStore(t)
+	app := newManagedTestServer(t, store)
 	defer func() { _ = app.Shutdown(context.Background()) }()
 	resp := doJSON(t, app.Handler(), http.MethodPost, "/api/admin/providers", map[string]any{
 		"id": "new-catalog-provider", "name": "New", "type": ProviderOpenAICompatible,

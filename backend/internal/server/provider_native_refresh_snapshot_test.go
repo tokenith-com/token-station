@@ -15,7 +15,7 @@ func TestNativeCredentialRefreshRejectsChangedAccountSnapshot(t *testing.T) {
 		for _, change := range []string{"move", "recreate", "replace", "provider_type"} {
 			for _, outcome := range []string{"success", "reauthorization"} {
 				t.Run(binding+"/"+change+"/"+outcome, func(t *testing.T) {
-					store := NewMemoryStore()
+					store := newTestMemoryStore(t)
 					store.ConfigureProviderResourceTypePolicy(map[string][]string{
 						ProviderChatGPTSubscription: {ProviderResourceChatGPTSubscription},
 					})

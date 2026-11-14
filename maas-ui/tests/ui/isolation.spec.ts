@@ -13,7 +13,7 @@ for (const probe of [
     api.respond("GET", "/api/admin/auth/identity-providers", { data: [] });
     await api.install(context);
     await page.goto("/");
-    await expect(page.getByRole("button", { name: "登录控制台" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "登录", exact: true })).toBeVisible();
     const result = await page.evaluate(async ({ url, method }) => {
       try { await fetch(url, { method }); return "forwarded"; }
       catch { return "blocked"; }
@@ -33,7 +33,7 @@ test("isolation rejects malformed fixture payloads", async ({ context, page }) =
   });
   await api.install(context);
   await page.goto("/");
-  await expect(page.getByRole("button", { name: "登录控制台" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "登录", exact: true })).toBeVisible();
   const status = await page.evaluate(async url => (await fetch(url, { method: "POST", headers: { "content-type": "application/json" }, body: "{}" })).status, `${configuration.apiOrigin}/api/admin/check-payload`);
   expect(status).toBe(500);
   expect(() => api.assertClean()).toThrow("Expected the declared payload");
@@ -44,7 +44,7 @@ test("isolation rejects WebSockets without connecting upstream", async ({ contex
   api.respond("GET", "/api/admin/auth/identity-providers", { data: [] });
   await api.install(context);
   await page.goto("/");
-  await expect(page.getByRole("button", { name: "登录控制台" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "登录", exact: true })).toBeVisible();
   await page.evaluate(() => { const socket = new WebSocket("wss://external-fixture.invalid/socket"); socket.onerror = () => {}; });
   await expect.poll(() => api.violations).toEqual(["Unexpected WebSocket: wss://external-fixture.invalid/socket"]);
   expect(() => api.assertClean()).toThrow("Unexpected WebSocket");
@@ -58,7 +58,7 @@ test("isolation requires an explicit query contract", async ({ context, page }) 
   });
   await api.install(context);
   await page.goto("/");
-  await expect(page.getByRole("button", { name: "登录控制台" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "登录", exact: true })).toBeVisible();
   const valid = await page.evaluate(async url => (await fetch(url)).json(), `${configuration.apiOrigin}/api/admin/query-example?page=1`);
   expect(valid).toEqual({ page: 1 });
   api.assertClean();

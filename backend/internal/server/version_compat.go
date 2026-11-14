@@ -23,9 +23,9 @@ type CompatibilityManifest struct {
 // accepting requests.
 func CurrentCompatibilityManifest() CompatibilityManifest {
 	return CompatibilityManifest{
-		TargetVersion: 13,
-		MinCompatible: 13,
-		MaxCompatible: 13,
+		TargetVersion: 14,
+		MinCompatible: 14,
+		MaxCompatible: 14,
 	}
 }
 

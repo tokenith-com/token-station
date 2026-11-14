@@ -35,7 +35,7 @@ func TestCompatibleProviderOptionalCredentialsAcrossDiscoveryAndInference(t *tes
 			}))
 			defer upstream.Close()
 			body := map[string]any{"name": "Local Model", "type": ProviderOpenAICompatible, "base_url": upstream.URL + "/v1", "api_key": key}
-			app := newTestServer()
+			app := newTestServer(t)
 			for _, endpoint := range []string{"/api/admin/providers/test-connection", "/api/admin/provider-catalog/custom"} {
 				response := doJSON(t, app, http.MethodPost, endpoint, body, "")
 				if response.Code != http.StatusOK {
@@ -56,7 +56,7 @@ func TestCompatibleProviderWithoutKeyReportsUpstreamAuthenticationFailure(t *tes
 		http.Error(w, "credentials required", http.StatusUnauthorized)
 	}))
 	defer upstream.Close()
-	response := doJSON(t, newTestServer(), http.MethodPost, "/api/admin/providers/test-connection", map[string]any{
+	response := doJSON(t, newTestServer(t), http.MethodPost, "/api/admin/providers/test-connection", map[string]any{
 		"type": ProviderOpenAICompatible, "base_url": upstream.URL + "/v1",
 	}, "")
 	if response.Code == http.StatusOK || strings.Contains(response.Body, "provider_api_key_required") {

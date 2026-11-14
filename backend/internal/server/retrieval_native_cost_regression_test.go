@@ -32,7 +32,7 @@ func TestRerankNativeCostDoesNotFallBackToAuxiliaryTokens(t *testing.T) {
 				writeJSON(w, http.StatusOK, body)
 			}))
 			defer upstream.Close()
-			store := NewMemoryStore()
+			store := newTestMemoryStore(t)
 			project := store.CreateProject(Project{Name: "native-cost", Status: StatusActive})
 			store.AddProvider(Provider{ID: "native-cost", Type: ProviderOpenAICompatible, BaseURL: upstream.URL, Status: StatusActive, Healthy: true, Options: map[string]string{"rerank_protocol": "cohere"}})
 			store.AddModel(Model{Name: "native-cost", Modality: "rerank", Status: StatusActive, Metadata: map[string]string{retrievalSearchUnitPriceKey: "0.004"}})
@@ -46,7 +46,7 @@ func TestRerankNativeCostDoesNotFallBackToAuxiliaryTokens(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			app := New(store)
+			app := newManagedTestServer(t, store)
 			defer func() { _ = app.Shutdown(context.Background()) }()
 			response := doJSON(t, app.Handler(), http.MethodPost, "/v1/rerank", map[string]any{"model": "native-cost", "query": "q", "documents": []string{"doc"}}, secret)
 			if response.Code != http.StatusOK {

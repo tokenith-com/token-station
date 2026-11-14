@@ -284,7 +284,7 @@ func newMethodRoutingBackupExportServer(t *testing.T) (*GormStore, http.Handler)
 	if err := BootstrapBaseDataWithConfig(store, config); err != nil {
 		t.Fatal(err)
 	}
-	return store, NewWithConfig(store, config).Handler()
+	return store, newManagedTestServerWithConfig(t, store, config).Handler()
 }
 
 func createAdminBackupExportSession(t *testing.T, store *GormStore, username string, role string) string {

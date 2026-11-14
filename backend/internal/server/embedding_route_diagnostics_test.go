@@ -9,8 +9,8 @@ import (
 )
 
 func TestEmbeddingRouteDiagnosticsAggregateWithoutLeakingConfiguration(t *testing.T) {
-	store := NewMemoryStore()
-	app := New(store)
+	store := newTestMemoryStore(t)
+	app := newManagedTestServer(t, store)
 	defer func() { _ = app.Shutdown(context.Background()) }()
 	provider := Provider{ID: "private-provider-id", Type: ProviderOpenAICompatible, BaseURL: "https://private.example/v1", APIKey: "private-credential"}
 	store.AddProviderModel(ProviderModel{ProviderID: provider.ID, UpstreamModel: "private-chat-model", Modality: "chat", InputPriceUSDPer1M: 1})

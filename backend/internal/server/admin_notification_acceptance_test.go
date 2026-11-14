@@ -28,7 +28,7 @@ func TestNotificationChannelTestDoesNotFollowRedirects(t *testing.T) {
 				http.Redirect(w, r, login.URL+"/private-token", status)
 			}))
 			t.Cleanup(webhook.Close)
-			store := NewMemoryStore()
+			store := newTestMemoryStore(t)
 			channel := store.CreateResource("notification-channels", AdminResource{
 				Name: "Redirecting webhook", Status: StatusActive,
 				Fields: map[string]any{"type": "webhook", "webhook_url": webhook.URL},

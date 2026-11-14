@@ -24,7 +24,7 @@ func TestModelPricingSourceUnavailableKeepsDiscoveryWithoutPriceOrIdentity(t *te
 	if err := store.DeleteProviderModel(source.ID); err != nil {
 		t.Fatal(err)
 	}
-	server := New(store)
+	server := newManagedTestServer(t, store)
 	for _, path := range []string{"/v1/models", "/v1/models/" + model.Name} {
 		response := doJSON(t, server.Handler(), http.MethodGet, path, nil, "pricing-discovery-key")
 		if response.Code != http.StatusOK || !strings.Contains(response.Body, `"id":"linked-model"`) || !strings.Contains(response.Body, `"pricing_available":false`) {
@@ -93,7 +93,7 @@ func TestModelPricingSourceOrdinaryProjectionPreservesJSON(t *testing.T) {
 }
 
 func TestModelPricingSourceTenantStatementOmitsProcurementReference(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	at := time.Date(2020, 1, 3, 0, 0, 0, 0, time.UTC)
 	statementFixture(t, store, "linked-statement", "project-a", at)
 	var entry meteringEntry

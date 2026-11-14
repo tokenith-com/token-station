@@ -22,7 +22,7 @@ func TestModelCreateOnlyPreservesExistingPublicModels(t *testing.T) {
 		{"routed_reference", map[string]string{"source": "public-provider-conf"}, true},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			store := NewMemoryStore()
+			store := newTestMemoryStore(t)
 			model := store.AddModel(Model{Name: "existing-model", Modality: "chat", Status: StatusDisabled, InputPriceUSDPer1M: 7, OutputPriceUSDPer1M: 11, Metadata: tc.metadata})
 			if tc.route {
 				store.AddRoute(ModelRoute{ModelName: model.Name, ProviderID: "existing-provider", ProviderModel: "existing-upstream", Status: StatusDisabled, Weight: 25})
@@ -42,7 +42,7 @@ func TestModelCreateOnlyPreservesExistingPublicModels(t *testing.T) {
 func TestModelCreateOnlyPromotesReferenceWithoutChangingIdentity(t *testing.T) {
 	for _, source := range []string{"tokenhub-standard-catalog", "public-provider-conf"} {
 		t.Run(source, func(t *testing.T) {
-			store := NewMemoryStore()
+			store := newTestMemoryStore(t)
 			reference := store.AddModel(Model{ID: "reference-id", Name: "reference-model", Modality: "chat", InputPriceUSDPer1M: 99, Metadata: map[string]string{"source": source}})
 			created, err := store.CreateModelWithRoutes(Model{Name: reference.Name, Modality: "chat", InputPriceUSDPer1M: 3, OutputPriceUSDPer1M: 6}, []ModelRoute{{ModelName: reference.Name, ProviderID: "selected-provider", ProviderModel: reference.Name}}, ModelCreateOptions{CreateOnly: true})
 			if err != nil {
@@ -63,7 +63,7 @@ func TestModelCreateOnlyPromotesReferenceWithoutChangingIdentity(t *testing.T) {
 }
 
 func TestModelCreateOnlyRechecksAnInsertConflict(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	winner := store.AddModel(withExternalModelRole(Model{Name: "raced-model", InputPriceUSDPer1M: 8}))
 	before := store.ListModels()
 	stale := false
@@ -91,7 +91,7 @@ func TestModelCreateOnlyRechecksAnInsertConflict(t *testing.T) {
 func TestModelCreateOnlyConcurrentAttemptsHaveOneWinner(t *testing.T) {
 	for _, reference := range []bool{false, true} {
 		t.Run(fmt.Sprintf("reference_%t", reference), func(t *testing.T) {
-			store := NewMemoryStore()
+			store := newTestMemoryStore(t)
 			const name = "concurrent-model"
 			if reference {
 				store.AddModel(Model{Name: name, Metadata: map[string]string{"source": "tokenhub-standard-catalog"}})
@@ -135,7 +135,7 @@ func TestModelCreateOnlyConcurrentAttemptsHaveOneWinner(t *testing.T) {
 func TestModelCreateOnlyRollsBackModelAndRoutes(t *testing.T) {
 	for _, reference := range []bool{false, true} {
 		t.Run(fmt.Sprintf("reference_%t", reference), func(t *testing.T) {
-			store := NewMemoryStore()
+			store := newTestMemoryStore(t)
 			const name = "rollback-model"
 			if reference {
 				store.AddModel(Model{Name: name, InputPriceUSDPer1M: 9, Metadata: map[string]string{"source": "public-provider-conf"}})
@@ -163,7 +163,7 @@ func TestModelCreateOnlyRollsBackModelAndRoutes(t *testing.T) {
 }
 
 func TestModelCreateOnlyDoesNotReuseClientRouteIDs(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	existing := store.AddRoute(ModelRoute{ID: "existing-route", ModelName: "existing-model", ProviderID: "original-provider", ProviderModel: "original-upstream", Weight: 35})
 	_, err := store.CreateModelWithRoutes(Model{Name: "new-model"}, []ModelRoute{{ID: existing.ID, ModelName: "new-model", ProviderID: "new-provider", ProviderModel: "new-upstream"}}, ModelCreateOptions{CreateOnly: true})
 	if err != nil {
@@ -179,7 +179,7 @@ func TestModelCreateOnlyDoesNotReuseClientRouteIDs(t *testing.T) {
 }
 
 func TestModelCreateOnlyRejectsUnrelatedReferenceID(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	reference := store.AddModel(Model{ID: "shared-id", Name: "original-model", Metadata: map[string]string{"source": "public-provider-conf"}})
 	before := store.ListModels()
 	_, err := store.CreateModelWithRoutes(Model{ID: reference.ID, Name: "different-model"}, nil, ModelCreateOptions{CreateOnly: true})

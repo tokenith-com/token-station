@@ -8,7 +8,7 @@ import (
 )
 
 func TestCodexImageForbiddenMarksResourceUnsupportedAndAllowsFailover(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	provider := store.AddProvider(Provider{
 		ID:      "prv_image_capability",
 		Name:    "Codex Image Capability",
@@ -102,7 +102,7 @@ func TestCodexImageAdapterForbiddenMarksResourceUnsupported(t *testing.T) {
 
 func newCodexImageAdapterServer(t *testing.T, upstreamURL string) (*GormStore, *Server, Provider, ProviderResource) {
 	t.Helper()
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	provider := store.AddProvider(Provider{
 		ID:      "prv_image_adapter_forbidden",
 		Name:    "Codex Image Adapter Forbidden",

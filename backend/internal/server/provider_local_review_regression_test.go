@@ -158,7 +158,7 @@ func TestLocalCredentialPreviewRespectsClearAndRetain(t *testing.T) {
 				}
 			})
 			store.AddProvider(Provider{ID: "prv_clear", Name: "Local", Type: ProviderOpenAICompatible, BaseURL: upstream.URL + "/v1", APIKey: "saved-test-key", Status: StatusActive})
-			response := doJSON(t, New(store).Handler(), http.MethodPost, "/api/admin/provider-catalog/custom", map[string]any{"provider_id": "prv_clear", "api_key": "", "clear_api_key": clear}, "")
+			response := doJSON(t, newManagedTestServer(t, store).Handler(), http.MethodPost, "/api/admin/provider-catalog/custom", map[string]any{"provider_id": "prv_clear", "api_key": "", "clear_api_key": clear}, "")
 			if response.Code != http.StatusOK {
 				t.Fatalf("preview=%d %s", response.Code, response.Body)
 			}

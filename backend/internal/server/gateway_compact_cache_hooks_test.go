@@ -12,11 +12,11 @@ import (
 )
 
 func TestResponsesCompactCacheLookupHookCanShortCircuit(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	if err := SeedDemoData(store); err != nil {
 		t.Fatal(err)
 	}
-	server := New(store)
+	server := newManagedTestServer(t, store)
 	hook := pluginmeta.GatewayHookDescriptor{
 		PluginID:      "tokenhub.test-cache",
 		HookID:        "compact-hit",
@@ -91,7 +91,7 @@ func TestResponsesCompactCacheWriteFailOpenPreservesProviderResponse(t *testing.
 
 func newResponsesCompactCacheFailOpenTestServer(t *testing.T, outputText string) (*Server, string) {
 	t.Helper()
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	project := store.CreateProject(Project{Name: "Compact Cache Fail Open", Status: StatusActive})
 	_, secret, err := store.CreateAPIKey(project.ID, APIKey{
 		Name:    "compact-cache-fail-open-key",
@@ -121,7 +121,7 @@ func newResponsesCompactCacheFailOpenTestServer(t *testing.T, outputText string)
 		ProviderID: provider.ID, ProviderResourceID: resource.ID, ProviderModel: "gpt-compact-cache-upstream",
 		Status: StatusActive, Priority: 1, Weight: 100,
 	})
-	server := NewWithConfig(store, Config{AdminToken: "dev_admin_token", SecretKey: "compact-cache-fail-open-secret"})
+	server := newManagedTestServerWithConfig(t, store, Config{AdminToken: "dev_admin_token", SecretKey: "compact-cache-fail-open-secret"})
 	mustCodexSubscriptionAdapterForTest(t, server).Client = &http.Client{Transport: roundTripperFunc(func(request *http.Request) (*http.Response, error) {
 		if request.URL.Path != "/backend-api/codex/responses/compact" {
 			t.Fatalf("unexpected compact path: %s", request.URL.Path)

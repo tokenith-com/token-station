@@ -18,7 +18,7 @@ func TestTokenizedEmbeddingAdmissionUsesExactTokenCount(t *testing.T) {
 		if got := requestTokenReservation(request); got != 10 {
 			t.Fatalf("reserved=%d want10", got)
 		}
-		store := NewMemoryStore()
+		store := newTestMemoryStore(t)
 		project := store.CreateProject(Project{Name: "tokens", Status: StatusActive})
 		limit := int64(9)
 		store.AddModel(Model{Name: "m", Modality: "embedding", EmbeddingPriceUSDPer1M: 1, Status: StatusActive})
@@ -36,7 +36,7 @@ func TestTokenizedEmbeddingAdmissionUsesExactTokenCount(t *testing.T) {
 }
 
 func TestEmbeddingRouteTransformCannotChangeCachedInput(t *testing.T) {
-	app := New(NewMemoryStore())
+	app := New(newTestMemoryStore(t))
 	t.Cleanup(func() { _ = app.Shutdown(context.Background()) })
 	hook := pluginmeta.GatewayHookDescriptor{PluginID: "test.embedding-transform", HookID: "rewrite", Stage: pluginmeta.StageRequestTransform, Priority: 2000, Writes: []pluginmeta.GatewayDataClass{pluginmeta.DataProviderRequest}, FailurePolicy: pluginmeta.FailurePolicyFailClosed}
 	if err := app.gatewayChain.RegisterHook(hook); err != nil {
@@ -58,7 +58,7 @@ func TestEmbeddingRouteTransformCannotChangeCachedInput(t *testing.T) {
 
 func TestRetrievalRuntimeRejectsChangedInventory(t *testing.T) {
 	for _, modality := range []string{"embedding", "rerank"} {
-		store := NewMemoryStore()
+		store := newTestMemoryStore(t)
 		provider := store.AddProvider(Provider{ID: "p", Type: ProviderOpenAICompatible, Status: StatusActive, Options: map[string]string{"rerank_protocol": "jina"}})
 		upstream := store.AddProviderModel(ProviderModel{ProviderID: "p", UpstreamModel: "u", Modality: modality, InputPriceUSDPer1M: 1})
 		app := New(store)

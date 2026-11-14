@@ -15,7 +15,7 @@ type builtinPluginCapabilityExpectation struct {
 }
 
 func TestBuiltinProviderPluginPackagesExposeProviderTypes(t *testing.T) {
-	server := New(NewMemoryStore())
+	server := newManagedTestServer(t, newTestMemoryStore(t))
 
 	for providerType, pluginID := range builtinAdapterPlugins {
 		descriptor, ok := server.pluginRegistry.Describe(pluginID)
@@ -41,7 +41,7 @@ func TestBuiltinProviderPluginPackagesExposeProviderTypes(t *testing.T) {
 }
 
 func TestBuiltinProviderPluginsExposeManagedHeaderPolicies(t *testing.T) {
-	server := New(NewMemoryStore())
+	server := newManagedTestServer(t, newTestMemoryStore(t))
 	tests := []struct {
 		pluginID     string
 		providerType string
@@ -69,7 +69,7 @@ func TestBuiltinProviderPluginsExposeManagedHeaderPolicies(t *testing.T) {
 }
 
 func TestBuiltinProviderPluginPackagesMirrorRegisteredActions(t *testing.T) {
-	server := New(NewMemoryStore())
+	server := newManagedTestServer(t, newTestMemoryStore(t))
 	wantByPlugin := map[string][]builtinPluginCapabilityExpectation{}
 	for _, action := range server.pluginActions.List() {
 		if _, ok := builtinProviderPluginIDs()[action.PluginID]; !ok {
@@ -101,7 +101,7 @@ func TestBuiltinProviderPluginPackagesMirrorRegisteredActions(t *testing.T) {
 }
 
 func TestBuiltinProviderPluginPackagesMirrorRegisteredBackgroundJobs(t *testing.T) {
-	server := New(NewMemoryStore())
+	server := newManagedTestServer(t, newTestMemoryStore(t))
 	wantByPlugin := map[string][]builtinPluginCapabilityExpectation{}
 	for _, job := range server.pluginBackgroundJobs.List() {
 		if _, ok := builtinProviderPluginIDs()[job.PluginID]; !ok {
@@ -133,7 +133,7 @@ func TestBuiltinProviderPluginPackagesMirrorRegisteredBackgroundJobs(t *testing.
 }
 
 func TestBuiltinProviderModelCategoriesRemainInternalMetadata(t *testing.T) {
-	server := New(NewMemoryStore())
+	server := newManagedTestServer(t, newTestMemoryStore(t))
 	if _, ok := server.pluginRegistry.Describe("tokenhub.provider-catalog.model-categories"); ok {
 		t.Fatal("model categories must not be exposed as a synthetic plugin")
 	}
@@ -156,7 +156,7 @@ func TestBuiltinProviderModelCategoriesRemainInternalMetadata(t *testing.T) {
 }
 
 func TestBuiltinOpenAICodexReferencePluginDescriptor(t *testing.T) {
-	server := New(NewMemoryStore())
+	server := newManagedTestServer(t, newTestMemoryStore(t))
 	descriptor, ok := server.pluginRegistry.Describe("tokenhub.provider.openai-codex")
 	if !ok {
 		t.Fatal("OpenAI Codex provider plugin descriptor is missing")

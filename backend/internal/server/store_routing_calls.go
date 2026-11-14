@@ -695,6 +695,11 @@ func (s *GormStore) finishCallTransaction(tx *gorm.DB, call CallContext, route R
 			}
 		}
 	}
+	if call.walletPayer != "" {
+		if err := finishWalletUsage(tx, call.RequestID, usage, now.Unix()); err != nil {
+			return err
+		}
+	}
 	if usage.TotalTokens > 0 || usage.CostUSD > 0 || usage.ProviderCostUSD > 0 || usage.RetrievalEvidence != nil || audioDurationEvidence(usage) != nil || usage.DocumentCount > 0 || hasTranscriptionTokenUsage(call, usage) {
 		if err := tx.Create(newUsageRecord(call, route, usage, now)).Error; err != nil {
 			return err

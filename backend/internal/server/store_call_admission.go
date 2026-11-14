@@ -216,7 +216,18 @@ func (s *GormStore) admitCallTransaction(ctx context.Context, tx *gorm.DB, key A
 	if err := s.checkRuntimeBudget(tx, privateProject, now); err != nil {
 		return admission, err
 	}
+	var payer string
+	if s.prepaidUsage {
+		payer, err = prepaidAPIPayer(tx, privateKey, privateProject)
+		if err != nil {
+			return admission, err
+		}
+		if payer != "" && ctx.Value(prepaidChatContextKey{}) != true {
+			return admission, walletUsageError()
+		}
+	}
 	admission.call = CallContext{
+		walletPayer:           payer,
 		RequestID:             requestID,
 		Project:               privateProject,
 		Key:                   publicKey(privateKey),

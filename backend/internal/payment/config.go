@@ -66,15 +66,17 @@ type Channel interface {
 }
 
 type Service struct {
+	PrepaidUsage  bool
 	Plans         []Plan
 	Channels      map[string]Channel
 	AlipayMethods []string
 }
 
 type fileConfig struct {
-	Plans  []Plan        `yaml:"plans"`
-	Wechat *wechatConfig `yaml:"wechat"`
-	Alipay *alipayConfig `yaml:"alipay"`
+	PrepaidUsage bool          `yaml:"prepaid_usage"`
+	Plans        []Plan        `yaml:"plans"`
+	Wechat       *wechatConfig `yaml:"wechat"`
+	Alipay       *alipayConfig `yaml:"alipay"`
 }
 
 func Load(path string) (*Service, error) {
@@ -108,7 +110,7 @@ func Load(path string) (*Service, error) {
 		}
 		seen[plan.ID] = true
 	}
-	service := &Service{Plans: config.Plans, Channels: make(map[string]Channel)}
+	service := &Service{PrepaidUsage: config.PrepaidUsage, Plans: config.Plans, Channels: make(map[string]Channel)}
 	credentialPath := func(value string) string {
 		if value == "" || filepath.IsAbs(value) {
 			return value

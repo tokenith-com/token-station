@@ -16,7 +16,7 @@ import (
 )
 
 func TestAlertWebhookDeliveryIsRecorded(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	var received bytes.Buffer
 	webhook := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
@@ -47,7 +47,7 @@ func TestAlertWebhookDeliveryIsRecorded(t *testing.T) {
 	if err := store.db.Create(&alert).Error; err != nil {
 		t.Fatal(err)
 	}
-	app := New(store).Handler()
+	app := newManagedTestServer(t, store).Handler()
 
 	resp := doJSON(t, app, http.MethodPost, "/api/admin/alerts/"+alert.ID+"/deliver", map[string]any{}, "")
 	if resp.Code != http.StatusOK {
@@ -90,7 +90,7 @@ func TestAlertBotDeliveryFormats(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.channelType, func(t *testing.T) {
-			store := NewMemoryStore()
+			store := newTestMemoryStore(t)
 			var received bytes.Buffer
 			webhook := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				if r.Method != http.MethodPost {
@@ -135,7 +135,7 @@ func TestAlertBotDeliveryFormats(t *testing.T) {
 			if err := store.db.Create(&alert).Error; err != nil {
 				t.Fatal(err)
 			}
-			app := New(store).Handler()
+			app := newManagedTestServer(t, store).Handler()
 
 			resp := doJSON(t, app, http.MethodPost, "/api/admin/alerts/"+alert.ID+"/deliver", map[string]any{}, "")
 			if resp.Code != http.StatusOK || !strings.Contains(resp.Body, `"status":"success"`) {
@@ -149,7 +149,7 @@ func TestAlertBotDeliveryFormats(t *testing.T) {
 }
 
 func TestDingTalkDeliverySignsWebhookWhenSecretConfigured(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	const secret = "SECtestSecret"
 	var gotTimestamp, gotSign string
 	webhook := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -182,7 +182,7 @@ func TestDingTalkDeliverySignsWebhookWhenSecretConfigured(t *testing.T) {
 	if err := store.db.Create(&alert).Error; err != nil {
 		t.Fatal(err)
 	}
-	app := New(store).Handler()
+	app := newManagedTestServer(t, store).Handler()
 
 	resp := doJSON(t, app, http.MethodPost, "/api/admin/alerts/"+alert.ID+"/deliver", map[string]any{}, "")
 	if resp.Code != http.StatusOK || !strings.Contains(resp.Body, `"status":"success"`) {
@@ -194,7 +194,7 @@ func TestDingTalkDeliverySignsWebhookWhenSecretConfigured(t *testing.T) {
 }
 
 func TestDingTalkDeliveryRecordsBusinessError(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	webhook := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("content-type", "application/json")
 		_, _ = w.Write([]byte(`{"errcode":310000,"errmsg":"sign mismatch"}`))
@@ -213,7 +213,7 @@ func TestDingTalkDeliveryRecordsBusinessError(t *testing.T) {
 	if err := store.db.Create(&alert).Error; err != nil {
 		t.Fatal(err)
 	}
-	app := New(store).Handler()
+	app := newManagedTestServer(t, store).Handler()
 
 	resp := doJSON(t, app, http.MethodPost, "/api/admin/alerts/"+alert.ID+"/deliver", map[string]any{}, "")
 	if resp.Code != http.StatusOK || !strings.Contains(resp.Body, `"status":"failed"`) || !strings.Contains(resp.Body, "errcode=310000") {
@@ -222,7 +222,7 @@ func TestDingTalkDeliveryRecordsBusinessError(t *testing.T) {
 }
 
 func TestAlertEmailDeliveryMissingConfigIsRecorded(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	store.CreateResource("notification-channels", AdminResource{
 		Name:   "Email",
 		Status: StatusActive,
@@ -243,7 +243,7 @@ func TestAlertEmailDeliveryMissingConfigIsRecorded(t *testing.T) {
 	if err := store.db.Create(&alert).Error; err != nil {
 		t.Fatal(err)
 	}
-	app := New(store).Handler()
+	app := newManagedTestServer(t, store).Handler()
 
 	resp := doJSON(t, app, http.MethodPost, "/api/admin/alerts/"+alert.ID+"/deliver", map[string]any{}, "")
 	if resp.Code != http.StatusOK || !strings.Contains(resp.Body, `"status":"failed"`) || !strings.Contains(resp.Body, "smtp_host is required") {
@@ -256,7 +256,7 @@ func TestAlertEmailDeliveryMissingConfigIsRecorded(t *testing.T) {
 }
 
 func TestBillingGenerationUpdatesBudgetsAndInvoices(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	period := time.Now().UTC().Format("2006-01")
 	store.CreateResource("teams", AdminResource{
 		ID:     "team_finance",
@@ -337,7 +337,7 @@ func TestBillingGenerationUpdatesBudgetsAndInvoices(t *testing.T) {
 	}).Error; err != nil {
 		t.Fatal(err)
 	}
-	app := New(store).Handler()
+	app := newManagedTestServer(t, store).Handler()
 
 	resp := doJSON(t, app, http.MethodPost, "/api/admin/billing/generate", map[string]any{"period": period}, "")
 	if resp.Code != http.StatusOK {
@@ -402,7 +402,7 @@ func TestBillingGenerationUpdatesBudgetsAndInvoices(t *testing.T) {
 }
 
 func TestInvoiceConfirmRejectAndStructuredExport(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	if _, err := store.CreateAdminUser(AdminUser{
 		Username: "finance-admin",
 		Name:     "Finance Admin",
@@ -434,7 +434,7 @@ func TestInvoiceConfirmRejectAndStructuredExport(t *testing.T) {
 			"invoice_note": "Needs review",
 		},
 	})
-	app := New(store).Handler()
+	app := newManagedTestServer(t, store).Handler()
 
 	confirmed := doJSON(t, app, http.MethodPost, "/api/admin/resources/invoices/"+invoice.ID+"/confirm", map[string]any{
 		"invoice_note": "PO-2026-06-FIN",
@@ -488,7 +488,7 @@ func TestInvoiceConfirmRejectAndStructuredExport(t *testing.T) {
 }
 
 func TestInvoiceConfirmCanRequireApproval(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	if _, err := store.CreateAdminUser(AdminUser{
 		Username: "approver",
 		Name:     "Approver",
@@ -532,7 +532,7 @@ func TestInvoiceConfirmCanRequireApproval(t *testing.T) {
 			"threshold_usd": 50,
 		},
 	})
-	app := New(store).Handler()
+	app := newManagedTestServer(t, store).Handler()
 
 	confirm := doJSON(t, app, http.MethodPost, "/api/admin/resources/invoices/"+invoice.ID+"/confirm", map[string]any{
 		"invoice_note": "Approve this invoice",
@@ -588,7 +588,7 @@ func TestSQLiteBackupCreateDownloadRestoreAndDelete(t *testing.T) {
 		t.Fatal(err)
 	}
 	project := store.CreateProject(Project{Name: "Backup Restore Project", Status: StatusActive})
-	app := New(store).Handler()
+	app := newManagedTestServer(t, store).Handler()
 
 	created := doJSON(t, app, http.MethodPost, "/api/admin/sqlite/backups", map[string]any{"expire_days": 7}, "")
 	if created.Code != http.StatusCreated {

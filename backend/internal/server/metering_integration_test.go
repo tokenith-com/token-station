@@ -50,7 +50,7 @@ func TestMeteringRequestKeepsPublishedPriceAndSettlesShadowOnce(t *testing.T) {
 }
 
 func TestMeteringProviderSnapshotSurvivesPriceChange(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	provider := ProviderModel{ID: "pm_snapshot", ProviderID: "provider", UpstreamModel: "upstream", Modality: "chat", InputPriceUSDPer1M: 2}
 	if err := store.db.Create(&provider).Error; err != nil {
 		t.Fatal(err)
@@ -143,7 +143,7 @@ func TestMeteringEndpointsRejectOrdinaryUsers(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	app := New(store).Handler()
+	app := newManagedTestServer(t, store).Handler()
 	for _, tc := range []struct{ method, path string }{
 		{"GET", "/api/admin/billing/rate-cards"}, {"POST", "/api/admin/billing/rate-cards"}, {"POST", "/api/admin/billing/preview"}, {"POST", "/api/admin/billing/exchange-rates"}, {"GET", "/api/admin/billing/evidence/request"},
 	} {

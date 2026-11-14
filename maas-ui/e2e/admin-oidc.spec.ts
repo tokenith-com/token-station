@@ -1,10 +1,11 @@
+import { openLogin } from "./session";
 import { expect, test, type APIRequestContext } from "@playwright/test";
 import e2eDefaults from "./config.cjs";
 
 const backendURL = `http://127.0.0.1:${process.env.TOKENHUB_E2E_BACKEND_PORT ?? e2eDefaults.backendPort}`;
 const upstreamURL = `http://127.0.0.1:${process.env.TOKENHUB_E2E_UPSTREAM_PORT ?? e2eDefaults.upstreamPort}`;
 
-async function createIdentityProvider(request: APIRequestContext, scenario = "") {
+async function createIdentityProvider(request: APIRequestContext, label: string, scenario = "") {
   const login = await request.post(`${backendURL}/api/admin/auth/login`, {
     data: {
       identity: e2eDefaults.adminIdentity,
@@ -17,12 +18,12 @@ async function createIdentityProvider(request: APIRequestContext, scenario = "")
   const created = await request.post(`${backendURL}/api/admin/resources/identity-providers`, {
     headers,
     data: {
-      name: "E2E Keycloak",
+      name: label,
       status: "active",
       fields: {
         provider_type: "oidc",
         icon_key: "keycloak",
-        login_label: "E2E Keycloak",
+        login_label: label,
         issuer_url: `${upstreamURL}/oidc`,
         client_id: "e2e-oidc-client",
         client_secret: "e2e-oidc-secret",
@@ -46,46 +47,49 @@ async function removeIdentityProvider(request: APIRequestContext, provider: { id
 }
 
 test("OIDC users can sign in again after signing out", async ({ page, request }) => {
-  const { provider, headers } = await createIdentityProvider(request);
+  const { provider, headers } = await createIdentityProvider(request, "E2E Repeat Login");
   try {
-    await page.goto("/overview");
+    await page.goto("/overview/");
+    await openLogin(page);
     for (let attempt = 0; attempt < 2; attempt += 1) {
+      if (attempt > 0) await openLogin(page);
       const exchange = page.waitForResponse(response => response.url() === `${backendURL}/api/admin/auth/oauth/exchange`);
-      await page.getByRole("link", { name: "使用 E2E Keycloak 登录" }).click();
+      await page.getByRole("link", { name: "使用 E2E Repeat Login 登录" }).click();
       expect((await exchange).ok()).toBe(true);
       await expect(page.locator(".app-shell")).toBeVisible();
-      await expect(page).toHaveURL(/\/overview$/);
-      const session = await page.evaluate(() => JSON.parse(window.sessionStorage.getItem("tokenhub.admin.session") ?? "null"));
+      await expect(page).toHaveURL(/\/overview\/$/);
+      const session = await page.evaluate(() => JSON.parse(window.sessionStorage.getItem("tokenhub.admin.session.b") ?? "null"));
       expect(session?.user.email).toBe("e2e.oidc.user@example.test");
       expect(session?.user.role).toBe("user");
       await page.getByTitle("退出登录").click();
-      await expect(page.getByRole("heading", { name: "欢迎回来" })).toBeVisible();
-      expect(await page.evaluate(() => window.sessionStorage.getItem("tokenhub.admin.session"))).toBeNull();
+      await expect(page.getByRole("button", { name: "登录", exact: true })).toBeVisible();
+      expect(await page.evaluate(() => window.sessionStorage.getItem("tokenhub.admin.session.b"))).toBeNull();
     }
   } finally {
-    await removeIdentityProvider(request, provider, headers);
+    if (!page.isClosed()) await removeIdentityProvider(request, provider, headers);
   }
 });
 
 test("OIDC provider errors remain visible and users can retry sign-in", async ({ page, request }) => {
-  const { provider, headers } = await createIdentityProvider(request, "deny");
+  const { provider, headers } = await createIdentityProvider(request, "E2E Retry Login", "deny");
   try {
-    await page.goto("/overview");
-    await page.getByRole("link", { name: "使用 E2E Keycloak 登录" }).click();
+    await page.goto("/overview/");
+    await openLogin(page);
+    await page.getByRole("link", { name: "使用 E2E Retry Login 登录" }).click();
     await expect(page.locator(".login-error")).toHaveText("OAuth 登录失败（provider_error），请重试或联系管理员。");
-    await expect(page).toHaveURL(/\/overview$/);
-    expect(await page.evaluate(() => window.sessionStorage.getItem("tokenhub.admin.session"))).toBeNull();
+    await expect(page).toHaveURL(/\/overview\/$/);
+    expect(await page.evaluate(() => window.sessionStorage.getItem("tokenhub.admin.session.b"))).toBeNull();
 
     const updated = await request.patch(`${backendURL}/api/admin/resources/identity-providers/${provider.id}`, {
       headers,
       data: { fields: { ...provider.fields, authorize_url: `${upstreamURL}/oidc/authorize` } },
     });
     expect(updated.ok()).toBe(true);
-    await page.getByRole("link", { name: "使用 E2E Keycloak 登录" }).click();
+    await page.getByRole("link", { name: "使用 E2E Retry Login 登录" }).click();
     await expect(page.locator(".app-shell")).toBeVisible();
-    await expect(page).toHaveURL(/\/overview$/);
+    await expect(page).toHaveURL(/\/overview\/$/);
   } finally {
-    await removeIdentityProvider(request, provider, headers);
+    if (!page.isClosed()) await removeIdentityProvider(request, provider, headers);
   }
 });
 
@@ -98,10 +102,10 @@ for (const scenario of [
     page.on("request", request => {
       if (/\/api\/admin\/auth\/oauth\/(?:callback|exchange)/.test(request.url())) authenticationRequests.push(request.url());
     });
-    await page.goto(`/overview${scenario.suffix}`);
+    await page.goto(`/overview/${scenario.suffix}`);
     await expect(page.locator(".login-error")).toHaveText("OAuth 登录失败");
-    await expect(page).toHaveURL(/\/overview$/);
-    expect(await page.evaluate(() => window.sessionStorage.getItem("tokenhub.admin.session"))).toBeNull();
+    await expect(page).toHaveURL(/\/overview\/$/);
+    expect(await page.evaluate(() => window.sessionStorage.getItem("tokenhub.admin.session.b"))).toBeNull();
     expect(authenticationRequests).toEqual([]);
   });
 }

@@ -59,8 +59,8 @@ func TestChatGPTSubscriptionRegistrationAutomaticCallbackRetainsClientBeforePoll
 }
 
 func TestChatGPTSubscriptionRegistrationReauthorizationUsesStoredAccount(t *testing.T) {
-	store := NewMemoryStore()
-	server := New(store)
+	store := newTestMemoryStore(t)
+	server := newManagedTestServer(t, store)
 	provider, err := store.CreateProvider(Provider{Name: "ChatGPT registration fixture", Type: ProviderChatGPTSubscription, Status: StatusActive})
 	if err != nil {
 		t.Fatal(err)
@@ -102,8 +102,8 @@ func TestChatGPTSubscriptionRegistrationRejectsNoncanonicalRedirects(t *testing.
 }
 
 func TestChatGPTSubscriptionRegistrationRecoversLegacySavedSubject(t *testing.T) {
-	store := NewMemoryStore()
-	server := New(store)
+	store := newTestMemoryStore(t)
+	server := newManagedTestServer(t, store)
 	provider, err := store.CreateProvider(Provider{Name: "Legacy ChatGPT account", Type: ProviderChatGPTSubscription, Status: StatusActive})
 	if err != nil {
 		t.Fatal(err)

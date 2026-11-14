@@ -198,7 +198,7 @@ test("api-key-access browser history navigation dismisses rotation confirmation"
   await page.goto("/cost-centers");
   await expect(page).toHaveURL(/\/cost-centers$/);
   await page.getByRole("complementary").getByRole("button", { name: "Key 管理", exact: true }).click();
-  await expect(page).toHaveURL(/\/api-keys$/);
+  await expect(page).toHaveURL(/\/api-keys\/$/);
   const row = page.getByRole("row").filter({ hasText: original.name });
   await row.getByRole("button", { name: "轮换", exact: true }).click();
   const confirmation = page.getByRole("dialog", { name: "确认轮换 API Key" });
@@ -219,14 +219,14 @@ test("api-key-access browser history dismisses rotation confirmation within Key 
   await expect(timezoneHint).toBeVisible();
   await capture(page, testInfo, timezoneHint.locator(".."), "key-usage-quota-timezone", "用量统计与配额时区说明");
   await page.getByRole("complementary").getByRole("button", { name: "Key 管理", exact: true }).click();
-  await expect(page).toHaveURL(/\/api-keys$/);
+  await expect(page).toHaveURL(/\/api-keys\/$/);
   await page.getByRole("row").filter({ hasText: original.name }).getByRole("button", { name: "轮换", exact: true }).click();
   await expect(page.getByRole("dialog", { name: "确认轮换 API Key" })).toBeVisible();
   await page.goBack();
   await expect(page).toHaveURL(new RegExp(`/api-keys/${usageKey.id}/usage$`));
   await expect(page.getByRole("dialog", { name: "确认轮换 API Key" })).toHaveCount(0);
   await page.goForward();
-  await expect(page).toHaveURL(/\/api-keys$/);
+  await expect(page).toHaveURL(/\/api-keys\/$/);
   await expect(page.getByRole("dialog", { name: "确认轮换 API Key" })).toHaveCount(0);
   expect(api.calls.filter(call => call.method === "POST")).toHaveLength(0);
 });

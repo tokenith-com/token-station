@@ -76,7 +76,9 @@ describe("console session restoration", () => {
     const firstPage = render(<AdminConsole defaultBaseURL={baseURL} />);
     expect(await screen.findByRole("button", { name: "登录" })).toBeInTheDocument();
     expect(readSavedSession()).toBeNull();
-    expect(fetcher).not.toHaveBeenCalled();
+    expect(fetcher.mock.calls.map(([path]) => path)).toEqual([
+      `${baseURL}/api/admin/auth/identity-providers`,
+    ]);
 
     const browserUser = userEvent.setup();
     const form = await openLoginForm(browserUser);

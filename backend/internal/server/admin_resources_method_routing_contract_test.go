@@ -191,7 +191,7 @@ func TestAdminResourceMethodRoutesRejectTrailingSlashRealHEAD(t *testing.T) {
 }
 
 func TestAdminResourceMethodRoutesPreserveCORSPreflight(t *testing.T) {
-	app := newTestServer()
+	app := newTestServer(t)
 	for _, route := range adminResourceMethodRoutes() {
 		t.Run(route.name, func(t *testing.T) {
 			request := httptest.NewRequest(http.MethodOptions, route.path, nil)

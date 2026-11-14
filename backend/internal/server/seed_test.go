@@ -11,7 +11,7 @@ import (
 )
 
 func TestRunStartupBootstrapReloadsCatalogOnEveryStart(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	catalogPath := filepath.Join(t.TempDir(), "model-catalog.yaml")
 	config := Config{
 		BootstrapAdminPassword: "startup-bootstrap-test-password",
@@ -53,7 +53,7 @@ func TestRunStartupBootstrapReloadsCatalogOnEveryStart(t *testing.T) {
 }
 
 func TestBootstrapGeneratesRetrievableInitialAdminPassword(t *testing.T) {
-	store := NewMemoryStoreWithConfig(Config{SecretKey: strings.Repeat("s", 32)})
+	store := newTestMemoryStoreWithConfig(t, Config{SecretKey: strings.Repeat("s", 32)})
 	catalogPath := filepath.Join(t.TempDir(), "model-catalog.yaml")
 	if err := os.WriteFile(catalogPath, []byte("version: 1\nmodels:\n  - name: bootstrap-test-model\n    category: bootstrap\n    family: bootstrap\n    modality: chat\n    context_window: 1000\n    input_modalities: [text]\n    output_modalities: [text]\n    capabilities: [chat]\n    supported_parameters: []\n"), 0o600); err != nil {
 		t.Fatal(err)
@@ -97,7 +97,7 @@ func TestBootstrapGeneratesRetrievableInitialAdminPassword(t *testing.T) {
 }
 
 func TestCreateAdminSessionDeletesGeneratedInitialAdminPassword(t *testing.T) {
-	store := NewMemoryStoreWithConfig(Config{SecretKey: strings.Repeat("s", 32)})
+	store := newTestMemoryStoreWithConfig(t, Config{SecretKey: strings.Repeat("s", 32)})
 	catalogPath := filepath.Join(t.TempDir(), "model-catalog.yaml")
 	if err := os.WriteFile(catalogPath, []byte("version: 1\nmodels:\n  - name: oauth-bootstrap-test-model\n    category: bootstrap\n    family: bootstrap\n    modality: chat\n    context_window: 1000\n    input_modalities: [text]\n    output_modalities: [text]\n    capabilities: [chat]\n    supported_parameters: []\n"), 0o600); err != nil {
 		t.Fatal(err)
@@ -122,7 +122,7 @@ func TestCreateAdminSessionDeletesGeneratedInitialAdminPassword(t *testing.T) {
 }
 
 func TestSeedDefaultModelCatalogReportsLegacyNameConflict(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	store.AddModel(Model{
 		ID:       "legacy-catalog-id",
 		Name:     "catalog-conflict-model",
@@ -222,7 +222,7 @@ func TestRunStartupBootstrapUpgradesV040DatabaseWithDisabledDefaultTeam(t *testi
 }
 
 func TestRunStartupBootstrapPreservesExistingModelPrices(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	catalogPath := filepath.Join(t.TempDir(), "model-catalog.yaml")
 	config := Config{
 		BootstrapAdminPassword: "startup-price-test-password",
@@ -323,7 +323,7 @@ models:
 }
 
 func TestBootstrapBaseDataPreservesRoutesWhenRefreshingLegacyCatalogModel(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	const modelName = "deepseek-v4-flash"
 	store.AddModel(Model{
 		Name:     modelName,

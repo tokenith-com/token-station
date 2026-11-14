@@ -1,4 +1,5 @@
-import type { AdminUser, Model, Project, Summary, UsageBreakdown } from "../../../features/admin/core/types";
+import type { MockAPI } from "../network";
+import type { AdminUser, Model, Project, Provider, Summary, UsageBreakdown } from "../../../features/admin/core/types";
 
 export const fixedTime = "2026-09-07T02:00:00.000Z";
 export const model = { id: "mdl_ui", name: "ui-review-model", family: "test", modality: "chat", status: "active", input_price_usd_per_1m: 2, output_price_usd_per_1m: 6 } satisfies Model;
@@ -21,4 +22,12 @@ export function shellResponses(): Map<string, unknown> {
     ["GET /api/admin/billing/reconciliations", { data: [] }],
     ["GET /api/admin/system/version", { current_version: "ui-fixture", latest_version: "ui-fixture", has_update: false, build_type: "source", deployment_type: "source", update_supported: false }],
   ].map(([key, value]) => [key, structuredClone(value)] as [string, unknown]));
+}
+
+export function installModelDirectoryReads(api: MockAPI, models: Array<Omit<Model, "id"> & { id?: string }>, providers: Array<Omit<Provider, "healthy"> & { healthy?: boolean }>, declared: string[] = []) {
+  api.respond("GET", "/api/admin/models", { data: models.map(model => ({ id: model.name, ...model })) });
+  if (!declared.includes("providers")) api.respond("GET", "/api/admin/providers", { data: providers.map(provider => ({ healthy: true, ...provider })) });
+  for (const path of ["provider-adapters", "plugins", "plugin-ui-manifest", "plugin-actions"]) {
+    if (!declared.includes(path)) api.respond("GET", `/api/admin/${path}`, { data: [] });
+  }
 }

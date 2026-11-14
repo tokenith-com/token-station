@@ -120,7 +120,7 @@ func TestAdminProviderResourceMethodRoutesRejectRealHEAD(t *testing.T) {
 }
 
 func TestAdminProviderResourceMethodRoutesPreserveCORSPreflight(t *testing.T) {
-	app := newTestServer()
+	app := newTestServer(t)
 	for _, route := range adminProviderResourceMethodRoutes() {
 		t.Run(route.name, func(t *testing.T) {
 			request := httptest.NewRequest(http.MethodOptions, route.path, nil)
@@ -141,7 +141,7 @@ func TestAdminProviderResourceMethodRoutesPreserveCORSPreflight(t *testing.T) {
 }
 
 func TestAdminProviderResourceQuotaRoutePreservesRefreshAndUpstreamHeaders(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	provider := store.AddProvider(Provider{
 		ID: "prv_quota_route", Name: "Quota Route Provider", Type: ProviderOpenAICodex,
 		Status: StatusActive, Healthy: true,
@@ -171,7 +171,7 @@ func TestAdminProviderResourceQuotaRoutePreservesRefreshAndUpstreamHeaders(t *te
 		_, _ = io.WriteString(w, `{"plan_type":"`+plan+`","rate_limit":{"allowed":true,"limit_reached":false}}`)
 	}))
 	t.Cleanup(upstream.Close)
-	server := New(store)
+	server := newManagedTestServer(t, store)
 	mustCodexSubscriptionAdapterForTest(t, server).QuotaURL = upstream.URL + "/backend-api/wham/usage"
 	mustCodexSubscriptionAdapterForTest(t, server).Client = upstream.Client()
 	app := server.Handler()
@@ -213,7 +213,7 @@ func TestAdminProviderResourceQuotaRoutePreservesRefreshAndUpstreamHeaders(t *te
 }
 
 func TestAdminProviderResourceQuotaRouteUsesPluginActionBroker(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	provider := store.AddProvider(Provider{
 		ID: "prv_quota_plugin", Name: "Quota Plugin Provider", Type: "quota_plugin",
 		Status: StatusActive, Healthy: true,
@@ -225,7 +225,7 @@ func TestAdminProviderResourceQuotaRouteUsesPluginActionBroker(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	server := New(store)
+	server := newManagedTestServer(t, store)
 	pluginID := "tokenhub.provider.quota-plugin"
 	if err := server.adapterRegistry.RegisterPlugin(pluginmeta.Descriptor{
 		ID:         pluginID,
@@ -280,7 +280,7 @@ func TestAdminProviderResourceQuotaRouteUsesPluginActionBroker(t *testing.T) {
 }
 
 func TestAdminProviderResourceQuotaRouteSkipsPluginPanelForMismatchedResourceType(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	providerType := "quota_panel_mismatch_plugin"
 	provider := store.AddProvider(Provider{
 		ID: "prv_quota_panel_mismatch", Name: "Quota Panel Mismatch Provider", Type: providerType,
@@ -293,7 +293,7 @@ func TestAdminProviderResourceQuotaRouteSkipsPluginPanelForMismatchedResourceTyp
 	if err != nil {
 		t.Fatal(err)
 	}
-	server := New(store)
+	server := newManagedTestServer(t, store)
 	pluginID := "tokenhub.provider.quota-panel-mismatch"
 	if err := server.adapterRegistry.RegisterPlugin(pluginmeta.BuiltInProvider(pluginID, "Quota Panel Mismatch", []string{providerType}, []string{string(AdapterCapabilityQuota)}), AdapterRegistration{
 		Type:         providerType,
@@ -332,7 +332,7 @@ func TestAdminProviderResourceQuotaRouteSkipsPluginPanelForMismatchedResourceTyp
 }
 
 func TestProviderPluginCapabilityActionSkipsMismatchedResourceTypeMetadata(t *testing.T) {
-	server := New(NewMemoryStore())
+	server := newManagedTestServer(t, newTestMemoryStore(t))
 	providerType := "metadata_scoped_provider"
 	pluginID := "tokenhub.provider.metadata-scoped"
 	capabilities := []AdapterCapability{
@@ -388,7 +388,7 @@ func TestProviderPluginCapabilityActionSkipsMismatchedResourceTypeMetadata(t *te
 }
 
 func TestProviderPluginCapabilityActionPrefersExactResourceTypeOverGeneric(t *testing.T) {
-	server := New(NewMemoryStore())
+	server := newManagedTestServer(t, newTestMemoryStore(t))
 	providerType := "exact_resource_action_provider"
 	pluginID := "tokenhub.provider.exact-resource-action"
 	if err := server.adapterRegistry.RegisterPlugin(pluginmeta.BuiltInProvider(pluginID, "Exact Resource Action Provider", []string{providerType}, []string{
@@ -455,7 +455,7 @@ func TestAdminProviderResourceQuotaResetCreditsRoutePreservesHeadersAndAudit(t *
 }
 
 func TestAdminProviderResourceQuotaResetRoutesUsePluginActions(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	providerType := "quota_reset_plugin"
 	provider := store.AddProvider(Provider{
 		ID: "prv_quota_reset_plugin", Name: "Quota Reset Plugin Provider", Type: providerType,
@@ -468,7 +468,7 @@ func TestAdminProviderResourceQuotaResetRoutesUsePluginActions(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	server := New(store)
+	server := newManagedTestServer(t, store)
 	pluginID := "tokenhub.provider.quota-reset-plugin"
 	if err := server.adapterRegistry.RegisterPlugin(pluginmeta.BuiltInProvider(pluginID, "Quota Reset Plugin", []string{providerType}, []string{string(AdapterCapabilityQuota)}), AdapterRegistration{
 		Type:         providerType,
@@ -599,7 +599,7 @@ func TestAdminProviderResourceRefreshTokenRoutePreservesRefreshMaskingAndAudit(t
 	openAIAccountOAuthTokenEndpoint = tokenServer.URL
 	t.Cleanup(func() { openAIAccountOAuthTokenEndpoint = previousEndpoint })
 
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	provider := store.AddProvider(Provider{
 		ID: "prv_refresh_route", Name: "Refresh Route Provider", Type: ProviderOpenAICodex,
 		Status: StatusActive, Healthy: true,
@@ -615,7 +615,7 @@ func TestAdminProviderResourceRefreshTokenRoutePreservesRefreshMaskingAndAudit(t
 	if err != nil {
 		t.Fatal(err)
 	}
-	response := methodRoutingJSONRequest(t, New(store).Handler(), http.MethodPost, "/api/admin/provider-resources/"+resource.ID+"/refresh-token", map[string]any{}, "dev_admin_token")
+	response := methodRoutingJSONRequest(t, newManagedTestServer(t, store).Handler(), http.MethodPost, "/api/admin/provider-resources/"+resource.ID+"/refresh-token", map[string]any{}, "dev_admin_token")
 	if response.Code != http.StatusOK {
 		t.Fatalf("POST refresh token: expected 200, got %d: %s", response.Code, response.Body.String())
 	}
@@ -655,7 +655,7 @@ func TestAdminProviderResourceRefreshTokenRoutePreservesRefreshMaskingAndAudit(t
 }
 
 func TestAdminProviderResourceImageCapabilityRouteUsesPluginAction(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	providerType := "image_capability_plugin"
 	provider := store.AddProvider(Provider{
 		ID: "prv_image_capability_plugin", Name: "Image Capability Plugin Provider", Type: providerType,
@@ -668,7 +668,7 @@ func TestAdminProviderResourceImageCapabilityRouteUsesPluginAction(t *testing.T)
 	if err != nil {
 		t.Fatal(err)
 	}
-	server := New(store)
+	server := newManagedTestServer(t, store)
 	pluginID := "tokenhub.provider.image-capability-plugin"
 	if err := server.adapterRegistry.RegisterPlugin(pluginmeta.BuiltInProvider(pluginID, "Image Capability Plugin", []string{providerType}, []string{string(AdapterCapabilityImageGenerate)}), AdapterRegistration{
 		Type:         providerType,

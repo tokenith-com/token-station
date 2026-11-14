@@ -13,7 +13,7 @@ import (
 type routeStatsFailureContextKey struct{}
 
 func TestGatewayHotPathsDoNotAcquireStoreMutex(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	project := store.CreateProject(Project{Name: "Unlocked hot paths", Status: StatusActive})
 	model := store.AddModel(Model{Name: "unlocked-hot-path-model", Modality: "chat", Status: StatusActive})
 	provider := store.AddProvider(Provider{Name: "Unlocked provider", Type: ProviderMock, Status: StatusActive, Healthy: true})
@@ -58,7 +58,7 @@ func TestGatewayHotPathsDoNotAcquireStoreMutex(t *testing.T) {
 }
 
 func TestSelectRouteCandidatesFallsBackWhenRuntimeStatsFail(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	model := store.AddModel(Model{Name: "stats-fallback-model", Modality: "chat", Status: StatusActive})
 	provider := store.AddProvider(Provider{Name: "Stats fallback provider", Type: ProviderMock, Status: StatusActive, Healthy: true})
 	route := store.AddRoute(ModelRoute{
@@ -88,7 +88,7 @@ func TestSelectRouteCandidatesFallsBackWhenRuntimeStatsFail(t *testing.T) {
 }
 
 func TestUpdateAPIKeyKeepsNotFoundErrorPrecedence(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	invalidLimit := int64(-1)
 	_, err := store.UpdateAPIKey("key_missing", APIKey{RateLimitRPM: &invalidLimit})
 	if code := AsHTTPError(err).Code; code != "api_key_not_found" {

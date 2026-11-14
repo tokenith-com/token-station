@@ -94,7 +94,7 @@ func streamReviewServer(t *testing.T, protocol string) (*Server, string, string,
 	if protocol == providerRouteProtocolResponses {
 		payload = map[string]any{"model": model, "stream": true, "input": "hello"}
 	}
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	project := store.CreateProject(Project{Name: "Streaming review", Status: StatusActive})
 	_, secret, err := store.CreateAPIKey(project.ID, APIKey{Name: "test", Allowed: []string{model}, Status: StatusActive}, "thk_stream_review")
 	if err != nil {
@@ -103,7 +103,7 @@ func streamReviewServer(t *testing.T, protocol string) (*Server, string, string,
 	provider := store.AddProvider(Provider{ID: "review-provider", Type: "plugin-only-provider", Name: "Review provider", Status: StatusActive, Healthy: true})
 	store.AddModel(Model{Name: model, Modality: "chat", Status: StatusActive})
 	store.AddRoute(ModelRoute{ID: "review-route", ModelName: model, ProviderID: provider.ID, ProviderModel: model, Status: StatusActive, Weight: 100})
-	return New(store), secret, path, payload
+	return newManagedTestServer(t, store), secret, path, payload
 }
 
 func TestGatewayRankingCarriesRequestEndpointProtocol(t *testing.T) {

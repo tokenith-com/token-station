@@ -12,13 +12,13 @@ import (
 
 func TestBuiltinProviderHandlersFollowLifecycleAcrossRestart(t *testing.T) {
 	config := Config{AdminToken: "dev_admin_token", PluginDir: t.TempDir()}
-	server := NewWithConfig(NewMemoryStore(), config)
+	server := newManagedTestServerWithConfig(t, newTestMemoryStore(t), config)
 	pluginID := "tokenhub.provider.openai-codex"
 	assertBuiltinCodexHandlersEnabled(t, server)
 
 	patchBuiltinPresentationStatus(t, server, pluginID, pluginmeta.StatusDisabled)
 	assertBuiltinCodexHandlersDisabled(t, server)
-	restarted := NewWithConfig(NewMemoryStore(), config)
+	restarted := newManagedTestServerWithConfig(t, newTestMemoryStore(t), config)
 	assertBuiltinCodexHandlersDisabled(t, restarted)
 
 	patchBuiltinPresentationStatus(t, restarted, pluginID, pluginmeta.StatusEnabled)
@@ -28,7 +28,7 @@ func TestBuiltinProviderHandlersFollowLifecycleAcrossRestart(t *testing.T) {
 func TestFailedBuiltinProviderStatesDoNotPublishHandlers(t *testing.T) {
 	for _, status := range []pluginmeta.Status{pluginmeta.StatusFailedValidation, pluginmeta.StatusFailedStartup} {
 		t.Run(string(status), func(t *testing.T) {
-			server := NewWithConfig(NewMemoryStore(), Config{AdminToken: "dev_admin_token", PluginDir: t.TempDir()})
+			server := newManagedTestServerWithConfig(t, newTestMemoryStore(t), Config{AdminToken: "dev_admin_token", PluginDir: t.TempDir()})
 			patchBuiltinPresentationStatus(t, server, "tokenhub.provider.openai-codex", status)
 			assertBuiltinCodexHandlersDisabled(t, server)
 		})
@@ -36,7 +36,7 @@ func TestFailedBuiltinProviderStatesDoNotPublishHandlers(t *testing.T) {
 }
 
 func TestDisablingOneBuiltinProviderPreservesOtherProviderActions(t *testing.T) {
-	server := NewWithConfig(NewMemoryStore(), Config{AdminToken: "dev_admin_token", PluginDir: t.TempDir()})
+	server := newManagedTestServerWithConfig(t, newTestMemoryStore(t), Config{AdminToken: "dev_admin_token", PluginDir: t.TempDir()})
 	pluginID := "tokenhub.provider.kronk"
 	actions := []pluginmeta.ActionDescriptor{}
 	for _, action := range server.pluginActions.List() {

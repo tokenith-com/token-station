@@ -62,11 +62,11 @@ func findPlaygroundSSEEvent(t *testing.T, events []playgroundSSEEvent, name stri
 
 func newPlaygroundTestServer(t *testing.T) (*Server, *GormStore) {
 	t.Helper()
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	if err := SeedDemoData(store); err != nil {
 		t.Fatal(err)
 	}
-	return New(store), store
+	return newManagedTestServer(t, store), store
 }
 
 func newPlaygroundTestSink() *playgroundDeltaSink {
@@ -157,7 +157,7 @@ func TestAdminPlaygroundStreamEmitsDeltasAndDiagnostics(t *testing.T) {
 }
 
 func TestAdminPlaygroundResponsesStreamAppliesStreamTransformHook(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	project := store.CreateProject(Project{Name: "Playground Responses Stream", Status: StatusActive})
 	provider := store.AddProvider(Provider{
 		ID: "prv_playground_responses_stream_transform", Name: "Playground Responses Stream",
@@ -168,7 +168,7 @@ func TestAdminPlaygroundResponsesStreamAppliesStreamTransformHook(t *testing.T) 
 		ID: "route_playground_responses_stream_transform", ModelName: "gpt-playground-responses-stream-transform",
 		ProviderID: provider.ID, ProviderModel: "upstream-responses", Status: StatusActive, Priority: 1, Weight: 100,
 	})
-	server := New(store)
+	server := newManagedTestServer(t, store)
 	if err := server.adapterRegistry.RegisterPlugin(pluginmeta.Descriptor{
 		ID:      "tokenhub.provider.playground-responses-stream-transform",
 		Name:    "Playground Responses Stream Transform",

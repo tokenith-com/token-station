@@ -9,7 +9,7 @@ import (
 )
 
 func TestAdminPasswordsUseBcrypt(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	user, err := store.CreateAdminUser(AdminUser{
 		Username: "bcrypt-user",
 		Email:    "bcrypt-user@example.com",
@@ -36,7 +36,7 @@ func TestAdminPasswordsUseBcrypt(t *testing.T) {
 }
 
 func TestLegacyAdminPasswordMigratesAfterLogin(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	legacyHash := HashSecret("legacy-password")
 	user, err := store.CreateAdminUser(AdminUser{
 		Username:     "legacy-user",
@@ -62,7 +62,7 @@ func TestLegacyAdminPasswordMigratesAfterLogin(t *testing.T) {
 }
 
 func TestOversizeLegacyAdminPasswordMigratesAfterLogin(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	password := strings.Repeat("a", 73)
 	legacyHash := HashSecret(password)
 	user, err := store.CreateAdminUser(AdminUser{
@@ -92,7 +92,7 @@ func TestOversizeLegacyAdminPasswordMigratesAfterLogin(t *testing.T) {
 }
 
 func TestAdminPasswordRejectsBcryptOversizeInput(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	_, err := store.CreateAdminUser(AdminUser{
 		Username: "oversize-user",
 		Email:    "oversize-user@example.com",

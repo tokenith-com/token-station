@@ -9,7 +9,7 @@ import (
 )
 
 func TestPRRetrievalLegacyInventoryReconciliation(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	store.AddModel(Model{Name: "legacy-alias", Modality: "chat", InputPriceUSDPer1M: 9})
 	store.AddRoute(ModelRoute{ModelName: "legacy-alias", ProviderID: "p", ProviderModel: "bge-reranker-v2-m3", Status: StatusActive})
 	original := store.AddProviderModel(ProviderModel{ProviderID: "p", UpstreamModel: "bge-reranker-v2-m3", Modality: "chat", InputPriceUSDPer1M: 7, Metadata: map[string]string{"custom": "keep"}})
@@ -36,7 +36,7 @@ func TestPRRetrievalLegacyInventoryReconciliation(t *testing.T) {
 }
 
 func TestPRRetrievalBuiltinAliases(t *testing.T) {
-	app := New(NewMemoryStore())
+	app := New(newTestMemoryStore(t))
 	t.Cleanup(func() { _ = app.Shutdown(context.Background()) })
 	for _, kind := range []string{"qwen", "local"} {
 		p := Provider{Type: kind, Options: map[string]string{"rerank_protocol": "jina"}}
@@ -70,7 +70,7 @@ func TestPRRetrievalQuotaRetainsUnknownTokenReservation(t *testing.T) {
 }
 
 func TestPRRetrievalResourcePublicationAndInventory(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	// A named native catalog still requires a protocol; local auto defaults must
 	// not hide a resource-only capability or invent a different parent protocol.
 	provider := store.AddProvider(Provider{ID: "p", Type: ProviderOpenAICompatible, Status: StatusActive, Healthy: true, Options: map[string]string{"catalog_id": "qwen"}})
@@ -121,7 +121,7 @@ func TestPRRetrievalSequentialTPM(t *testing.T) {
 				writeJSON(w, 200, response)
 			}))
 			defer upstream.Close()
-			store := NewMemoryStore()
+			store := newTestMemoryStore(t)
 			project := store.CreateProject(Project{Name: "TPM", Status: StatusActive})
 			profile := "jina"
 			if native {
@@ -164,7 +164,7 @@ func (s *retrievalCountingStore) ListProviders() []Provider {
 }
 
 func TestPRRetrievalInventoryReadsProvidersOnce(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	store.AddProvider(Provider{ID: "p", Type: ProviderMock, Status: StatusActive})
 	for _, name := range []string{"first", "second", "third"} {
 		store.AddProviderModel(ProviderModel{ProviderID: "p", UpstreamModel: name, Modality: "embedding"})

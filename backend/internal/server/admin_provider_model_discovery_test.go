@@ -10,8 +10,8 @@ import (
 )
 
 func TestAdminCustomProviderCatalogUsesPluginModelDiscoveryPolicy(t *testing.T) {
-	store := NewMemoryStore()
-	server := New(store)
+	store := newTestMemoryStore(t)
+	server := newManagedTestServer(t, store)
 	providerType := "catalog_discovery_plugin"
 	descriptor := pluginmeta.BuiltInProvider("tokenhub.provider.catalog-discovery", "Catalog Discovery", []string{providerType}, []string{string(AdapterCapabilityChat)})
 	descriptor.Capabilities = append(descriptor.Capabilities,
@@ -69,8 +69,8 @@ func TestAdminCustomProviderCatalogUsesPluginProviderAuthModeDiscovery(t *testin
 		{name: "requested bearer", requestedMode: providerAuthModeBearer, wantAuthorization: "Bearer plugin-secret"},
 	} {
 		t.Run(testCase.name, func(t *testing.T) {
-			store := NewMemoryStore()
-			server := New(store)
+			store := newTestMemoryStore(t)
+			server := newManagedTestServer(t, store)
 			providerType := "catalog_auth_mode_plugin"
 			descriptor := pluginmeta.BuiltInProvider("tokenhub.provider.catalog-auth-mode", "Catalog Auth Mode", []string{providerType}, []string{string(AdapterCapabilityChat)})
 			descriptor.Capabilities = append(descriptor.Capabilities,

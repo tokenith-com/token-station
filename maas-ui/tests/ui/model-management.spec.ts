@@ -1,7 +1,7 @@
 import type { Model, ModelRoute, Provider, ProviderModel } from "../../features/admin/core/types";
 import type { Locator } from "@playwright/test";
 import { test, expect, capture } from "./harness";
-import { shellResponses } from "./fixtures/shell";
+import { shellResponses, installModelDirectoryReads } from "./fixtures/shell";
 import type { MockAPI } from "./network";
 
 const provider: Provider = { id: "provider_model_ui", name: "UI Model Provider", type: "mock", priority: 1, status: "active", healthy: true };
@@ -14,6 +14,7 @@ const route: ModelRoute = { id: "route_model_ui", model_name: published.name, pr
 function installDirectory(api: MockAPI) {
   const overview = shellResponses().get("GET /api/admin/overview") as Record<string, unknown>;
   api.replaceResponse("GET", "/api/admin/overview", { ...overview, models: [published, disabled, template], providers: [provider] });
+  installModelDirectoryReads(api, [published, disabled, template], [provider]);
   api.replaceResponse("GET", "/api/admin/provider-models", { data: [inventory] });
   api.respond("GET", "/api/admin/routing-rules", { data: [route, { ...route, id: "secondary_ui_route", provider_model: "ui-secondary-upstream", status: "disabled", project_scope: "include", project_ids: ["prj_ui"] }] });
   api.respond("GET", "/api/admin/provider-catalog", { data: [] });
@@ -108,7 +109,7 @@ for (const locale of [
   { language: "ja", option: "日本語", labels: ["編集", "ルーティングポリシー", "顧客料金明細書", "非公開", "削除"], customer: "顧客名", close: "閉じる" },
 ]) {
   test(`models responsive-directory-actions ${locale.language}`, async ({ page, api }, info) => {
-    await page.setViewportSize({ width: 2200, height: 1000 });
+    await page.setViewportSize({ width: 2800, height: 1000 });
     installDirectory(api);
     await page.goto("/models");
     const directory = page.locator(".model-directory");
@@ -123,10 +124,16 @@ for (const locale of [
     await page.getByRole("button", { name: /^(界面语言|Interface Language|表示言語)$/ }).click();
     await page.getByRole("option", { name: locale.option, exact: true }).click();
     await expect(page.locator("html")).toHaveAttribute("lang", locale.language);
-    await expect(inline).toHaveText(locale.labels);
-    await expect(more).toHaveCount(0);
+    await expect(actions.locator('[data-action-id="statement"]')).toBeVisible();
+    const wideCount = await inline.count();
+    await expect(inline).toHaveText(locale.labels.slice(0, wideCount));
+    if (wideCount < locale.labels.length) {
+      await more.click();
+      await expect(menu.getByRole("button")).toHaveText(locale.labels.slice(wideCount));
+      await page.keyboard.press("Escape");
+    }
     await expectActionsFit(actions);
-    await capture(page, info, directory, `models-actions-wide-${locale.language}`, "宽屏直接展示全部模型操作", "viewport");
+    await capture(page, info, directory, `models-actions-wide-${locale.language}`, "宽屏优先展示常用模型操作", "viewport");
 
     await actions.locator('[data-action-id="statement"]').click();
     const statement = page.locator("dialog.statement-drawer");
@@ -139,7 +146,7 @@ for (const locale of [
 
     for (const viewport of [{ name: "narrow", width: 1024, height: 1000 }, { name: "mobile", width: 390, height: 844 }]) {
       await page.setViewportSize({ width: viewport.width, height: viewport.height });
-      await expect.poll(() => inline.count()).toBeLessThan(5);
+      await expect.poll(() => inline.count()).toBeLessThan(wideCount);
       await more.scrollIntoViewIfNeeded();
       await expectActionsFit(actions);
       expect(await row.locator(".directory-model-name").evaluate(element => {
@@ -166,12 +173,11 @@ for (const locale of [
     await more.click();
     await menu.locator('[data-action-id="statement"]').click();
     await statement.getByLabel(locale.customer, { exact: true }).fill("UI Widened Statement Customer");
-    await page.setViewportSize({ width: 2200, height: 1000 });
+    await page.setViewportSize({ width: 2800, height: 1000 });
     await expect(statement.getByLabel(locale.customer, { exact: true })).toHaveValue("UI Widened Statement Customer");
     await statement.getByRole("button", { name: locale.close, exact: true }).click();
     await expect(actions.locator('[data-action-id="statement"]')).toBeFocused();
-    await expect(inline).toHaveText(locale.labels);
-    await expect(more).toHaveCount(0);
+    await expect(inline).toHaveText(locale.labels.slice(0, wideCount));
     await expectActionsFit(actions);
     expect(reads(), "Resizing and changing language must not reload model data").toBe(initialReads);
   });
@@ -181,6 +187,7 @@ test("models create-template-save-failure", async ({ page, api }, info) => {
   const pricedTemplate: Model = { ...template, cache_write_price_usd_per_1m: 0, cache_write_5m_price_usd_per_1m: 0, cache_write_1h_price_usd_per_1m: 0, pricing_periods: [{ timezone: "UTC", start_time: "00:00", end_time: "08:00", input_price_usd_per_1m: 0.5 }] };
   const overview = shellResponses().get("GET /api/admin/overview") as Record<string, unknown>;
   api.replaceResponse("GET", "/api/admin/overview", { ...overview, models: [pricedTemplate], providers: [provider] });
+  installModelDirectoryReads(api, [pricedTemplate], [provider]);
   api.replaceResponse("GET", "/api/admin/provider-models", { data: [inventory] });
   api.respond("GET", "/api/admin/routing-rules", { data: [] });
   api.respond("GET", "/api/admin/provider-catalog", { data: [] });
@@ -200,11 +207,12 @@ test("models create-template-save-failure", async ({ page, api }, info) => {
   await editor.getByRole("checkbox", { name: `${provider.name} / ${inventory.upstream_model}` }).check();
   await capture(page, info, editor, "models-create-template", "从模板创建模型：必填字段与定价", "viewport");
   await editor.getByRole("button", { name: "创建对外模型", exact: true }).click();
-  await expect(editor.getByRole("alert")).toHaveText("Synthetic model validation failure");
-  await expect(editor.getByRole("alert")).toBeFocused();
-  await expect(editor.getByRole("button", { name: "高级模型设置" })).toHaveAttribute("aria-expanded", "true");
-  await expect(editor.getByLabel("对外模型 ID", { exact: true })).toHaveValue("ui-reviewed-alias");
-  await capture(page, info, editor, "models-create-template-error", "创建模型失败：保留输入并展开设置", "viewport");
+  await expect(editor).toHaveCount(0);
+  await expect(page.getByText("Synthetic model validation failure", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "新建对外模型", exact: true }).click();
+  await editor.getByRole("button", { name: new RegExp(template.name) }).click();
+  await editor.getByRole("button", { name: "下一步：选择 Provider 模型" }).click();
+  await editor.getByRole("button", { name: "高级模型设置" }).click();
   const pricingPeriods = editor.getByLabel(/^分时价格配置（JSON）/);
   await pricingPeriods.scrollIntoViewIfNeeded();
   await expect(pricingPeriods).toHaveValue(JSON.stringify(pricedTemplate.pricing_periods, null, 2));

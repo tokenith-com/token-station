@@ -25,8 +25,8 @@ func TestGoogleSubscriptionDefaultAuthorizationPreservesClientBinding(t *testing
 		}
 		for _, method := range []string{"", "google", "google_project"} {
 			t.Run(definition.providerType+"/method="+method, func(t *testing.T) {
-				store := NewMemoryStore()
-				server := New(store)
+				store := newTestMemoryStore(t)
+				server := newManagedTestServer(t, store)
 				path := "/api/admin/provider-actions/" + definition.providerType + "/"
 				project := ""
 				if method == "google_project" {
@@ -137,8 +137,8 @@ func TestGoogleSubscriptionDefaultAuthorizationPreservesClientBinding(t *testing
 
 func TestGoogleSubscriptionAuthorizationRejectsIncompleteOverrides(t *testing.T) {
 	for _, providerType := range []string{providerGeminiCLISubscription, providerAntigravitySubscription} {
-		store := NewMemoryStore()
-		server := New(store)
+		store := newTestMemoryStore(t)
+		server := newManagedTestServer(t, store)
 		path := "/api/admin/provider-actions/" + providerType + "/oauth.start"
 		resourceType := strings.TrimSuffix(providerType, "_subscription") + "_account"
 		for _, test := range []struct {

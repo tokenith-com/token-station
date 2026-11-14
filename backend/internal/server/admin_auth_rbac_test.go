@@ -11,7 +11,7 @@ import (
 )
 
 func TestAdminAPIRequiresToken(t *testing.T) {
-	app := newTestServer()
+	app := newTestServer(t)
 	req := httptest.NewRequest(http.MethodGet, "/api/admin/overview", nil)
 	rr := httptest.NewRecorder()
 	app.ServeHTTP(rr, req)
@@ -24,7 +24,7 @@ func TestAdminAPIRequiresToken(t *testing.T) {
 }
 
 func TestAdminLoginAndUserManagement(t *testing.T) {
-	app := newTestServer()
+	app := newTestServer(t)
 	login := doJSON(t, app, http.MethodPost, "/api/admin/auth/login", map[string]any{
 		"identity": "admin@tokenhub.local",
 		"password": "admin123456",
@@ -53,7 +53,7 @@ func TestAdminLoginAndUserManagement(t *testing.T) {
 }
 
 func TestAdminAuthIdentityProvidersListActiveOAuthSources(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	store.CreateResource("identity-providers", AdminResource{
 		ID:     "idp_gitlab",
 		Name:   "GitLab OAuth",
@@ -93,7 +93,7 @@ func TestAdminAuthIdentityProvidersListActiveOAuthSources(t *testing.T) {
 			"userinfo_url":  "http://accounts.example.test/userinfo",
 		},
 	})
-	app := NewWithConfig(store, Config{AdminToken: "dev_admin_token", SecretKey: "test-secret"}).Handler()
+	app := newManagedTestServerWithConfig(t, store, Config{AdminToken: "dev_admin_token", SecretKey: "test-secret"}).Handler()
 
 	req := httptest.NewRequest(http.MethodGet, "/api/admin/auth/identity-providers", nil)
 	rr := httptest.NewRecorder()
@@ -150,7 +150,7 @@ func TestAdminOAuthLoginCreatesSession(t *testing.T) {
 	}))
 	defer oauthServer.Close()
 
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	store.CreateResource("identity-providers", AdminResource{
 		ID:     "idp_gitlab",
 		Name:   "GitLab OAuth",
@@ -170,7 +170,7 @@ func TestAdminOAuthLoginCreatesSession(t *testing.T) {
 			"team_claim":     "department",
 		},
 	})
-	app := NewWithConfig(store, Config{
+	app := newManagedTestServerWithConfig(t, store, Config{
 		AdminToken: "dev_admin_token", SecretKey: "test-secret",
 		CORSAllowedOrigins: []string{"http://localhost:3001"},
 	}).Handler()
@@ -235,7 +235,7 @@ func TestAdminOAuthLoginCreatesSession(t *testing.T) {
 }
 
 func TestOAuthDefaultProvisioningAssignsTeamRoleAndProject(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	store.CreateResource("teams", AdminResource{
 		ID:     "team_product",
 		Name:   "Product",
@@ -259,7 +259,7 @@ func TestOAuthDefaultProvisioningAssignsTeamRoleAndProject(t *testing.T) {
 			"default_project_role": "developer",
 		},
 	}
-	server := New(store)
+	server := newManagedTestServer(t, store)
 
 	user, err := server.upsertOAuthAdminUser(provider, map[string]any{
 		"name":       "OAuth Leader",
@@ -341,7 +341,7 @@ func countProjectMembers(items []AdminResource, projectID string, userID string)
 }
 
 func TestRBACAndAdminAuditEvents(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	if err := SeedDemoData(store); err != nil {
 		t.Fatal(err)
 	}
@@ -356,7 +356,7 @@ func TestRBACAndAdminAuditEvents(t *testing.T) {
 		t.Fatal(err)
 	}
 	_ = viewer
-	app := New(store).Handler()
+	app := newManagedTestServer(t, store).Handler()
 
 	login := doJSON(t, app, http.MethodPost, "/api/admin/auth/login", map[string]any{
 		"identity": "viewer@tokenhub.local",
@@ -408,7 +408,7 @@ func TestRolePermissionsForDeveloperAndTeamLeaderWorkspaces(t *testing.T) {
 }
 
 func TestRegularUserModelsComeFromActiveRoutesNotKeys(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	store.CreateResource("teams", AdminResource{ID: "team_platform", Name: "Platform Team", Status: StatusActive})
 	_, err := store.CreateAdminUser(AdminUser{
 		Username: "model-viewer",
@@ -428,7 +428,7 @@ func TestRegularUserModelsComeFromActiveRoutesNotKeys(t *testing.T) {
 	store.AddRoute(ModelRoute{ModelName: "routed-chat", ProviderID: "provider_mock", ProviderModel: "routed-chat", Status: StatusActive})
 	store.AddRoute(ModelRoute{ModelName: "disabled-routed-chat", ProviderID: "provider_mock", ProviderModel: "disabled-routed-chat", Status: StatusActive})
 	store.AddRoute(ModelRoute{ModelName: "disabled-route-chat", ProviderID: "provider_mock", ProviderModel: "disabled-route-chat", Status: StatusDisabled})
-	app := New(store).Handler()
+	app := newManagedTestServer(t, store).Handler()
 
 	login := doJSON(t, app, http.MethodPost, "/api/admin/auth/login", map[string]any{
 		"identity": "model-viewer@tokenhub.local",
@@ -458,7 +458,7 @@ func TestRegularUserModelsComeFromActiveRoutesNotKeys(t *testing.T) {
 }
 
 func TestTeamLeaderProjectManagementIsTeamScoped(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	store.CreateResource("teams", AdminResource{ID: "team_project", Name: "Project Team", Status: StatusActive})
 	store.CreateResource("teams", AdminResource{ID: "team_other", Name: "Other Team", Status: StatusActive})
 	leader, err := store.CreateAdminUser(AdminUser{
@@ -494,7 +494,7 @@ func TestTeamLeaderProjectManagementIsTeamScoped(t *testing.T) {
 			"daily_requests": 200,
 		},
 	})
-	app := New(store).Handler()
+	app := newManagedTestServer(t, store).Handler()
 
 	login := doJSON(t, app, http.MethodPost, "/api/admin/auth/login", map[string]any{
 		"identity": "project-leader@tokenhub.local",
@@ -561,7 +561,7 @@ func TestTeamLeaderProjectManagementIsTeamScoped(t *testing.T) {
 }
 
 func TestProjectMembersAssignMultipleProjectsAndKeyIssueScope(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	store.CreateResource("teams", AdminResource{ID: "team_member", Name: "Member Team", Status: StatusActive})
 	user, err := store.CreateAdminUser(AdminUser{
 		Username: "project-member",
@@ -616,7 +616,7 @@ func TestProjectMembersAssignMultipleProjectsAndKeyIssueScope(t *testing.T) {
 			"role":       "developer",
 		},
 	})
-	app := New(store).Handler()
+	app := newManagedTestServer(t, store).Handler()
 
 	login := doJSON(t, app, http.MethodPost, "/api/admin/auth/login", map[string]any{
 		"identity": "project-member@tokenhub.local",
@@ -676,7 +676,7 @@ func TestProjectMembersAssignMultipleProjectsAndKeyIssueScope(t *testing.T) {
 }
 
 func TestProjectTeamAssociationGrantsRoleBasedAccessAndRevokesImmediately(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	if _, err := store.CreateAdminUser(AdminUser{
 		ID:       "usr_project_team_admin",
 		Username: "project-team-admin",
@@ -701,7 +701,7 @@ func TestProjectTeamAssociationGrantsRoleBasedAccessAndRevokesImmediately(t *tes
 	if err != nil {
 		t.Fatal(err)
 	}
-	app := New(store).Handler()
+	app := newManagedTestServer(t, store).Handler()
 
 	created := doJSON(t, app, http.MethodPost, "/api/admin/projects/"+project.ID+"/teams", map[string]any{
 		"team_id": "team_shared",
@@ -767,7 +767,7 @@ func TestProjectTeamAssociationGrantsRoleBasedAccessAndRevokesImmediately(t *tes
 }
 
 func TestDisabledLinkedTeamRevokesProjectAccessAndRejectsNewAssignments(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	store.CreateResource("teams", AdminResource{ID: "team_active_primary", Name: "Active Primary Team", Status: StatusActive})
 	store.CreateResource("teams", AdminResource{ID: "team_disable_shared", Name: "Shared Team", Status: StatusActive})
 	project := store.CreateProject(Project{Name: "Disable Team Project", TeamID: "team_active_primary", Status: StatusActive})
@@ -785,7 +785,7 @@ func TestDisabledLinkedTeamRevokesProjectAccessAndRejectsNewAssignments(t *testi
 	if err != nil {
 		t.Fatal(err)
 	}
-	app := New(store).Handler()
+	app := newManagedTestServer(t, store).Handler()
 	login := doJSON(t, app, http.MethodPost, "/api/admin/auth/login", map[string]any{
 		"identity": user.Email,
 		"password": "member123456",
@@ -827,7 +827,7 @@ func TestDisabledLinkedTeamRevokesProjectAccessAndRejectsNewAssignments(t *testi
 }
 
 func TestProjectAccessMergesRolesAcrossUserTeamsWithoutDuplicatingProjects(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	store.CreateResource("teams", AdminResource{ID: "team_primary", Name: "Primary Team", Status: StatusActive})
 	store.CreateResource("teams", AdminResource{ID: "team_viewer", Name: "Viewer Team", Status: StatusActive})
 	store.CreateResource("teams", AdminResource{ID: "team_developer", Name: "Developer Team", Status: StatusActive})
@@ -850,7 +850,7 @@ func TestProjectAccessMergesRolesAcrossUserTeamsWithoutDuplicatingProjects(t *te
 	if _, err := store.AddProjectTeam(ProjectTeam{ProjectID: project.ID, TeamID: "team_developer", Role: "developer"}); err != nil {
 		t.Fatal(err)
 	}
-	app := New(store).Handler()
+	app := newManagedTestServer(t, store).Handler()
 	login := doJSON(t, app, http.MethodPost, "/api/admin/auth/login", map[string]any{
 		"identity": user.Email,
 		"password": "member123456",
@@ -898,7 +898,7 @@ func TestProjectAccessMergesRolesAcrossUserTeamsWithoutDuplicatingProjects(t *te
 }
 
 func TestAdminUserAPIStoresPrimaryAndAdditionalTeams(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	for _, teamID := range []string{"team_primary", "team_secondary"} {
 		store.CreateResource("teams", AdminResource{ID: teamID, Name: teamID, Status: StatusActive})
 	}
@@ -912,7 +912,7 @@ func TestAdminUserAPIStoresPrimaryAndAdditionalTeams(t *testing.T) {
 	}, "admin123456"); err != nil {
 		t.Fatal(err)
 	}
-	app := New(store).Handler()
+	app := newManagedTestServer(t, store).Handler()
 	created := doJSON(t, app, http.MethodPost, "/api/admin/users", map[string]any{
 		"username": "api-multi-team-user",
 		"name":     "API Multi Team User",
@@ -936,7 +936,7 @@ func TestAdminUserAPIStoresPrimaryAndAdditionalTeams(t *testing.T) {
 }
 
 func TestProjectTeamRemovalAndTeamDeletionAreSafe(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	if _, err := store.CreateAdminUser(AdminUser{
 		ID:       "usr_team_safety_admin",
 		Username: "team-safety-admin",
@@ -958,7 +958,7 @@ func TestProjectTeamRemovalAndTeamDeletionAreSafe(t *testing.T) {
 	if _, err := store.AddProjectTeam(ProjectTeam{ProjectID: teamlessProject.ID, TeamID: "team_only", Role: "viewer"}); err != nil {
 		t.Fatal(err)
 	}
-	app := New(store).Handler()
+	app := newManagedTestServer(t, store).Handler()
 
 	linkedDelete := doJSON(t, app, http.MethodDelete, "/api/admin/resources/teams/team_secondary", nil, "")
 	if linkedDelete.Code != http.StatusConflict || !strings.Contains(linkedDelete.Body, "team_has_projects") {
@@ -984,7 +984,7 @@ func TestProjectTeamRemovalAndTeamDeletionAreSafe(t *testing.T) {
 }
 
 func TestAdminAPIKeyOwnerAttributionAndUsageSnapshot(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	store.CreateResource("teams", AdminResource{ID: "team_key_owner", Name: "Key Owner Team", Status: StatusActive})
 	if _, err := store.CreateAdminUser(AdminUser{
 		ID:       "usr_admin",
@@ -1019,7 +1019,7 @@ func TestAdminAPIKeyOwnerAttributionAndUsageSnapshot(t *testing.T) {
 		t.Fatal(err)
 	}
 	project := store.CreateProject(Project{Name: "Key Attribution Project", TeamID: owner.TeamID, Status: StatusActive})
-	server := New(store)
+	server := newManagedTestServer(t, store)
 	app := server.Handler()
 
 	createKey := func(name string) APIKey {
@@ -1136,7 +1136,7 @@ func TestAdminAPIKeyOwnerAttributionAndUsageSnapshot(t *testing.T) {
 }
 
 func TestAPIKeyCreateApprovalPreservesOwnerAndIssuer(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	store.CreateResource("teams", AdminResource{ID: "team_approval_key", Name: "Approval Key Team", Status: StatusActive})
 	requester, err := store.CreateAdminUser(AdminUser{
 		Username: "approval-key-requester",
@@ -1161,7 +1161,7 @@ func TestAPIKeyCreateApprovalPreservesOwnerAndIssuer(t *testing.T) {
 		t.Fatal(err)
 	}
 	project := store.CreateProject(Project{Name: "Approval Key Project", TeamID: requester.TeamID, Status: StatusActive})
-	server := New(store)
+	server := newManagedTestServer(t, store)
 	result, err := server.applyApprovalRequest(ApprovalRequest{
 		ID:           "approval_key_create",
 		Trigger:      "api_key_create",
@@ -1191,7 +1191,7 @@ func TestAPIKeyCreateApprovalPreservesOwnerAndIssuer(t *testing.T) {
 }
 
 func TestUserRequestAuditIsScopedToOwnLogs(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	user, err := store.CreateAdminUser(AdminUser{
 		Username: "request-auditor",
 		Name:     "Request Auditor",
@@ -1264,7 +1264,7 @@ func TestUserRequestAuditIsScopedToOwnLogs(t *testing.T) {
 	}).Error; err != nil {
 		t.Fatal(err)
 	}
-	app := New(store).Handler()
+	app := newManagedTestServer(t, store).Handler()
 
 	login := doJSON(t, app, http.MethodPost, "/api/admin/auth/login", map[string]any{
 		"identity": "request-auditor@tokenhub.local",
@@ -1298,7 +1298,7 @@ func TestUserRequestAuditIsScopedToOwnLogs(t *testing.T) {
 }
 
 func TestTeamLeaderUsageBreakdownIncludesMembers(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	store.CreateResource("teams", AdminResource{ID: "team_usage", Name: "Usage Team", Status: StatusActive})
 	store.CreateResource("teams", AdminResource{ID: "team_other", Name: "Other Team", Status: StatusActive})
 	leader, err := store.CreateAdminUser(AdminUser{
@@ -1368,7 +1368,7 @@ func TestTeamLeaderUsageBreakdownIncludesMembers(t *testing.T) {
 	if err := store.db.Create(&records).Error; err != nil {
 		t.Fatal(err)
 	}
-	app := New(store).Handler()
+	app := newManagedTestServer(t, store).Handler()
 
 	login := doJSON(t, app, http.MethodPost, "/api/admin/auth/login", map[string]any{
 		"identity": "usage-leader@tokenhub.local",

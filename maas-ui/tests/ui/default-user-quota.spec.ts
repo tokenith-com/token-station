@@ -73,19 +73,22 @@ test.describe("quota default-user permissions", () => {
   test.use({ sessionUser: teamLeader });
 
   test("quota default-user-team-leader-target", async ({ page, api }, testInfo) => {
-    api.respond("GET", "/api/admin/api-keys", { data: [] });
+    api.define("GET", "/api/admin/api-keys", () => ({ json: { data: [] } }), query => {
+      expect(Object.fromEntries(query)).toEqual({ page: "1", page_size: "1000", limit: "1000" });
+    });
     api.respond("GET", "/api/admin/users", { data: [teamLeader, teamMember] });
     api.respond("GET", "/api/admin/resources/teams", { data: [{ id: "team_ui", name: "UI Review Team", status: "active" }] });
     api.respond("GET", "/api/admin/resources/quota-policies", { data: [] });
 
+    api.define("GET", "/api/admin/audit/requests", () => ({ json: { data: [] } }), query => {
+      expect(Object.fromEntries(query)).toEqual({ page: "1", page_size: "100", status: "all", q: "" });
+    });
+    api.respond("GET", "/api/admin/usage/timeseries", { data: [] });
+    api.respond("GET", "/api/admin/resources/announcements", { data: [] });
     await page.goto("/quota-policies");
-    await page.getByRole("button", { name: "新增额度策略", exact: true }).first().click();
-    await page.getByRole("combobox", { name: "作用域", exact: true }).selectOption("user");
-
-    const target = page.getByRole("combobox", { name: /^作用域对象/ });
-    await expect(target.locator('option[value="all_users"]')).toHaveCount(0);
-    await expect(target.locator('option[value="usr_ui_team_leader"]')).toHaveCount(1);
-    await expect(target.locator('option[value="usr_ui_team_member"]')).toHaveCount(1);
-    await capture(page, testInfo, target.locator(".."), "default-user-team-leader-target", "团队负责人只能选择团队内的个人额度对象");
+    await expect(page).toHaveURL(/\/overview\/$/);
+    await expect(page.getByRole("button", { name: "新增额度策略", exact: true })).toHaveCount(0);
+    expect(api.calls.filter(call => call.path === "/api/admin/resources/quota-policies")).toHaveLength(0);
+    await capture(page, testInfo, page.locator(".app-shell"), "default-user-team-leader-target", "团队负责人无法进入全局额度策略", "viewport");
   });
 });

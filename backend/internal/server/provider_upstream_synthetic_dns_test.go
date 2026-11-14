@@ -31,7 +31,7 @@ func syntheticDNSSettingsWithPrivateTrust(enabled bool, cidrs string) AdminResou
 }
 
 func TestProviderSyntheticDNSPolicyAllowsOnlyConfiguredResolvedAddresses(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	store.CreateResource("settings", syntheticDNSSettings(true, "198.18.0.0/15"))
 	policy := newProviderSyntheticDNSPolicy(store)
 
@@ -61,7 +61,7 @@ func TestProviderSyntheticDNSPrivateRangesRequireUnsafeTrust(t *testing.T) {
 		}
 	}
 
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	setting := store.CreateResource("settings", syntheticDNSSettings(true, "10.0.0.0/8"))
 	policy := newProviderSyntheticDNSPolicy(store)
 	if policy.allowsResolvedIP(net.ParseIP("10.0.0.1")) {
@@ -78,7 +78,7 @@ func TestProviderSyntheticDNSPrivateRangesRequireUnsafeTrust(t *testing.T) {
 }
 
 func TestProviderSyntheticDNSPolicyRefreshesExpiredSnapshotWithoutInvalidation(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	setting := store.CreateResource("settings", syntheticDNSSettings(false, defaultSyntheticDNSCIDRs))
 	policy := newProviderSyntheticDNSPolicy(store)
 	address := net.ParseIP("198.18.0.1")
@@ -112,7 +112,7 @@ func (store *timeoutSyntheticDNSStore) ListResourcesContext(ctx context.Context,
 }
 
 func TestProviderSyntheticDNSPolicyBoundsSlowRefreshAndKeepsLastSnapshot(t *testing.T) {
-	base := NewMemoryStore()
+	base := newTestMemoryStore(t)
 	base.CreateResource("settings", syntheticDNSSettings(true, defaultSyntheticDNSCIDRs))
 	store := &timeoutSyntheticDNSStore{Store: base}
 	policy := newProviderSyntheticDNSPolicy(store)
@@ -153,7 +153,7 @@ func (store *controlledSyntheticDNSRefreshStore) ListResourcesContext(ctx contex
 }
 
 func TestProviderSyntheticDNSPolicyDoesNotOverwriteLocalUpdateWithStaleRefresh(t *testing.T) {
-	base := NewMemoryStore()
+	base := newTestMemoryStore(t)
 	setting := base.CreateResource("settings", syntheticDNSSettings(false, defaultSyntheticDNSCIDRs))
 	store := &controlledSyntheticDNSRefreshStore{
 		Store:   base,
@@ -192,7 +192,7 @@ func TestProviderSyntheticDNSPolicyDoesNotOverwriteLocalUpdateWithStaleRefresh(t
 }
 
 func TestDialGuardedUpstreamUsesSyntheticDNSOnlyForHostnameResults(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	store.CreateResource("settings", syntheticDNSSettings(true, defaultSyntheticDNSCIDRs))
 	policy := newProviderSyntheticDNSPolicy(store)
 	lookup := func(context.Context, string) ([]net.IPAddr, error) {
@@ -246,25 +246,25 @@ func TestValidateProviderSyntheticDNSSettingsRejectsUnsafeCIDRs(t *testing.T) {
 }
 
 func TestAdminSettingsRejectInvalidSyntheticDNSCIDR(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	if err := BootstrapBaseData(store); err != nil {
 		t.Fatal(err)
 	}
 	setting := store.ListResources("settings")[0]
 	setting.Fields[syntheticDNSEnabledField] = true
 	setting.Fields[syntheticDNSCIDRsField] = "169.254.0.0/16"
-	response := doJSON(t, New(store).Handler(), http.MethodPatch, "/api/admin/resources/settings/"+gatewaySettingsID, setting, "")
+	response := doJSON(t, newManagedTestServer(t, store).Handler(), http.MethodPatch, "/api/admin/resources/settings/"+gatewaySettingsID, setting, "")
 	if response.Code != http.StatusBadRequest || !strings.Contains(response.Body, "provider_synthetic_dns_cidrs_not_allowed") {
 		t.Fatalf("expected invalid synthetic range to be rejected, got %d: %s", response.Code, response.Body)
 	}
 }
 
 func TestAdminSettingsRequireUnsafeTrustForPrivateSyntheticDNSCIDR(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	if err := BootstrapBaseData(store); err != nil {
 		t.Fatal(err)
 	}
-	server := New(store)
+	server := newManagedTestServer(t, store)
 	setting := store.ListResources("settings")[0]
 	setting.Fields[syntheticDNSEnabledField] = true
 	setting.Fields[syntheticDNSCIDRsField] = "10.0.0.0/8"
@@ -285,11 +285,11 @@ func TestAdminSettingsRequireUnsafeTrustForPrivateSyntheticDNSCIDR(t *testing.T)
 }
 
 func TestAdminSettingsApplySyntheticDNSPolicyWithoutRestart(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	if err := BootstrapBaseData(store); err != nil {
 		t.Fatal(err)
 	}
-	server := New(store)
+	server := newManagedTestServer(t, store)
 	address := net.ParseIP("198.18.0.1")
 	if server.syntheticDNSPolicy.allowsResolvedIP(address) {
 		t.Fatal("expected the seeded policy to start disabled")
@@ -306,11 +306,11 @@ func TestAdminSettingsApplySyntheticDNSPolicyWithoutRestart(t *testing.T) {
 }
 
 func TestAdminSettingsPostValidatesSyntheticDNSCIDR(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	if err := BootstrapBaseData(store); err != nil {
 		t.Fatal(err)
 	}
-	server := New(store)
+	server := newManagedTestServer(t, store)
 	setting := syntheticDNSSettings(true, "169.254.0.0/16")
 	response := doJSON(t, server.Handler(), http.MethodPost, "/api/admin/resources/settings", setting, "")
 	if response.Code != http.StatusBadRequest || !strings.Contains(response.Body, "provider_synthetic_dns_cidrs_not_allowed") {
@@ -330,11 +330,11 @@ func (store failingSyntheticDNSCreateStore) CreateResourceChecked(kind string, r
 }
 
 func TestAdminSettingsPostDoesNotApplySyntheticDNSPolicyWhenPersistenceFails(t *testing.T) {
-	base := NewMemoryStore()
+	base := newTestMemoryStore(t)
 	if err := BootstrapBaseData(base); err != nil {
 		t.Fatal(err)
 	}
-	server := New(failingSyntheticDNSCreateStore{Store: base})
+	server := newManagedTestServer(t, failingSyntheticDNSCreateStore{Store: base})
 	address := net.ParseIP("198.18.0.1")
 	response := doJSON(t, server.Handler(), http.MethodPost, "/api/admin/resources/settings", syntheticDNSSettings(true, defaultSyntheticDNSCIDRs), "")
 	if response.Code != http.StatusInternalServerError {
@@ -346,7 +346,7 @@ func TestAdminSettingsPostDoesNotApplySyntheticDNSPolicyWhenPersistenceFails(t *
 }
 
 func TestAdminSettingsDeleteDisablesSyntheticDNSPolicyImmediately(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	if err := BootstrapBaseData(store); err != nil {
 		t.Fatal(err)
 	}
@@ -355,7 +355,7 @@ func TestAdminSettingsDeleteDisablesSyntheticDNSPolicyImmediately(t *testing.T) 
 	if _, err := store.UpdateResource("settings", gatewaySettingsID, setting); err != nil {
 		t.Fatal(err)
 	}
-	server := New(store)
+	server := newManagedTestServer(t, store)
 	address := net.ParseIP("198.18.0.1")
 	if !server.syntheticDNSPolicy.allowsResolvedIP(address) {
 		t.Fatal("expected the policy to start enabled")
@@ -385,7 +385,7 @@ func (store *delayedSyntheticDNSUpdateStore) UpdateResource(kind string, id stri
 }
 
 func TestConcurrentAdminSettingsMutationsApplyInCommitOrder(t *testing.T) {
-	base := NewMemoryStore()
+	base := newTestMemoryStore(t)
 	if err := BootstrapBaseData(base); err != nil {
 		t.Fatal(err)
 	}
@@ -394,7 +394,7 @@ func TestConcurrentAdminSettingsMutationsApplyInCommitOrder(t *testing.T) {
 		committed: make(chan struct{}),
 		release:   make(chan struct{}),
 	}
-	server := New(store)
+	server := newManagedTestServer(t, store)
 	responses := make(chan responseBody, 2)
 	go func() {
 		responses <- doJSON(t, server.Handler(), http.MethodPatch, "/api/admin/resources/settings/"+gatewaySettingsID, syntheticDNSSettings(true, defaultSyntheticDNSCIDRs), "")
@@ -424,7 +424,7 @@ func TestConcurrentAdminSettingsMutationsApplyInCommitOrder(t *testing.T) {
 }
 
 func TestBootstrapBackfillsProviderSyntheticDNSSettings(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	store.CreateResource("settings", AdminResource{
 		ID: gatewaySettingsID, Name: "Existing settings", Status: StatusActive,
 		Fields: map[string]any{"public_base_url": "https://gateway.example.com"},
@@ -445,7 +445,7 @@ func TestBootstrapBackfillsProviderSyntheticDNSSettings(t *testing.T) {
 }
 
 func TestSeedDemoDataPersistsPrivateSyntheticDNSSettingAsDisabled(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	if err := SeedDemoData(store); err != nil {
 		t.Fatal(err)
 	}
@@ -470,7 +470,7 @@ func TestSeedDemoDataPersistsPrivateSyntheticDNSSettingAsDisabled(t *testing.T) 
 }
 
 func TestSeedDemoDataPreservesExistingProviderSyntheticDNSSettings(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	if err := BootstrapBaseData(store); err != nil {
 		t.Fatal(err)
 	}
@@ -519,7 +519,7 @@ func (store failingSyntheticDNSSeedCreateStore) CreateResourceChecked(kind strin
 }
 
 func TestBootstrapReportsProviderSyntheticDNSSeedCreateFailure(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	err := BootstrapBaseData(failingSyntheticDNSSeedCreateStore{Store: store})
 	if err == nil || !strings.Contains(err.Error(), "seed gateway settings") {
 		t.Fatalf("expected bootstrap to report the gateway settings create failure, got %v", err)
@@ -534,7 +534,7 @@ func (store failingSyntheticDNSBackfillStore) UpdateResource(kind string, id str
 }
 
 func TestBootstrapReportsProviderSyntheticDNSBackfillFailure(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	store.CreateResource("settings", AdminResource{
 		ID: gatewaySettingsID, Name: "Existing settings", Status: StatusActive,
 		Fields: map[string]any{"public_base_url": "https://gateway.example.com"},
@@ -557,7 +557,7 @@ func (store failingSyntheticDNSSettingsReadStore) ListResourcesChecked(kind stri
 }
 
 func TestBootstrapReportsProviderSyntheticDNSSeedReadFailure(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	err := BootstrapBaseData(failingSyntheticDNSSettingsReadStore{Store: store})
 	if err == nil || !strings.Contains(err.Error(), "seed gateway settings") {
 		t.Fatalf("expected bootstrap to report the gateway settings read failure, got %v", err)
@@ -565,7 +565,7 @@ func TestBootstrapReportsProviderSyntheticDNSSeedReadFailure(t *testing.T) {
 }
 
 func TestEnsureProviderSyntheticDNSSettingsReportsBackfillReadFailure(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	err := ensureProviderSyntheticDNSSettings(failingSyntheticDNSSettingsReadStore{Store: store})
 	if err == nil || !strings.Contains(err.Error(), "read Provider synthetic DNS settings for backfill") {
 		t.Fatalf("expected the backfill to report the settings read failure, got %v", err)
@@ -573,7 +573,7 @@ func TestEnsureProviderSyntheticDNSSettingsReportsBackfillReadFailure(t *testing
 }
 
 func TestListResourcesCheckedPreservesStoreContext(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	ctx, cancel := context.WithCancel(context.Background())
 	contextual := store.WithContext(ctx)
 	cancel()

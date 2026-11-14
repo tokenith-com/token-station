@@ -1,8 +1,9 @@
 import { test, expect, capture } from "./harness";
-import { model } from "./fixtures/shell";
+import { model, installModelDirectoryReads } from "./fixtures/shell";
 
 test("typesafe decision modality and input-only pricing can be configured", async ({ page, api }, testInfo) => {
   let saved = false;
+  installModelDirectoryReads(api, [model], []);
   api.respond("GET", "/api/admin/routing-rules", { data: [] });
   api.respond("GET", "/api/admin/provider-catalog", { data: [{ id: "typesafe", name: "TypeSafe", type: "typesafe", models_count: 3, source: "plugin" }] });
   api.define("PATCH", `/api/admin/models/${model.name}`, input => {

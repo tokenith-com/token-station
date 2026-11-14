@@ -1,3 +1,4 @@
+import { formatWalletMicros, getPlaygroundWallet, type Wallet } from "../resources/wallet";
 import { providerBlockedAddressMessage } from "../resources/provider-network-errors";
 import {
   ArrowDown,
@@ -234,15 +235,40 @@ function routeHasDetails(payload?: PlaygroundChatPayload) {
   return Boolean(route?.route_id || route?.provider_id || route?.resource_id || route?.provider_model);
 }
 
-export function PlaygroundPage({ api, data, canViewRoutes }: { api: ApiContext; data: AppData; canViewRoutes: boolean }) {
+type PlaygroundProps = { api: ApiContext; data: AppData; canViewRoutes: boolean; personal?: boolean; onRecharge?: () => void };
+
+export function PlaygroundPage(props: PlaygroundProps) {
   return (
     <section className="playground-page">
-      <PlaygroundPanel api={api} data={data} canViewRoutes={canViewRoutes} />
+      <PlaygroundPanel {...props} />
     </section>
   );
 }
 
-export function PlaygroundPanel({ api, data, canViewRoutes }: { api: ApiContext; data: AppData; canViewRoutes: boolean }) {
+export function PlaygroundPanel({ api, data, canViewRoutes, personal, onRecharge }: PlaygroundProps) {
+  const [wallet, setWallet] = useState<Wallet | null>();
+  const [walletError, setWalletError] = useState(false);
+  const [walletRejected, setWalletRejected] = useState(false);
+  const { baseURL, adminToken } = api;
+  const refreshWallet = useCallback(async (signal?: AbortSignal) => {
+    if (!personal) return;
+    try {
+      const next = await getPlaygroundWallet({ baseURL, adminToken }, signal);
+      if (!signal?.aborted) {
+        setWallet(next);
+        setWalletError(false);
+      }
+    } catch {
+      if (!signal?.aborted) setWalletError(true);
+    }
+  }, [personal, baseURL, adminToken]);
+  useEffect(() => {
+    const controller = new AbortController();
+    void refreshWallet(controller.signal);
+    return () => controller.abort();
+  }, [refreshWallet]);
+  const prepaid = personal && wallet?.prepaid_usage;
+  const walletBlocked = Boolean(personal && (wallet === undefined || walletError || prepaid && wallet.available_micros <= 0));
   const models = useMemo(() => {
     const candidates = playgroundModels(data, canViewRoutes);
     return canViewRoutes ? candidates.filter((model) => activeRouteCount(model.name, data) > 0) : candidates;
@@ -281,7 +307,7 @@ export function PlaygroundPanel({ api, data, canViewRoutes }: { api: ApiContext;
   const conversationImageBytesRef = useRef(0);
   const isAtBottomRef = useRef(true);
   const selectedModel = models.find((model) => model.name === modelName);
-  const supportsImages = modelSupportsPlaygroundImages(selectedModel);
+  const supportsImages = !prepaid && modelSupportsPlaygroundImages(selectedModel);
   const conversationImageBytes = turns.reduce((total, turn) => total + playgroundAttachmentBytes(turn.userImages), 0);
   const hasConversationImages = conversationImageBytes > 0 || images.length > 0;
   const selectedModelRouteCount = canViewRoutes && selectedModel ? activeRouteCount(selectedModel.name, data) : 0;
@@ -399,7 +425,8 @@ export function PlaygroundPanel({ api, data, canViewRoutes }: { api: ApiContext;
     return payload;
   }
 
-  async function runCandidate(turnID: string, candidateID: string, messages: PlaygroundRequestMessage[], requestModel: string) {
+  async function runCandidate(turnID: string, candidateID: string, messages: PlaygroundRequestMessage[], requestModel: string, restoreDraft?: () => void) {
+    setWalletRejected(false);
     const controller = new AbortController();
     activeRequestRef.current = controller;
     setLoading(true);
@@ -443,6 +470,14 @@ export function PlaygroundPanel({ api, data, canViewRoutes }: { api: ApiContext;
       if (!terminalEventSeen) throw new Error(tx("演练流提前结束，未收到完成事件"));
     } catch (caught) {
       if (isAuthExpiredError(caught)) return;
+      if (caught instanceof Error && caught.message.includes("(wallet_insufficient_balance)")) {
+        setWalletRejected(true);
+        if (restoreDraft) {
+          restoreDraft();
+          setTurns((current) => current.filter((turn) => turn.id !== turnID));
+          return;
+        }
+      }
       const cancelled = controller.signal.aborted || (caught instanceof DOMException && caught.name === "AbortError");
       const message = cancelled
         ? tx("已停止生成，保留部分输出")
@@ -457,6 +492,7 @@ export function PlaygroundPanel({ api, data, canViewRoutes }: { api: ApiContext;
       }));
     } finally {
       if (activeRequestRef.current === controller) activeRequestRef.current = null;
+      await refreshWallet();
       setLoading(false);
     }
   }
@@ -475,7 +511,7 @@ export function PlaygroundPanel({ api, data, canViewRoutes }: { api: ApiContext;
   function sendMessage(event?: FormEvent<HTMLFormElement>) {
     event?.preventDefault();
     const content = draft.trim();
-    if ((!content && images.length === 0) || !modelName || !projectID || loading || imageUploadPendingRef.current) return;
+    if ((!content && images.length === 0) || !modelName || !projectID || loading || walletBlocked || imageUploadPendingRef.current) return;
     if (hasConversationImages && !supportsImages) {
       setError(tx("当前模型未声明图片输入能力。"));
       return;
@@ -495,11 +531,14 @@ export function PlaygroundPanel({ api, data, canViewRoutes }: { api: ApiContext;
     setTurns((current) => [...current, turn]);
     setDraft("");
     updateImages([]);
-    void runCandidate(turn.id, candidate.id, messages, modelName);
+    void runCandidate(turn.id, candidate.id, messages, modelName, () => {
+      setDraft(content);
+      updateImages(submittedImages);
+    });
   }
 
   function rerunTurn(turnID: string) {
-    if (loading || !projectID) return;
+    if (loading || !projectID || walletBlocked) return;
     const turnIndex = turns.findIndex((turn) => turn.id === turnID);
     if (turnIndex < 0) return;
     const candidate = createCandidate(modelName);
@@ -787,7 +826,7 @@ export function PlaygroundPanel({ api, data, canViewRoutes }: { api: ApiContext;
                         {formatPlaygroundInteger(index + 1)}
                       </button>
                     )) : null}
-                    <button type="button" onClick={() => rerunTurn(turn.id)} disabled={loading || !projectID} title={tx("从这一轮重新生成，并移除后续分支")}>
+                    <button type="button" onClick={() => rerunTurn(turn.id)} disabled={loading || !projectID || walletBlocked} title={tx("从这一轮重新生成，并移除后续分支")}>
                       <RotateCcw size={13} />{tx("重跑")}
                     </button>
                   </div>
@@ -827,6 +866,11 @@ export function PlaygroundPanel({ api, data, canViewRoutes }: { api: ApiContext;
             placeholder={tx("输入用于诊断模型的消息...")}
             disabled={loading || models.length === 0 || projects.length === 0}
           />
+          {personal && <div className="playground-wallet" aria-live="polite">
+            {walletError ? <><span>{tx("暂时无法读取余额")}</span><button type="button" className="secondary-button compact" onClick={() => void refreshWallet()}>{tx("重试")}</button></> : null}
+            {prepaid && <><span>{tx("可用余额")} {formatWalletMicros(wallet.available_micros)}</span><span>{tx("演练场按实际用量扣费")}</span></>}
+            {prepaid && (walletBlocked || walletRejected) && <><span role="status">{walletRejected ? tx("当前余额不足以发送这条消息") : tx("余额不足，请充值后继续")}</span><button type="button" className="secondary-button compact" onClick={onRecharge}>{tx("去充值")}</button></>}
+          </div>}
           <div className="playground-composer-actions">
             <div className="playground-composer-tools">
               <input
@@ -859,7 +903,7 @@ export function PlaygroundPanel({ api, data, canViewRoutes }: { api: ApiContext;
             {loading ? (
               <button className="playground-stop-button" type="button" onClick={() => activeRequestRef.current?.abort()} title={tx("停止生成")}><Square size={16} /></button>
             ) : (
-              <button className="playground-send-button" disabled={imageUploadPending || (!draft.trim() && images.length === 0) || models.length === 0 || projects.length === 0} type="submit" title={tx("发送")}><Send size={18} /></button>
+              <button className="playground-send-button" disabled={walletBlocked || imageUploadPending || (!draft.trim() && images.length === 0) || models.length === 0 || projects.length === 0} type="submit" title={tx("发送")}><Send size={18} /></button>
             )}
           </div>
         </form>
@@ -908,6 +952,8 @@ function PlaygroundCandidateCard({ candidate, nowMS, canViewRoutes, turnIndex }:
               {timing?.completed_at ? <span>{formatClock(timing.completed_at)}</span> : null}
             </div>
           ) : null}
+          {payload?.wallet?.status === "settled" && <p>{tx("本次扣费")} {formatWalletMicros(payload.wallet.charged_micros)}</p>}
+          {payload?.wallet?.status === "pending_review" && <p>{tx("本次扣费待结算")}</p>}
           {payload ? <PlaygroundDiagnostics payload={payload} canViewRoutes={canViewRoutes} turnIndex={turnIndex} /> : null}
         </>
       )}

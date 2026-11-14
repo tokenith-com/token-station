@@ -30,7 +30,7 @@ var dynamicGatewayMethodRoutes = []dynamicGatewayMethodRoute{
 }
 
 func TestDynamicGatewayMethodRoutesRejectWrongMethods(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	if err := SeedDemoData(store); err != nil {
 		t.Fatal(err)
 	}
@@ -61,7 +61,7 @@ func TestDynamicGatewayMethodRoutesRejectWrongMethods(t *testing.T) {
 }
 
 func TestDynamicGatewayMethodRoutesRejectMethodMatrix(t *testing.T) {
-	app := newTestServer()
+	app := newTestServer(t)
 	for _, route := range dynamicGatewayMethodRoutes {
 		for _, method := range []string{http.MethodHead, http.MethodPost, http.MethodPut, http.MethodPatch, http.MethodDelete} {
 			if method == route.method || method == route.wrong || (method == http.MethodHead && route.method == http.MethodGet) {
@@ -77,7 +77,7 @@ func TestDynamicGatewayMethodRoutesRejectMethodMatrix(t *testing.T) {
 }
 
 func TestDynamicGatewayMethodRoutesPreserveTrailingSlash(t *testing.T) {
-	app := newTestServer()
+	app := newTestServer(t)
 	for _, route := range dynamicGatewayMethodRoutes {
 		path := route.path + "/"
 		t.Run(route.wrong+" "+path, func(t *testing.T) {
@@ -97,7 +97,7 @@ func TestDynamicGatewayMethodRoutesPreserveTrailingSlash(t *testing.T) {
 }
 
 func TestDynamicGatewayGETRoutesRejectRealHEAD(t *testing.T) {
-	server := httptest.NewServer(newTestServer())
+	server := httptest.NewServer(newTestServer(t))
 	t.Cleanup(server.Close)
 
 	for _, route := range dynamicGatewayMethodRoutes {
@@ -123,7 +123,7 @@ func TestDynamicGatewayGETRoutesRejectRealHEAD(t *testing.T) {
 }
 
 func TestDynamicResponseInvalidPathPreservesRealHEADNotFound(t *testing.T) {
-	server := httptest.NewServer(newTestServer())
+	server := httptest.NewServer(newTestServer(t))
 	t.Cleanup(server.Close)
 
 	for _, path := range []string{
@@ -147,7 +147,7 @@ func TestDynamicResponseInvalidPathPreservesRealHEADNotFound(t *testing.T) {
 }
 
 func TestDynamicResponsePOSTRoutesRejectRealHEAD(t *testing.T) {
-	server := httptest.NewServer(newTestServer())
+	server := httptest.NewServer(newTestServer(t))
 	t.Cleanup(server.Close)
 
 	for _, path := range []string{"/v1/responses/resp_test/cancel", "/v1/responses/resp_test/cancel/", "/v1/responses/resp_test%2Fcancel", "/v1/responses/compact"} {
@@ -168,7 +168,7 @@ func TestDynamicResponsePOSTRoutesRejectRealHEAD(t *testing.T) {
 }
 
 func TestDynamicGatewayMethodRoutesPreserveCORSPreflight(t *testing.T) {
-	app := newTestServer()
+	app := newTestServer(t)
 	for _, route := range dynamicGatewayMethodRoutes {
 		t.Run(route.path, func(t *testing.T) {
 			request := httptest.NewRequest(http.MethodOptions, route.path, nil)
@@ -190,7 +190,7 @@ func TestDynamicGatewayMethodRoutesPreserveCORSPreflight(t *testing.T) {
 }
 
 func TestDynamicGatewayMethodRoutesReachHandlers(t *testing.T) {
-	app := newTestServer()
+	app := newTestServer(t)
 	for _, route := range dynamicGatewayMethodRoutes {
 		t.Run(route.method+" "+route.path, func(t *testing.T) {
 			response := methodRoutingRequest(app, route.method, route.path, "")
@@ -205,7 +205,7 @@ func TestDynamicGatewayMethodRoutesReachHandlers(t *testing.T) {
 }
 
 func TestDynamicGatewayRoutesPreserveMalformedPathErrors(t *testing.T) {
-	app := newTestServer()
+	app := newTestServer(t)
 	tests := []struct {
 		name     string
 		path     string
@@ -231,7 +231,7 @@ func TestDynamicGatewayRoutesPreserveMalformedPathErrors(t *testing.T) {
 }
 
 func TestDynamicGatewayRoutesPreservePathAndMethodValidationOrder(t *testing.T) {
-	app := newTestServer()
+	app := newTestServer(t)
 	tests := []struct {
 		name       string
 		method     string
@@ -257,7 +257,7 @@ func TestDynamicGatewayRoutesPreservePathAndMethodValidationOrder(t *testing.T) 
 }
 
 func TestDynamicGatewayRoutesPreserveEscapedPathSemantics(t *testing.T) {
-	app := newTestServer()
+	app := newTestServer(t)
 	tests := []struct {
 		name       string
 		method     string
@@ -284,7 +284,7 @@ func TestDynamicGatewayRoutesPreserveEscapedPathSemantics(t *testing.T) {
 }
 
 func TestDynamicModelRouteSupportsMultiplePathSegments(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	project := store.CreateProject(Project{ID: "prj_dynamic_model", Name: "Dynamic Model Project", Status: StatusActive})
 	_, secret, err := store.CreateAPIKey(project.ID, APIKey{
 		ID: "key_dynamic_model", Name: "Dynamic Model Key", Allowed: []string{"provider/model"}, Status: StatusActive,
@@ -425,7 +425,7 @@ func TestDynamicGatewayRoutesPreserveTrailingSlashSuccess(t *testing.T) {
 }
 
 func TestDynamicResponseRoutesPreserveCompactPriority(t *testing.T) {
-	app := newTestServer()
+	app := newTestServer(t)
 
 	response := methodRoutingRequest(app, http.MethodGet, "/v1/responses/compact", "")
 	assertJSONError(t, response, http.StatusMethodNotAllowed, "method_not_allowed")

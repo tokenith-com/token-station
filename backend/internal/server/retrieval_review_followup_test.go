@@ -47,13 +47,13 @@ func TestRetrievalNativeTenantStatementUsesRecordedPrice(t *testing.T) {
 }
 
 func TestRetrievalRouteCanBeDisabledWithoutRepricing(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	model := Model{Name: "old-embedding", Modality: "embedding"}
 	route := ModelRoute{ID: "old", ModelName: model.Name, ProviderID: "p", ProviderModel: "m", Status: StatusActive}
 	provider := Provider{ID: "p", Type: ProviderOpenAICompatible, Options: map[string]string{"embedding_protocol": "invalid"}}
 	store.AddProvider(provider)
 	store.AddRoute(route)
-	app := New(store)
+	app := newManagedTestServer(t, store)
 	route.Status = StatusDisabled
 	if err := app.validateRetrievalRoute(route, &model, provider); err != nil {
 		t.Fatal(err)
@@ -61,13 +61,13 @@ func TestRetrievalRouteCanBeDisabledWithoutRepricing(t *testing.T) {
 }
 
 func TestInitialEmbeddingRoutesValidateCombinedSpaces(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	routes := []ModelRoute{}
 	for _, id := range []string{"a", "b"} {
 		store.AddProvider(Provider{ID: id, Type: ProviderOpenAICompatible, Status: StatusActive})
 		routes = append(routes, ModelRoute{ModelName: "public", ProviderID: id, ProviderModel: "m", Status: StatusActive})
 	}
-	app := New(store)
+	app := newManagedTestServer(t, store)
 	model := Model{Name: "public", Modality: "embedding"}
 	if err := app.validateInitialEmbeddingRoutes(context.Background(), model, routes); err == nil {
 		t.Fatal("incompatible batch passed")

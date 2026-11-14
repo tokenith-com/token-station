@@ -14,6 +14,10 @@ const routeModel = { id: "layout-route", model_name: model.name, provider_id: pr
 
 async function installLayoutFixtures(page: Page, role: AppRole, signedIn = true) {
   const responses = shellResponses();
+  responses.set("GET /api/admin/wallet", { balance_micros: 0, available_micros: 0, prepaid_usage: false });
+  responses.set("GET /api/admin/recharge/plans", { data: [], channels: [] });
+  responses.set("GET /api/admin/wallet/usage", { data: [] });
+  responses.set("GET /api/admin/recharge/orders", { data: [] });
   responses.set("GET /api/admin/projects", { data: [{ ...project, owner_user_id: user.id }] });
   responses.set("GET /api/admin/overview", { summary, projects: [{ ...project, owner_user_id: user.id, team_id: "layout-team" }], models: [model], providers: [provider], provider_resources: [], alerts: [] });
   responses.set("GET /api/admin/models", { data: [model] });
@@ -179,6 +183,7 @@ for (const role of ["admin", "team_leader", "user"] as const) {
       await test.step(view, async () => {
         await page.goto(`${viewRoutes[view as keyof typeof viewRoutes]}/`);
         await expectPageFits(page);
+        if (view === "settings") await page.getByRole("tab", { name: "角色配置", exact: true }).click();
         const create = page.getByRole("button", { name: label, exact: true }).first();
         await expect(create).toBeVisible();
         await create.click();
@@ -211,48 +216,20 @@ for (const size of [...sizes, { width: 1366, height: 768 }, { width: 1920, heigh
     await page.setViewportSize(size);
     await installLayoutFixtures(page, "user", false);
     await page.goto("/");
-    await expect(page.locator(".login-shell")).toBeVisible();
-    await expect(page.locator(".login-submit")).toBeInViewport();
-    // Check the actual SVG files load, including Safari's handling of SVG assets.
-    const images = size.width > 760 ? [".login-station-mark", ".login-dashboard-image"] : [".login-station-mark"];
-    for (const selector of images) {
-      const loaded = await page.locator(selector).evaluate(el => new Promise<boolean>(resolve => {
-        if (el instanceof HTMLImageElement) {
-          el.decode().then(() => resolve(el.naturalWidth > 0), () => resolve(false));
-          return;
-        }
-        const url = getComputedStyle(el).backgroundImage.match(/^url\(["']?(.*?)["']?\)$/)?.[1];
-        if (!url) return resolve(false);
-        const image = new Image();
-        image.onload = () => resolve(image.naturalWidth > 0);
-        image.onerror = () => resolve(false);
-        image.src = url;
-      }));
-      expect(loaded, `${selector} must load`).toBe(true);
-    }
-    const fits = await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth);
-    expect(fits).toBe(true);
-    if (size.width > 760) {
-      const hero = await page.locator(".login-hero-panel").evaluate(panel => {
-        const cards = panel.querySelector(".login-feature-grid")!.getBoundingClientRect();
-        const image = panel.querySelector("img.login-dashboard-image")!.getBoundingClientRect();
-        return { leftGap: Math.abs(cards.left - image.left), rightGap: Math.abs(cards.right - image.right), verticalGap: Math.abs(cards.bottom - image.top) };
-      });
-      expect(hero.leftGap, "Feature cards and illustration should align").toBeLessThanOrEqual(1);
-      expect(hero.rightGap, "Feature cards and illustration should have the same width").toBeLessThanOrEqual(1);
-      expect(hero.verticalGap, "Illustration should sit directly below the feature cards").toBeLessThanOrEqual(2);
-    }
-    const layout = await page.locator(".login-station-main").evaluate(main => {
-      const stage = main.parentElement!.getBoundingClientRect();
-      const card = main.querySelector(".login-card")!.getBoundingClientRect();
-      const footer = main.querySelector(".login-account-footer")!.getBoundingClientRect();
-      return { center: (card.top + card.bottom) / 2, expectedCenter: (stage.top + stage.bottom) / 2, cardTop: card.top, cardBottom: card.bottom, footerTop: footer.top, footerBottom: footer.bottom, height: innerHeight };
-    });
-    if (size.width > 760) expect(Math.abs(layout.center - layout.expectedCenter), "Login form should be vertically centered beside the illustration").toBeLessThanOrEqual(2);
-    expect(layout.cardTop).toBeGreaterThanOrEqual(64);
-    expect(layout.cardBottom).toBeLessThanOrEqual(layout.footerTop);
-    expect(layout.footerBottom).toBeLessThanOrEqual(layout.height);
-    await page.screenshot({ path: test.info().outputPath("login-centered.png") });
+    await page.getByRole("button", { name: "登录", exact: true }).click();
+    const form = page.locator(".tc-login-form");
+    await expect(form.getByLabel("账号", { exact: true })).toBeVisible();
+    const submit = form.getByRole("button", { name: "登录", exact: true });
+    await submit.scrollIntoViewIfNeeded();
+    await expect(submit).toBeInViewport();
+    await expect(async () => {
+      await submit.scrollIntoViewIfNeeded();
+      await expectUnobscured(submit);
+    }).toPass({ timeout: 5_000 });
+    await expect(page.locator(".tc-login-logo img")).toHaveJSProperty("complete", true);
+    expect(await page.locator(".tc-login-logo img").evaluate(image => (image as HTMLImageElement).naturalWidth)).toBeGreaterThan(0);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+    await page.screenshot({ path: test.info().outputPath("login-drawer.png") });
   });
 }
 
@@ -346,36 +323,40 @@ async function expectPlaygroundFits(page: Page) {
 }
 
 for (const role of ["admin", "team_leader", "user", "guest"] as const) {
-  test(`small screen table scrolling and page actions ${role}`, async ({ page }) => {
-    test.setTimeout(180_000);
-    await page.setViewportSize({ width: 1093, height: 500 });
-    await installLayoutFixtures(page, role);
-    for (const view of roleViewAccess[role]) {
-      await test.step(view, async () => {
-        await page.goto(`${viewRoutes[view]}/`);
-        await expectPageFits(page);
-        for (const table of await page.locator(".content-panel table:visible").all()) {
-          const canScroll = await table.evaluate(el => {
-            const panel = el.closest(".content-panel")!;
-            const bounds = el.getBoundingClientRect();
-            const available = panel.getBoundingClientRect();
-            if (bounds.left >= available.left && bounds.right <= available.right) return true;
-            for (let parent = el.parentElement; parent; parent = parent.parentElement) {
-              if (["auto", "scroll"].includes(getComputedStyle(parent).overflowX) && parent.scrollWidth > parent.clientWidth) return true;
-              if (parent === panel) break;
-            }
-            return false;
-          });
-          expect(canScroll, `${view}: wide tables must provide horizontal scrolling`).toBe(true);
-        }
-        const control = page.locator(".content-panel button:visible:enabled").last();
-        if (await control.count()) {
-          await control.scrollIntoViewIfNeeded();
-          await expectUnobscured(control);
-        }
-      });
-    }
-  });
+  const views = roleViewAccess[role];
+  for (let startIndex = 0; startIndex < views.length; startIndex += 8) {
+    const group = views.slice(startIndex, startIndex + 8);
+    test(`small screen table scrolling and page actions ${role}: ${group[0]}`, async ({ page }) => {
+      test.setTimeout(120_000);
+      await page.setViewportSize({ width: 1093, height: 500 });
+      await installLayoutFixtures(page, role);
+      for (const view of group) {
+        await test.step(view, async () => {
+          await page.goto(`${viewRoutes[view]}/`);
+          await expectPageFits(page);
+          for (const table of await page.locator(".content-panel table:visible").all()) {
+            const canScroll = await table.evaluate(el => {
+              const panel = el.closest(".content-panel")!;
+              const bounds = el.getBoundingClientRect();
+              const available = panel.getBoundingClientRect();
+              if (bounds.left >= available.left && bounds.right <= available.right) return true;
+              for (let parent = el.parentElement; parent; parent = parent.parentElement) {
+                if (["auto", "scroll"].includes(getComputedStyle(parent).overflowX) && parent.scrollWidth > parent.clientWidth) return true;
+                if (parent === panel) break;
+              }
+              return false;
+            });
+            expect(canScroll, `${view}: wide tables must provide horizontal scrolling`).toBe(true);
+          }
+          const control = page.locator(".content-panel button:visible:enabled").last();
+          if (await control.count()) {
+            await control.scrollIntoViewIfNeeded();
+            await expectUnobscured(control);
+          }
+        });
+      }
+    });
+  }
 
   for (const size of sizes) {
     test(`laptop layout ${role} ${size.width}x${size.height}`, async ({ page }) => {

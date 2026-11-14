@@ -11,7 +11,7 @@ import (
 
 func TestExternalGuardrailHookWithoutIsolationIsQuarantinedBeforeExecution(t *testing.T) {
 	pluginDir := copyExternalPluginFixtureForServerTest(t, filepath.Join("..", "plugin", "testdata", "external-guardrail-hook"))
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	project := store.CreateProject(Project{Name: "External Guardrail Hook", Status: StatusActive})
 	_, secret, err := store.CreateAPIKey(project.ID, APIKey{
 		Name:    "external-guardrail-key",
@@ -24,7 +24,7 @@ func TestExternalGuardrailHookWithoutIsolationIsQuarantinedBeforeExecution(t *te
 	provider := store.AddProvider(Provider{ID: "prv_external_guardrail", Name: "External Guardrail Provider", Type: ProviderMock, Status: StatusActive, Healthy: true})
 	store.AddModel(Model{Name: "gpt-external-guardrail", Modality: "chat", Status: StatusActive})
 	store.AddRoute(ModelRoute{ID: "route_external_guardrail", ModelName: "gpt-external-guardrail", ProviderID: provider.ID, ProviderModel: "upstream-chat", Status: StatusActive, Priority: 1, Weight: 100})
-	app := NewWithConfig(store, Config{
+	app := newManagedTestServerWithConfig(t, store, Config{
 		AdminToken: "external-guardrail-admin",
 		PluginDir:  pluginDir,
 	})

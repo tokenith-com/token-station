@@ -6,7 +6,7 @@ import (
 )
 
 func TestSubscriptionRoutesBindAccountsWithoutNativeRefresh(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	server := New(store)
 	t.Cleanup(func() { _ = server.Shutdown(context.Background()) })
 	types := []struct{ provider, resource string }{
@@ -47,7 +47,7 @@ func TestSubscriptionRoutesBindAccountsWithoutNativeRefresh(t *testing.T) {
 }
 
 func TestPrepareRouteLeavesNonAccountOptionsUnchanged(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	server := New(store)
 	t.Cleanup(func() { _ = server.Shutdown(context.Background()) })
 	for _, resource := range []*ProviderResource{nil, {ID: "api-key-resource", ResourceType: ProviderResourceAPIKey}} {

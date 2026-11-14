@@ -61,7 +61,7 @@ func TestGatewayForwardsDeepSeekV4ProResponsesRoute(t *testing.T) {
 	}))
 	t.Cleanup(upstream.Close)
 
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	store.AddModel(Model{Name: "deepseek-pro-public", Modality: "chat", Status: StatusActive})
 	provider := store.AddProvider(Provider{
 		Name: "DeepSeek", Type: "deepseek", BaseURL: upstream.URL, APIKey: "deepseek-test-key",
@@ -76,7 +76,7 @@ func TestGatewayForwardsDeepSeekV4ProResponsesRoute(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	response := doJSON(t, New(store).Handler(), http.MethodPost, "/v1/responses", map[string]any{
+	response := doJSON(t, newManagedTestServer(t, store).Handler(), http.MethodPost, "/v1/responses", map[string]any{
 		"model": "deepseek-pro-public",
 		"input": "hello",
 	}, "thk_deepseek_responses")

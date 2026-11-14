@@ -431,7 +431,7 @@ func TestLastUsedThrottleSweepsAtMostOncePerInterval(t *testing.T) {
 }
 
 func TestWithContextSharesLastUsedThrottle(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	scoped := store.WithContext(context.Background())
 	if scoped.lastUsed != store.lastUsed {
 		t.Fatal("a context-scoped store must share the last_used throttle, or every request would write")
@@ -439,7 +439,7 @@ func TestWithContextSharesLastUsedThrottle(t *testing.T) {
 }
 
 func TestValidateAPIKeyThrottlesLastUsedWrites(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	project := store.CreateProject(Project{Name: "Last Used Throttle"})
 	key, secret, err := store.CreateAPIKey(project.ID, APIKey{
 		Name:   "throttled-key",
@@ -478,7 +478,7 @@ func TestValidateAPIKeyThrottlesLastUsedWrites(t *testing.T) {
 }
 
 func TestValidateAPIKeySucceedsWhenLastUsedWriteFails(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	project := store.CreateProject(Project{Name: "Last Used Write Failure"})
 	key, secret, err := store.CreateAPIKey(project.ID, APIKey{
 		Name:   "failing-key",
@@ -536,7 +536,7 @@ func TestValidateAPIKeySucceedsWhenLastUsedWriteFails(t *testing.T) {
 }
 
 func TestMarkRouteAndProviderResourceUsedAreThrottled(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	provider := store.AddProvider(Provider{ID: "prv_throttle", Name: "Throttle Provider", Type: ProviderMock, Status: StatusActive, Healthy: true})
 	resource, err := store.AddProviderResource(ProviderResource{
 		ID: "rsrc_throttle", ProviderID: provider.ID, Name: "Throttle Resource",
@@ -581,7 +581,7 @@ func TestMarkRouteAndProviderResourceUsedAreThrottled(t *testing.T) {
 }
 
 func TestCompleteImageJobMarksRouteAndResourceUsed(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	project := store.CreateProject(Project{Name: "Image Last Used"})
 	key, _, err := store.CreateAPIKey(project.ID, APIKey{
 		Name: "image-last-used-key", Allowed: []string{openAIImageModelName}, Status: StatusActive,

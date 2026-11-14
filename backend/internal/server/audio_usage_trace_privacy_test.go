@@ -51,7 +51,7 @@ func TestAudioUsagePrivacyAtDirectTraceBoundaries(t *testing.T) {
 		{name: "precise valid duration", usage: precise, wantSource: "upstream", wantUnit: "audio_second", wantRaw: "1.234567890123456789", wantSeconds: precise.AudioDurationSeconds},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			server := New(NewMemoryStore())
+			server := New(newTestMemoryStore(t))
 			t.Cleanup(func() { _ = server.Shutdown(context.Background()) })
 			traces := &recordingTraceEmitter{}
 			server.traceEmitter = traces

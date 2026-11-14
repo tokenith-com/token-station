@@ -8,7 +8,7 @@ import (
 )
 
 func TestSubscriptionOAuthClientSecretIsEncryptedAndRedacted(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	provider := store.AddProvider(Provider{Name: "Configured OAuth", Type: providerGeminiCLISubscription, Status: StatusActive})
 	resource, err := store.AddProviderResource(ProviderResource{ProviderID: provider.ID, Name: "Configured account", ResourceType: "gemini_cli_account", Credentials: &ProviderResourceCredentials{AccessToken: "synthetic-access", ClientID: "synthetic-client-id", ClientSecret: "synthetic-client-secret"}, Options: map[string]string{"client_secret": "plaintext-secret"}})
 	if err != nil {
@@ -55,7 +55,7 @@ func TestSubscriptionOAuthClientSecretIsEncryptedAndRedacted(t *testing.T) {
 }
 
 func TestSubscriptionOAuthClientSecretEditWinsOverLateRefresh(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	provider := store.AddProvider(Provider{Name: "Configured refresh", Type: providerGeminiCLISubscription, Status: StatusActive, Options: map[string]string{providerCredentialRefreshProfileOption: "synthetic-oauth"}})
 	resource, err := store.AddProviderResource(ProviderResource{ProviderID: provider.ID, Name: "Refresh account", ResourceType: "gemini_cli_account", Credentials: &ProviderResourceCredentials{AccessToken: "original-access", RefreshToken: "original-refresh", ClientID: "synthetic-client-id", ClientSecret: "original-client-secret"}})
 	if err != nil {

@@ -22,7 +22,7 @@ func (f semanticTestEvaluator) Evaluate(ctx context.Context, text string, candid
 
 func semanticFixture(t *testing.T) (*Server, RoutedCall, ChatCompletionRequest) {
 	t.Helper()
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	policy, _ := json.Marshal(SemanticRoutingPolicy{Mode: "enforce", MinConfidence: 0.65})
 	model := store.AddModel(Model{Name: "auto-chat", Modality: "chat", Status: StatusActive, Metadata: map[string]string{semanticRoutingMetadataKey: string(policy), "owner": "synthetic"}})
 	project := store.CreateProject(Project{ID: "prj_semantic", Name: "Semantic test", Status: StatusActive})

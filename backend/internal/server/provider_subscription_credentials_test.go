@@ -11,7 +11,7 @@ import (
 )
 
 func TestSubscriptionSessionIsEncryptedAndNeverListed(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	provider := store.AddProvider(Provider{ID: "prv_session", Name: "Session", Type: "cursor_subscription", Status: StatusActive})
 	session := `{"type":"oauth","refresh":"synthetic-refresh-secret","access":"synthetic-access-secret"}`
 	resource, err := store.AddProviderResource(ProviderResource{ID: "rsrc_session", Name: "Session Account", ProviderID: provider.ID, ResourceType: "cursor_account", Credentials: &ProviderResourceCredentials{SessionJSON: session}, Options: map[string]string{"session_json": session}})
@@ -42,7 +42,7 @@ func TestSubscriptionSessionIsEncryptedAndNeverListed(t *testing.T) {
 }
 
 func TestSubscriptionSessionRotationDoesNotOverwriteAccountEdits(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	provider := store.AddProvider(Provider{ID: "prv_session_cas", Name: "Session CAS", Type: "cursor_subscription", Status: StatusActive})
 	original := `{"type":"oauth","access":"original"}`
 	rotated := `{"type":"oauth","access":"rotated"}`
@@ -66,7 +66,7 @@ func TestSubscriptionSessionRotationDoesNotOverwriteAccountEdits(t *testing.T) {
 }
 
 func TestSubscriptionSessionOptionsCannotBypassEncryptedStorage(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	provider := store.AddProvider(Provider{ID: "prv_session_options", Name: "Session options", Type: "cursor_subscription", Status: StatusActive})
 	session := `{"type":"oauth","access":"encrypted-session-secret"}`
 	resource, err := store.AddProviderResource(ProviderResource{ID: "rsrc_session_options", Name: "Session options account", ProviderID: provider.ID, ResourceType: "cursor_account", Credentials: &ProviderResourceCredentials{SessionJSON: session}})
@@ -101,7 +101,7 @@ func TestSubscriptionSessionOptionsCannotBypassEncryptedStorage(t *testing.T) {
 }
 
 func TestSubscriptionSessionAdminEditWinsOverLateRotation(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	provider := store.AddProvider(Provider{ID: "prv_session_edit", Name: "Session edit", Type: "cursor_subscription", Status: StatusActive})
 	original := `{"type":"oauth","access":"original-session"}`
 	replacement := `{"type":"oauth","access":"administrator-session"}`
@@ -157,7 +157,7 @@ func TestSubscriptionSessionLegacyOptionsAreNotReturned(t *testing.T) {
 }
 
 func TestSubscriptionSessionRejectsMalformedStoredPayloads(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	provider := store.AddProvider(Provider{ID: "prv_session_invalid", Name: "Session invalid", Type: "cursor_subscription", Status: StatusActive})
 	for _, session := range []string{`null`, `[]`, `{}`, `not-json`, strings.Repeat("x", (1<<20)+1)} {
 		_, err := store.AddProviderResource(ProviderResource{ID: NewID("rsrc"), Name: NewID("invalid-session"), ProviderID: provider.ID, ResourceType: "cursor_account", Credentials: &ProviderResourceCredentials{SessionJSON: session}})
@@ -171,8 +171,8 @@ func TestSubscriptionSessionRejectsMalformedStoredPayloads(t *testing.T) {
 }
 
 func TestSubscriptionSessionHTTPExchangeUsesSecretPolicyAndNoStore(t *testing.T) {
-	store := NewMemoryStore()
-	server := NewWithConfig(store, Config{AdminToken: "session-admin"})
+	store := newTestMemoryStore(t)
+	server := newManagedTestServerWithConfig(t, store, Config{AdminToken: "session-admin"})
 	defer func() { _ = server.Shutdown(context.Background()) }()
 	const providerType = "session_test_subscription"
 	const pluginID = "tokenhub.provider.session-test"

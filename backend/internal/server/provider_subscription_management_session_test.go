@@ -9,7 +9,7 @@ import (
 )
 
 func TestExpiredSubscriptionManagementKeepsAdministratorAuthenticated(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	server := New(store)
 	t.Cleanup(func() { _ = server.Shutdown(context.Background()) })
 	definition := subscriptionWorkerDefinition{"qoder", "Qoder"}

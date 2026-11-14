@@ -15,7 +15,7 @@ import (
 // failover decision and the resource health counter at once.
 func classificationGateway(t *testing.T, primaryURL string, secondaryURL string, providerTypes ...string) (*Server, *GormStore, string) {
 	t.Helper()
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	project := store.CreateProject(Project{Name: "Provider Error Classification"})
 	_, secret, err := store.CreateAPIKey(project.ID, APIKey{
 		Name: "classification-key", Allowed: []string{"classified-model"}, Status: StatusActive,
@@ -48,7 +48,7 @@ func classificationGateway(t *testing.T, primaryURL string, secondaryURL string,
 			Status: StatusActive, Strategy: RouteStrategyPriorityOnly,
 		})
 	}
-	return New(store), store, secret
+	return newManagedTestServer(t, store), store, secret
 }
 
 func failingUpstream(t *testing.T, status int, headers map[string]string, calls *int) *httptest.Server {

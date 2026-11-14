@@ -12,7 +12,7 @@ func TestPluginCredentialRefreshRejectsReplacedAccount(t *testing.T) {
 	for _, entry := range []string{"raw", "encoded"} {
 		for _, outcome := range []string{"credentials", "reauthorization"} {
 			t.Run(entry+"/"+outcome, func(t *testing.T) {
-				store := NewMemoryStore()
+				store := newTestMemoryStore(t)
 				server := New(store)
 				t.Cleanup(func() { _ = server.Shutdown(context.Background()) })
 				definition := subscriptionWorkerDefinition{"qoder", "Qoder"}
@@ -73,7 +73,7 @@ func TestPluginCredentialRefreshChecksAccountBinding(t *testing.T) {
 				outcome = "reauthorization"
 			}
 			t.Run(mutation+"/"+outcome, func(t *testing.T) {
-				store := NewMemoryStore()
+				store := newTestMemoryStore(t)
 				server := New(store)
 				t.Cleanup(func() { _ = server.Shutdown(context.Background()) })
 				provider := store.AddProvider(Provider{Name: "Bound subscription", Type: "qoder_subscription", Status: StatusActive})
@@ -122,7 +122,7 @@ func TestPluginCredentialRefreshChecksAccountBinding(t *testing.T) {
 }
 
 func TestPluginCredentialRefreshAllowsRotationAndRetainsCurrentSettings(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	server := New(store)
 	t.Cleanup(func() { _ = server.Shutdown(context.Background()) })
 	provider := store.AddProvider(Provider{Name: "Rotating subscription", Type: "qoder_subscription", Status: StatusActive})

@@ -222,7 +222,7 @@ func TestExternalMockProviderFixtureServesCatalogAndProbe(t *testing.T) {
 
 func newExternalMockProviderGatewayServer(t *testing.T, model string, modality string, providerModel string) (*Server, string) {
 	t.Helper()
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	project := store.CreateProject(Project{Name: "External Mock Provider Project", Status: StatusActive})
 	_, secret, err := store.CreateAPIKey(project.ID, APIKey{Name: "External Mock Provider Key", Allowed: []string{model}, Status: StatusActive}, "thk_external_mock_provider")
 	if err != nil {
@@ -238,7 +238,7 @@ func newExternalMockProviderGatewayServer(t *testing.T, model string, modality s
 		Weight:        100,
 		Status:        StatusActive,
 	})
-	server := NewWithConfig(store, Config{AdminToken: "plugin-admin"})
+	server := newManagedTestServerWithConfig(t, store, Config{AdminToken: "plugin-admin"})
 	allowUnsandboxedProviderCommandsForTest(t, server.adapterRegistry, externalMockProviderFixtureDir())
 	return server, secret
 }

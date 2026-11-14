@@ -10,7 +10,7 @@ import (
 )
 
 func TestRequestTransformHookRequiresMatchingRouteScope(t *testing.T) {
-	server := New(NewMemoryStore())
+	server := newManagedTestServer(t, newTestMemoryStore(t))
 	imageHook := pluginmeta.GatewayHookDescriptor{
 		PluginID:      "tokenhub.test-transform",
 		HookID:        "image-only",
@@ -78,7 +78,7 @@ func TestRequestTransformHookRequiresMatchingRouteScope(t *testing.T) {
 }
 
 func TestRequestTransformFailoverPreservesOriginalChatRequestPerAttempt(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	project := store.CreateProject(Project{Name: "Request Transform Failover Isolation App"})
 	_, secret, err := store.CreateAPIKey(project.ID, APIKey{
 		Name:    "request-transform-failover-key",
@@ -93,7 +93,7 @@ func TestRequestTransformFailoverPreservesOriginalChatRequestPerAttempt(t *testi
 	store.AddModel(Model{Name: "gpt-transform-failover", Modality: "chat", Status: StatusActive})
 	store.AddRoute(ModelRoute{ID: "route_transform_failover_a", ModelName: "gpt-transform-failover", ProviderID: firstProvider.ID, ProviderModel: "upstream-a", Status: StatusActive, Priority: 1, Weight: 100})
 	store.AddRoute(ModelRoute{ID: "route_transform_failover_b", ModelName: "gpt-transform-failover", ProviderID: secondProvider.ID, ProviderModel: "upstream-b", Status: StatusActive, Priority: 2, Weight: 100})
-	server := New(store)
+	server := newManagedTestServer(t, store)
 	adapter := &requestTransformFailoverCaptureAdapter{failProviderID: firstProvider.ID}
 	server.adapterRegistry.Register(requestTransformFailoverCaptureType, adapter, AdapterCapabilityChat)
 
@@ -171,7 +171,7 @@ func TestRequestTransformFailoverPreservesOriginalChatRequestPerAttempt(t *testi
 }
 
 func TestRequestTransformFailOpenUsesOriginalChatRequest(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	project := store.CreateProject(Project{Name: "Request Transform Fail Open App"})
 	_, secret, err := store.CreateAPIKey(project.ID, APIKey{
 		Name:    "request-transform-fail-open-key",
@@ -184,7 +184,7 @@ func TestRequestTransformFailOpenUsesOriginalChatRequest(t *testing.T) {
 	provider := store.AddProvider(Provider{ID: "prv_transform_open", Name: "Transform Open", Type: requestTransformFailoverCaptureType, Status: StatusActive, Healthy: true})
 	store.AddModel(Model{Name: "gpt-transform-open", Modality: "chat", Status: StatusActive})
 	store.AddRoute(ModelRoute{ID: "route_transform_open", ModelName: "gpt-transform-open", ProviderID: provider.ID, ProviderModel: "upstream-open", Status: StatusActive, Priority: 1, Weight: 100})
-	server := New(store)
+	server := newManagedTestServer(t, store)
 	adapter := &requestTransformFailoverCaptureAdapter{}
 	server.adapterRegistry.Register(requestTransformFailoverCaptureType, adapter, AdapterCapabilityChat)
 
@@ -222,7 +222,7 @@ func TestRequestTransformFailOpenUsesOriginalChatRequest(t *testing.T) {
 }
 
 func TestRequestTransformFailOpenDoesNotPoisonNextFailoverAttempt(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	project := store.CreateProject(Project{Name: "Request Transform Fail Open Failover App"})
 	_, secret, err := store.CreateAPIKey(project.ID, APIKey{
 		Name:    "request-transform-fail-open-failover-key",
@@ -237,7 +237,7 @@ func TestRequestTransformFailOpenDoesNotPoisonNextFailoverAttempt(t *testing.T) 
 	store.AddModel(Model{Name: "gpt-transform-open-failover", Modality: "chat", Status: StatusActive})
 	store.AddRoute(ModelRoute{ID: "route_transform_open_failover_a", ModelName: "gpt-transform-open-failover", ProviderID: firstProvider.ID, ProviderModel: "upstream-a", Status: StatusActive, Priority: 1, Weight: 100})
 	store.AddRoute(ModelRoute{ID: "route_transform_open_failover_b", ModelName: "gpt-transform-open-failover", ProviderID: secondProvider.ID, ProviderModel: "upstream-b", Status: StatusActive, Priority: 2, Weight: 100})
-	server := New(store)
+	server := newManagedTestServer(t, store)
 	adapter := &requestTransformFailoverCaptureAdapter{failProviderID: firstProvider.ID}
 	server.adapterRegistry.Register(requestTransformFailoverCaptureType, adapter, AdapterCapabilityChat)
 

@@ -12,7 +12,7 @@ import (
 )
 
 func TestResponseTransformFailOpenPreservesProviderResponse(t *testing.T) {
-	server := New(NewMemoryStore())
+	server := newManagedTestServer(t, newTestMemoryStore(t))
 	hook := pluginmeta.GatewayHookDescriptor{
 		PluginID:      "tokenhub.test-response-transform",
 		HookID:        "fail-open",
@@ -43,7 +43,7 @@ func TestResponseTransformFailOpenPreservesProviderResponse(t *testing.T) {
 }
 
 func TestResponseTransformInvalidPatchReturnsStableError(t *testing.T) {
-	server := New(NewMemoryStore())
+	server := newManagedTestServer(t, newTestMemoryStore(t))
 	hook := pluginmeta.GatewayHookDescriptor{
 		PluginID:      "tokenhub.test-response-transform",
 		HookID:        "invalid-patch",
@@ -82,7 +82,7 @@ func TestResponseTransformPolicyRejectsUsageAndCacheWrites(t *testing.T) {
 	}
 	for _, dataClass := range tests {
 		t.Run(string(dataClass), func(t *testing.T) {
-			server := New(NewMemoryStore())
+			server := newManagedTestServer(t, newTestMemoryStore(t))
 			err := server.gatewayChain.RegisterHook(pluginmeta.GatewayHookDescriptor{
 				PluginID:      "tokenhub.test-response-transform-policy",
 				HookID:        "writes-" + string(dataClass),
@@ -99,7 +99,7 @@ func TestResponseTransformPolicyRejectsUsageAndCacheWrites(t *testing.T) {
 }
 
 func TestResponseTransformFailClosedDoesNotFailOverAfterProviderSuccess(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	project := store.CreateProject(Project{Name: "Response Transform Failover", Status: StatusActive})
 	_, secret, err := store.CreateAPIKey(project.ID, APIKey{
 		Name:    "response-transform-failover-key",
@@ -114,7 +114,7 @@ func TestResponseTransformFailClosedDoesNotFailOverAfterProviderSuccess(t *testi
 	store.AddModel(Model{Name: "gpt-response-transform-failover", Modality: "chat", Status: StatusActive})
 	store.AddRoute(ModelRoute{ID: "route_response_transform_first", ModelName: "gpt-response-transform-failover", ProviderID: first.ID, ProviderModel: "first", Status: StatusActive, Priority: 1, Weight: 100, Strategy: "priority_only"})
 	store.AddRoute(ModelRoute{ID: "route_response_transform_second", ModelName: "gpt-response-transform-failover", ProviderID: second.ID, ProviderModel: "second", Status: StatusActive, Priority: 2, Weight: 100, Strategy: "priority_only"})
-	server := New(store)
+	server := newManagedTestServer(t, store)
 	adapter := &responseTransformFailoverProbeAdapter{}
 	server.adapterRegistry.Register(responseTransformFailoverProbeType, adapter, AdapterCapabilityChat)
 	hook := pluginmeta.GatewayHookDescriptor{
@@ -153,7 +153,7 @@ func TestResponseTransformFailClosedDoesNotFailOverAfterProviderSuccess(t *testi
 }
 
 func TestResponseTransformCacheHitRunsBeforeUsageAttribution(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	project := store.CreateProject(Project{Name: "Response Transform Cache Hit", Status: StatusActive})
 	_, secret, err := store.CreateAPIKey(project.ID, APIKey{
 		Name:    "response-transform-cache-hit-key",
@@ -164,7 +164,7 @@ func TestResponseTransformCacheHitRunsBeforeUsageAttribution(t *testing.T) {
 		t.Fatal(err)
 	}
 	store.AddModel(Model{Name: "gpt-response-transform-cache-hit", Modality: "chat", Status: StatusActive})
-	server := New(store)
+	server := newManagedTestServer(t, store)
 	stages := []pluginmeta.GatewayHookStage{}
 	cacheHook := pluginmeta.GatewayHookDescriptor{
 		PluginID:      "tokenhub.test-response-transform-cache",

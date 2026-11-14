@@ -54,7 +54,7 @@ func TestNotificationChannelTestHTTPResponseOutcomes(t *testing.T) {
 				_, _ = io.WriteString(w, tt.body)
 			}))
 			t.Cleanup(webhook.Close)
-			store := NewMemoryStore()
+			store := newTestMemoryStore(t)
 			channel := store.CreateResource("notification-channels", AdminResource{
 				Name: "HTTP response review", Status: StatusActive,
 				Fields: map[string]any{"type": tt.channelType, "webhook_url": webhook.URL, "secret": "secret-token", "telegram_chat_id": "test-chat"},
@@ -84,7 +84,7 @@ func TestNotificationChannelTestDoesNotSucceedAfterResponseTimeout(t *testing.T)
 		<-r.Context().Done()
 	}))
 	t.Cleanup(webhook.Close)
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	channel := store.CreateResource("notification-channels", AdminResource{
 		Name: "Stalled response", Status: StatusActive,
 		Fields: map[string]any{"type": "dingtalk", "webhook_url": webhook.URL},

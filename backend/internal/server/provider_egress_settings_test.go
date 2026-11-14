@@ -24,7 +24,7 @@ func (store *failingAdminResourceSecretStore) revealAdminResourceSecret(secret s
 }
 
 func TestGatewaySettingsProtectConfiguredProxyCredential(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	store.CreateResource("settings", AdminResource{
 		ID:     gatewaySettingsID,
 		Name:   "Gateway Base Settings",
@@ -73,7 +73,7 @@ func TestGatewaySettingsProtectConfiguredProxyCredential(t *testing.T) {
 }
 
 func TestGatewaySettingsFailClosedWhenProxyCredentialProtectionFails(t *testing.T) {
-	base := NewMemoryStoreWithConfig(Config{SecretKey: "proxy-settings-failure-secret-key"})
+	base := newTestMemoryStoreWithConfig(t, Config{SecretKey: "proxy-settings-failure-secret-key"})
 	base.CreateResource("settings", AdminResource{
 		ID:     gatewaySettingsID,
 		Name:   "Gateway Base Settings",
@@ -135,7 +135,7 @@ func TestConfiguredProxyRoutesProviderModelDiscovery(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	if err := BootstrapBaseData(store); err != nil {
 		t.Fatal(err)
 	}
@@ -172,7 +172,7 @@ func TestGatewaySettingsSwitchConfiguredProxyForNewRequests(t *testing.T) {
 	proxyTwo := newProviderModelsProxy(t, "proxy-two-model")
 	defer proxyTwo.Close()
 
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	if err := BootstrapBaseData(store); err != nil {
 		t.Fatal(err)
 	}
@@ -221,7 +221,7 @@ func TestConfiguredProxyDoesNotRelaxProviderTargetValidation(t *testing.T) {
 	}))
 	defer proxy.Close()
 
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	if err := BootstrapBaseData(store); err != nil {
 		t.Fatal(err)
 	}
@@ -246,7 +246,7 @@ func TestConfiguredProxyDoesNotRelaxProviderTargetValidation(t *testing.T) {
 }
 
 func TestConfiguredProxyRejectsMetadataProviderTarget(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	if err := BootstrapBaseData(store); err != nil {
 		t.Fatal(err)
 	}
@@ -284,7 +284,7 @@ func TestConfiguredProxyUsesEncryptedBasicCredential(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	if err := BootstrapBaseData(store); err != nil {
 		t.Fatal(err)
 	}
@@ -316,7 +316,7 @@ func TestConfiguredProxyUsesEncryptedBasicCredential(t *testing.T) {
 }
 
 func TestGatewaySettingsRetainMaskedProxyPasswordAndClearDisabledAuthentication(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	store.CreateResource("settings", AdminResource{ID: gatewaySettingsID, Name: "Gateway Base Settings", Status: StatusActive, Fields: map[string]any{}})
 	server := NewWithConfig(store, Config{AdminToken: "proxy-password-admin", SecretKey: "proxy-password-secret-key"})
 	t.Cleanup(func() { _ = server.Shutdown(t.Context()) })
@@ -363,7 +363,7 @@ func TestGatewaySettingsRetainMaskedProxyPasswordAndClearDisabledAuthentication(
 }
 
 func TestGatewaySettingsRejectInvalidConfiguredProxyWithoutTestingReachability(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	store.CreateResource("settings", AdminResource{ID: gatewaySettingsID, Name: "Gateway Base Settings", Status: StatusActive, Fields: map[string]any{}})
 	server := NewWithConfig(store, Config{AdminToken: "proxy-validation-admin", SecretKey: "proxy-validation-secret-key"})
 	t.Cleanup(func() { _ = server.Shutdown(t.Context()) })
@@ -408,7 +408,7 @@ func TestProviderEgressTestUsesUnsavedProxyWithoutProviderCredentials(t *testing
 	}))
 	defer proxy.Close()
 
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	if err := BootstrapBaseData(store); err != nil {
 		t.Fatal(err)
 	}

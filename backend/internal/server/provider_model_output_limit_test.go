@@ -28,7 +28,7 @@ func TestCatalogOutputLimitsSurviveProviderModelImport(t *testing.T) {
 				t.Fatalf("expected a real catalog entry with only a typed output limit: %+v", catalogModel)
 			}
 			originalMetadata := cloneStringMap(catalogModel.Metadata)
-			store := NewMemoryStore()
+			store := newTestMemoryStore(t)
 			provider := store.AddProvider(Provider{ID: target.provider, Type: ProviderOpenAICompatible, Status: StatusActive})
 			app := New(store)
 			t.Cleanup(func() { _ = app.Shutdown(context.Background()) })

@@ -11,7 +11,7 @@ import (
 )
 
 func TestAdmissionHookReceivesRequestContextAndReservation(t *testing.T) {
-	server := New(NewMemoryStore())
+	server := newManagedTestServer(t, newTestMemoryStore(t))
 	hook := pluginmeta.GatewayHookDescriptor{
 		PluginID:      "tokenhub.test-admission",
 		HookID:        "inspect",
@@ -64,7 +64,7 @@ func TestAdmissionHookReceivesRequestContextAndReservation(t *testing.T) {
 }
 
 func TestAdmissionHookDenyReturnsForbidden(t *testing.T) {
-	server := New(NewMemoryStore())
+	server := newManagedTestServer(t, newTestMemoryStore(t))
 	hook := pluginmeta.GatewayHookDescriptor{
 		PluginID:      "tokenhub.test-admission",
 		HookID:        "deny",
@@ -89,8 +89,8 @@ func TestAdmissionHookDenyReturnsForbidden(t *testing.T) {
 }
 
 func TestAdmissionHookContinueRecordsPluginAuditEvent(t *testing.T) {
-	store := NewMemoryStore()
-	server := New(store)
+	store := newTestMemoryStore(t)
+	server := newManagedTestServer(t, store)
 	hook := pluginmeta.GatewayHookDescriptor{
 		PluginID:      "tokenhub.test-admission",
 		HookID:        "allow-audit",
@@ -122,8 +122,8 @@ func TestAdmissionHookContinueRecordsPluginAuditEvent(t *testing.T) {
 }
 
 func TestAdmissionHookDenyRecordsPluginAuditEvent(t *testing.T) {
-	store := NewMemoryStore()
-	server := New(store)
+	store := newTestMemoryStore(t)
+	server := newManagedTestServer(t, store)
 	hook := pluginmeta.GatewayHookDescriptor{
 		PluginID:      "tokenhub.test-admission",
 		HookID:        "deny-audit",
@@ -152,8 +152,8 @@ func TestAdmissionHookDenyRecordsPluginAuditEvent(t *testing.T) {
 }
 
 func TestAdmissionHookScopeMismatchDoesNotRecordPluginAuditEvent(t *testing.T) {
-	store := NewMemoryStore()
-	server := New(store)
+	store := newTestMemoryStore(t)
+	server := newManagedTestServer(t, store)
 	hook := pluginmeta.GatewayHookDescriptor{
 		PluginID:      "tokenhub.test-admission",
 		HookID:        "scoped-audit",
@@ -190,7 +190,7 @@ func TestAdmissionHookScopeMismatchDoesNotRecordPluginAuditEvent(t *testing.T) {
 }
 
 func TestAdmissionHookDenyStopsGatewayChatBeforeProvider(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	project := store.CreateProject(Project{Name: "Admission Plugin App"})
 	_, secret, err := store.CreateAPIKey(project.ID, APIKey{
 		Name:    "admission-plugin-key",
@@ -203,7 +203,7 @@ func TestAdmissionHookDenyStopsGatewayChatBeforeProvider(t *testing.T) {
 	provider := store.AddProvider(Provider{ID: "prv_admission_plugin", Name: "Admission Plugin Provider", Type: "admission_capture", Status: StatusActive, Healthy: true})
 	store.AddModel(Model{Name: "gpt-admission-plugin", Modality: "chat", Status: StatusActive})
 	store.AddRoute(ModelRoute{ID: "route_admission_plugin", ModelName: "gpt-admission-plugin", ProviderID: provider.ID, ProviderModel: "upstream-admission", Status: StatusActive, Priority: 1, Weight: 100})
-	server := New(store)
+	server := newManagedTestServer(t, store)
 	adapter := &requestTransformCaptureAdapter{}
 	server.adapterRegistry.Register("admission_capture", adapter, AdapterCapabilityChat)
 

@@ -96,6 +96,7 @@ func SchemaMigrationRegistry() []dbschema.Migration {
 		responsesImageStoreMigration(),
 		paymentMigration(),
 		paymentCheckoutMigration(),
+		walletUsageMigration(),
 		{
 			Version:          2,
 			Name:             "add-granular-billing-columns-sqlite",

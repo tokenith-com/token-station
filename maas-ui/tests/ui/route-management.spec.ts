@@ -1,6 +1,6 @@
 import type { Model, ModelRoute, ModelRoutePolicy, Provider, ProviderModel } from "../../features/admin/core/types";
 import { test, expect, capture } from "./harness";
-import { model, project, shellResponses } from "./fixtures/shell";
+import { model, project, shellResponses, installModelDirectoryReads } from "./fixtures/shell";
 import type { MockAPI } from "./network";
 
 const unmapped: Model = { ...model, id: "mdl_ui_unmapped", name: "ui-unmapped-model" };
@@ -11,6 +11,7 @@ const providerModel: ProviderModel = { id: "pm_ui_route", provider_id: provider.
 function installRouteFixtures(api: MockAPI) {
   const overview = shellResponses().get("GET /api/admin/overview") as Record<string, unknown>;
   api.replaceResponse("GET", "/api/admin/overview", { ...overview, providers: [provider], models: [model, unmapped] });
+  installModelDirectoryReads(api, [model, unmapped], [provider], ["providers", "provider-adapters", "plugins", "plugin-ui-manifest", "plugin-actions"]);
   api.replaceResponse("GET", "/api/admin/provider-models", { data: [providerModel] });
   api.respond("GET", "/api/admin/providers", { data: [provider] });
   api.respond("GET", "/api/admin/routing-rules", { data: [route] });
@@ -75,7 +76,8 @@ test("route-management opens-unmapped-model-from-directory", async ({ page, api 
   await page.getByRole("button", { name: "草稿/待映射", exact: true }).click();
   const row = page.getByRole("row").filter({ hasText: unmapped.name });
   await row.getByRole("button", { name: `路由策略：${unmapped.name}`, exact: true }).click();
-  await expect(page).toHaveURL(/\/routes$/);
+  await expect(page).toHaveURL(/\/routes\/\?model=ui-unmapped-model$/);
+  await page.reload();
   await expect(page.getByRole("tab", { name: /全部模型/ })).toHaveAttribute("aria-selected", "true");
   await expect(page.getByRole("row").filter({ hasText: unmapped.name })).toBeVisible();
   await page.getByRole("button", { name: `配置路由：${unmapped.name}`, exact: true }).click();

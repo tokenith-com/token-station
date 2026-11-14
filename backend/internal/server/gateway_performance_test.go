@@ -168,7 +168,7 @@ func benchmarkDatabaseMatrix(b *testing.B, benchmark func(*testing.B, *GormStore
 
 func newBenchmarkMemoryStore(b *testing.B) *GormStore {
 	b.Helper()
-	store := NewMemoryStoreWithConfig(benchmarkServerConfig())
+	store := newTestMemoryStoreWithConfig(b, benchmarkServerConfig())
 	closeBenchmarkStore(b, store)
 	return store
 }

@@ -111,7 +111,7 @@ func monitoringQuotaSummaryFromCachedAccounts(t *testing.T, quotas []string) map
 			}
 		}
 	}
-	server := New(store)
+	server := newManagedTestServer(t, store)
 	upstreamCalls := 0
 	mustCodexSubscriptionAdapterForTest(t, server).Client = &http.Client{Transport: roundTripperFunc(func(*http.Request) (*http.Response, error) {
 		upstreamCalls++

@@ -23,7 +23,7 @@ func TestNotificationEmailUsesSavedCredentials(t *testing.T) {
 		{"encrypted_alias", "password", "encrypted-smtp-password", true},
 	} {
 		t.Run(scenario.name, func(t *testing.T) {
-			store := NewMemoryStore()
+			store := newTestMemoryStore(t)
 			_, adminToken := createAdminIdentityAPIKeyMethodSession(t, store, AdminUser{Username: "notification-admin", Email: "admin@example.test", Role: "admin", Status: StatusActive})
 			server := New(store)
 			t.Cleanup(func() { _ = server.Shutdown(t.Context()) })

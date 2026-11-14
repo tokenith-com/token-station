@@ -13,7 +13,7 @@ import (
 )
 
 func TestGatewayModelsAndChatCompletion(t *testing.T) {
-	app := newTestServer()
+	app := newTestServer(t)
 
 	models := doJSON(t, app, http.MethodGet, "/v1/models", nil, "thk_demo_local")
 	if models.Code != http.StatusOK {
@@ -72,7 +72,7 @@ func TestGatewayModelsAndChatCompletion(t *testing.T) {
 }
 
 func TestGatewayModelsOnlyListPublishedRoutedModels(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	if err := SeedDemoData(store); err != nil {
 		t.Fatal(err)
 	}
@@ -89,7 +89,7 @@ func TestGatewayModelsOnlyListPublishedRoutedModels(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	resp := doJSON(t, New(store).Handler(), http.MethodGet, "/v1/models", nil, "thk_unrestricted_models")
+	resp := doJSON(t, newManagedTestServer(t, store).Handler(), http.MethodGet, "/v1/models", nil, "thk_unrestricted_models")
 	if resp.Code != http.StatusOK {
 		t.Fatalf("expected 200, got %d: %s", resp.Code, resp.Body)
 	}
@@ -104,7 +104,7 @@ func TestGatewayModelsOnlyListPublishedRoutedModels(t *testing.T) {
 }
 
 func TestGatewayRejectsTrailingJSONValue(t *testing.T) {
-	app := newTestServer()
+	app := newTestServer(t)
 	body := `{"model":"gpt-4.1-mini","messages":[{"role":"user","content":"hello"}]}{"extra":true}`
 	req := httptest.NewRequest(http.MethodPost, "/v1/chat/completions", strings.NewReader(body))
 	req.Header.Set("content-type", "application/json")
@@ -126,7 +126,7 @@ func TestGatewayRejectsTrailingJSONValue(t *testing.T) {
 }
 
 func TestGatewayModelsExposeJieKouCompatibleFields(t *testing.T) {
-	app := newTestServer()
+	app := newTestServer(t)
 
 	resp := doJSON(t, app, http.MethodGet, "/v1/models", nil, "thk_demo_local")
 	if resp.Code != http.StatusOK {
@@ -184,7 +184,7 @@ func TestGatewayModelsExposeJieKouCompatibleFields(t *testing.T) {
 }
 
 func TestGatewayModelsExposeCodexCompatibleEnvelope(t *testing.T) {
-	resp := doJSON(t, newTestServer(), http.MethodGet, "/v1/models", nil, "thk_demo_local")
+	resp := doJSON(t, newTestServer(t), http.MethodGet, "/v1/models", nil, "thk_demo_local")
 	if resp.Code != http.StatusOK {
 		t.Fatalf("expected 200, got %d: %s", resp.Code, resp.Body)
 	}
@@ -201,7 +201,7 @@ func TestGatewayModelsExposeCodexCompatibleEnvelope(t *testing.T) {
 }
 
 func TestGatewayRetrieveModelExposeJieKouCompatibleFields(t *testing.T) {
-	app := newTestServer()
+	app := newTestServer(t)
 
 	resp := doJSON(t, app, http.MethodGet, "/v1/models/gpt-4.1-mini", nil, "thk_demo_local")
 	if resp.Code != http.StatusOK {
@@ -241,7 +241,7 @@ func TestGatewayRetrieveModelExposeJieKouCompatibleFields(t *testing.T) {
 }
 
 func TestGatewayRetrieveModelSupportsEscapedModelIDs(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	project := store.CreateProject(Project{ID: "prj_path_model", Name: "Path Model Project", Status: StatusActive})
 	_, _, err := store.CreateAPIKey(project.ID, APIKey{
 		ID:      "key_path_model",
@@ -259,7 +259,7 @@ func TestGatewayRetrieveModelSupportsEscapedModelIDs(t *testing.T) {
 		ProviderModel: "provider/model",
 		Status:        StatusActive,
 	})
-	app := New(store).Handler()
+	app := newManagedTestServer(t, store).Handler()
 
 	resp := doJSON(t, app, http.MethodGet, "/v1/models/provider%2Fmodel", nil, "thk_path_model")
 	if resp.Code != http.StatusOK {
@@ -271,7 +271,7 @@ func TestGatewayRetrieveModelSupportsEscapedModelIDs(t *testing.T) {
 }
 
 func TestGatewayStreamingChatCompletion(t *testing.T) {
-	app := newTestServer()
+	app := newTestServer(t)
 	resp := doJSON(t, app, http.MethodPost, "/v1/chat/completions", map[string]any{
 		"model":  "gpt-4.1-mini",
 		"stream": true,
@@ -288,7 +288,7 @@ func TestGatewayStreamingChatCompletion(t *testing.T) {
 }
 
 func TestAdminPlaygroundChatUsesRoutesWithoutProjectBilling(t *testing.T) {
-	app := newTestServer()
+	app := newTestServer(t)
 	before := doJSON(t, app, http.MethodGet, "/api/admin/usage/summary", nil, "")
 	if before.Code != http.StatusOK {
 		t.Fatalf("usage summary before failed: %d %s", before.Code, before.Body)
@@ -361,7 +361,7 @@ func TestAdminPlaygroundChatUsesRoutesWithoutProjectBilling(t *testing.T) {
 
 func TestAdminPlaygroundModesPreserveImagesForCodexSubscription(t *testing.T) {
 	dataURI := "data:image/png;base64,YWJj"
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	project := store.CreateProject(Project{Name: "Playground Codex Project"})
 	provider := store.AddProvider(Provider{
 		ID:      "prv_playground_codex",
@@ -396,7 +396,7 @@ func TestAdminPlaygroundModesPreserveImagesForCodexSubscription(t *testing.T) {
 		Status:             StatusActive,
 	})
 
-	server := New(store)
+	server := newManagedTestServer(t, store)
 	mustCodexSubscriptionAdapterForTest(t, server).Client = &http.Client{Transport: roundTripperFunc(func(req *http.Request) (*http.Response, error) {
 		if req.URL.Path != "/backend-api/codex/responses" {
 			t.Fatalf("expected Codex Responses endpoint, got %s", req.URL)
@@ -494,7 +494,7 @@ func TestAdminPlaygroundModesPreserveImagesForCodexSubscription(t *testing.T) {
 }
 
 func TestGatewayEmbeddings(t *testing.T) {
-	app := newTestServer()
+	app := newTestServer(t)
 	resp := doJSON(t, app, http.MethodPost, "/v1/embeddings", map[string]any{
 		"model": "text-embedding-3-small",
 		"input": "enterprise ai gateway",
@@ -509,7 +509,7 @@ func TestGatewayEmbeddings(t *testing.T) {
 
 func TestBootstrapSeedsStandardModelCatalog(t *testing.T) {
 	t.Setenv("TOKENHUB_MODEL_CATALOG_FILE", "../../../data/model-catalog.yaml")
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	if err := BootstrapBaseData(store); err != nil {
 		t.Fatal(err)
 	}
@@ -673,11 +673,11 @@ models:
 		t.Fatal(err)
 	}
 
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	store.AddModel(Model{Name: "factory-chat", Family: "customized", Modality: "chat", ContextWindow: 1000, Status: StatusDisabled})
 	store.AddModel(Model{Name: "factory-embedding", Family: "customized", Modality: "embedding", EmbeddingPriceUSDPer1M: 9, Status: StatusDisabled})
 	store.AddModel(Model{Name: "custom-only", Family: "custom", Modality: "chat", Status: StatusActive})
-	app := NewWithConfig(store, Config{AdminToken: "dev_admin_token", ModelCatalogFile: catalogPath}).Handler()
+	app := newManagedTestServerWithConfig(t, store, Config{AdminToken: "dev_admin_token", ModelCatalogFile: catalogPath}).Handler()
 
 	deleteResp := doJSON(t, app, http.MethodDelete, "/api/admin/models/factory-chat", nil, "")
 	if deleteResp.Code != http.StatusNoContent {
@@ -708,7 +708,7 @@ models:
 }
 
 func TestAdminModelItemSupportsEscapedSlashNames(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	store.AddModel(Model{Name: "deepseek/deepseek-ocr-2", Family: "deepseek", Modality: "ocr", Status: StatusActive})
 	store.AddRoute(ModelRoute{
 		ID:            "route_deepseek_ocr",
@@ -717,7 +717,7 @@ func TestAdminModelItemSupportsEscapedSlashNames(t *testing.T) {
 		ProviderModel: "deepseek-ocr-2",
 		Status:        StatusActive,
 	})
-	app := New(store).Handler()
+	app := newManagedTestServer(t, store).Handler()
 
 	patch := doJSON(t, app, http.MethodPatch, "/api/admin/models/deepseek%2Fdeepseek-ocr-2", map[string]any{
 		"family":   "deepseek-updated",

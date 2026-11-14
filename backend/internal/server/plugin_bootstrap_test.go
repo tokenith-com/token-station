@@ -153,7 +153,7 @@ func TestBootstrapServerPluginsSkipsDisabledBuiltInProviderAdapter(t *testing.T)
 }
 
 func TestInstallServerPluginHandlersRegistersBuiltinActionAndBackgroundCallbacks(t *testing.T) {
-	server := NewWithConfig(NewMemoryStore(), Config{AdminToken: "dev_admin_token"})
+	server := newManagedTestServerWithConfig(t, newTestMemoryStore(t), Config{AdminToken: "dev_admin_token"})
 
 	if _, ok := server.pluginActions.Describe("tokenhub.provider.openai-codex", "openai_codex.oauth.start"); !ok {
 		t.Fatal("built-in Codex OAuth action was not registered")

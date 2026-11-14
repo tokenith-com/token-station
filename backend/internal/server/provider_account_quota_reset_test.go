@@ -56,7 +56,7 @@ func (u *quotaResetUpstream) handler(w http.ResponseWriter, r *http.Request) {
 
 func newQuotaResetTestServer(t *testing.T, upstream *quotaResetUpstream, credentials ProviderResourceCredentials) (*Server, *GormStore, *httptest.Server) {
 	t.Helper()
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	provider := store.AddProvider(Provider{
 		ID: "prv_quota_reset_test", Name: "Quota Reset Codex", Type: ProviderOpenAICodex,
 		Status: StatusActive, Healthy: true,
@@ -70,7 +70,7 @@ func newQuotaResetTestServer(t *testing.T, upstream *quotaResetUpstream, credent
 	}
 	fake := httptest.NewServer(http.HandlerFunc(upstream.handler))
 	t.Cleanup(fake.Close)
-	server := NewWithConfig(store, Config{AdminToken: "dev_admin_token", SecretKey: "quota-reset-test-secret"})
+	server := newManagedTestServerWithConfig(t, store, Config{AdminToken: "dev_admin_token", SecretKey: "quota-reset-test-secret"})
 	mustCodexSubscriptionAdapterForTest(t, server).QuotaURL = fake.URL + "/backend-api/wham/usage"
 	mustCodexSubscriptionAdapterForTest(t, server).Client = fake.Client()
 	return server, store, fake
@@ -118,7 +118,7 @@ func quotaResetErrorCode(t *testing.T, response *httptest.ResponseRecorder) stri
 }
 
 func TestQuotaResetResourceEligibilityUsesPluginActionMetadata(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	providerType := "quota_reset_metadata_provider"
 	resourceType := "quota_reset_metadata_subscription"
 	provider := store.AddProvider(Provider{
@@ -139,7 +139,7 @@ func TestQuotaResetResourceEligibilityUsesPluginActionMetadata(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	server := New(store)
+	server := newManagedTestServer(t, store)
 	pluginID := "tokenhub.provider.quota-reset-metadata"
 	if err := server.adapterRegistry.RegisterPlugin(pluginmeta.BuiltInProvider(pluginID, "Quota Reset Metadata", []string{providerType}, []string{string(AdapterCapabilityQuota)}), AdapterRegistration{
 		Type:         providerType,

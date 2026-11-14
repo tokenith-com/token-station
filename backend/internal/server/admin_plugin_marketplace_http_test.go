@@ -43,7 +43,7 @@ kinds:
 	}))
 	defer upstream.Close()
 
-	server := NewWithConfig(NewMemoryStore(), Config{AdminToken: "dev_admin_token", PluginDir: pluginDir, PluginMarketplaceURL: upstream.URL + "/index.json"})
+	server := newManagedTestServerWithConfig(t, newTestMemoryStore(t), Config{AdminToken: "dev_admin_token", PluginDir: pluginDir, PluginMarketplaceURL: upstream.URL + "/index.json"})
 	server.pluginMarketplaceClient = upstream.Client()
 
 	response := doJSON(t, server.Handler(), http.MethodGet, "/api/admin/plugin-marketplace", nil, "dev_admin_token")
@@ -89,7 +89,7 @@ kinds:
 	}))
 	defer upstream.Close()
 
-	server := NewWithConfig(NewMemoryStore(), Config{AdminToken: "dev_admin_token", PluginDir: pluginDir, PluginMarketplaceURL: upstream.URL + "/index.json"})
+	server := newManagedTestServerWithConfig(t, newTestMemoryStore(t), Config{AdminToken: "dev_admin_token", PluginDir: pluginDir, PluginMarketplaceURL: upstream.URL + "/index.json"})
 	server.pluginMarketplaceClient = upstream.Client()
 
 	response := doJSON(t, server.Handler(), http.MethodGet, "/api/admin/plugin-marketplace", nil, "dev_admin_token")
@@ -140,7 +140,7 @@ kinds:
 	upstream := httptest.NewTLSServer(http.NotFoundHandler())
 	defer upstream.Close()
 
-	server := NewWithConfig(NewMemoryStore(), Config{AdminToken: "dev_admin_token", PluginDir: pluginDir, PluginMarketplaceURL: upstream.URL + "/index.json"})
+	server := newManagedTestServerWithConfig(t, newTestMemoryStore(t), Config{AdminToken: "dev_admin_token", PluginDir: pluginDir, PluginMarketplaceURL: upstream.URL + "/index.json"})
 	server.pluginMarketplaceClient = upstream.Client()
 
 	response := doJSON(t, server.Handler(), http.MethodGet, "/api/admin/plugin-marketplace", nil, "dev_admin_token")

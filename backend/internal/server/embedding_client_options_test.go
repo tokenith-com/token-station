@@ -76,7 +76,7 @@ func TestEmbeddingGatewayRAGFlowClientOptions(t *testing.T) {
 		}
 	}))
 	defer upstream.Close()
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	project := store.CreateProject(Project{Name: "RAGFlow compatibility", Status: StatusActive})
 	store.AddModel(Model{Name: "local-embedding", Modality: "embedding", Status: StatusActive, EmbeddingPriceUSDPer1M: 1})
 	store.AddProvider(Provider{ID: "ragflow-provider", Type: ProviderOpenAICompatible, BaseURL: upstream.URL + "/v1", Status: StatusActive, Healthy: true})
@@ -86,7 +86,7 @@ func TestEmbeddingGatewayRAGFlowClientOptions(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	app := New(store)
+	app := newManagedTestServer(t, store)
 	defer func() { _ = app.Shutdown(context.Background()) }()
 	tests := []struct {
 		name       string

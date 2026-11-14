@@ -18,7 +18,7 @@ func (a *pluginHealthProbeAdapter) ProbeProvider(context.Context, Provider) (any
 }
 
 func TestIntegrationServiceUsesProviderHealthProbeCapability(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	provider := store.AddProvider(Provider{
 		ID: "prv_plugin_health", Name: "Plugin Health", Type: "plugin_health",
 		Status: StatusActive, Healthy: false,
@@ -44,7 +44,7 @@ func TestIntegrationServiceUsesProviderHealthProbeCapability(t *testing.T) {
 }
 
 func TestIntegrationServiceUsesRegistryProbeFallbackPolicy(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	providerType := "store_probe_provider"
 	provider := store.AddProvider(Provider{
 		ID: "prv_store_probe", Name: "Store Probe", Type: providerType,
@@ -96,7 +96,7 @@ func TestIntegrationServiceUsesRegistryProbeFallbackPolicy(t *testing.T) {
 }
 
 func TestIntegrationServiceDoesNotUseStoreFallbackWithoutCapability(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	providerType := "catalog_probe_provider"
 	provider := store.AddProvider(Provider{
 		ID: "prv_catalog_probe", Name: "Catalog Probe", Type: providerType,

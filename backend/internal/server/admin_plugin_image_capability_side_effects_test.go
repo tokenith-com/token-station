@@ -11,7 +11,7 @@ import (
 )
 
 func TestProviderImageCapabilityActionMetadataAppliesRouteSideEffects(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	providerType := "image_capability_side_effect_plugin"
 	publicModel := "plugin-public-image"
 	upstreamModel := "plugin-upstream-image"
@@ -32,7 +32,7 @@ func TestProviderImageCapabilityActionMetadataAppliesRouteSideEffects(t *testing
 	if err != nil {
 		t.Fatal(err)
 	}
-	server := New(store)
+	server := newManagedTestServer(t, store)
 	pluginID := "tokenhub.provider.image-capability-side-effect"
 	if err := server.adapterRegistry.RegisterPlugin(pluginmeta.BuiltInProvider(pluginID, "Image Capability Side Effect", []string{providerType}, []string{string(AdapterCapabilityImageGenerate)}), AdapterRegistration{
 		Type:         providerType,
@@ -100,7 +100,7 @@ func TestProviderImageCapabilityActionMetadataAppliesRouteSideEffects(t *testing
 }
 
 func TestAdminPluginImageVirtualModelRouteUsesActionMetadata(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	store.AddModel(Model{Name: "kimi-image", Modality: "image", Status: StatusActive})
 	providerType := "kimi_subscription"
 	provider := store.AddProvider(Provider{
@@ -117,7 +117,7 @@ func TestAdminPluginImageVirtualModelRouteUsesActionMetadata(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	server := New(store)
+	server := newManagedTestServer(t, store)
 	pluginID := "tokenhub.provider.kimi-image"
 	if err := server.adapterRegistry.RegisterPlugin(pluginmeta.BuiltInProvider(pluginID, "Kimi Image", []string{providerType}, []string{string(AdapterCapabilityImageGenerate)}), AdapterRegistration{
 		Type:         providerType,
@@ -164,7 +164,7 @@ func TestAdminPluginImageVirtualModelRouteUsesActionMetadata(t *testing.T) {
 }
 
 func TestProviderImageCapabilityResourceUpdateCleansMetadataKeys(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	providerType := "kimi_subscription"
 	resourceType := "kimi_subscription_account"
 	publicModel := "kimi-image"
@@ -198,7 +198,7 @@ func TestProviderImageCapabilityResourceUpdateCleansMetadataKeys(t *testing.T) {
 		ID: "route_kimi_image_cleanup", ModelName: publicModel, ProviderID: provider.ID,
 		ProviderResourceID: resource.ID, ProviderModel: upstreamModel, Status: StatusActive,
 	})
-	server := New(store)
+	server := newManagedTestServer(t, store)
 	pluginID := "tokenhub.provider.kimi-cleanup"
 	if err := server.pluginActions.Register(pluginmeta.ActionDescriptor{
 		PluginID:   pluginID,
@@ -252,7 +252,7 @@ func TestProviderImageCapabilityResourceUpdateCleansMetadataKeys(t *testing.T) {
 }
 
 func TestProviderImageCapabilityResourceDeleteDisablesMetadataRoute(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	providerType := "gemini_subscription"
 	resourceType := "gemini_subscription_account"
 	publicModel := "gemini-image"
@@ -277,7 +277,7 @@ func TestProviderImageCapabilityResourceDeleteDisablesMetadataRoute(t *testing.T
 		ID: "route_gemini_image_delete", ModelName: publicModel, ProviderID: provider.ID,
 		ProviderResourceID: resource.ID, ProviderModel: upstreamModel, Status: StatusActive,
 	})
-	server := New(store)
+	server := newManagedTestServer(t, store)
 	if err := server.pluginActions.Register(pluginmeta.ActionDescriptor{
 		PluginID:   "tokenhub.provider.gemini-delete",
 		ActionID:   "gemini.image_capability.configure",

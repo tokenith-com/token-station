@@ -13,3 +13,5 @@ export function UnavailableAccountService({ service }: { service: "recharge" | "
     </section>
   );
 }
+
+export { RechargeView } from "./recharge";

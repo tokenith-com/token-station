@@ -11,7 +11,7 @@ func TestPasswordResetSMTPFailuresRedactSavedCredentials(t *testing.T) {
 	for _, field := range []string{"smtp_password", "password"} {
 		for _, storage := range []string{"plaintext", "encrypted"} {
 			t.Run(field+"/"+storage, func(t *testing.T) {
-				store := NewMemoryStore()
+				store := newTestMemoryStore(t)
 				_, adminToken := createAdminIdentityAPIKeyMethodSession(t, store, AdminUser{Username: "notification-admin", Email: "admin@example.test", Role: "admin", Status: StatusActive})
 				team := store.CreateResource("teams", AdminResource{Name: "Notification test team", Status: StatusActive})
 				_, leaderToken := createAdminIdentityAPIKeyMethodSession(t, store, AdminUser{Username: "notification-leader", Email: "leader@example.test", Role: "team_leader", TeamID: team.ID, Status: StatusActive})

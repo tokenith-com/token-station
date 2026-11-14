@@ -1,7 +1,7 @@
 import type { Page } from "@playwright/test";
 import { languageStorageKey, type AdapterDescriptor, type ModelRoute, type PluginDescriptor, type Provider, type ProviderCatalogEntry, type ProviderModel } from "../../features/admin/core/types";
 import { test, expect, capture } from "./harness";
-import { model, shellResponses } from "./fixtures/shell";
+import { model, shellResponses, installModelDirectoryReads } from "./fixtures/shell";
 import type { MockAPI } from "./network";
 
 const direct: ProviderCatalogEntry = { id: "ui-locale-api", name: "UI Locale API", display_name: "UI Locale API", type: "openai_compatible", base_url: "https://locale.example.test/v1", models_count: 1, categories: ["openai"], source: "ui-fixture" };
@@ -20,6 +20,7 @@ const adapters: AdapterDescriptor[] = [
 function installManagementFixtures(api: MockAPI) {
   const overview = shellResponses().get("GET /api/admin/overview") as Record<string, unknown>;
   api.replaceResponse("GET", "/api/admin/overview", { ...overview, providers: [provider], models: [model] });
+  installModelDirectoryReads(api, [model], [provider], ["providers", "provider-adapters", "plugins", "plugin-ui-manifest", "plugin-actions"]);
   api.replaceResponse("GET", "/api/admin/provider-models", { data: [inventory] });
   api.respond("GET", "/api/admin/providers", { data: [provider] });
   api.respond("GET", "/api/admin/routing-rules", { data: [route] });

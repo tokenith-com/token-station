@@ -350,7 +350,7 @@ func newProviderKeyPoolFixture(t *testing.T, beforeResponse func(string)) *provi
 		ID: "route_key_pool", ModelName: "pool-chat", ProviderID: fixture.provider.ID, ProviderModel: "pool-chat",
 		Status: StatusActive, Priority: 1, Weight: 100, Strategy: RouteStrategyPriorityWeighted,
 	})
-	fixture.app = New(fixture.store).Handler()
+	fixture.app = newManagedTestServer(t, fixture.store).Handler()
 	for index := 1; index <= 2; index++ {
 		key := fmt.Sprintf("synthetic-pool-key-%d", index)
 		created := doJSON(t, fixture.app, http.MethodPost, "/api/admin/provider-resources", map[string]any{

@@ -17,7 +17,7 @@ func TestCredentialReplacementHTTPPreservesOmittedResourceSettings(t *testing.T)
 			name = "explicit setting resets"
 		}
 		t.Run(name, func(t *testing.T) {
-			store := NewMemoryStore()
+			store := newTestMemoryStore(t)
 			server := NewWithConfig(store, Config{AdminToken: "dev_admin_token", SecretKey: "replacement-test-secret"})
 			t.Cleanup(func() { _ = server.Shutdown(context.Background()) })
 			provider := store.AddProvider(Provider{Name: "Replacement provider", Type: ProviderGitHubCopilotSubscription, Status: StatusActive, Healthy: true})
@@ -72,7 +72,7 @@ func TestCredentialReplacementHTTPPreservesOmittedResourceSettings(t *testing.T)
 }
 
 func TestCredentialReplacementInvalidatesCachedQuotaWithoutClearingHealth(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	server := NewWithConfig(store, Config{AdminToken: "dev_admin_token", SecretKey: "replacement-quota-test-secret"})
 	t.Cleanup(func() { _ = server.Shutdown(context.Background()) })
 	provider := store.AddProvider(Provider{Name: "Quota replacement", Type: providerClaudeSubscription, Status: StatusActive, Healthy: true})

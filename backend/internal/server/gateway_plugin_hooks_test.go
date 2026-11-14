@@ -12,7 +12,7 @@ import (
 )
 
 func TestPrivacyPreHookCanRewriteChatRequestBody(t *testing.T) {
-	server := New(NewMemoryStore())
+	server := newManagedTestServer(t, newTestMemoryStore(t))
 	hook := pluginmeta.GatewayHookDescriptor{
 		PluginID:      "tokenhub.test-privacy",
 		HookID:        "mask",
@@ -73,7 +73,7 @@ func TestPrivacyPreHookCanRewriteChatRequestBody(t *testing.T) {
 }
 
 func TestPrivacyPreHookCannotChangeRequestedModel(t *testing.T) {
-	server := New(NewMemoryStore())
+	server := newManagedTestServer(t, newTestMemoryStore(t))
 	hook := pluginmeta.GatewayHookDescriptor{
 		PluginID:      "tokenhub.test-privacy",
 		HookID:        "reroute",
@@ -115,7 +115,7 @@ func TestPrivacyPreHookCannotChangeRequestedModel(t *testing.T) {
 }
 
 func TestPrivacyPreHookDenyReturnsForbidden(t *testing.T) {
-	server := New(NewMemoryStore())
+	server := newManagedTestServer(t, newTestMemoryStore(t))
 	hook := pluginmeta.GatewayHookDescriptor{
 		PluginID:      "tokenhub.test-privacy",
 		HookID:        "deny",
@@ -143,7 +143,7 @@ func TestPrivacyPreHookDenyReturnsForbidden(t *testing.T) {
 }
 
 func TestGuardrailPreHookCanRewriteChatRequestBody(t *testing.T) {
-	server := New(NewMemoryStore())
+	server := newManagedTestServer(t, newTestMemoryStore(t))
 	hook := pluginmeta.GatewayHookDescriptor{
 		PluginID:      "tokenhub.test-guardrail",
 		HookID:        "pre-mask",
@@ -194,7 +194,7 @@ func TestGuardrailPreHookCanRewriteChatRequestBody(t *testing.T) {
 }
 
 func TestGuardrailPreHookDenyReturnsForbidden(t *testing.T) {
-	server := New(NewMemoryStore())
+	server := newManagedTestServer(t, newTestMemoryStore(t))
 	hook := pluginmeta.GatewayHookDescriptor{
 		PluginID:      "tokenhub.test-guardrail",
 		HookID:        "deny",
@@ -220,7 +220,7 @@ func TestGuardrailPreHookDenyReturnsForbidden(t *testing.T) {
 }
 
 func TestGuardrailPreHookRewritesGatewayChatBeforeBuiltinGuardrails(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	project := store.CreateProject(Project{Name: "Guardrail Plugin App"})
 	_, secret, err := store.CreateAPIKey(project.ID, APIKey{
 		Name:    "guardrail-plugin-key",
@@ -243,7 +243,7 @@ func TestGuardrailPreHookRewritesGatewayChatBeforeBuiltinGuardrails(t *testing.T
 	}); err != nil {
 		t.Fatal(err)
 	}
-	server := New(store)
+	server := newManagedTestServer(t, store)
 	adapter := &requestTransformCaptureAdapter{}
 	server.adapterRegistry.Register("guardrail_plugin_capture", adapter, AdapterCapabilityChat)
 
@@ -286,7 +286,7 @@ func TestGuardrailPreHookRewritesGatewayChatBeforeBuiltinGuardrails(t *testing.T
 }
 
 func TestContextOptimizeHookCanRewriteChatRequestBody(t *testing.T) {
-	server := New(NewMemoryStore())
+	server := newManagedTestServer(t, newTestMemoryStore(t))
 	hook := pluginmeta.GatewayHookDescriptor{
 		PluginID:      "tokenhub.test-context",
 		HookID:        "trim",
@@ -338,7 +338,7 @@ func TestContextOptimizeHookCanRewriteChatRequestBody(t *testing.T) {
 }
 
 func TestContextOptimizeHookRewritesGatewayChatRequestBeforeUpstream(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	project := store.CreateProject(Project{Name: "Context Plugin App"})
 	_, secret, err := store.CreateAPIKey(project.ID, APIKey{
 		Name:    "context-plugin-key",
@@ -351,7 +351,7 @@ func TestContextOptimizeHookRewritesGatewayChatRequestBeforeUpstream(t *testing.
 	provider := store.AddProvider(Provider{ID: "prv_context_plugin", Name: "Context Plugin", Type: "context_capture", Status: StatusActive, Healthy: true})
 	store.AddModel(Model{Name: "gpt-context", Modality: "chat", Status: StatusActive})
 	store.AddRoute(ModelRoute{ID: "route_context_plugin", ModelName: "gpt-context", ProviderID: provider.ID, ProviderModel: "upstream-context", Status: StatusActive, Priority: 1, Weight: 100})
-	server := New(store)
+	server := newManagedTestServer(t, store)
 	adapter := &contextOptimizeCaptureAdapter{}
 	server.adapterRegistry.Register("context_capture", adapter, AdapterCapabilityChat)
 
@@ -394,7 +394,7 @@ func TestContextOptimizeHookRewritesGatewayChatRequestBeforeUpstream(t *testing.
 }
 
 func TestRequestTransformHookCanRewriteChatProviderRequest(t *testing.T) {
-	server := New(NewMemoryStore())
+	server := newManagedTestServer(t, newTestMemoryStore(t))
 	hook := pluginmeta.GatewayHookDescriptor{
 		PluginID:      "tokenhub.test-transform",
 		HookID:        "shape",
@@ -446,7 +446,7 @@ func TestRequestTransformHookCanRewriteChatProviderRequest(t *testing.T) {
 }
 
 func TestRequestTransformHookCannotChangeRequestedModel(t *testing.T) {
-	server := New(NewMemoryStore())
+	server := newManagedTestServer(t, newTestMemoryStore(t))
 	hook := pluginmeta.GatewayHookDescriptor{
 		PluginID:      "tokenhub.test-transform",
 		HookID:        "reroute",
@@ -482,7 +482,7 @@ func TestRequestTransformHookCannotChangeRequestedModel(t *testing.T) {
 }
 
 func TestRequestTransformHookCanSkipRouteAndRewriteNextChatAttempt(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	project := store.CreateProject(Project{Name: "Request Transform App"})
 	_, secret, err := store.CreateAPIKey(project.ID, APIKey{
 		Name:    "request-transform-key",
@@ -497,7 +497,7 @@ func TestRequestTransformHookCanSkipRouteAndRewriteNextChatAttempt(t *testing.T)
 	store.AddModel(Model{Name: "gpt-transform", Modality: "chat", Status: StatusActive})
 	store.AddRoute(ModelRoute{ID: "route_transform_a", ModelName: "gpt-transform", ProviderID: firstProvider.ID, ProviderModel: "upstream-a", Status: StatusActive, Priority: 1, Weight: 100})
 	store.AddRoute(ModelRoute{ID: "route_transform_b", ModelName: "gpt-transform", ProviderID: secondProvider.ID, ProviderModel: "upstream-b", Status: StatusActive, Priority: 2, Weight: 100})
-	server := New(store)
+	server := newManagedTestServer(t, store)
 	adapter := &requestTransformCaptureAdapter{}
 	server.adapterRegistry.Register("transform_capture", adapter, AdapterCapabilityChat, AdapterCapabilityResponses)
 
@@ -550,7 +550,7 @@ func TestRequestTransformHookCanSkipRouteAndRewriteNextChatAttempt(t *testing.T)
 }
 
 func TestRequestTransformFailClosedStopsRouteFailover(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	project := store.CreateProject(Project{Name: "Request Transform Fail Closed App"})
 	_, secret, err := store.CreateAPIKey(project.ID, APIKey{
 		Name:    "request-transform-fail-closed-key",
@@ -565,7 +565,7 @@ func TestRequestTransformFailClosedStopsRouteFailover(t *testing.T) {
 	store.AddModel(Model{Name: "gpt-transform-closed", Modality: "chat", Status: StatusActive})
 	store.AddRoute(ModelRoute{ID: "route_transform_closed_a", ModelName: "gpt-transform-closed", ProviderID: firstProvider.ID, ProviderModel: "upstream-a", Status: StatusActive, Priority: 1, Weight: 100})
 	store.AddRoute(ModelRoute{ID: "route_transform_closed_b", ModelName: "gpt-transform-closed", ProviderID: secondProvider.ID, ProviderModel: "upstream-b", Status: StatusActive, Priority: 2, Weight: 100})
-	server := New(store)
+	server := newManagedTestServer(t, store)
 	adapter := &requestTransformCaptureAdapter{}
 	server.adapterRegistry.Register("transform_capture", adapter, AdapterCapabilityChat, AdapterCapabilityResponses)
 
@@ -600,7 +600,7 @@ func TestRequestTransformFailClosedStopsRouteFailover(t *testing.T) {
 }
 
 func TestRequestTransformHookRewritesGatewayResponsesRequestBeforeUpstream(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	project := store.CreateProject(Project{Name: "Responses Transform App"})
 	_, secret, err := store.CreateAPIKey(project.ID, APIKey{
 		Name:    "responses-transform-key",
@@ -613,7 +613,7 @@ func TestRequestTransformHookRewritesGatewayResponsesRequestBeforeUpstream(t *te
 	provider := store.AddProvider(Provider{ID: "prv_responses_transform", Name: "Responses Transform", Type: "transform_capture", Status: StatusActive, Healthy: true})
 	store.AddModel(Model{Name: "gpt-responses-transform", Modality: "chat", Status: StatusActive})
 	store.AddRoute(ModelRoute{ID: "route_responses_transform", ModelName: "gpt-responses-transform", ProviderID: provider.ID, ProviderModel: "upstream-responses", Status: StatusActive, Priority: 1, Weight: 100})
-	server := New(store)
+	server := newManagedTestServer(t, store)
 	adapter := &requestTransformCaptureAdapter{}
 	server.adapterRegistry.Register("transform_capture", adapter, AdapterCapabilityChat, AdapterCapabilityResponses)
 
@@ -651,7 +651,7 @@ func TestRequestTransformHookRewritesGatewayResponsesRequestBeforeUpstream(t *te
 }
 
 func TestGuardrailPostHookCanRewriteProviderResponse(t *testing.T) {
-	server := New(NewMemoryStore())
+	server := newManagedTestServer(t, newTestMemoryStore(t))
 	hook := pluginmeta.GatewayHookDescriptor{
 		PluginID:      "tokenhub.test-response-guardrail",
 		HookID:        "sanitize",
@@ -693,7 +693,7 @@ func TestGuardrailPostHookCanRewriteProviderResponse(t *testing.T) {
 }
 
 func TestGuardrailPostHookRewritesGatewayChatResponseBeforeClient(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	project := store.CreateProject(Project{Name: "Guardrail Post Chat App"})
 	_, secret, err := store.CreateAPIKey(project.ID, APIKey{
 		Name:    "guardrail-post-chat-key",
@@ -706,7 +706,7 @@ func TestGuardrailPostHookRewritesGatewayChatResponseBeforeClient(t *testing.T) 
 	provider := store.AddProvider(Provider{ID: "prv_guardrail_post_chat", Name: "Guardrail Post Chat", Type: ProviderMock, Status: StatusActive, Healthy: true})
 	store.AddModel(Model{Name: "gpt-guardrail-post", Modality: "chat", Status: StatusActive})
 	store.AddRoute(ModelRoute{ID: "route_guardrail_post_chat", ModelName: "gpt-guardrail-post", ProviderID: provider.ID, ProviderModel: "upstream-chat", Status: StatusActive, Priority: 1, Weight: 100})
-	server := New(store)
+	server := newManagedTestServer(t, store)
 
 	hook := pluginmeta.GatewayHookDescriptor{
 		PluginID:      "tokenhub.test-response-guardrail",
@@ -754,7 +754,7 @@ func TestGuardrailPostHookRewritesGatewayChatResponseBeforeClient(t *testing.T) 
 }
 
 func TestGuardrailPostHookDenyStopsGatewayChatResponse(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	project := store.CreateProject(Project{Name: "Guardrail Post Deny App"})
 	_, secret, err := store.CreateAPIKey(project.ID, APIKey{
 		Name:    "guardrail-post-deny-key",
@@ -767,7 +767,7 @@ func TestGuardrailPostHookDenyStopsGatewayChatResponse(t *testing.T) {
 	provider := store.AddProvider(Provider{ID: "prv_guardrail_post_deny", Name: "Guardrail Post Deny", Type: ProviderMock, Status: StatusActive, Healthy: true})
 	store.AddModel(Model{Name: "gpt-guardrail-post-deny", Modality: "chat", Status: StatusActive})
 	store.AddRoute(ModelRoute{ID: "route_guardrail_post_deny", ModelName: "gpt-guardrail-post-deny", ProviderID: provider.ID, ProviderModel: "upstream-chat", Status: StatusActive, Priority: 1, Weight: 100})
-	server := New(store)
+	server := newManagedTestServer(t, store)
 
 	hook := pluginmeta.GatewayHookDescriptor{
 		PluginID:      "tokenhub.test-response-guardrail",
@@ -797,7 +797,7 @@ func TestGuardrailPostHookDenyStopsGatewayChatResponse(t *testing.T) {
 }
 
 func TestResponsePostHookCanRewriteProviderResponse(t *testing.T) {
-	server := New(NewMemoryStore())
+	server := newManagedTestServer(t, newTestMemoryStore(t))
 	hook := pluginmeta.GatewayHookDescriptor{
 		PluginID:      "tokenhub.test-response",
 		HookID:        "rewrite",
@@ -833,7 +833,7 @@ func TestResponsePostHookCanRewriteProviderResponse(t *testing.T) {
 }
 
 func TestResponsePostHookRewritesGatewayChatResponseBeforeClient(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	project := store.CreateProject(Project{Name: "Response Post Chat App"})
 	_, secret, err := store.CreateAPIKey(project.ID, APIKey{
 		Name:    "response-post-chat-key",
@@ -846,7 +846,7 @@ func TestResponsePostHookRewritesGatewayChatResponseBeforeClient(t *testing.T) {
 	provider := store.AddProvider(Provider{ID: "prv_response_post_chat", Name: "Response Post Chat", Type: ProviderMock, Status: StatusActive, Healthy: true})
 	store.AddModel(Model{Name: "gpt-response-post", Modality: "chat", Status: StatusActive})
 	store.AddRoute(ModelRoute{ID: "route_response_post_chat", ModelName: "gpt-response-post", ProviderID: provider.ID, ProviderModel: "upstream-chat", Status: StatusActive, Priority: 1, Weight: 100})
-	server := New(store)
+	server := newManagedTestServer(t, store)
 
 	hook := pluginmeta.GatewayHookDescriptor{
 		PluginID:      "tokenhub.test-response",
@@ -894,7 +894,7 @@ func TestResponsePostHookRewritesGatewayChatResponseBeforeClient(t *testing.T) {
 }
 
 func TestResponsePostHookRewritesGatewayResponsesResponseBeforeClient(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	project := store.CreateProject(Project{Name: "Response Post Responses App"})
 	_, secret, err := store.CreateAPIKey(project.ID, APIKey{
 		Name:    "response-post-responses-key",
@@ -907,7 +907,7 @@ func TestResponsePostHookRewritesGatewayResponsesResponseBeforeClient(t *testing
 	provider := store.AddProvider(Provider{ID: "prv_response_post_responses", Name: "Response Post Responses", Type: "transform_capture", Status: StatusActive, Healthy: true})
 	store.AddModel(Model{Name: "gpt-response-post-responses", Modality: "chat", Status: StatusActive})
 	store.AddRoute(ModelRoute{ID: "route_response_post_responses", ModelName: "gpt-response-post-responses", ProviderID: provider.ID, ProviderModel: "upstream-responses", Status: StatusActive, Priority: 1, Weight: 100})
-	server := New(store)
+	server := newManagedTestServer(t, store)
 	server.adapterRegistry.Register("transform_capture", &requestTransformCaptureAdapter{}, AdapterCapabilityChat, AdapterCapabilityResponses)
 
 	hook := pluginmeta.GatewayHookDescriptor{
@@ -947,7 +947,7 @@ func TestResponsePostHookRewritesGatewayResponsesResponseBeforeClient(t *testing
 }
 
 func TestUsageAttributionHookCanRewriteUsage(t *testing.T) {
-	server := New(NewMemoryStore())
+	server := newManagedTestServer(t, newTestMemoryStore(t))
 	hook := pluginmeta.GatewayHookDescriptor{
 		PluginID:      "tokenhub.test-usage",
 		HookID:        "attribute",
@@ -986,7 +986,7 @@ func TestUsageAttributionHookCanRewriteUsage(t *testing.T) {
 }
 
 func TestUsageAttributionHookUpdatesGatewayChatBillingAndAttemptUsage(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	project := store.CreateProject(Project{Name: "Usage Attribution App"})
 	_, secret, err := store.CreateAPIKey(project.ID, APIKey{
 		Name:    "usage-attribution-key",
@@ -999,7 +999,7 @@ func TestUsageAttributionHookUpdatesGatewayChatBillingAndAttemptUsage(t *testing
 	provider := store.AddProvider(Provider{ID: "prv_usage", Name: "Usage Attribution", Type: ProviderMock, Status: StatusActive, Healthy: true})
 	store.AddModel(Model{Name: "gpt-usage", Modality: "chat", Status: StatusActive})
 	store.AddRoute(ModelRoute{ID: "route_usage", ModelName: "gpt-usage", ProviderID: provider.ID, ProviderModel: "upstream-usage", Status: StatusActive, Priority: 1, Weight: 100})
-	server := New(store)
+	server := newManagedTestServer(t, store)
 
 	hook := pluginmeta.GatewayHookDescriptor{
 		PluginID:      "tokenhub.test-usage",
@@ -1042,7 +1042,7 @@ func TestUsageAttributionHookUpdatesGatewayChatBillingAndAttemptUsage(t *testing
 }
 
 func TestCacheLookupHookCanShortCircuitWithProviderResponse(t *testing.T) {
-	server := New(NewMemoryStore())
+	server := newManagedTestServer(t, newTestMemoryStore(t))
 	hook := pluginmeta.GatewayHookDescriptor{
 		PluginID:      "tokenhub.test-cache",
 		HookID:        "lookup",
@@ -1095,7 +1095,7 @@ func TestCacheLookupHookCanShortCircuitWithProviderResponse(t *testing.T) {
 }
 
 func TestCacheLookupShortCircuitRequiresProviderResponse(t *testing.T) {
-	server := New(NewMemoryStore())
+	server := newManagedTestServer(t, newTestMemoryStore(t))
 	hook := pluginmeta.GatewayHookDescriptor{
 		PluginID:      "tokenhub.test-cache",
 		HookID:        "empty",
@@ -1123,7 +1123,7 @@ func TestCacheLookupShortCircuitRequiresProviderResponse(t *testing.T) {
 }
 
 func TestCacheWriteHookReceivesRequestResponseAndUsage(t *testing.T) {
-	server := New(NewMemoryStore())
+	server := newManagedTestServer(t, newTestMemoryStore(t))
 	hook := pluginmeta.GatewayHookDescriptor{
 		PluginID:      "tokenhub.test-cache",
 		HookID:        "write",
@@ -1152,7 +1152,7 @@ func TestCacheWriteHookReceivesRequestResponseAndUsage(t *testing.T) {
 }
 
 func TestRouteCandidatesHookCanFilterCoreApprovedCandidates(t *testing.T) {
-	server := New(NewMemoryStore())
+	server := newManagedTestServer(t, newTestMemoryStore(t))
 	hook := pluginmeta.GatewayHookDescriptor{
 		PluginID:      "tokenhub.test-router",
 		HookID:        "select-b",
@@ -1208,7 +1208,7 @@ func TestRouteCandidatesHookCanFilterCoreApprovedCandidates(t *testing.T) {
 }
 
 func TestRouteCandidatesHookCannotAddUnapprovedCandidates(t *testing.T) {
-	server := New(NewMemoryStore())
+	server := newManagedTestServer(t, newTestMemoryStore(t))
 	hook := pluginmeta.GatewayHookDescriptor{
 		PluginID:      "tokenhub.test-router",
 		HookID:        "unsafe",
@@ -1236,7 +1236,7 @@ func TestRouteCandidatesHookCannotAddUnapprovedCandidates(t *testing.T) {
 }
 
 func TestRouteCandidatesHookFiltersGatewayChatCandidatesBeforeRouting(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	project := store.CreateProject(Project{Name: "Route Candidates App"})
 	_, secret, err := store.CreateAPIKey(project.ID, APIKey{
 		Name:    "route-candidates-key",
@@ -1265,7 +1265,7 @@ func TestRouteCandidatesHookFiltersGatewayChatCandidatesBeforeRouting(t *testing
 	store.AddModel(Model{Name: "gpt-candidates", Modality: "chat", Status: StatusActive})
 	store.AddRoute(ModelRoute{ID: "route_candidates_a", ModelName: "gpt-candidates", ProviderID: firstProvider.ID, ProviderResourceID: firstResource.ID, ProviderModel: "upstream-a", Status: StatusActive, Priority: 1, Weight: 100})
 	store.AddRoute(ModelRoute{ID: "route_candidates_b", ModelName: "gpt-candidates", ProviderID: secondProvider.ID, ProviderResourceID: secondResource.ID, ProviderModel: "upstream-b", Status: StatusActive, Priority: 2, Weight: 100})
-	server := New(store)
+	server := newManagedTestServer(t, store)
 	adapter := &requestTransformCaptureAdapter{}
 	server.adapterRegistry.Register("candidate_capture", adapter, AdapterCapabilityChat)
 
@@ -1302,7 +1302,7 @@ func TestRouteCandidatesHookFiltersGatewayChatCandidatesBeforeRouting(t *testing
 }
 
 func TestRouteRankHookCanReorderCoreApprovedCandidates(t *testing.T) {
-	server := New(NewMemoryStore())
+	server := newManagedTestServer(t, newTestMemoryStore(t))
 	hook := pluginmeta.GatewayHookDescriptor{
 		PluginID:      "tokenhub.test-router",
 		HookID:        "reverse",
@@ -1335,7 +1335,7 @@ func TestRouteRankHookCanReorderCoreApprovedCandidates(t *testing.T) {
 }
 
 func TestRouteRankHookCannotAddUnapprovedCandidates(t *testing.T) {
-	server := New(NewMemoryStore())
+	server := newManagedTestServer(t, newTestMemoryStore(t))
 	hook := pluginmeta.GatewayHookDescriptor{
 		PluginID:      "tokenhub.test-router",
 		HookID:        "unsafe",

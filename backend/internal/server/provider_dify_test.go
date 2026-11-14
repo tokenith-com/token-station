@@ -479,7 +479,7 @@ func TestGatewayRoutesChatCompletionsToDifyWorkflow(t *testing.T) {
 	}))
 	defer upstream.Close()
 
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	if err := SeedDemoData(store); err != nil {
 		t.Fatal(err)
 	}
@@ -503,7 +503,7 @@ func TestGatewayRoutesChatCompletionsToDifyWorkflow(t *testing.T) {
 	})
 	store.AddModel(Model{Name: "report-flow", Modality: "chat", Status: StatusActive})
 	store.AddRoute(ModelRoute{ModelName: "report-flow", ProviderID: "prv_dify_flow", ProviderModel: "report-flow", Status: StatusActive})
-	app := New(store).Handler()
+	app := newManagedTestServer(t, store).Handler()
 
 	response := doJSON(t, app, http.MethodPost, "/v1/chat/completions", map[string]any{
 		"model":    "report-flow",
@@ -547,11 +547,11 @@ func TestGatewayRoutesChatCompletionsToDifyWorkflow(t *testing.T) {
 // setup path: POST /api/admin/providers with an explicit dify type keeps the
 // type, the dify options, and imports the declared custom model inventory.
 func TestAdminAPICreatesDifyProviderWithWorkflowOptions(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	if err := SeedDemoData(store); err != nil {
 		t.Fatal(err)
 	}
-	app := New(store).Handler()
+	app := newManagedTestServer(t, store).Handler()
 
 	created := doJSON(t, app, http.MethodPost, "/api/admin/providers", map[string]any{
 		"name":       "Dify Report Flow",
@@ -610,7 +610,7 @@ func TestAdminProviderTestProbesDifyWithoutResources(t *testing.T) {
 	}))
 	defer upstream.Close()
 
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	if err := SeedDemoData(store); err != nil {
 		t.Fatal(err)
 	}
@@ -622,7 +622,7 @@ func TestAdminProviderTestProbesDifyWithoutResources(t *testing.T) {
 		APIKey:  "app-key",
 		Status:  StatusActive,
 	})
-	app := New(store).Handler()
+	app := newManagedTestServer(t, store).Handler()
 
 	response := doJSON(t, app, http.MethodPost, "/api/admin/providers/"+added.ID+"/test", nil, "")
 	if response.Code != http.StatusOK {
@@ -655,11 +655,11 @@ func TestAdminProviderCatalogDifyPreviewProbesAppKey(t *testing.T) {
 	}))
 	defer upstream.Close()
 
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	if err := SeedDemoData(store); err != nil {
 		t.Fatal(err)
 	}
-	app := New(store).Handler()
+	app := newManagedTestServer(t, store).Handler()
 
 	preview := doJSON(t, app, http.MethodPost, "/api/admin/provider-catalog/dify", map[string]any{
 		"name":     "Report Flow",
@@ -707,14 +707,14 @@ func TestAdminProviderCatalogDifyCreationRoundTrip(t *testing.T) {
 	}))
 	defer upstream.Close()
 
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	if err := SeedDemoData(store); err != nil {
 		t.Fatal(err)
 	}
 	if _, _, err := store.CreateAPIKey("prj_demo", APIKey{ID: "key_dify_editor", Name: "Editor Key", Status: StatusActive}, "thk_editor"); err != nil {
 		t.Fatal(err)
 	}
-	app := New(store).Handler()
+	app := newManagedTestServer(t, store).Handler()
 
 	created := doJSON(t, app, http.MethodPost, "/api/admin/providers", map[string]any{
 		"name":       "Report Flow",
@@ -778,7 +778,7 @@ func TestAdminProviderTestProbesDifyWithStoredSecret(t *testing.T) {
 	}))
 	defer upstream.Close()
 
-	store := &keyBlankingListStore{NewMemoryStore()}
+	store := &keyBlankingListStore{newTestMemoryStore(t)}
 	if err := SeedDemoData(store); err != nil {
 		t.Fatal(err)
 	}
@@ -790,7 +790,7 @@ func TestAdminProviderTestProbesDifyWithStoredSecret(t *testing.T) {
 		APIKey:  "app-key",
 		Status:  StatusActive,
 	})
-	app := New(store).Handler()
+	app := newManagedTestServer(t, store).Handler()
 
 	response := doJSON(t, app, http.MethodPost, "/api/admin/providers/"+added.ID+"/test", nil, "")
 	if response.Code != http.StatusOK {
@@ -813,7 +813,7 @@ func TestAdminProviderCatalogDifyPreviewEditModeUsesStoredSecret(t *testing.T) {
 	}))
 	defer upstream.Close()
 
-	store := &keyBlankingListStore{NewMemoryStore()}
+	store := &keyBlankingListStore{newTestMemoryStore(t)}
 	if err := SeedDemoData(store); err != nil {
 		t.Fatal(err)
 	}
@@ -825,7 +825,7 @@ func TestAdminProviderCatalogDifyPreviewEditModeUsesStoredSecret(t *testing.T) {
 		APIKey:  "app-key",
 		Status:  StatusActive,
 	})
-	app := New(store).Handler()
+	app := newManagedTestServer(t, store).Handler()
 
 	response := doJSON(t, app, http.MethodPost, "/api/admin/provider-catalog/dify", map[string]any{
 		"provider_id": added.ID,

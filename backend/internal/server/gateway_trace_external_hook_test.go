@@ -9,8 +9,8 @@ import (
 )
 
 func TestExternalTraceHookWithoutIsolationIsSkippedByObserveOnlyPolicy(t *testing.T) {
-	store := NewMemoryStore()
-	app := NewWithConfig(store, Config{
+	store := newTestMemoryStore(t)
+	app := newManagedTestServerWithConfig(t, store, Config{
 		AdminToken: "external-trace-admin",
 		PluginDir:  copyExternalPluginFixtureForServerTest(t, filepath.Join("..", "plugin", "testdata", "external-trace-hook")),
 	})
@@ -51,8 +51,8 @@ func TestExternalTraceHookWithoutIsolationIsSkippedByObserveOnlyPolicy(t *testin
 }
 
 func TestExternalTraceHookFixtureFailureDoesNotAffectGatewayCompletion(t *testing.T) {
-	store := NewMemoryStore()
-	app := NewWithConfig(store, Config{
+	store := newTestMemoryStore(t)
+	app := newManagedTestServerWithConfig(t, store, Config{
 		AdminToken: "external-trace-admin",
 		PluginDir:  copyExternalPluginFixtureForServerTest(t, filepath.Join("..", "plugin", "testdata", "external-trace-hook")),
 	})

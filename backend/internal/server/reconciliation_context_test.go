@@ -9,7 +9,7 @@ import (
 )
 
 func TestWithContextScopesReconciliationPersistence(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	rule, err := ApplicationDependenciesForStore(store).ReconciliationStore.CreateRule(reconciliation.Rule{ID: "context-rule", Name: "context rule"})
 	if err != nil {
 		t.Fatal(err)

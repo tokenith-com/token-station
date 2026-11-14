@@ -450,7 +450,7 @@ func TestAdminVersionEndpointsRequireAuthenticationAndReturnReleaseData(t *testi
 	}))
 	defer releases.Close()
 
-	app := NewWithConfig(NewMemoryStore(), Config{
+	app := newManagedTestServerWithConfig(t, newTestMemoryStore(t), Config{
 		AdminToken: "version-admin-token",
 		AppVersion: "0.3.0",
 		BuildType:  releaseBuildType,

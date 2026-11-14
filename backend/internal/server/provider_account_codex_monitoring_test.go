@@ -14,7 +14,7 @@ import (
 )
 
 func TestProviderMonitoringUsesBackendProbeAndCachedQuota(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	provider := store.AddProvider(Provider{
 		ID:      "prv_monitoring",
 		Name:    "Codex Monitoring",
@@ -63,7 +63,7 @@ func TestProviderMonitoringUsesBackendProbeAndCachedQuota(t *testing.T) {
 		LatencyMS:   321,
 	})
 	quotaCalls := 0
-	server := New(store)
+	server := newManagedTestServer(t, store)
 	mustCodexSubscriptionAdapterForTest(t, server).QuotaURL = "https://chatgpt.example/backend-api/wham/usage"
 	mustCodexSubscriptionAdapterForTest(t, server).Client = &http.Client{Transport: roundTripperFunc(func(req *http.Request) (*http.Response, error) {
 		quotaCalls++
@@ -109,12 +109,12 @@ func TestProviderMonitoringUsesBackendProbeAndCachedQuota(t *testing.T) {
 }
 
 func TestProviderMonitoringSchedulerRunsProbeOutOfBand(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	provider := store.AddProvider(Provider{
 		ID: "prv_monitoring_scheduler", Name: "Scheduled Monitoring", Type: "scheduled_health",
 		Status: StatusActive, Healthy: false,
 	})
-	server := New(store)
+	server := newManagedTestServer(t, store)
 	adapter := &pluginHealthProbeAdapter{}
 	server.adapterRegistry.Register("scheduled_health", adapter, AdapterCapabilityProbe)
 	now := time.Date(2026, 10, 3, 12, 0, 0, 0, time.UTC)
@@ -138,7 +138,7 @@ func TestProviderMonitoringSchedulerRunsProbeOutOfBand(t *testing.T) {
 }
 
 func TestProviderMonitoringSchedulerSkipsPersistenceAfterCancellation(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	provider := store.AddProvider(Provider{
 		ID: "prv_monitoring_cancelled", Name: "Cancelled Monitoring", Type: "cancelled_health",
 		Status: StatusActive, Healthy: false,
@@ -146,7 +146,7 @@ func TestProviderMonitoringSchedulerSkipsPersistenceAfterCancellation(t *testing
 	if _, err := store.SetProviderHealth(provider.ID, false); err != nil {
 		t.Fatal(err)
 	}
-	server := New(store)
+	server := newManagedTestServer(t, store)
 	server.adapterRegistry.Register("cancelled_health", &pluginHealthProbeAdapter{}, AdapterCapabilityProbe)
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -173,12 +173,12 @@ func (a cancellationAwareHealthProbeAdapter) ProbeProvider(ctx context.Context, 
 }
 
 func TestProviderMonitoringSchedulerDoesNotPersistInFlightCancellation(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	provider := store.AddProvider(Provider{
 		ID: "prv_monitoring_inflight_cancelled", Name: "In-Flight Cancelled Monitoring", Type: "inflight_cancelled_health",
 		Status: StatusActive,
 	})
-	server := New(store)
+	server := newManagedTestServer(t, store)
 	started := make(chan struct{})
 	server.adapterRegistry.Register("inflight_cancelled_health", cancellationAwareHealthProbeAdapter{started: started}, AdapterCapabilityProbe)
 
@@ -269,11 +269,11 @@ func (timeoutHealthProbeAdapter) ProbeProvider(ctx context.Context, _ Provider) 
 }
 
 func TestProviderMonitoringSchedulerRecordsUpstreamTimeout(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	provider := store.AddProvider(Provider{
 		ID: "prv_monitoring_timeout", Name: "Timed Out Monitoring", Type: "timeout_health", Status: StatusActive,
 	})
-	server := New(store)
+	server := newManagedTestServer(t, store)
 	server.adapterRegistry.Register(provider.Type, timeoutHealthProbeAdapter{}, AdapterCapabilityProbe)
 	server.checkProviderMonitoring(context.Background(), provider)
 
@@ -288,7 +288,7 @@ func TestProviderMonitoringSchedulerRecordsUpstreamTimeout(t *testing.T) {
 }
 
 func TestProviderMonitoringQuotaUsesPluginActionSnapshot(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	providerType := "quota_monitor_plugin"
 	resourceType := "quota_monitor_account"
 	provider := store.AddProvider(Provider{
@@ -309,7 +309,7 @@ func TestProviderMonitoringQuotaUsesPluginActionSnapshot(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	server := New(store)
+	server := newManagedTestServer(t, store)
 	pluginID := "tokenhub.provider.quota-monitor-plugin"
 	if err := server.adapterRegistry.RegisterPlugin(pluginmeta.BuiltInProvider(pluginID, "Quota Monitor Plugin", []string{providerType}, []string{string(AdapterCapabilityQuota)}), AdapterRegistration{
 		Type:         providerType,
@@ -466,7 +466,7 @@ func TestCodexSubscriptionProbeAllowsFastModeForAnyModel(t *testing.T) {
 }
 
 func TestProviderTestUsesCodexDefaultProbeProfile(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	provider := store.AddProvider(Provider{
 		ID:      "prv_default_probe",
 		Name:    "Codex Default Probe",
@@ -485,7 +485,7 @@ func TestProviderTestUsesCodexDefaultProbeProfile(t *testing.T) {
 	}); err != nil {
 		t.Fatal(err)
 	}
-	server := New(store)
+	server := newManagedTestServer(t, store)
 	mustCodexSubscriptionAdapterForTest(t, server).Client = &http.Client{Transport: roundTripperFunc(func(req *http.Request) (*http.Response, error) {
 		var payload map[string]any
 		if err := json.NewDecoder(req.Body).Decode(&payload); err != nil {
@@ -532,7 +532,7 @@ func TestProviderTestUsesCodexDefaultProbeProfile(t *testing.T) {
 }
 
 func TestProviderAdapterCompatibilityAndLegacyMigration(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	codex := store.AddProvider(Provider{
 		ID:      "prv_strict_codex",
 		Name:    "Strict Codex",
@@ -586,7 +586,7 @@ func TestProviderAdapterCompatibilityAndLegacyMigration(t *testing.T) {
 	if !ok || normalized.Type != ProviderOpenAICodex || normalized.BaseURL != openAICodexBaseURL {
 		t.Fatalf("empty OpenAI Provider was not normalized to Codex: %+v", normalized)
 	}
-	server := New(store)
+	server := newManagedTestServer(t, store)
 	codexAdapter, ok := server.adapterRegistry.Describe(ProviderOpenAICodex)
 	if !ok || codexAdapter.PluginID != "tokenhub.provider.openai-codex" {
 		t.Fatalf("Codex adapter plugin mapping = %+v, ok=%v", codexAdapter, ok)
@@ -801,7 +801,7 @@ func TestProviderAdapterCompatibilityAndLegacyMigration(t *testing.T) {
 	if !strings.Contains(quotaObservation.QuotaSnapshot, `"plan_type":"plus"`) {
 		t.Fatalf("subscription quota snapshot was not preserved: %+v", quotaObservation)
 	}
-	if cached, ok := New(store).cachedOpenAIAccountQuota(subscription.ID, 0); !ok || cached.PlanType != "plus" || cached.AccountID != "acct_legacy_subscription" {
+	if cached, ok := newManagedTestServer(t, store).cachedOpenAIAccountQuota(subscription.ID, 0); !ok || cached.PlanType != "plus" || cached.AccountID != "acct_legacy_subscription" {
 		t.Fatalf("subscription cached quota was not readable after migration: ok=%v quota=%+v", ok, cached)
 	}
 	foundUsage := false

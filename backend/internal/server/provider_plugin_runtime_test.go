@@ -40,7 +40,7 @@ func (a *configurableProviderAdapterForTest) ConfigureProviderImageCapabilityPro
 }
 
 func TestBuiltinProviderRuntimeBuildsAdaptersForPluginRegistration(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	client := &http.Client{Timeout: time.Second}
 	streamClient := &http.Client{Timeout: 2 * time.Second}
 
@@ -115,7 +115,7 @@ func TestBuiltinProviderRuntimeBuildsAdaptersForPluginRegistration(t *testing.T)
 }
 
 func TestServerCodexSubscriptionAdapterResolvesFromRegistry(t *testing.T) {
-	server := NewWithConfig(NewMemoryStore(), Config{AdminToken: "dev_admin_token"})
+	server := newManagedTestServerWithConfig(t, newTestMemoryStore(t), Config{AdminToken: "dev_admin_token"})
 	raw, err := server.adapterRegistry.Resolve(ProviderOpenAICodex)
 	if err != nil {
 		t.Fatalf("resolve registered Codex subscription adapter: %v", err)

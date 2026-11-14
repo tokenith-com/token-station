@@ -54,7 +54,7 @@ func TestAudioAndRerankSDKSmoke(t *testing.T) {
 				}
 			}))
 			defer upstream.Close()
-			store := NewMemoryStore()
+			store := newTestMemoryStore(t)
 			project := store.CreateProject(Project{Name: "SDK fixture", Status: StatusActive})
 			_, secret, err := store.CreateAPIKey(project.ID, APIKey{Name: "SDK key", Allowed: []string{"sdk-audio", "sdk-rerank"}, Status: StatusActive}, "thk_sdk_audio_rerank_fixture")
 			if err != nil {
@@ -67,7 +67,7 @@ func TestAudioAndRerankSDKSmoke(t *testing.T) {
 				store.AddProviderModel(ProviderModel{ProviderID: "sdk-provider", UpstreamModel: item.upstream, Modality: item.modality, Metadata: metadata})
 				store.AddRoute(ModelRoute{ID: item.model + "-route", ModelName: item.model, ProviderID: "sdk-provider", ProviderModel: item.upstream, Status: StatusActive, Priority: 1, Weight: 100})
 			}
-			server := NewWithConfig(store, Config{ImageStorageDir: t.TempDir()})
+			server := newManagedTestServerWithConfig(t, store, Config{ImageStorageDir: t.TempDir()})
 			defer func() { _ = server.Shutdown(context.Background()) }()
 			gateway := httptest.NewServer(server.Handler())
 			defer gateway.Close()

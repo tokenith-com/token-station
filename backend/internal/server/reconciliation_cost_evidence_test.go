@@ -8,7 +8,7 @@ import (
 )
 
 func TestReconciliationZeroCostRequiresMatchingVersionedEvidence(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	at := time.Now().UTC()
 	attempt := meteringAttemptSnapshot{ID: "attempt", RequestID: "request", ProviderID: "provider", ResourceID: "resource", At: at}
 	if err := saveMeteringEntry(store.db, attempt.ID, "attempt_prepared", "request", attempt, at); err != nil {

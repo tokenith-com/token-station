@@ -12,7 +12,7 @@ import (
 
 func setupUserQuotaTest(t *testing.T, limits map[string]any) (*GormStore, Project, APIKey, APIKey) {
 	t.Helper()
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	userID := "usr_user_quota"
 	if _, err := store.CreateAdminUser(AdminUser{ID: userID, Username: userID, Email: userID + "@example.test", Status: StatusActive, Role: "user"}, "UserQuotaPass123!"); err != nil {
 		t.Fatal(err)
@@ -391,7 +391,7 @@ func TestQuotaSettlementSurvivesAPIKeyDeletionDuringCall(t *testing.T) {
 }
 
 func TestInactiveUserQuotaPolicyCanBeDisabled(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	admin, err := store.CreateAdminUser(AdminUser{ID: "usr_quota_admin", Username: "quota-admin", Email: "quota-admin@example.test", Role: "admin", Status: StatusActive}, "QuotaAdminPass123!")
 	if err != nil {
 		t.Fatal(err)
@@ -403,7 +403,7 @@ func TestInactiveUserQuotaPolicyCanBeDisabled(t *testing.T) {
 		ID: "quota_inactive_user", Name: "Inactive user quota", Status: StatusActive,
 		Fields: map[string]any{"scope": "user", "scope_id": "usr_inactive_quota", "daily_tokens": int64(10)},
 	})
-	server := New(store)
+	server := newManagedTestServer(t, store)
 	if err := server.validateScopedResourceMutation(admin, "quota-policies", policy.ID, AdminResource{Status: StatusDisabled}); err != nil {
 		t.Fatalf("disabling a policy for an inactive user should remain allowed: %v", err)
 	}
@@ -448,7 +448,7 @@ func TestUserQuotaUsesUsageAttributionFallbacks(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			store := NewMemoryStore()
+			store := newTestMemoryStore(t)
 			project := store.CreateProject(Project{Name: "Attribution fallback", OwnerUserID: test.projectOwner, Status: StatusActive})
 			keyA, _, err := store.CreateAPIKey(project.ID, APIKey{Name: "fallback-a", Metadata: test.keyMetadata, Status: StatusActive}, "thk_fallback_a_"+strings.ReplaceAll(test.name, " ", "_"))
 			if err != nil {
@@ -557,7 +557,7 @@ func TestBackgroundUserQuotaRefundsDailyReservationWithoutTPM(t *testing.T) {
 }
 
 func TestAdminAPIManagesUserQuotaPolicies(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	if _, err := store.CreateAdminUser(AdminUser{Username: "quota-admin", Email: "quota-admin@example.test", Status: StatusActive, Role: "admin"}, "AdminQuotaPass123!"); err != nil {
 		t.Fatal(err)
 	}
@@ -565,7 +565,7 @@ func TestAdminAPIManagesUserQuotaPolicies(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	app := New(store).Handler()
+	app := newManagedTestServer(t, store).Handler()
 	created := doJSON(t, app, http.MethodPost, "/api/admin/resources/quota-policies", map[string]any{
 		"name":   "User hard cap",
 		"status": StatusActive,

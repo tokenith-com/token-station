@@ -1,5 +1,6 @@
 "use client";
 
+import { WalletOperations } from "@/features/admin/views/wallet-operations";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { type LoadedData, loadPlanForView, mergeLoadedData } from "../core/data-loading";
@@ -79,7 +80,7 @@ export function SourceAdminContent({ baseURL, adminToken, currentUser, language,
   const [loading, setLoading] = useState(false);
   const [query, setQuery] = useState("");
   const [modelCategoryFilter, setModelCategoryFilter] = useState("all");
-  const [routeModelQuery, setRouteModelQuery] = useState("");
+  const routeModelQuery = searchParams?.get("model") ?? "";
   const [settingsTab, setSettingsTab] = useState<SettingsTabKey>("settings");
   const [securityPolicyTab, setSecurityPolicyTab] = useState<"access" | "content">("access");
   const [modal, setModal] = useState<ModalState<any> | null>(null);
@@ -144,12 +145,11 @@ export function SourceAdminContent({ baseURL, adminToken, currentUser, language,
       setIssuedKey("");
       setModelCategoryFilter(view === "notification-channels" ? notificationChannelDefaultType : "all");
     }
-    if (view === "routes") setRouteModelQuery(options.routeModelQuery ?? "");
     setActivePluginPageKey(view === "plugin-pages" ? options.pluginPageKey ?? activePluginPageKey : "");
     if (view !== "projects") setProjectWorkspace(null);
     setActiveView(view);
     const nextPath = viewRoutes[view];
-    const suffix = pluginPageURLSuffix(view, options.pluginPageKey);
+    const suffix = viewURLSuffix(view, options);
     if (pathname === nextPath && suffix === currentLocationSuffix()) return;
     const nextURL = `${nextPath}${suffix}`;
     if (options.replace) {
@@ -718,7 +718,10 @@ export function SourceAdminContent({ baseURL, adminToken, currentUser, language,
           ) : activeView === "usage" ? (
             <UsageView api={api} data={data} user={currentUser} />
           ) : activeView === "billing" ? (
-            <BillingView api={api} data={data} user={currentUser} loading={loading} onReload={() => load("billing")} />
+            <>
+              <WalletOperations api={api} />
+              <BillingView api={api} data={data} user={currentUser} loading={loading} onReload={() => load("billing")} />
+            </>
           ) : activeView === "audit" ? (
             <AuditView api={api} data={data} user={currentUser} />
           ) : activeView === "database-status" ? (
@@ -1197,12 +1200,12 @@ function pluginPageKeyFromLocation() {
   return new URLSearchParams(window.location.search).get("plugin_page") ?? "";
 }
 
-function pluginPageURLSuffix(view: ViewKey, pluginPageKey?: string) {
+function viewURLSuffix(view: ViewKey, options: { pluginPageKey?: string; routeModelQuery?: string }) {
   if (typeof window === "undefined") return "";
   const hash = window.location.hash;
-  if (view !== "plugin-pages") return hash;
   const params = new URLSearchParams();
-  if (pluginPageKey) params.set("plugin_page", pluginPageKey);
+  if (view === "plugin-pages" && options.pluginPageKey) params.set("plugin_page", options.pluginPageKey);
+  if (view === "routes" && options.routeModelQuery) params.set("model", options.routeModelQuery);
   const query = params.toString();
   return `${query ? `?${query}` : ""}${hash}`;
 }

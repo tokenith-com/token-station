@@ -877,6 +877,7 @@ export type PlaygroundTiming = {
 };
 
 export type PlaygroundChatPayload = {
+  wallet?: { status: string; charged_micros: number };
   error_details?: { blocked_ips?: string[] };
   type?: "completed" | "failed" | "cancelled";
   status?: "completed" | "failed" | "cancelled";

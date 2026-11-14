@@ -11,7 +11,7 @@ import (
 )
 
 func TestUsageReportStreamsLargeHistoryWithOneDatabaseConnection(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	database, err := store.db.DB()
 	if err != nil {
 		t.Fatal(err)
@@ -45,7 +45,7 @@ func TestUsageReportStreamsLargeHistoryWithOneDatabaseConnection(t *testing.T) {
 	}
 	// The request cursor arrives after usage aggregation. Its old failure must
 	// convert recent daily totals to monthly buckets without rereading rows.
-	server := New(store)
+	server := newManagedTestServer(t, store)
 	aggregate := server.newUsageReportAggregate(AdminUser{Role: "admin"}, "all", now, time.UTC)
 	query := UsageSummaryQuery{UsageRecords: UsageSummaryScope{Global: true, CreatedAtBefore: now}, RequestLogs: UsageSummaryScope{Global: true, CreatedAtBefore: now}}
 	ctx, cancel := context.WithTimeout(t.Context(), 15*time.Second)
@@ -71,7 +71,7 @@ func TestUsageReportStreamsLargeHistoryWithOneDatabaseConnection(t *testing.T) {
 }
 
 func TestUsageReportStreamingStopsWhenCanceled(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	for index := 0; index < 20; index++ {
 		record := usageSummaryRecord(fmt.Sprintf("cancel_stream_%d", index), "project_stream", "key_stream", "", 1, time.Now().UTC())
 		if err := store.db.Create(&record).Error; err != nil {

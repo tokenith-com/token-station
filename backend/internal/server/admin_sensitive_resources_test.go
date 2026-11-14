@@ -8,7 +8,7 @@ import (
 )
 
 func TestSensitiveAdminResourceResponsesAndAuditSnapshotsAreRedacted(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	server := NewWithConfig(store, Config{AdminToken: "sensitive-resource-admin", SecretKey: "sensitive-resource-secret-key"})
 	t.Cleanup(func() { _ = server.Shutdown(t.Context()) })
 	app := server.Handler()
@@ -152,7 +152,7 @@ func TestAdminAuditSnapshotRedactsExactCredentialKeysWithoutMaskingTokenMetrics(
 }
 
 func TestAdminAuditEventsRedactLegacyStoredSnapshots(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	const legacySecret = "https://hooks.example.test/services/legacy-stored-secret"
 	store.RecordAuditEvent(AuditEvent{
 		ID:           "audit_legacy_notification_secret",
@@ -190,7 +190,7 @@ func TestNotificationChannelPatchPreservesLegacySecretAliases(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			store := NewMemoryStore()
+			store := newTestMemoryStore(t)
 			secret := "legacy-" + strings.ReplaceAll(test.legacyKey, "_", "-") + "-value"
 			resource := store.CreateResource("notification-channels", AdminResource{
 				Name:   test.name,
@@ -229,7 +229,7 @@ func TestNotificationChannelPatchPreservesLegacySecretAliases(t *testing.T) {
 }
 
 func TestNotificationChannelPatchDoesNotCarryMaskedSecretAcrossChannelTypes(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	const telegramSecret = "legacy-telegram-secret"
 	resource := store.CreateResource("notification-channels", AdminResource{
 		Name:   "Legacy Telegram",
@@ -267,7 +267,7 @@ func TestNotificationChannelPatchDoesNotCarryMaskedSecretAcrossChannelTypes(t *t
 }
 
 func TestSensitiveResourcePatchUsesNullToClearStoredSecrets(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	const (
 		identitySecret = "identity-secret-to-clear"
 		webhookSecret  = "https://hooks.example.test/services/secret-to-clear"

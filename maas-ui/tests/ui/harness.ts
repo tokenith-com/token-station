@@ -20,9 +20,10 @@ export const test = base.extend<{ api: MockAPI; sessionUser: AdminUser | null; s
     await page.emulateMedia({ reducedMotion: "reduce" });
     await context.addInitScript(({ sessionKey, languageKey, session, language, origin }) => {
       if (window.location.origin !== origin) return;
-      if (session.user) window.sessionStorage.setItem(sessionKey, JSON.stringify(session));
-      else window.sessionStorage.removeItem(sessionKey);
+      if (session.user) window.sessionStorage.setItem(`${sessionKey}.b`, JSON.stringify(session));
+      else window.sessionStorage.removeItem(`${sessionKey}.b`);
       window.localStorage.setItem(languageKey, language);
+      window.localStorage.setItem(`${languageKey}.default-version`, "zh-CN-v1");
     }, { sessionKey: sessionStorageKey, languageKey: languageStorageKey, language: sessionLanguage, origin: frontendOrigin, session: { baseURL: apiOrigin, token: "ui-fixture-session", user: sessionUser, expiresAt: "2099-01-01T00:00:00Z" } });
     const pageErrors: string[] = [];
     context.on("page", opened => opened.on("pageerror", error => pageErrors.push(error.message)));

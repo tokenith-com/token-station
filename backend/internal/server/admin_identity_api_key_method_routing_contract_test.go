@@ -549,7 +549,7 @@ func newAdminIdentityAPIKeyMethodRoutingServer(t *testing.T) (*GormStore, *Serve
 	config.AdminToken = "dev_admin_token"
 	config.BootstrapAdminPassword = "identity-api-key-method-password"
 	config.CORSAllowedOrigins = []string{"https://console.tokenhub.example"}
-	store := NewMemoryStoreWithConfig(config)
+	store := newTestMemoryStoreWithConfig(t, config)
 	if err := BootstrapBaseDataWithConfig(store, config); err != nil {
 		t.Fatal(err)
 	}

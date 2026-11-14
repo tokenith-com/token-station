@@ -11,7 +11,7 @@ import (
 )
 
 func TestContextOptimizeHookUsesProjectAndAPIKeyScopeWithoutExposingMetadata(t *testing.T) {
-	server := New(NewMemoryStore())
+	server := newManagedTestServer(t, newTestMemoryStore(t))
 	call := gatewayPluginTestCall()
 	call.Project.ID = "prj_context_scope"
 	call.Key.ID = "key_context_scope"
@@ -65,7 +65,7 @@ func TestContextOptimizeHookUsesProjectAndAPIKeyScopeWithoutExposingMetadata(t *
 }
 
 func TestContextOptimizeHookSkipsMismatchedAPIKeyScope(t *testing.T) {
-	server := New(NewMemoryStore())
+	server := newManagedTestServer(t, newTestMemoryStore(t))
 	call := gatewayPluginTestCall()
 	call.Key.ID = "key_allowed"
 	hook := pluginmeta.GatewayHookDescriptor{
@@ -123,7 +123,7 @@ func TestContextOptimizeHookCannotChangeRequestedModelOrStream(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			server := New(NewMemoryStore())
+			server := newManagedTestServer(t, newTestMemoryStore(t))
 			hook := pluginmeta.GatewayHookDescriptor{
 				PluginID:      "tokenhub.test-context-invariant-" + tt.name,
 				HookID:        "unsafe",
@@ -154,7 +154,7 @@ func TestContextOptimizeHookCannotChangeRequestedModelOrStream(t *testing.T) {
 }
 
 func TestContextOptimizeHookRejectsWritesOutsideDeclaredBoundary(t *testing.T) {
-	server := New(NewMemoryStore())
+	server := newManagedTestServer(t, newTestMemoryStore(t))
 	hook := pluginmeta.GatewayHookDescriptor{
 		PluginID:      "tokenhub.test-context-boundary",
 		HookID:        "provider-write",
@@ -188,8 +188,8 @@ func TestContextOptimizeHookRejectsWritesOutsideDeclaredBoundary(t *testing.T) {
 }
 
 func TestContextOptimizeHookRecordsRedactedAuditEvents(t *testing.T) {
-	store := NewMemoryStore()
-	server := New(store)
+	store := newTestMemoryStore(t)
+	server := newManagedTestServer(t, store)
 	hook := pluginmeta.GatewayHookDescriptor{
 		PluginID:      "tokenhub.test-context-audit",
 		HookID:        "audit",

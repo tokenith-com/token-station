@@ -11,7 +11,7 @@ import (
 )
 
 func TestPluginImagePublicModelUsesActionMetadataRoute(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	project := store.CreateProject(Project{Name: "Plugin Image Project", Status: StatusActive})
 	_, secret, err := store.CreateAPIKey(project.ID, APIKey{
 		Name: "Plugin Image Key", Allowed: []string{"kimi-image"}, Status: StatusActive,
@@ -41,7 +41,7 @@ func TestPluginImagePublicModelUsesActionMetadataRoute(t *testing.T) {
 		image: realPNGFixture(t),
 		model: &requestedModel,
 	}
-	server := NewWithConfig(store, Config{AdminToken: "plugin-image-admin", SecretKey: "plugin-image-secret", ImageStorageDir: t.TempDir()})
+	server := newManagedTestServerWithConfig(t, store, Config{AdminToken: "plugin-image-admin", SecretKey: "plugin-image-secret", ImageStorageDir: t.TempDir()})
 	pluginID := "tokenhub.provider.kimi-image-gateway"
 	if err := server.adapterRegistry.RegisterPlugin(pluginmeta.BuiltInProvider(pluginID, "Kimi Image Gateway", []string{"kimi_subscription"}, []string{string(AdapterCapabilityImageGenerate)}), AdapterRegistration{
 		Type:         "kimi_subscription",
@@ -86,7 +86,7 @@ func TestPluginImagePublicModelUsesActionMetadataRoute(t *testing.T) {
 }
 
 func TestOpenAIImageModelSkipsPluginImageCapabilityRoutes(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	openAIProvider := store.AddProvider(Provider{
 		ID: "prv_openai_image_default", Name: "OpenAI Image Default", Type: ProviderOpenAI,
 		Status: StatusActive, Healthy: true,
@@ -111,7 +111,7 @@ func TestOpenAIImageModelSkipsPluginImageCapabilityRoutes(t *testing.T) {
 		ID: "route_kimi_image_default", ModelName: openAIImageModelName, ProviderID: pluginProvider.ID, ProviderResourceID: pluginResource.ID,
 		ProviderModel: "moonshot-image", Status: StatusActive, Priority: 1, Weight: 100,
 	})
-	server := NewWithConfig(store, Config{AdminToken: "plugin-image-admin"})
+	server := newManagedTestServerWithConfig(t, store, Config{AdminToken: "plugin-image-admin"})
 	pluginID := "tokenhub.provider.kimi-image-default"
 	if err := server.adapterRegistry.RegisterPlugin(pluginmeta.BuiltInProvider(pluginID, "Kimi Image Default", []string{"kimi_subscription"}, []string{string(AdapterCapabilityImageGenerate)}), AdapterRegistration{
 		Type:         "kimi_subscription",
@@ -147,7 +147,7 @@ func TestOpenAIImageModelSkipsPluginImageCapabilityRoutes(t *testing.T) {
 }
 
 func TestPluginImagePublicModelAppearsInModelsList(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	project := store.CreateProject(Project{Name: "Plugin Image Models Project", Status: StatusActive})
 	_, secret, err := store.CreateAPIKey(project.ID, APIKey{
 		Name: "Plugin Image Models Key", Allowed: []string{"kimi-image"}, Status: StatusActive,
@@ -172,7 +172,7 @@ func TestPluginImagePublicModelAppearsInModelsList(t *testing.T) {
 		ModelName: "kimi-image", ProviderID: provider.ID, ProviderResourceID: resource.ID,
 		ProviderModel: "moonshot-image", Status: StatusActive, Priority: 1, Weight: 100,
 	})
-	server := NewWithConfig(store, Config{AdminToken: "plugin-image-admin"})
+	server := newManagedTestServerWithConfig(t, store, Config{AdminToken: "plugin-image-admin"})
 	if err := server.pluginActions.Register(pluginmeta.ActionDescriptor{
 		PluginID:   "tokenhub.provider.kimi-image-models",
 		ActionID:   "kimi.image_capability.configure",
@@ -202,7 +202,7 @@ func TestPluginImagePublicModelAppearsInModelsList(t *testing.T) {
 }
 
 func TestPluginImageAccountLockUsesResourceTypePolicy(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	store.ConfigureProviderResourceTypePolicy(map[string][]string{
 		"kimi_subscription": {"kimi_subscription_account"},
 	})

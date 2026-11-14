@@ -15,7 +15,7 @@ import (
 )
 
 func TestNotificationChannelTestUsesSavedWebhookWithoutCreatingAlert(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	var received map[string]any
 	webhook := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost || r.URL.Path != "/saved-secret" || r.URL.Query().Get("token") != "query-secret" {
@@ -98,7 +98,7 @@ func TestNotificationChannelTestRevealsStoredWebhookSecret(t *testing.T) {
 }
 
 func TestNotificationChannelTestEmailUsesSavedRecipients(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	messages := configureTestSMTPChannel(t, store)
 	channel := store.ListResources("notification-channels")[0]
 	channel.Fields["email_to"] = "ops@example.test,admin@example.test"
@@ -144,7 +144,7 @@ func TestNotificationChannelTestFailuresAreRecordedAndRedacted(t *testing.T) {
 		{"unsupported_type", map[string]any{"type": "unknown"}, "unsupported notification channel"},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
-			store := NewMemoryStore()
+			store := newTestMemoryStore(t)
 			channel := store.CreateResource("notification-channels", AdminResource{Name: tt.name, Status: StatusActive, Fields: tt.fields})
 			server := New(store)
 			t.Cleanup(func() { _ = server.Shutdown(t.Context()) })

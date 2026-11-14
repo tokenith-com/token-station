@@ -45,8 +45,9 @@ export class MockAPI {
       const request = route.request();
       const url = new URL(request.url());
       // Frontend documents/assets/RSC are allowed; same-origin APIs are not.
-      const frontendResource = ["document", "script", "stylesheet", "image", "font"].includes(request.resourceType()) || url.pathname.startsWith("/_next/static/") || request.headers().rsc === "1" || url.pathname === "/favicon.ico";
-      if (url.origin === frontendOrigin && !/^\/api(?:\/|$)/.test(url.pathname) && url.pathname !== "/_next/image" && request.method() === "GET" && frontendResource) {
+      const frontendResource = ["document", "script", "stylesheet", "image", "font"].includes(request.resourceType()) || url.pathname.startsWith("/_next/static/") || request.headers().rsc === "1" || url.pathname === "/favicon.ico" || url.pathname === "/icons/sprite.svg";
+      const frontendHead = request.method() === "HEAD" && url.pathname === "/api-keys/";
+      if (url.origin === frontendOrigin && !/^\/api(?:\/|$)/.test(url.pathname) && url.pathname !== "/_next/image" && ((request.method() === "GET" && frontendResource) || frontendHead)) {
         await route.continue();
         return;
       }
@@ -62,7 +63,7 @@ export class MockAPI {
         await route.abort("blockedbyclient");
         return;
       }
-      const cors = { "access-control-allow-origin": frontendOrigin, "access-control-allow-headers": "authorization,content-type", "access-control-allow-methods": method };
+      const cors = { "access-control-allow-origin": frontendOrigin, "access-control-allow-headers": "authorization,content-type,idempotency-key", "access-control-allow-methods": method };
       if (request.method() === "OPTIONS") {
         await route.fulfill({ status: 204, headers: cors });
         return;

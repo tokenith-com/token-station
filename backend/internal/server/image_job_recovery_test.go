@@ -8,7 +8,7 @@ import (
 // A draining instance must fail only the jobs it owns: jobs a live peer
 // claimed keep running, and a later provider result can still complete them.
 func TestFailUnfinishedImageJobsOnlyFailsOwnedJobs(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	project := store.CreateProject(Project{Name: "Image Recovery Ownership"})
 
 	owned := ImageJob{
@@ -55,7 +55,7 @@ func TestFailUnfinishedImageJobsOnlyFailsOwnedJobs(t *testing.T) {
 // instances whose heartbeat lapsed, plus legacy jobs without an owner, and
 // leave instances with live heartbeats untouched.
 func TestFailAbandonedImageJobsKeepsLiveInstances(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	project := store.CreateProject(Project{Name: "Image Recovery Abandonment"})
 
 	if err := upsertInstanceHeartbeat(store.db, "instance-live", "test"); err != nil {

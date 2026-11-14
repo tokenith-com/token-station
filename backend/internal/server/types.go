@@ -1069,6 +1069,7 @@ func (r ChatCompletionRequest) requestedMaxTokens() int64 {
 }
 
 type PlaygroundChatResponse struct {
+	Wallet    *walletUsageReceipt      `json:"wallet,omitempty"`
 	Response  any                      `json:"response"`
 	Route     PlaygroundRouteSummary   `json:"route"`
 	Usage     Usage                    `json:"usage"`
@@ -1304,6 +1305,8 @@ type RoutedCall struct {
 }
 
 type CallContext struct {
+	walletPayer string
+
 	// Cache keys bind retrieval results to their input, caller and route contracts.
 	RerankCacheKey             string
 	EmbeddingCacheKey          string

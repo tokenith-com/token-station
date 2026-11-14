@@ -15,7 +15,7 @@ import (
 )
 
 func TestReconciliationRunClassifiesLocksAndExportsSafely(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	connector := createReconciliationTestConnector(t, store, "bcon_reconciliation_detail")
 	periodStart := time.Date(2026, time.July, 1, 0, 0, 0, 0, time.UTC)
 	accountID := "account-sensitive-77"
@@ -30,7 +30,7 @@ func TestReconciliationRunClassifiesLocksAndExportsSafely(t *testing.T) {
 		{ID: "use_tokenhub_only", RequestID: "req-tokenhub-only", ProjectID: "project-a", ProviderResourceID: accountID, ModelName: "model-a", ProviderCostUSD: 4, CreatedAt: periodStart.Add(40 * time.Minute)},
 	})
 
-	server := NewWithConfig(store, Config{AdminToken: "dev_admin_token", SecretKey: "reconciliation-test-secret"})
+	server := newManagedTestServerWithConfig(t, store, Config{AdminToken: "dev_admin_token", SecretKey: "reconciliation-test-secret"})
 	app := server.Handler()
 	created := doJSON(t, app, http.MethodPost, "/api/admin/billing/reconciliation-rules", map[string]any{
 		"name":                "Request reconciliation",
@@ -143,7 +143,7 @@ func TestReconciliationRunClassifiesLocksAndExportsSafely(t *testing.T) {
 }
 
 func TestReconciliationAggregatesPreciseAmountsByCurrencyAndTimezone(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	connector := createReconciliationTestConnector(t, store, "bcon_reconciliation_daily")
 	periodStart := time.Date(2026, time.July, 1, 0, 0, 0, 0, time.UTC)
 	usageTime := time.Date(2026, time.July, 1, 16, 30, 0, 0, time.UTC)
@@ -155,7 +155,7 @@ func TestReconciliationAggregatesPreciseAmountsByCurrencyAndTimezone(t *testing.
 	createReconciliationUsageRecords(t, store, []UsageRecord{
 		{ID: "use_decimal", RequestID: "req-decimal", ModelName: "model-money", ProviderCostUSD: 0.3, CreatedAt: usageTime},
 	})
-	app := New(store).Handler()
+	app := newManagedTestServer(t, store).Handler()
 	created := doJSON(t, app, http.MethodPost, "/api/admin/billing/reconciliation-rules", map[string]any{
 		"name":             "Daily currency reconciliation",
 		"connector_id":     connector.ID,
@@ -211,7 +211,7 @@ func TestReconciliationAggregatesPreciseAmountsByCurrencyAndTimezone(t *testing.
 }
 
 func TestDetailReconciliationMapsDimensionsAndMatchesPeriodBoundariesOneToOne(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	connector := createReconciliationTestConnector(t, store, "bcon_reconciliation_mapping")
 	connector.Config = map[string]string{"provider_id": "provider-local", "provider_resource_id": "resource-local"}
 	if _, err := store.BillingRepository().UpdateBillingConnector(connector.ID, connector); err != nil {
@@ -230,7 +230,7 @@ func TestDetailReconciliationMapsDimensionsAndMatchesPeriodBoundariesOneToOne(t 
 		{ID: "use_boundary", RequestID: "req-boundary", ProviderID: "provider-local", ProviderResourceID: "resource-local", ProjectID: "project-local", ModelName: "model-local", ProviderCostUSD: 1, CreatedAt: periodStart.Add(-2 * time.Minute)},
 		{ID: "use_near", RequestID: "req-duplicate", ProviderID: "provider-local", ProviderResourceID: "resource-local", ProjectID: "project-local", ModelName: "model-local", ProviderCostUSD: 2, CreatedAt: periodStart.Add(21 * time.Minute)},
 	})
-	app := New(store).Handler()
+	app := newManagedTestServer(t, store).Handler()
 	created := doJSON(t, app, http.MethodPost, "/api/admin/billing/reconciliation-rules", map[string]any{
 		"name": "Mapped detail reconciliation", "connector_id": connector.ID, "granularity": ReconciliationGranularityDetail,
 		"match_dimensions":    []string{"request_id", "provider", "resource_account", "model", "project", "currency"},
@@ -276,7 +276,7 @@ func TestDetailReconciliationMapsDimensionsAndMatchesPeriodBoundariesOneToOne(t 
 }
 
 func TestScheduledReconciliationRespectsBillingDelay(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	connector := createReconciliationTestConnector(t, store, "bcon_reconciliation_scheduled")
 	dependencies := ApplicationDependenciesForStore(store)
 	service := reconciliation.NewService(dependencies.ReconciliationStore, reconciliationpersistence.NewBillingReader(dependencies.ReconciliationReader))

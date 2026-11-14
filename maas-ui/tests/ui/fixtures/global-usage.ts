@@ -48,7 +48,9 @@ export function usageReport(range: UsageRange, empty = false): UsageReport {
 
 type UsageHandler = (range: UsageRange) => MockResponse | Promise<MockResponse>;
 export function installUsageFixtures(api: MockAPI, handler: UsageHandler = range => ({ json: usageReport(range) })) {
-  api.respond("GET", "/api/admin/api-keys", { data: [] });
+  api.define("GET", "/api/admin/api-keys", () => ({ json: { data: [] } }), query => {
+    expect(Object.fromEntries(query)).toEqual({ page: "1", page_size: "1000", limit: "1000" });
+  });
   api.respond("GET", "/api/admin/users", { data: [user] });
   for (const path of ["plugin-ui-manifest", "plugin-actions", "resources/teams", "resources/cost-centers"]) {
     api.respond("GET", `/api/admin/${path}`, { data: [] });

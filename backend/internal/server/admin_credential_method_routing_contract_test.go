@@ -392,7 +392,7 @@ func newAdminCredentialMethodRoutingServer(t *testing.T) (*GormStore, *Server, h
 	config := ConfigFromEnv()
 	config.AdminToken = "dev_admin_token"
 	config.BootstrapAdminPassword = "admin-credential-method-password"
-	store := NewMemoryStoreWithConfig(config)
+	store := newTestMemoryStoreWithConfig(t, config)
 	if err := BootstrapBaseDataWithConfig(store, config); err != nil {
 		t.Fatal(err)
 	}

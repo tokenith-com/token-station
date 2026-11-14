@@ -1,0 +1,215 @@
+package server
+
+import (
+	"context"
+	"encoding/json"
+	"log"
+	"strings"
+	"time"
+
+	"gorm.io/gorm"
+	"tokenhub/backend/internal/metering"
+)
+
+type prepaidChatContextKey struct{}
+
+func prepaidDispatchContext(ctx context.Context, call CallContext) (context.Context, context.CancelFunc) {
+	if call.walletPayer == "" {
+		return ctx, func() {}
+	}
+	return context.WithTimeout(ctx, 30*time.Minute)
+}
+
+func prepaidAPIPayer(tx *gorm.DB, key APIKey, project Project) (string, error) {
+	ownerID := strings.TrimSpace(key.OwnerUserID)
+	candidates := []string{ownerID}
+	if ownerID == "" {
+		candidates = []string{strings.TrimSpace(key.Metadata["created_by"]), strings.TrimSpace(project.OwnerUserID)}
+	}
+	var owners []AdminUser
+	if err := tx.Select("id", "role", "status").Where("id IN ?", candidates).Find(&owners).Error; err != nil {
+		return "", err
+	}
+	for _, owner := range owners {
+		if normalizeAdminRole(owner.Role) != "guest" {
+			continue
+		}
+		if ownerID == "" || owner.Status != StatusActive {
+			return "", NewHTTPError(403, "wallet_payer_unavailable", "An active personal API key owner is required")
+		}
+		return owner.ID, nil
+	}
+	return "", nil
+}
+
+func (s *Server) setPlaygroundWalletPayer(call *CallContext, user AdminUser, projectID string) error {
+	if s.payments == nil || !s.payments.config.PrepaidUsage || normalizeAdminRole(user.Role) != "guest" {
+		return nil
+	}
+	project, ok := s.store.GetProject(projectID)
+	if !ok || !modelAllowedByScopes(project, APIKey{}, call.Model.Name) {
+		return ErrModelNotAllowed
+	}
+	call.Project = project
+	call.walletPayer = user.ID
+	call.AttributedUserID = user.ID
+	return nil
+}
+
+func (s *Server) reserveChatWallet(ctx context.Context, call CallContext, request *ChatCompletionRequest) error {
+	if call.walletPayer == "" {
+		return nil
+	}
+	if call.Model.ID == "" || call.Model.Status != StatusActive || call.Model.ContextWindow <= 0 ||
+		call.Model.pricingUnavailable || (call.Model.Modality != "" && call.Model.Modality != "chat") {
+		return walletUsageError()
+	}
+	limit := call.Model.ContextWindow
+	if configured := modelMaxOutputTokens(call.Model); configured > 0 {
+		limit = minInt64(limit, configured)
+	}
+	output := request.requestedMaxTokens()
+	if output <= 0 {
+		output = minInt64(defaultOutputTokenReservation, limit)
+	}
+	if output > limit {
+		return walletUsageError()
+	}
+	request.raw = cloneRawJSON(request.raw, 1)
+	delete(request.raw, "max_completion_tokens")
+	request.MaxTokens = int(output)
+	resolved := modelPriceAt(call.Model, call.StartedAt)
+	if (resolved.InputPriceUSDPer1M <= 0 || resolved.OutputPriceUSDPer1M <= 0) && resolved.Metadata["pricing_status"] != "configured" {
+		return walletUsageError()
+	}
+	return s.payments.store.reserveWalletUsage(ctx, call, call.Model.ContextWindow, output)
+}
+
+// Called with the final payload after any gateway request transformations.
+func (s *Server) dispatchChatWallet(ctx context.Context, call CallContext, route RouteSelection, req ChatCompletionRequest) error {
+	if call.walletPayer == "" {
+		return nil
+	}
+	if err := s.validatePrepaidChatRoute(call, route, req); err != nil {
+		return &ProviderInvocationError{Err: err, Disposition: ProviderErrorTransientSame}
+	}
+	if err := s.payments.store.dispatchWalletUsage(ctx, call, route, req.requestedMaxTokens()); err != nil {
+		if AsHTTPError(err).Code == "prepaid_route_unsupported" {
+			return &ProviderInvocationError{Err: err, Disposition: ProviderErrorTransientSame}
+		}
+		return &ProviderInvocationError{Err: err, Disposition: ProviderErrorClient}
+	}
+	return nil
+}
+
+func (s *Server) validatePrepaidChatRoute(call CallContext, route RouteSelection, req ChatCompletionRequest) error {
+	adapter, err := s.adapterForRoute(route)
+	if err != nil {
+		return err
+	}
+	switch adapter.(type) {
+	case OpenAICompatibleAdapter, *OpenAICompatibleAdapter, AzureOpenAIAdapter, *AzureOpenAIAdapter, MockAdapter, *MockAdapter:
+	default:
+		return walletUsageError()
+	}
+	_, chatBridge := s.chatRouteBridge(route)
+	_, streamBridge := s.streamChatRouteBridge(route)
+	if chatBridge || streamBridge || routeSupportsProviderProtocol(s.adapterRegistry, route, providerRouteProtocolCodexResponses) ||
+		len(s.gatewayProviderCallHooksForRoute(call, route, providerRouteProtocolChatCompletions, req.Stream)) != 0 ||
+		req.Tools != nil || req.ToolChoice != nil || req.MaxTokens <= 0 || len(req.raw["max_completion_tokens"]) != 0 {
+		return walletUsageError()
+	}
+	for field := range req.raw {
+		switch field {
+		case "model", "messages", "stream", "stream_options", "max_tokens", "temperature", "top_p",
+			"presence_penalty", "frequency_penalty", "min_p", "top_k", "stop", "response_format",
+			"reasoning_effort", "metadata", "prompt_cache_key", "user":
+		default:
+			return walletUsageError()
+		}
+	}
+	for _, message := range req.Messages {
+		if _, ok := message.Content.(string); !ok || message.ToolCalls != nil || message.ToolCallID != "" {
+			return walletUsageError()
+		}
+		for field := range message.raw {
+			switch field {
+			case "role", "content", "name", "reasoning_content":
+			default:
+				return walletUsageError()
+			}
+		}
+	}
+	return nil
+}
+
+func walletUsageCharge(entry walletUsage, usage Usage) (string, int64) {
+	if usage.MeteringInvalid || usage.InputAudioTokens != 0 || usage.OutputAudioTokens != 0 || usage.PromptTokens <= 0 || usage.PromptTokens > entry.InputBound || usage.CompletionTokens > entry.OutputBound {
+		return "pending_review", 0
+	}
+	units, err := meteringUnits(usage)
+	if usage.MeteringRaw != nil {
+		units, err = *usage.MeteringRaw, nil
+	}
+	if err != nil {
+		return "pending_review", 0
+	}
+	var rates metering.Rates
+	if json.Unmarshal([]byte(entry.Rates), &rates) != nil {
+		return "pending_review", 0
+	}
+	charge, err := metering.Price(rates, units, "USD", "")
+	if err != nil {
+		return "pending_review", 0
+	}
+	amount, err := walletMicros(charge.USD, entry.Rate, false)
+	if err != nil || amount > entry.ReservedMicros {
+		return "pending_review", 0
+	}
+	return "settled", amount
+}
+
+type walletUsageReceipt struct {
+	Status        string `json:"status"`
+	ChargedMicros int64  `json:"charged_micros"`
+}
+
+func (s *Server) playgroundWalletReceipt(call CallContext) *walletUsageReceipt {
+	if call.walletPayer == "" {
+		return nil
+	}
+	var entry walletUsage
+	if err := s.payments.store.db.Select("status", "charged_micros").Take(&entry, "request_id = ? AND user_id = ?", call.RequestID, call.walletPayer).Error; err != nil {
+		log.Printf("wallet usage receipt unavailable request_id=%s: %v", call.RequestID, err)
+		return &walletUsageReceipt{Status: "pending_review"}
+	}
+	return &walletUsageReceipt{Status: entry.Status, ChargedMicros: entry.ChargedMicros}
+}
+
+func (s *GormStore) finishPlaygroundWallet(completion GatewayCallCompletion) {
+	call := completion.Call
+	if call.walletPayer == "" {
+		return
+	}
+	now := time.Now().UTC()
+	if err := s.db.Transaction(func(tx *gorm.DB) error {
+		if err := s.lockScopeForUpdate(tx, "request_settlement", call.RequestID); err != nil {
+			return err
+		}
+		if err := finishWalletUsage(tx, call.RequestID, completion.Usage, now.Unix()); err != nil {
+			return err
+		}
+		if completion.Usage.TotalTokens > 0 || completion.Usage.CostUSD > 0 {
+			var count int64
+			if err := tx.Model(&UsageRecord{}).Where("request_id = ?", call.RequestID).Count(&count).Error; err != nil {
+				return err
+			}
+			if count == 0 {
+				return tx.Create(newUsageRecord(call, completion.Route, completion.Usage, now)).Error
+			}
+		}
+		return nil
+	}); err != nil {
+		log.Printf("wallet playground settlement failed request_id=%s: %v", call.RequestID, err)
+	}
+}

@@ -11,7 +11,7 @@ import (
 )
 
 func TestCodexQuotaRejectsLateAccountReplacementSnapshot(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	server := New(store)
 	t.Cleanup(func() { _ = server.Shutdown(context.Background()) })
 	provider := store.AddProvider(Provider{Name: "Codex quota replacement", Type: ProviderOpenAICodex, Status: StatusActive})

@@ -50,7 +50,7 @@ func TestEmbeddingRouteDiagnosticsHTTP(t *testing.T) {
 				_, _ = fmt.Fprint(w, `{"object":"list","model":"qwen3-embedding-4b","data":[{"object":"embedding","index":0,"embedding":[0.1,0.2,0.3]}],"usage":{"prompt_tokens":2,"total_tokens":2}}`)
 			}))
 			defer upstream.Close()
-			store := NewMemoryStore()
+			store := newTestMemoryStore(t)
 			project := store.CreateProject(Project{Name: "repro", Status: StatusActive})
 			store.AddModel(Model{Name: "Local-Qwen-Embedding", Modality: "embedding", Status: StatusActive, EmbeddingPriceUSDPer1M: 1})
 			store.AddProvider(Provider{ID: "repro-provider", Type: ProviderOpenAICompatible, BaseURL: upstream.URL + "/v1", Status: StatusActive, Healthy: true, Options: map[string]string{"embedding_protocol": tc.protocol, "embedding_path": tc.path}})
@@ -70,7 +70,7 @@ func TestEmbeddingRouteDiagnosticsHTTP(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			app := New(store)
+			app := newManagedTestServer(t, store)
 			defer func() { _ = app.Shutdown(context.Background()) }()
 			if tc.name == "missing_inventory_after_start" {
 				if err := store.db.Where("provider_id = ?", "repro-provider").Delete(&ProviderModel{}).Error; err != nil {

@@ -139,7 +139,7 @@ test.describe("global-usage personal scope", () => {
   test("excludes provider dimensions", async ({ page, api }, info) => {
     installUsageFixtures(api);
     await page.goto("/usage");
-    expect(await page.evaluate(key => JSON.parse(sessionStorage.getItem(key)!).user.role, sessionStorageKey)).toBe("user");
+    expect(await page.evaluate(key => JSON.parse(sessionStorage.getItem(key)!).user.role, `${sessionStorageKey}.b`)).toBe("user");
     const usage = page.locator(".global-usage");
     await expect(usage.locator(".global-usage-stats")).toBeVisible();
     await usage.getByRole("button", { name: "全部", exact: true }).click();

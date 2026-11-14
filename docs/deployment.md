@@ -451,6 +451,12 @@ For a local checkout, put the payment YAML and credentials in the ignored `deplo
 
 Set `alipay.api_methods` in the YAML to enable `alipay.trade.page.pay` for an Alipay checkout URL or `alipay.trade.precreate` for a QR code. The first listed method is the default for new orders. Omitting the list keeps the existing precreate default. The recharge plans endpoint exposes enabled methods in `alipay_api_methods`. For an Alipay order, send the optional `api_method` field when selecting a nondefault method. The response contains `pay_url` for website payment or `qr_code` for precreate. Use the configured seller ID to validate callbacks in either mode.
 
+Set `prepaid_usage: true` on all gateway replicas to debit guest wallets for text chat and the model playground. Before enabling it, publish a CNY settlement rate through `POST /api/admin/billing/exchange-rates`. The rate represents USD per CNY and is snapshotted for each request. Guest API keys need an explicit active owner. Only text chat on supported native Chat Completions adapters is eligible. Configure and verify each upstream model's context window and output cap. Other billable API operations are rejected for prepaid guests while this setting is enabled.
+
+The wallet API exposes `available_micros` in millionths of a yuan, including both refund and usage reservations. Operators can find unresolved requests with `GET /api/admin/payment-wallet/usage?status=pending_review`. After verifying upstream evidence, resolve a request through `POST /api/admin/payment-wallet/usage/{request_id}/resolve` with `charged_micros` and a reconciliation `reason`. A zero charge releases the hold. Charges above the original reservation require separate reconciliation.
+
+Before enabling production Alipay, verify `seller_id` for the configured application using the merchant account or a verified successful notification. Validate the HTTPS callback with a real small payment before opening the channel. Apply schema 14 in a tested rollout, and continue serving existing payment notifications and wallet settlements during rollback.
+
 To run the optional Redis billing component with Compose, add the overlay file to the normal command:
 
 ```bash

@@ -40,7 +40,11 @@ async function run(script, scriptArgs) {
 }
 try {
   await lock.writeFile(String(process.pid));
-  originalImport = (await readFile(nextEnvPath, "utf8")).match(routeImport)?.[0];
+  const nextEnv = await readFile(nextEnvPath, "utf8").catch(error => {
+    if (error.code === "ENOENT") return "";
+    throw error;
+  });
+  originalImport = nextEnv.match(routeImport)?.[0];
   const inspectOnly = forwarded.includes("--list") || forwarded.includes("--help");
   if (capture && !inspectOnly) {
     for (const file of ["index.html", "manifest.json"]) {

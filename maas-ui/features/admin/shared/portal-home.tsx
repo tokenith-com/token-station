@@ -76,7 +76,7 @@ export function PortalHome({ theme, language, onThemeToggle, onLanguageChange, f
 
   return (
     <div className="tc-home" data-theme={theme}>
-      <div className={loginOpen ? "tc-home-pane shifted" : "tc-home-pane"}>
+      <div inert={loginOpen} className={loginOpen ? "tc-home-pane shifted" : "tc-home-pane"}>
         <header className="tc-home-header">
           <nav className="tc-home-nav">
             <div className="tc-home-brand">
@@ -191,7 +191,7 @@ export function PortalHome({ theme, language, onThemeToggle, onLanguageChange, f
         </footer>
       </div>
 
-      <aside aria-hidden={!loginOpen} className={loginOpen ? "tc-home-drawer open" : "tc-home-drawer"}>
+      <aside inert={!loginOpen} aria-hidden={!loginOpen} className={loginOpen ? "tc-home-drawer open" : "tc-home-drawer"}>
         <button className="tc-home-drawer-close" onClick={() => setOpen(false)} title={tx("关闭")} type="button">
           <X size={20} />
         </button>

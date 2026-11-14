@@ -17,9 +17,9 @@ import (
 )
 
 func TestTokenCostAnalyticsAttributesRejectedRequestsWithoutUsage(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	project := store.CreateProject(Project{Name: "Rejected Attribution Project", Status: StatusActive})
-	app := New(store).Handler()
+	app := newManagedTestServer(t, store).Handler()
 	token := createAnalyticsCredentialToken(t, app, map[string]any{
 		"name": "rejected-attribution-agent", "scope_type": AnalyticsScopeOrganization,
 	})
@@ -80,7 +80,7 @@ func TestTokenCostWatermarkSharesRowsDatabaseSnapshot(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	app := New(store).Handler()
+	app := newManagedTestServer(t, store).Handler()
 	base := time.Now().UTC().Add(-time.Hour).Truncate(time.Second)
 	through := base.Add(time.Hour)
 	createAnalyticsRequest(t, store, RequestLog{
@@ -190,8 +190,8 @@ func TestTokenCostWatermarkSharesRowsDatabaseSnapshot(t *testing.T) {
 }
 
 func TestTokenCostEmptySnapshotEstablishesWatermark(t *testing.T) {
-	store := NewMemoryStore()
-	app := New(store).Handler()
+	store := newTestMemoryStore(t)
+	app := newManagedTestServer(t, store).Handler()
 	token := createAnalyticsCredentialToken(t, app, map[string]any{
 		"name": "empty-checkpoint-agent", "scope_type": AnalyticsScopeOrganization,
 	})
@@ -236,8 +236,8 @@ func TestTokenCostEmptySnapshotEstablishesWatermark(t *testing.T) {
 }
 
 func TestTokenCostCheckpointStopsBeforeCommittedFutureEvent(t *testing.T) {
-	store := NewMemoryStore()
-	app := New(store).Handler()
+	store := newTestMemoryStore(t)
+	app := newManagedTestServer(t, store).Handler()
 	token := createAnalyticsCredentialToken(t, app, map[string]any{
 		"name": "future-event-agent", "scope_type": AnalyticsScopeOrganization,
 	})
@@ -293,8 +293,8 @@ func TestTokenCostCheckpointStopsBeforeCommittedFutureEvent(t *testing.T) {
 }
 
 func TestTokenCostNoneIncrementalUsesCommitSequenceBeyondRangeLimit(t *testing.T) {
-	store := NewMemoryStore()
-	app := New(store).Handler()
+	store := newTestMemoryStore(t)
+	app := newManagedTestServer(t, store).Handler()
 	token := createAnalyticsCredentialToken(t, app, map[string]any{
 		"name": "long-running-none-agent", "scope_type": AnalyticsScopeOrganization,
 	})
@@ -370,9 +370,9 @@ func TestTokenCostNoneIncrementalUsesCommitSequenceBeyondRangeLimit(t *testing.T
 }
 
 func TestTokenCostCSVNeutralizesRejectedModelFormula(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	project := store.CreateProject(Project{Name: "CSV Formula Project", Status: StatusActive})
-	app := New(store).Handler()
+	app := newManagedTestServer(t, store).Handler()
 	token := createAnalyticsCredentialToken(t, app, map[string]any{
 		"name": "csv-formula-agent", "scope_type": AnalyticsScopeOrganization,
 	})

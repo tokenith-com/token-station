@@ -129,7 +129,7 @@ function describeStatus(status) {
  * translated file routinely scores differently from the English source it tracks, so
  * relying on it would make the gate's verdict depend on how close two languages look.
  */
-export function checkCoChange(changes) {
+export function checkCoChange(changes, basePaths) {
   const failures = [];
   for (const [path, status] of changes) {
     if (!requiresTranslation(path)) {
@@ -137,6 +137,9 @@ export function checkCoChange(changes) {
     }
     for (const [locale, counterpart] of counterpartsFor(path)) {
       const counterpartStatus = changes.get(counterpart);
+      if (status === "D" && counterpartStatus === undefined && basePaths && !basePaths.has(counterpart)) {
+        continue;
+      }
       if (!statusSatisfies(status, counterpartStatus)) {
         failures.push({
           rule: "co-change",

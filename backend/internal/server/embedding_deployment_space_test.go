@@ -41,7 +41,7 @@ func TestEmbeddingDefaultSpaceIncludesEffectiveDeployment(t *testing.T) {
 }
 
 func TestEmbeddingResourceEndpointsRequireExplicitCompatibility(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	store.AddProvider(Provider{ID: "p", Type: ProviderOpenAICompatible, BaseURL: "https://a.example/v1", Status: StatusActive, Healthy: true})
 	store.AddRoute(ModelRoute{ModelName: "public", ProviderID: "p", ProviderModel: "default", Status: StatusActive})
 	for _, endpoint := range []string{"https://a.example/v1", "https://b.example/v1"} {

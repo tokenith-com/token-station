@@ -42,8 +42,8 @@ func (adapter *providerResourceModelsCatalogAdapter) ResourceModels(_ context.Co
 }
 
 func TestAdminPluginProviderCatalogGetUsesModelsReadAction(t *testing.T) {
-	store := NewMemoryStore()
-	server := NewWithConfig(store, Config{AdminToken: "plugin-catalog-admin"})
+	store := newTestMemoryStore(t)
+	server := newManagedTestServerWithConfig(t, store, Config{AdminToken: "plugin-catalog-admin"})
 	providerType := "resource_catalog_provider"
 	pluginID := "tokenhub.provider.resource-catalog"
 	if err := server.adapterRegistry.RegisterPlugin(pluginmeta.Descriptor{
@@ -140,8 +140,8 @@ func TestAdminPluginProviderCatalogGetUsesModelsReadAction(t *testing.T) {
 }
 
 func TestAdminPluginProviderCatalogGetUsesDeclaredAccountResource(t *testing.T) {
-	store := NewMemoryStore()
-	server := NewWithConfig(store, Config{AdminToken: "plugin-catalog-admin"})
+	store := newTestMemoryStore(t)
+	server := newManagedTestServerWithConfig(t, store, Config{AdminToken: "plugin-catalog-admin"})
 	providerType := "auto_catalog_provider"
 	resourceType := "auto_catalog_account"
 	pluginID := "tokenhub.provider.auto-catalog"
@@ -226,7 +226,7 @@ func TestAdminPluginProviderCatalogGetUsesDeclaredAccountResource(t *testing.T) 
 }
 
 func TestAdminPluginProviderCatalogGetUsesDeclaredAccountRequiredError(t *testing.T) {
-	server := NewWithConfig(NewMemoryStore(), Config{AdminToken: "plugin-catalog-admin"})
+	server := newManagedTestServerWithConfig(t, newTestMemoryStore(t), Config{AdminToken: "plugin-catalog-admin"})
 	providerType := "account_required_catalog_provider"
 	pluginID := "tokenhub.provider.account-required-catalog"
 	entry := pluginProviderCatalogEntry{
@@ -267,7 +267,7 @@ func TestAdminPluginProviderCatalogGetUsesDeclaredAccountRequiredError(t *testin
 }
 
 func TestAdminProviderCreationImportsSelectedPluginCatalogModelsFromStandardCatalog(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	store.AddModel(Model{
 		Name:                    "plugin-standard-model",
 		Family:                  "plugin",
@@ -282,7 +282,7 @@ func TestAdminProviderCreationImportsSelectedPluginCatalogModelsFromStandardCata
 		Metadata: map[string]string{"display_name": "Plugin Standard Model"},
 		Status:   StatusActive,
 	})
-	server := NewWithConfig(store, Config{AdminToken: "plugin-catalog-admin"})
+	server := newManagedTestServerWithConfig(t, store, Config{AdminToken: "plugin-catalog-admin"})
 	providerType := "selected_standard_catalog_provider"
 	pluginID := "tokenhub.provider.selected-standard-catalog"
 	entry := pluginProviderCatalogEntry{
@@ -343,8 +343,8 @@ func TestAdminProviderCreationImportsSelectedPluginCatalogModelsFromStandardCata
 }
 
 func TestAdminCustomProviderCatalogPostUsesModelsPreviewAction(t *testing.T) {
-	store := NewMemoryStore()
-	server := NewWithConfig(store, Config{AdminToken: "plugin-catalog-admin"})
+	store := newTestMemoryStore(t)
+	server := newManagedTestServerWithConfig(t, store, Config{AdminToken: "plugin-catalog-admin"})
 	providerType := "preview_catalog_provider"
 	pluginID := "tokenhub.provider.preview-catalog"
 	if err := server.adapterRegistry.RegisterPlugin(pluginmeta.Descriptor{
@@ -407,8 +407,8 @@ func TestAdminCustomProviderCatalogPostUsesModelsPreviewAction(t *testing.T) {
 }
 
 func TestAdminCreatePluginProviderPersistsRouteResourcePolicy(t *testing.T) {
-	store := NewMemoryStore()
-	server := NewWithConfig(store, Config{AdminToken: "plugin-catalog-admin"})
+	store := newTestMemoryStore(t)
+	server := newManagedTestServerWithConfig(t, store, Config{AdminToken: "plugin-catalog-admin"})
 	providerType := "policy_subscription_provider"
 	if err := server.adapterRegistry.RegisterPlugin(pluginmeta.Descriptor{
 		ID:      "tokenhub.provider.policy-subscription",
@@ -479,8 +479,8 @@ func TestAdminCreatePluginProviderPersistsRouteResourcePolicy(t *testing.T) {
 }
 
 func TestAdminPluginProviderCatalogGetFallsBackToResourceModelAdapter(t *testing.T) {
-	store := NewMemoryStore()
-	server := NewWithConfig(store, Config{AdminToken: "plugin-catalog-admin"})
+	store := newTestMemoryStore(t)
+	server := newManagedTestServerWithConfig(t, store, Config{AdminToken: "plugin-catalog-admin"})
 	providerType := "adapter_catalog_provider"
 	pluginID := "tokenhub.provider.adapter-catalog"
 	adapter := &providerResourceModelsCatalogAdapter{}
@@ -536,8 +536,8 @@ func TestAdminPluginProviderCatalogGetFallsBackToResourceModelAdapter(t *testing
 }
 
 func TestAdminPluginProviderCatalogGetUsesGenericResourceModelCache(t *testing.T) {
-	store := NewMemoryStore()
-	server := NewWithConfig(store, Config{AdminToken: "plugin-catalog-admin"})
+	store := newTestMemoryStore(t)
+	server := newManagedTestServerWithConfig(t, store, Config{AdminToken: "plugin-catalog-admin"})
 	providerType := "adapter_cached_catalog_provider"
 	pluginID := "tokenhub.provider.adapter-cached-catalog"
 	adapter := &providerResourceModelsCatalogAdapter{status: http.StatusNotModified}
@@ -597,8 +597,8 @@ func TestAdminPluginProviderCatalogGetUsesGenericResourceModelCache(t *testing.T
 }
 
 func TestAdminPluginProviderCatalogGetUsesPluginCatalogIdentityForCachedResourceModels(t *testing.T) {
-	store := NewMemoryStore()
-	server := NewWithConfig(store, Config{AdminToken: "plugin-catalog-admin"})
+	store := newTestMemoryStore(t)
+	server := newManagedTestServerWithConfig(t, store, Config{AdminToken: "plugin-catalog-admin"})
 	providerType := "adapter_identity_cached_catalog_provider"
 	catalogValue, ok := pluginmeta.ManifestProviderCatalog{
 		DisplayName: "Identity Cached Catalog",
@@ -663,8 +663,8 @@ func TestAdminPluginProviderCatalogGetUsesPluginCatalogIdentityForCachedResource
 }
 
 func TestAdminPluginProviderCatalogGetUsesLegacyCodexResourceModelCache(t *testing.T) {
-	store := NewMemoryStore()
-	server := NewWithConfig(store, Config{AdminToken: "plugin-catalog-admin"})
+	store := newTestMemoryStore(t)
+	server := newManagedTestServerWithConfig(t, store, Config{AdminToken: "plugin-catalog-admin"})
 	providerType := "adapter_legacy_cached_catalog_provider"
 	adapter := &providerResourceModelsCatalogAdapter{status: http.StatusNotModified}
 	if err := server.adapterRegistry.RegisterPlugin(pluginmeta.Descriptor{
@@ -723,8 +723,8 @@ func TestAdminPluginProviderCatalogGetUsesLegacyCodexResourceModelCache(t *testi
 }
 
 func TestAdminPluginProviderCatalogGetKeepsStaticEntryWhenResourceModelsUnsupported(t *testing.T) {
-	store := NewMemoryStore()
-	server := NewWithConfig(store, Config{AdminToken: "plugin-catalog-admin"})
+	store := newTestMemoryStore(t)
+	server := newManagedTestServerWithConfig(t, store, Config{AdminToken: "plugin-catalog-admin"})
 	providerType := "static_catalog_provider"
 	pluginID := "tokenhub.provider.static-catalog"
 	if err := server.adapterRegistry.RegisterPlugin(pluginmeta.Descriptor{
@@ -769,8 +769,8 @@ func TestAdminPluginProviderCatalogGetKeepsStaticEntryWhenResourceModelsUnsuppor
 }
 
 func TestProviderCatalogIncludesBuiltInPluginCatalogEntries(t *testing.T) {
-	store := NewMemoryStore()
-	server := New(store)
+	store := newTestMemoryStore(t)
+	server := newManagedTestServer(t, store)
 	providerType := "builtin_catalog_plugin"
 	pluginID := "tokenhub.provider.builtin-catalog-plugin"
 	entry := pluginProviderCatalogEntry{
@@ -826,7 +826,7 @@ func TestProviderCatalogIncludesBuiltInPluginCatalogEntries(t *testing.T) {
 }
 
 func TestProviderCatalogIncludesCatalogOnlyPluginEntries(t *testing.T) {
-	server := New(NewMemoryStore())
+	server := newManagedTestServer(t, newTestMemoryStore(t))
 	providerType := "catalog_only_subscription"
 	entry := pluginProviderCatalogEntry{
 		ID:          "catalog-only",
@@ -873,7 +873,7 @@ func TestProviderCatalogIncludesCatalogOnlyPluginEntries(t *testing.T) {
 }
 
 func TestProviderCatalogMergesBuiltInPluginMetadataWithCatalogModels(t *testing.T) {
-	server := New(NewMemoryStore())
+	server := newManagedTestServer(t, newTestMemoryStore(t))
 	entries := []ProviderCatalogEntry{{
 		ID:          "openai",
 		Name:        "Catalog OpenAI",
@@ -908,7 +908,7 @@ func TestProviderCatalogMergesBuiltInPluginMetadataWithCatalogModels(t *testing.
 }
 
 func TestAdminProviderCatalogItemMergesBuiltInPluginMetadataWithModels(t *testing.T) {
-	server := NewWithConfig(NewMemoryStore(), Config{AdminToken: "plugin-catalog-admin"})
+	server := newManagedTestServerWithConfig(t, newTestMemoryStore(t), Config{AdminToken: "plugin-catalog-admin"})
 
 	response := doJSON(t, server.Handler(), http.MethodGet, "/api/admin/provider-catalog/openai", nil, "plugin-catalog-admin")
 	if response.Code != http.StatusOK {

@@ -74,7 +74,7 @@ func containsJSONField(body, field string, want any) bool {
 }
 
 func TestQueryAPIKeyUsageScopesMetricsAndReadsEffectiveKeyQuota(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	project := store.CreateProject(Project{Name: "API Key Usage Project", Status: StatusActive})
 	key, _, err := store.CreateAPIKey(project.ID, APIKey{
 		Name: "Observed Key", Status: StatusActive, OwnerUserID: "usr_key_usage_owner",
@@ -150,7 +150,7 @@ func TestQueryAPIKeyUsageScopesMetricsAndReadsEffectiveKeyQuota(t *testing.T) {
 }
 
 func TestQueryAPIKeyUsageDoesNotCreateMissingQuotaBuckets(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	project := store.CreateProject(Project{Name: "Empty Usage Project", Status: StatusActive})
 	key, _, err := store.CreateAPIKey(project.ID, APIKey{Name: "Empty Key", Status: StatusActive}, "thk_empty_key_usage")
 	if err != nil {

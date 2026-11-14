@@ -106,7 +106,7 @@ func TestDingTalkIdentityProviderLoginProtocol(t *testing.T) {
 		t.Fatalf("unexpected authorize query: %s", parsedAuthorizeTarget.RawQuery)
 	}
 
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	existing, err := store.CreateAdminUser(AdminUser{
 		Username: "ding-union-id",
 		Name:     "Local User",
@@ -118,7 +118,7 @@ func TestDingTalkIdentityProviderLoginProtocol(t *testing.T) {
 		t.Fatal(err)
 	}
 	store.CreateResource("identity-providers", provider)
-	app := NewWithConfig(store, Config{
+	app := newManagedTestServerWithConfig(t, store, Config{
 		AdminToken: "dev_admin_token", SecretKey: "test-secret",
 		CORSAllowedOrigins: []string{"http://localhost:3000"},
 	}).Handler()
@@ -229,7 +229,7 @@ func TestFeishuIdentityProviderLoginProtocol(t *testing.T) {
 		t.Fatalf("unexpected authorize query: %s", parsedAuthorizeTarget.RawQuery)
 	}
 
-	server := New(NewMemoryStore())
+	server := newManagedTestServer(t, newTestMemoryStore(t))
 	token, err := server.exchangeOAuthCode(context.Background(), provider, "feishu-code", "https://tokenhub.example.test/api/admin/auth/oauth/callback", "")
 	if err != nil {
 		t.Fatal(err)
@@ -311,7 +311,7 @@ func TestWeComIdentityProviderLoginProtocol(t *testing.T) {
 		t.Fatalf("unexpected authorize query: %s", parsedAuthorizeTarget.RawQuery)
 	}
 
-	server := New(NewMemoryStore())
+	server := newManagedTestServer(t, newTestMemoryStore(t))
 	token, err := server.exchangeOAuthCode(context.Background(), provider, "wecom-code", "https://tokenhub.example.test/api/admin/auth/oauth/callback", "")
 	if err != nil {
 		t.Fatal(err)

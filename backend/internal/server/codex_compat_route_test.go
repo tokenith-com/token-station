@@ -44,7 +44,7 @@ func newCodexCompatibilityRouteTestServer(t *testing.T, transport http.RoundTrip
 
 func newCodexCompatibilityRouteTestServerForProvider(t *testing.T, providerType string, transport http.RoundTripper) (*Server, *GormStore, string) {
 	t.Helper()
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	project := store.CreateProject(Project{Name: "Codex Bridge Route Test", Status: StatusActive})
 	_, secret, err := store.CreateAPIKey(project.ID, APIKey{
 		Name: "Codex Bridge Key", Allowed: []string{codexCompatibilityRouteModel}, Status: StatusActive,
@@ -79,7 +79,7 @@ func newCodexCompatibilityRouteTestServerForProvider(t *testing.T, providerType 
 		ProviderResourceID: resource.ID, ProviderModel: codexCompatibilityRouteModel,
 		Priority: 1, Weight: 100, Status: StatusActive, Strategy: RouteStrategyPriorityOnly,
 	})
-	server := NewWithConfig(store, Config{AdminToken: "dev_admin_token", SecretKey: "codex-bridge-route-secret"})
+	server := newManagedTestServerWithConfig(t, store, Config{AdminToken: "dev_admin_token", SecretKey: "codex-bridge-route-secret"})
 	if transport != nil {
 		mustCodexSubscriptionAdapterForTest(t, server).Client = &http.Client{Transport: transport}
 	}
@@ -413,7 +413,7 @@ func TestCodexCompatibilityChatFiltersIncompatibleCodexRoute(t *testing.T) {
 }
 
 func TestCodexCompatibilityChatFailsOverAndKeepsSessionAffinity(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	project := store.CreateProject(Project{Name: "Codex Failover Affinity", Status: StatusActive})
 	_, secret, err := store.CreateAPIKey(project.ID, APIKey{Name: "Affinity Key", Allowed: []string{codexCompatibilityRouteModel}, Status: StatusActive}, "thk_codex_affinity_route")
 	if err != nil {
@@ -432,7 +432,7 @@ func TestCodexCompatibilityChatFailsOverAndKeepsSessionAffinity(t *testing.T) {
 	store.AddRoute(ModelRoute{ID: "route_codex_affinity", ModelName: codexCompatibilityRouteModel, ProviderID: provider.ID, ProviderModel: codexCompatibilityRouteModel, Status: StatusActive, Priority: 1, Weight: 100, Strategy: RouteStrategyPriorityOnly})
 	badCalls := 0
 	goodCalls := 0
-	server := NewWithConfig(store, Config{AdminToken: "dev_admin_token", SecretKey: "codex-affinity-route-secret"})
+	server := newManagedTestServerWithConfig(t, store, Config{AdminToken: "dev_admin_token", SecretKey: "codex-affinity-route-secret"})
 	mustCodexSubscriptionAdapterForTest(t, server).MaxRequestRetries = 1
 	mustCodexSubscriptionAdapterForTest(t, server).Client = &http.Client{Transport: roundTripperFunc(func(request *http.Request) (*http.Response, error) {
 		if request.Header.Get("authorization") == "Bearer access_bad" {

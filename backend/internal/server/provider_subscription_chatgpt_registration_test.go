@@ -158,7 +158,7 @@ func TestChatGPTSubscriptionRegistrationPersistsAcrossStoreRestart(t *testing.T)
 }
 
 func TestChatGPTSubscriptionRegistrationConcurrentBindingCannotReplaceClient(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	registration, err := store.chatGPTSubscriptionRegistration(context.Background(), "administrator", "")
 	if err != nil {
 		t.Fatal(err)

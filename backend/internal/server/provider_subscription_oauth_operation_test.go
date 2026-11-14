@@ -63,7 +63,7 @@ func TestSubscriptionOAuthPreservesCancellationAtLeaseBoundary(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			ctx, cancel := context.WithCancel(context.Background())
 			defer cancel()
-			store := &subscriptionOAuthCancelledLeaseStore{MemoryStore: NewMemoryStore(), err: test.leaseError, cancelLease: test.cancelLease}
+			store := &subscriptionOAuthCancelledLeaseStore{MemoryStore: newTestMemoryStore(t), err: test.leaseError, cancelLease: test.cancelLease}
 			t.Cleanup(func() { _ = store.Close() })
 			if test.cancelled {
 				store.cancel = cancel

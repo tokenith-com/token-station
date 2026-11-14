@@ -1,11 +1,9 @@
 "use client";
-
 import { exchangeOAuthLoginCode, resolvePendingOAuthLoginResult, safeOAuthLoginErrorCode } from "../domain/oauth-login";
 import { modelRoutePolicyPayload } from "../views/model-routing-policy";
 import { type ModelRoutePolicy } from "../core/types";
 import { IssuedKeyModal } from "../shared/issued-key-modal";
 import { ModalErrorProvider } from "../shared/modal-error";
-
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { type LoadedData, loadPlanForView, mergeLoadedData } from "../core/data-loading";
@@ -115,7 +113,7 @@ import { APIKeyUsageView } from "../views/api-key-usage";
 import { PlaygroundPage } from "../views/playground";
 import { PlatformAccountsView, type PlatformAccountValues } from "../views/platform-accounts";
 import { TeamGroupsView, type TeamGroupValues } from "../views/team-groups";
-import { UnavailableAccountService } from "../views/guest-billing";
+import { RechargeView, UnavailableAccountService } from "../views/guest-billing";
 import { ProviderUpsertModal } from "../views/provider-editor";
 import { ProjectWorkspace, type ProjectWorkspaceMode } from "../views/project-workspace";
 import { consoleResourceActions } from "./console-resource-actions";
@@ -127,9 +125,9 @@ import { BillingView, UsageView } from "../views/usage-billing";
 import { scopePortalData, type Portal } from "../core/portal";
 import { PortalContext } from "../core/portal-context";
 import { SourceAdminContent } from "../../source-admin/shell/source-admin-content";
+import { useLoginIdentityProviders } from "./use-login-identity-providers";
 
 const themeStorageKey = "tokenhub.theme";
-
 // 超管右侧内容区使用 tokenhub 源码前端；Maas-ui 专属页面，以及需与其他角色保持一致的
 // 用量、模型目录、演练场页面仍走 Maas-ui 原实现。
 const maasOnlyViews = new Set<ViewKey>(["balance-recharge", "invoices", "usage", "models", "playground"]);
@@ -168,6 +166,7 @@ function AdminConsoleContent({ defaultBaseURL, portal = "b", captchaID = "" }: C
   const [pendingLoginOTP, setPendingLoginOTP] = useState<{ identity: string; payload: Awaited<ReturnType<typeof loginWithPassword>> } | null>(null);
   const [oauthReturnURL, setOAuthReturnURL] = useState(() => currentOAuthReturnURL());
   const [bootstrapped, setBootstrapped] = useState(false);
+  const loginIdentityProviders = useLoginIdentityProviders(bootstrapped && !currentUser, defaultBaseURL);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [openNavGroups, setOpenNavGroups] = useState<Record<string, boolean>>(() => Object.fromEntries(allNavGroupTitles.map(title => [title, true])));
   const [activeView, setActiveView] = useState<ViewKey>(routeView);
@@ -179,7 +178,7 @@ function AdminConsoleContent({ defaultBaseURL, portal = "b", captchaID = "" }: C
   const [loading, setLoading] = useState(false);
   const [query, setQuery] = useState("");
   const [modelCategoryFilter, setModelCategoryFilter] = useState("all");
-  const [routeModelQuery, setRouteModelQuery] = useState("");
+  const routeModelQuery = searchParams?.get("model") ?? "";
   const [settingsTab, setSettingsTab] = useState<SettingsTabKey>("role-configs");
   const [modal, setModal] = useState<ModalState<any> | null>(null);
   const [modalSaveError, setModalSaveError] = useState<{ state: ModalState<any>; message: string } | null>(null);
@@ -240,7 +239,6 @@ function AdminConsoleContent({ defaultBaseURL, portal = "b", captchaID = "" }: C
 
   function selectView(view: ViewKey, options: { replace?: boolean; routeModelQuery?: string } = {}) {
     if (view !== "projects") setProjectWorkspace(null);
-    if (view === "routes") setRouteModelQuery(options.routeModelQuery ?? "");
     if (view === "settings" && currentUser && appRole(currentUser.role) === "admin") {
       setSettingsTab("role-configs");
     }
@@ -253,9 +251,11 @@ function AdminConsoleContent({ defaultBaseURL, portal = "b", captchaID = "" }: C
     }
     setActiveView(view);
     const nextPath = viewRoutes[view];
-    if (pathname === nextPath && !apiKeyUsageID) return;
+    if (pathname === nextPath && !apiKeyUsageID && view !== "routes") return;
     const nextParams = new URLSearchParams(searchParams?.toString());
     nextParams.delete("usage_key");
+    if (view === "routes" && options.routeModelQuery) nextParams.set("model", options.routeModelQuery);
+    else if (activeView === "routes" || view === "routes") nextParams.delete("model");
     const suffix = `${nextParams.size ? `?${nextParams}` : ""}${typeof window === "undefined" ? "" : window.location.hash}`;
     const nextURL = `${nextPath}${suffix}`;
     if (options.replace) {
@@ -450,6 +450,7 @@ function AdminConsoleContent({ defaultBaseURL, portal = "b", captchaID = "" }: C
   }, [router, portal]);
 
   useEffect(() => {
+    if (currentUser && usesSourceAdminContent(currentUser, activeView)) return;
     function onIssuedKey(event: Event) {
       const detail = (event as CustomEvent<string>).detail;
       if (!detail) return;
@@ -463,7 +464,7 @@ function AdminConsoleContent({ defaultBaseURL, portal = "b", captchaID = "" }: C
     }
     window.addEventListener("tokenhub-issued-key", onIssuedKey);
     return () => window.removeEventListener("tokenhub-issued-key", onIssuedKey);
-  }, []);
+  }, [currentUser, activeView]);
 
   useEffect(() => {
     if (issuedKey && isIssuedAPIKey(issuedKey)) rememberIssuedKey(issuedKey);
@@ -945,7 +946,7 @@ function AdminConsoleContent({ defaultBaseURL, portal = "b", captchaID = "" }: C
         loading={loading}
         error={loginError}
         baseURL={baseURL}
-        identityProviders={[]}
+        identityProviders={loginIdentityProviders}
         oauthReturnURL={oauthReturnURL}
         theme={theme}
         portal={portal}
@@ -1162,7 +1163,7 @@ function AdminConsoleContent({ defaultBaseURL, portal = "b", captchaID = "" }: C
             {activeView === "overview" ? (
               <OverviewView api={api} data={data} user={currentUser} onSelectView={selectView} />
             ) : activeView === "playground" ? (
-              <PlaygroundPage api={api} data={data} canViewRoutes={canAccessView(currentUser, "routes")} />
+              <PlaygroundPage api={api} data={data} canViewRoutes={canAccessView(currentUser, "routes")} personal={accountManagementRole === "guest"} onRecharge={() => selectView("balance-recharge")} />
             ) : activeView === "gateway" ? (
               <GatewayView
                 api={api}
@@ -1177,7 +1178,7 @@ function AdminConsoleContent({ defaultBaseURL, portal = "b", captchaID = "" }: C
             ) : activeView === "usage" ? (
               <UsageView api={api} data={data} user={currentUser} />
             ) : activeView === "balance-recharge" && accountManagementRole === "guest" ? (
-              <UnavailableAccountService service="recharge" />
+              <RechargeView api={api} />
             ) : activeView === "invoices" && accountManagementRole === "guest" ? (
               <UnavailableAccountService service="invoices" />
             ) : activeView === "billing" ? (
@@ -1528,11 +1529,10 @@ function AdminConsoleContent({ defaultBaseURL, portal = "b", captchaID = "" }: C
         /> : null}
         {accountManagementRole === "guest"
           ? issuedKey ? <IssuedKeyModal value={issuedKey} onClose={() => setIssuedKey("")} /> : null
-          : <APIKeyAccessDialogs key={currentUser.id} baseURL={api.baseURL} issuedKey={issuedKey} onCloseIssuedKey={() => setIssuedKey("")} />}
+          : !usesSourceAdminContent(currentUser, activeView) && <APIKeyAccessDialogs key={currentUser.id} baseURL={api.baseURL} issuedKey={issuedKey} onCloseIssuedKey={() => setIssuedKey("")} />}
       </main>
     </ModalErrorProvider>
   );
-
 }
 
 // Go 后端空切片会序列化为 null，这里把用量拆分里的各个列表兜底成数组。

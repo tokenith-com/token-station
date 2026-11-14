@@ -13,7 +13,7 @@ func TestForeignTemplateRetirementDoesNotBlockAzurePublication(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	const upstream = "gpt-5.2-chat-latest"
 	found := false
 	for _, model := range models {

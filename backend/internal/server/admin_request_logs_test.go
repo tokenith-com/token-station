@@ -10,7 +10,7 @@ import (
 )
 
 func TestAdminRequestLogsDefaultsToTwentyItems(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	createdAt := time.Date(2026, time.August, 5, 10, 0, 0, 0, time.UTC)
 	for index := 1; index <= 25; index++ {
 		statusCode := http.StatusOK
@@ -42,7 +42,7 @@ func TestAdminRequestLogsDefaultsToTwentyItems(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	response := doJSON(t, New(store).Handler(), http.MethodGet, "/api/admin/audit/requests", nil, "")
+	response := doJSON(t, newManagedTestServer(t, store).Handler(), http.MethodGet, "/api/admin/audit/requests", nil, "")
 	if response.Code != http.StatusOK {
 		t.Fatalf("expected request logs 200, got %d: %s", response.Code, response.Body)
 	}
@@ -69,7 +69,7 @@ func TestAdminRequestLogsDefaultsToTwentyItems(t *testing.T) {
 	if payload.Data[0].UsageRecordCount != 1 || payload.Data[0].TotalTokens != 42 || payload.Data[0].EstimatedCostUSD != 0.0042 {
 		t.Fatalf("expected current-page usage enrichment, got %+v", payload.Data[0])
 	}
-	secondResponse := doJSON(t, New(store).Handler(), http.MethodGet, "/api/admin/audit/requests?page=2", nil, "")
+	secondResponse := doJSON(t, newManagedTestServer(t, store).Handler(), http.MethodGet, "/api/admin/audit/requests?page=2", nil, "")
 	var secondPage RequestLogPage
 	if err := json.Unmarshal([]byte(secondResponse.Body), &secondPage); err != nil {
 		t.Fatal(err)
@@ -80,7 +80,7 @@ func TestAdminRequestLogsDefaultsToTwentyItems(t *testing.T) {
 }
 
 func TestAdminRequestLogsFiltersStatusBeforePagination(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	createdAt := time.Date(2026, time.August, 5, 11, 0, 0, 0, time.UTC)
 	for index := 1; index <= 31; index++ {
 		statusCode := http.StatusOK
@@ -101,7 +101,7 @@ func TestAdminRequestLogsFiltersStatusBeforePagination(t *testing.T) {
 		}
 	}
 
-	response := doJSON(t, New(store).Handler(), http.MethodGet, "/api/admin/audit/requests?status=error&page=1&page_size=5", nil, "")
+	response := doJSON(t, newManagedTestServer(t, store).Handler(), http.MethodGet, "/api/admin/audit/requests?status=error&page=1&page_size=5", nil, "")
 	if response.Code != http.StatusOK {
 		t.Fatalf("expected filtered request logs 200, got %d: %s", response.Code, response.Body)
 	}
@@ -130,7 +130,7 @@ func TestAdminRequestLogsFiltersStatusBeforePagination(t *testing.T) {
 }
 
 func TestAdminRequestLogsFiltersExactModelAndInclusiveTimeRange(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	base := time.Date(2026, time.August, 16, 1, 0, 0, 0, time.UTC)
 	logs := []RequestLog{
 		{ID: "log_before", RequestID: "req_before", ModelName: "gpt-4", StatusCode: http.StatusOK, LatencyMS: 100, CreatedAt: base.Add(-time.Second)},
@@ -145,7 +145,7 @@ func TestAdminRequestLogsFiltersExactModelAndInclusiveTimeRange(t *testing.T) {
 	}
 
 	path := "/api/admin/audit/requests?model=gpt-4&since=" + url.QueryEscape(base.Format(time.RFC3339Nano)) + "&until=" + url.QueryEscape(base.Add(time.Hour).Format(time.RFC3339Nano))
-	response := doJSON(t, New(store).Handler(), http.MethodGet, path, nil, "")
+	response := doJSON(t, newManagedTestServer(t, store).Handler(), http.MethodGet, path, nil, "")
 	if response.Code != http.StatusOK {
 		t.Fatalf("expected filtered request logs 200, got %d: %s", response.Code, response.Body)
 	}
@@ -163,7 +163,7 @@ func TestAdminRequestLogsFiltersExactModelAndInclusiveTimeRange(t *testing.T) {
 		"/api/admin/audit/requests?since=not-a-timestamp",
 		"/api/admin/audit/requests?since=2026-08-16T02:00:00Z&until=2026-08-16T01:00:00Z",
 	} {
-		invalid := doJSON(t, New(store).Handler(), http.MethodGet, invalidPath, nil, "")
+		invalid := doJSON(t, newManagedTestServer(t, store).Handler(), http.MethodGet, invalidPath, nil, "")
 		if invalid.Code != http.StatusBadRequest {
 			t.Fatalf("expected invalid range %q to return 400, got %d: %s", invalidPath, invalid.Code, invalid.Body)
 		}
@@ -171,7 +171,7 @@ func TestAdminRequestLogsFiltersExactModelAndInclusiveTimeRange(t *testing.T) {
 }
 
 func TestAdminRequestLogsSearchesExistingAuditFields(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	project := store.CreateProject(Project{ID: "project_search", Name: "Alpha Finance"})
 	if _, _, err := store.CreateAPIKey(project.ID, APIKey{
 		ID:   "key-needle-id",
@@ -207,7 +207,7 @@ func TestAdminRequestLogsSearchesExistingAuditFields(t *testing.T) {
 	}).Error; err != nil {
 		t.Fatal(err)
 	}
-	app := New(store).Handler()
+	app := newManagedTestServer(t, store).Handler()
 	keywords := []string{
 		"REQ-NEEDLE-ID",
 		"Alpha Finance",
@@ -268,7 +268,7 @@ func TestAdminRequestLogsSearchesExistingAuditFields(t *testing.T) {
 }
 
 func TestAdminRequestLogsValidatesAndCapsPagination(t *testing.T) {
-	app := New(NewMemoryStore()).Handler()
+	app := newManagedTestServer(t, newTestMemoryStore(t)).Handler()
 	for _, path := range []string{
 		"/api/admin/audit/requests?page=0",
 		"/api/admin/audit/requests?page_size=-1",
@@ -294,7 +294,7 @@ func TestAdminRequestLogsValidatesAndCapsPagination(t *testing.T) {
 }
 
 func TestRequestLogPaginationIndexesCoverVisibleScopes(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	tests := []struct {
 		name    string
 		columns []string
@@ -337,7 +337,7 @@ func TestRequestLogPaginationIndexesCoverVisibleScopes(t *testing.T) {
 }
 
 func TestUserRequestLogScopeRunsBeforePagination(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	user, err := store.CreateAdminUser(AdminUser{
 		Username: "request-scope-user",
 		Email:    "request-scope-user@tokenhub.local",
@@ -409,7 +409,7 @@ func TestUserRequestLogScopeRunsBeforePagination(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	app := New(store).Handler()
+	app := newManagedTestServer(t, store).Handler()
 	login := doJSON(t, app, http.MethodPost, "/api/admin/auth/login", map[string]any{
 		"identity": user.Email,
 		"password": "user123456",

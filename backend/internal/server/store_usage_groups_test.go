@@ -229,7 +229,7 @@ func TestUsageQueriesStopAtCanceledContextAndReleaseReadPool(t *testing.T) {
 func TestUsageHandlersReportGroupAndTimeseriesFailures(t *testing.T) {
 	store := NewMemoryStore()
 	t.Cleanup(func() { _ = store.Close() })
-	app := New(failingUsageGroupsStore{Store: store}).Handler()
+	app := newManagedTestServer(t, failingUsageGroupsStore{Store: store}).Handler()
 	for _, path := range []string{"/api/admin/usage/breakdown", "/api/admin/usage/daily", "/api/admin/usage/timeseries"} {
 		response := doJSON(t, app, http.MethodGet, path, nil, "")
 		if response.Code != http.StatusInternalServerError {

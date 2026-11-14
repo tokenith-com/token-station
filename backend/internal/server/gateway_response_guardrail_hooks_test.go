@@ -11,7 +11,7 @@ import (
 )
 
 func TestGuardrailPostRunsAfterResponsePostTransformBeforeUsage(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	project := store.CreateProject(Project{Name: "Response Guardrail Order", Status: StatusActive})
 	_, secret, err := store.CreateAPIKey(project.ID, APIKey{
 		Name:    "response-guardrail-order-key",
@@ -24,7 +24,7 @@ func TestGuardrailPostRunsAfterResponsePostTransformBeforeUsage(t *testing.T) {
 	provider := store.AddProvider(Provider{ID: "prv_response_guardrail_order", Name: "Guardrail Order", Type: ProviderMock, Status: StatusActive, Healthy: true})
 	store.AddModel(Model{Name: "gpt-response-guardrail-order", Modality: "chat", Status: StatusActive})
 	store.AddRoute(ModelRoute{ID: "route_response_guardrail_order", ModelName: "gpt-response-guardrail-order", ProviderID: provider.ID, ProviderModel: "upstream-chat", Status: StatusActive, Priority: 1, Weight: 100})
-	server := New(store)
+	server := newManagedTestServer(t, store)
 	stages := []pluginmeta.GatewayHookStage{}
 	responsePost := pluginmeta.GatewayHookDescriptor{
 		PluginID:      "tokenhub.test-response-guardrail-order",
@@ -106,7 +106,7 @@ func TestGuardrailPostRunsAfterResponsePostTransformBeforeUsage(t *testing.T) {
 }
 
 func TestGuardrailPostDenyRecordsRedactedAuditEvent(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	project := store.CreateProject(Project{Name: "Response Guardrail Audit", Status: StatusActive})
 	_, secret, err := store.CreateAPIKey(project.ID, APIKey{
 		Name:    "response-guardrail-audit-key",
@@ -119,7 +119,7 @@ func TestGuardrailPostDenyRecordsRedactedAuditEvent(t *testing.T) {
 	provider := store.AddProvider(Provider{ID: "prv_response_guardrail_audit", Name: "Guardrail Audit", Type: ProviderMock, Status: StatusActive, Healthy: true})
 	store.AddModel(Model{Name: "gpt-response-guardrail-audit", Modality: "chat", Status: StatusActive})
 	store.AddRoute(ModelRoute{ID: "route_response_guardrail_audit", ModelName: "gpt-response-guardrail-audit", ProviderID: provider.ID, ProviderModel: "upstream-chat", Status: StatusActive, Priority: 1, Weight: 100})
-	server := New(store)
+	server := newManagedTestServer(t, store)
 	hook := pluginmeta.GatewayHookDescriptor{
 		PluginID:      "tokenhub.test-response-guardrail-audit",
 		HookID:        "deny",
@@ -173,7 +173,7 @@ func TestGuardrailPostDenyRecordsRedactedAuditEvent(t *testing.T) {
 }
 
 func TestGuardrailPostRejectsUndeclaredWritesWithoutApplyingPatch(t *testing.T) {
-	server := New(NewMemoryStore())
+	server := newManagedTestServer(t, newTestMemoryStore(t))
 	hook := pluginmeta.GatewayHookDescriptor{
 		PluginID:      "tokenhub.test-response-guardrail-policy",
 		HookID:        "undeclared-usage-write",
@@ -209,7 +209,7 @@ func TestGuardrailPostRejectsUndeclaredWritesWithoutApplyingPatch(t *testing.T) 
 }
 
 func TestGuardrailPostRunsOnCacheHitBeforeUsageAttribution(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	project := store.CreateProject(Project{Name: "Response Guardrail Cache Hit", Status: StatusActive})
 	_, secret, err := store.CreateAPIKey(project.ID, APIKey{
 		Name:    "response-guardrail-cache-key",
@@ -220,7 +220,7 @@ func TestGuardrailPostRunsOnCacheHitBeforeUsageAttribution(t *testing.T) {
 		t.Fatal(err)
 	}
 	store.AddModel(Model{Name: "gpt-response-guardrail-cache", Modality: "chat", Status: StatusActive})
-	server := New(store)
+	server := newManagedTestServer(t, store)
 	stages := []pluginmeta.GatewayHookStage{}
 	cacheLookup := pluginmeta.GatewayHookDescriptor{
 		PluginID:      "tokenhub.test-response-guardrail-cache",

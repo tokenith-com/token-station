@@ -13,6 +13,7 @@ for (const catalogAvailable of [true, false]) {
     const summary: Summary = { request_count: 8, input_tokens: 400, cached_input_tokens: 80, output_tokens: 200, total_tokens: 600, estimated_cost_usd: 1, errors: 0 };
     const breakdown: UsageBreakdown = { projects: rows, models: [], members: [], providers: [], provider_resources: [], cost_centers: [], api_keys: [] };
     api.replaceResponse("GET", "/api/admin/overview", { summary, projects: catalogAvailable ? [project] : [], models: [], providers: [], provider_resources: [], alerts: [] });
+    api.replaceResponse("GET", "/api/admin/projects", { data: catalogAvailable ? [project] : [] });
     installUsageFixtures(api, range => ({ json: {
       range, timezone: "UTC", window_start: "2026-09-07T00:00:00Z", window_end: fixedTime,
       granularity: "hour", summary, breakdown, timeseries: [],

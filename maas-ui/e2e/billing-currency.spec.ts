@@ -1,15 +1,7 @@
-import { expect, test, type Page } from "@playwright/test";
+import { login } from "./session";
+import { expect, test, } from "@playwright/test";
 import { readFile } from "node:fs/promises";
 import type { StatementResult } from "../features/admin/domain/billing-statements";
-import e2eDefaults from "./config.cjs";
-
-async function login(page: Page) {
-  await page.goto("/");
-  await page.getByLabel("账号 / 邮箱").fill(e2eDefaults.adminIdentity);
-  await page.getByLabel("密码", { exact: true }).fill(process.env.TOKENHUB_E2E_ADMIN_PASSWORD ?? e2eDefaults.adminPassword);
-  await page.getByRole("button", { name: "登录控制台" }).click();
-  await expect(page.locator(".app-shell")).toBeVisible();
-}
 
 test("admin can convert and export a statement against the real backend", async ({ page }) => {
   await login(page);

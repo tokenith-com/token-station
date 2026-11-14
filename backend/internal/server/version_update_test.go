@@ -206,8 +206,8 @@ func TestNativeVersionInfoReportsPendingRestartAfterActivation(t *testing.T) {
 }
 
 func TestContainerDeploymentRejectsOnlineUpdateEndpoint(t *testing.T) {
-	store := NewMemoryStore()
-	app := NewWithConfig(store, Config{
+	store := newTestMemoryStore(t)
+	app := newManagedTestServerWithConfig(t, store, Config{
 		AdminToken:     "native-test-admin-token",
 		AppVersion:     "0.3.1",
 		BuildType:      releaseBuildType,
@@ -262,8 +262,8 @@ func TestManagedContainerReportsUpdateSupportAndPendingRestart(t *testing.T) {
 }
 
 func TestNativeRestartEndpointSignalsProcessAfterResponse(t *testing.T) {
-	store := NewMemoryStore()
-	app := NewWithConfig(store, Config{
+	store := newTestMemoryStore(t)
+	app := newManagedTestServerWithConfig(t, store, Config{
 		AdminToken:     "native-test-admin-token",
 		AppVersion:     "0.3.2",
 		BuildType:      releaseBuildType,
@@ -292,8 +292,8 @@ func TestNativeRestartEndpointSignalsProcessAfterResponse(t *testing.T) {
 }
 
 func TestNativeRestartEndpointRecordsCallbackFailure(t *testing.T) {
-	store := NewMemoryStore()
-	app := NewWithConfig(store, Config{
+	store := newTestMemoryStore(t)
+	app := newManagedTestServerWithConfig(t, store, Config{
 		AdminToken:     "native-test-admin-token",
 		AppVersion:     "0.3.2",
 		BuildType:      releaseBuildType,

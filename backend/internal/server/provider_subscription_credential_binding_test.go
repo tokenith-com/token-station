@@ -7,7 +7,7 @@ import (
 )
 
 func TestSubscriptionCredentialLoadRejectsReboundProvider(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	server := New(store)
 	t.Cleanup(func() { _ = server.Shutdown(context.Background()) })
 	definitions := builtinSubscriptionDefinitions()
@@ -70,7 +70,7 @@ func TestSubscriptionCredentialLoadRejectsReboundProvider(t *testing.T) {
 }
 
 func TestSubscriptionRoutePreparationRejectsReboundAccount(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	server := New(store)
 	t.Cleanup(func() { _ = server.Shutdown(context.Background()) })
 	source := store.AddProvider(Provider{Name: "Source ChatGPT", Type: ProviderChatGPTSubscription, Status: StatusActive, Options: map[string]string{providerCredentialRefreshProfileOption: chatGPTSubscriptionRefreshProfile}})

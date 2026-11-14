@@ -148,7 +148,7 @@ func TestAdminModelCreateOnlyRequiresModelWriteAccess(t *testing.T) {
 
 func modelCreateOnlyHTTPFixture(t *testing.T) (*GormStore, *Server, Provider) {
 	t.Helper()
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	provider := store.AddProvider(Provider{ID: "selected-provider", Name: "Selected provider", Type: ProviderMock, Status: StatusActive, Healthy: true})
 	store.AddProviderModel(ProviderModel{ProviderID: provider.ID, UpstreamModel: "selected-model", Modality: "chat", Status: StatusActive})
 	app := NewWithConfig(store, Config{AdminToken: modelCreateOnlyAdminToken})

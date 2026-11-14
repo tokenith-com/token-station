@@ -115,6 +115,9 @@ func (s *Server) finishCall(completion GatewayCallCompletion) {
 	s.store.RecordRouteAttempts(completion.Call.RequestID, completion.Attempts)
 	switch completion.Kind {
 	case CompletionKindPlayground:
+		if db, ok := s.store.(*GormStore); ok {
+			db.finishPlaygroundWallet(completion)
+		}
 		s.store.RecordPlaygroundRequest(completion.Call, completion.Route, completion.StatusCode, completion.ErrorCode, completion.ClientIP, completion.UserAgent)
 	case CompletionKindRejected:
 		// RecordRejectedRequest already ran. It mints the request ID the caller has to

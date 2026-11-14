@@ -7,7 +7,7 @@ import (
 )
 
 func TestUsageBreakdownQueryCountDoesNotGrowWithRecords(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	project := store.CreateProject(Project{
 		ID:         "prj_breakdown_query_count",
 		Name:       "Breakdown query count",
@@ -67,7 +67,7 @@ func TestUsageBreakdownQueryCountDoesNotGrowWithRecords(t *testing.T) {
 }
 
 func TestUsageBreakdownUsesUnknownForMissingProject(t *testing.T) {
-	server := New(NewMemoryStore())
+	server := newManagedTestServer(t, newTestMemoryStore(t))
 	breakdown := server.usageBreakdownFromRecords([]UsageRecord{{ProjectID: "prj_missing"}}, nil)
 	costCenters, ok := breakdown["cost_centers"].([]map[string]any)
 	if !ok || len(costCenters) != 1 || costCenters[0]["id"] != "unknown" {

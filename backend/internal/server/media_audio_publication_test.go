@@ -14,7 +14,7 @@ func newAudioPublicationFixture(t *testing.T, providerType, endpoint string, ups
 	t.Helper()
 	remote := httptest.NewServer(upstream)
 	t.Cleanup(remote.Close)
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	provider := store.AddProvider(Provider{ID: "audio-provider", Type: providerType, BaseURL: remote.URL + "/v1", APIKey: "fixture-upstream-key", Status: StatusActive, Healthy: true})
 	metadata := map[string]string{"endpoints": endpoint, "audio_price_usd_per_second": "0"}
 	store.AddProviderModel(ProviderModel{ProviderID: provider.ID, UpstreamModel: "vendor-audio", Modality: "audio", Status: StatusActive, Metadata: metadata})

@@ -1,6 +1,6 @@
 import type { Model, ModelRoute, Provider, ProviderModel, RequestDetail } from "../../features/admin/core/types";
 import { test, expect, capture } from "./harness";
-import { fixedTime, project, shellResponses } from "./fixtures/shell";
+import { fixedTime, project, shellResponses, installModelDirectoryReads } from "./fixtures/shell";
 
 const provider: Provider = { id: "p", name: "Retrieval UI Provider", type: "mock", status: "active", healthy: true, priority: 1 };
 const models: Model[] = ["embedding", "rerank"].map(modality => ({ id: modality, name: `ui-bge-${modality}`, family: "bge", modality, status: "active", input_price_usd_per_1m: 9, embedding_price_usd_per_1m: 0.5, metadata: { directory_role: "external", ...(modality === "rerank" ? { search_unit_price_usd: "0.003" } : {}) } }));
@@ -12,6 +12,7 @@ for (const mobile of [false, true]) {
     if (mobile) await page.setViewportSize({ width: 390, height: 844 });
     const overview = shellResponses().get("GET /api/admin/overview") as Record<string, unknown>;
     api.replaceResponse("GET", "/api/admin/overview", { ...overview, models, providers: [provider] });
+    installModelDirectoryReads(api, models, [provider]);
     api.replaceResponse("GET", "/api/admin/provider-models", { data: inventory });
     api.respond("GET", "/api/admin/routing-rules", { data: routes });
     api.respond("GET", "/api/admin/provider-catalog", { data: [] });
@@ -100,6 +101,7 @@ test("retrieval-layout distinguishes free and unknown prices", async ({ page, ap
   ];
   const overview = shellResponses().get("GET /api/admin/overview") as Record<string, unknown>;
   api.replaceResponse("GET", "/api/admin/overview", { ...overview, models: freeModels, providers: [provider] });
+  installModelDirectoryReads(api, freeModels, [provider]);
   api.respond("GET", "/api/admin/routing-rules", { data: freeModels.map((model, index) => ({ ...routes[0], id: `free-route-${index}`, model_name: model.name })) });
   api.respond("GET", "/api/admin/provider-catalog", { data: [] });
   await page.goto("/models");

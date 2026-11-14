@@ -112,6 +112,15 @@
       "checksum": "7d82635a877fcb295d057840ba271b7890253208625b941b48f3cd7894f2fffe",
       "lock_timeout_seconds": 30,
       "statement_budget": 3
+    },
+    {
+      "version": 14,
+      "name": "add-prepaid-usage",
+      "phase": "expand",
+      "dialect": "",
+      "checksum": "68d213593c89475c4e90f0c27fe29a19fde4b32bcb102b6141658267f900cdaa",
+      "lock_timeout_seconds": 30,
+      "statement_budget": 6
     }
   ]
 }

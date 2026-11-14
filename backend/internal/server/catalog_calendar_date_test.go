@@ -38,7 +38,7 @@ func TestCatalogCalendarDatesPreserveUnspecifiedShutdownTime(t *testing.T) {
 }
 
 func TestCalendarDatePolicyBlocksOnlyNewRoutesAndClearsWithdrawnDates(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	provider := store.AddProvider(Provider{ID: "calendar", Type: ProviderOpenAICompatible, Status: StatusActive, Options: map[string]string{"catalog_id": "official"}})
 	store.AddModel(Model{Name: "calendar-chat", Modality: "chat", Status: StatusActive})
 	stored := store.AddProviderModel(ProviderModel{ProviderID: provider.ID, UpstreamModel: "model", Modality: "chat", InputPriceUSDPer1M: 2, Status: StatusActive})

@@ -11,7 +11,7 @@ import (
 )
 
 func TestAdminPasswordResetLinkKeepsTokenOutOfQueryAndUntrustedHosts(t *testing.T) {
-	server := NewWithConfig(NewMemoryStore(), Config{
+	server := NewWithConfig(newTestMemoryStore(t), Config{
 		PublicBaseURL:      "https://api.tokenhub.example",
 		CORSAllowedOrigins: []string{"https://console.tokenhub.example"},
 	})
@@ -42,7 +42,7 @@ func TestAdminPasswordResetLinkKeepsTokenOutOfQueryAndUntrustedHosts(t *testing.
 }
 
 func TestAdminPasswordResetRejectsInvalidTokensBeforeHashing(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	user, err := store.CreateAdminUser(AdminUser{
 		Username: "reset-precheck-user", Email: "reset-precheck@example.test", Role: "user", Status: StatusActive,
 	}, "old-password-123")
@@ -75,7 +75,7 @@ func TestAdminPasswordResetRejectsInvalidTokensBeforeHashing(t *testing.T) {
 }
 
 func TestAdminPasswordResetHashingDoesNotHoldGlobalStoreMutex(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	user, err := store.CreateAdminUser(AdminUser{
 		Username: "reset-lock-user", Email: "reset-lock@example.test", Role: "user", Status: StatusActive,
 	}, "old-password-123")

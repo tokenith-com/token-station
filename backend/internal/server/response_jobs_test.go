@@ -51,7 +51,7 @@ func newBackgroundResponseTestServerWithConfig(t *testing.T, config Config) (*Se
 
 func newBackgroundResponseTestStore(t *testing.T, config Config) (*GormStore, string) {
 	t.Helper()
-	store := NewMemoryStoreWithConfig(config)
+	store := newTestMemoryStoreWithConfig(t, config)
 	project := store.CreateProject(Project{Name: "Background Responses", Status: StatusActive})
 	tokenLimit := int64(10000)
 	_, secret, err := store.CreateAPIKey(project.ID, APIKey{
@@ -608,8 +608,8 @@ func TestResponseWorkerStopsWhenStoreIsClosed(t *testing.T) {
 	config := responseJobTestConfig()
 	config.ResponsePollIntervalMillis = 10
 	config.ResponseWorkerConcurrency = 1
-	store := NewMemoryStoreWithConfig(config)
-	server := NewWithConfig(store, config)
+	store := newTestMemoryStoreWithConfig(t, config)
+	server := newTestServerWithClosedDatabase(t, store, config)
 	if server.stopHeartbeat != nil {
 		server.stopHeartbeat()
 		server.stopHeartbeat = nil
@@ -1091,7 +1091,7 @@ func TestBackgroundResponsesSQLiteRestartProcessesQueuedJob(t *testing.T) {
 
 func TestResponseJobRecoveryDoesNotReplayPossiblyDispatchedWork(t *testing.T) {
 	config := responseJobTestConfig()
-	store := NewMemoryStoreWithConfig(config)
+	store := newTestMemoryStoreWithConfig(t, config)
 	requestJSON, _ := json.Marshal(responseJobEnvelope{Request: json.RawMessage(`{"model":"gpt-x","input":"x","background":true}`)})
 	created, err := store.CreateResponseJob(ResponseJob{ID: NewID("resp"), ProjectID: "project", APIKeyID: "key", Model: "gpt-x"}, requestJSON)
 	if err != nil {
@@ -1172,7 +1172,7 @@ func TestResponseJobCancellationBeforeDispatchPreventsUpstreamTransition(t *test
 
 func TestResponseJobAdmissionPersistsAtomicallyAndRecoversWithoutDoubleCharging(t *testing.T) {
 	config := responseJobTestConfig()
-	store := NewMemoryStoreWithConfig(config)
+	store := newTestMemoryStoreWithConfig(t, config)
 	project := store.CreateProject(Project{Name: "Atomic admission", Status: StatusActive})
 	rpm := int64(100)
 	tpm := int64(100)
@@ -1287,7 +1287,7 @@ func TestResponseJobAdmissionPersistsAtomicallyAndRecoversWithoutDoubleCharging(
 
 func TestResponseJobPayloadEncryptionFailsClosed(t *testing.T) {
 	config := responseJobTestConfig()
-	store := NewMemoryStoreWithConfig(config)
+	store := newTestMemoryStoreWithConfig(t, config)
 	envelopeJSON, _ := json.Marshal(responseJobEnvelope{Request: json.RawMessage(`{"model":"gpt-x","input":"secret","background":true}`)})
 	created, err := store.CreateResponseJob(ResponseJob{ID: NewID("resp"), ProjectID: "project", APIKeyID: "key", Model: "gpt-x"}, envelopeJSON)
 	if err != nil {

@@ -448,6 +448,12 @@ docker inspect --format 'memory={{.HostConfig.Memory}} memory_swap={{.HostConfig
 
 YAML の `alipay.api_methods` で `alipay.trade.page.pay`（Alipay の決済ページ URL）または `alipay.trade.precreate`（対面決済の QR コード）を有効にします。新規注文の既定値はリストの先頭です。リストを省略すると従来の `precreate` が使われます。 チャージプラン API は有効な方式を `alipay_api_methods` で返します。Alipay の注文時は任意の `api_method` で既定以外の方式を選択できます。ウェブ決済は `pay_url`、対面決済は `qr_code` を返します。いずれも設定した販売者 ID を使って通知を検証します。
 
+すべてのゲートウェイレプリカで `prepaid_usage: true` を設定すると、ゲストのテキストチャットとモデルプレイグラウンドの利用料金が残高から引き落とされます。有効化する前に `POST /api/admin/billing/exchange-rates` で CNY の精算レートを登録してください。レートは 1 CNY あたりの USD で、リクエストごとに保存されます。ゲストの API キーには有効な所有者を明示してください。対応するネイティブ Chat Completions アダプターのテキストチャットが対象です。上流モデルごとにコンテキスト長と出力上限を確認してください。有効化後、ゲストのその他の課金対象 API は拒否されます。
+
+ウォレット API の `available_micros` は、返金と利用料金の予約分を差し引いた残高を 100 万分の 1 元単位で返します。管理者は `GET /api/admin/payment-wallet/usage?status=pending_review` で確認待ちのリクエストを取得できます。上流の使用量を確認し、`POST /api/admin/payment-wallet/usage/{request_id}/resolve` に `charged_micros` と確認理由 `reason` を送信します。金額をゼロにすると予約が解除されます。予約額を超える料金は別途照合してください。
+
+本番の Alipay を有効化する前に、加盟店アカウントまたは署名を検証した成功通知で、アプリの `seller_id` を確認してください。少額の実取引で HTTPS 通知を検証してください。schema 14 の移行を事前に検証し、ロールバック中も既存の決済通知とウォレット精算を処理してください。
+
 Compose で任意の Redis 課金コンポーネントを実行する場合は、通常のコマンドに overlay ファイルを追加します。
 
 ```bash

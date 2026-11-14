@@ -26,7 +26,7 @@ func TestAdminRejectedPluginUpdatePreservesRollback(t *testing.T) {
 					dirName = "manually-installed"
 				}
 				writeServerPluginManifest(t, filepath.Join(pluginDir, dirName), adminPluginManifest(id, "Rollback fixture", "1.0.0"))
-				server := NewWithConfig(NewMemoryStore(), Config{AdminToken: "dev_admin_token", PluginDir: pluginDir})
+				server := newManagedTestServerWithConfig(t, newTestMemoryStore(t), Config{AdminToken: "dev_admin_token", PluginDir: pluginDir})
 				server.pluginInstallClient = upstream.Client()
 				endpoint := "/api/admin/plugins/" + id + "/update"
 				first := doJSON(t, server.Handler(), http.MethodPost, endpoint, map[string]any{

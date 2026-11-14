@@ -19,19 +19,17 @@ func newSystemOneTestServer(t *testing.T, upstream http.HandlerFunc) (*Server, *
 	t.Helper()
 	fixture := httptest.NewServer(upstream)
 	t.Cleanup(fixture.Close)
-	store := NewMemoryStore()
-	if err := SeedDemoData(store); err != nil {
-		t.Fatal(err)
-	}
+	store := newTestMemoryStore(t)
+	project := store.CreateProject(Project{ID: "prj_demo", Name: "System One Test Project", Status: StatusActive})
 	provider := store.AddProvider(Provider{ID: "prv_typesafe_test", Name: "TypeSafe Test", Type: providerTypeSafe, BaseURL: fixture.URL + "/v1", APIKey: "synthetic-typesafe-key", Status: StatusActive, Healthy: true})
 	store.AddModel(Model{ID: "jev-test", Name: "jev-test", Family: "jev", Modality: "decision", Status: StatusActive, InputPriceUSDPer1M: 0.042, OutputPriceUSDPer1M: 0})
 	if _, err := store.CreateRoute(ModelRoute{ModelName: "jev-test", ProviderID: provider.ID, ProviderModel: "jev-latest", Status: StatusActive, Priority: 1, Weight: 100}); err != nil {
 		t.Fatal(err)
 	}
-	if _, _, err := store.CreateAPIKey("prj_demo", APIKey{Name: "System One Key", Allowed: []string{"jev-test"}, Status: StatusActive}, "thk_systemone_test"); err != nil {
+	if _, _, err := store.CreateAPIKey(project.ID, APIKey{Name: "System One Key", Allowed: []string{"jev-test"}, Status: StatusActive}, "thk_systemone_test"); err != nil {
 		t.Fatal(err)
 	}
-	return New(store), store
+	return newManagedTestServer(t, store), store
 }
 
 func TestGatewaySystemOneNativeContractAndBilling(t *testing.T) {
@@ -113,16 +111,25 @@ func TestGatewaySystemOneRejectsBeforeUpstream(t *testing.T) {
 		calls.Add(1)
 		writeFixture(t, w, systemOneFixtureResponse)
 	})
+	const chatKey = "thk_systemone_chat_only"
+	chat := store.AddModel(Model{ID: "systemone-test-chat", Name: "gpt-4.1-mini", Family: "gpt", Modality: "chat", Status: StatusActive})
+	chatProvider := store.AddProvider(Provider{ID: "systemone-test-chat-provider", Name: "Chat Only Provider", Type: ProviderMock, Status: StatusActive, Healthy: true})
+	if _, err := store.CreateRoute(ModelRoute{ModelName: chat.Name, ProviderID: chatProvider.ID, ProviderModel: "mock-chat", Status: StatusActive, Priority: 1, Weight: 100}); err != nil {
+		t.Fatal(err)
+	}
+	if _, _, err := store.CreateAPIKey("prj_demo", APIKey{Name: "Chat Only Key", Allowed: []string{chat.Name}, Status: StatusActive}, chatKey); err != nil {
+		t.Fatal(err)
+	}
 	tests := []struct {
 		name, token, body string
 		status            int
 	}{
 		{"missing key", "", systemOneFixtureRequest, 401},
 		{"invalid key", "invalid-key", systemOneFixtureRequest, 401},
-		{"disallowed model", "thk_demo_local", systemOneFixtureRequest, 403},
+		{"disallowed model", chatKey, systemOneFixtureRequest, 403},
 		{"unknown field", "thk_systemone_test", strings.Replace(systemOneFixtureRequest, `"state":`, `"stream":true,"state":`, 1), 400},
 		{"invalid rubric", "thk_systemone_test", strings.Replace(systemOneFixtureRequest, `["low","high"]`, `["low"]`, 1), 422},
-		{"missing capability", "thk_demo_local", strings.Replace(systemOneFixtureRequest, `"jev-test"`, `"gpt-4.1-mini"`, 1), 501},
+		{"missing capability", chatKey, strings.Replace(systemOneFixtureRequest, `"jev-test"`, `"gpt-4.1-mini"`, 1), 501},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

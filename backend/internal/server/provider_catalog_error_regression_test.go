@@ -26,7 +26,7 @@ func TestAdminCustomProviderCatalogClassifiesUpstreamFailures(t *testing.T) {
 			}))
 			defer upstream.Close()
 
-			response := doJSON(t, newTestServer(), http.MethodPost, "/api/admin/provider-catalog/custom", map[string]any{
+			response := doJSON(t, newTestServer(t), http.MethodPost, "/api/admin/provider-catalog/custom", map[string]any{
 				"name":     "Failing Provider",
 				"type":     ProviderOpenAICompatible,
 				"base_url": upstream.URL + "/v1",

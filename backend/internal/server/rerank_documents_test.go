@@ -68,7 +68,7 @@ func newRerankCompletionFixture(t *testing.T, handler http.HandlerFunc) (*Server
 	t.Helper()
 	upstream := httptest.NewServer(handler)
 	t.Cleanup(upstream.Close)
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	if err := SeedDemoData(store); err != nil {
 		t.Fatal(err)
 	}

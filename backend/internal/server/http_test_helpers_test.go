@@ -16,12 +16,13 @@ import (
 	"time"
 )
 
-func newTestServer() http.Handler {
-	store := NewMemoryStore()
+func newTestServer(t testing.TB) http.Handler {
+	t.Helper()
+	store := newTestMemoryStore(t)
 	if err := SeedDemoData(store); err != nil {
-		panic(err)
+		t.Fatal(err)
 	}
-	return New(store).Handler()
+	return newManagedTestServer(t, store).Handler()
 }
 
 func mustCodexSubscriptionAdapterForTest(t testing.TB, server *Server) *CodexSubscriptionAdapter {
@@ -191,7 +192,7 @@ func stringifyValueForTest(value any) string {
 
 func newResourceRoutedStore(t *testing.T, providerType string) (*GormStore, string, string) {
 	t.Helper()
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	project := store.CreateProject(Project{Name: "Resource Ops App"})
 	_, secret, err := store.CreateAPIKey(project.ID, APIKey{
 		Name:    "resource-ops-key",

@@ -15,8 +15,8 @@ func TestGoogleSubscriptionActionsRequireAndProtectCustomClientCredentials(t *te
 			continue
 		}
 		t.Run(definition.providerType, func(t *testing.T) {
-			store := NewMemoryStore()
-			server := New(store)
+			store := newTestMemoryStore(t)
+			server := newManagedTestServer(t, store)
 			path := "/api/admin/provider-actions/" + definition.providerType + "/"
 			methods := doJSON(t, server.Handler(), http.MethodPost, path+"oauth.methods", map[string]any{"resource_type": definition.resourceType}, "dev_admin_token")
 			if methods.Code != http.StatusOK || !strings.Contains(methods.Body, `"key":"client_secret"`) || !strings.Contains(methods.Body, `"key":"client_id"`) || !strings.Contains(methods.Body, `"key":"organization_id"`) {

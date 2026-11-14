@@ -79,7 +79,7 @@ func TestRerankPluginUnitMustMatchRoute(t *testing.T) {
 				name += "_mismatch"
 			}
 			t.Run(name, func(t *testing.T) {
-				store := NewMemoryStore()
+				store := newTestMemoryStore(t)
 				if err := SeedDemoData(store); err != nil {
 					t.Fatal(err)
 				}

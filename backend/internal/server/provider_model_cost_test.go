@@ -11,11 +11,11 @@ import (
 )
 
 func TestProviderCreationImportsModelsWithoutImplicitRoutes(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	if err := SeedDemoData(store); err != nil {
 		t.Fatal(err)
 	}
-	app := New(store).Handler()
+	app := newManagedTestServer(t, store).Handler()
 
 	resp := doJSON(t, app, http.MethodPost, "/api/admin/providers", map[string]any{
 		"id":              "prv_inventory_default",
@@ -45,11 +45,11 @@ func TestProviderCreationImportsModelsWithoutImplicitRoutes(t *testing.T) {
 
 func TestProviderCreationRequiresValidCatalogModelSelection(t *testing.T) {
 	for _, selectedModels := range [][]string{nil, {"not-in-catalog"}} {
-		store := NewMemoryStore()
+		store := newTestMemoryStore(t)
 		if err := SeedDemoData(store); err != nil {
 			t.Fatal(err)
 		}
-		app := New(store).Handler()
+		app := newManagedTestServer(t, store).Handler()
 
 		resp := doJSON(t, app, http.MethodPost, "/api/admin/providers", map[string]any{
 			"id":              "prv_inventory_required",
@@ -70,11 +70,11 @@ func TestProviderCreationRequiresValidCatalogModelSelection(t *testing.T) {
 }
 
 func TestCustomProviderCreationRequiresDiscoveredModelSelection(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	if err := SeedDemoData(store); err != nil {
 		t.Fatal(err)
 	}
-	app := New(store).Handler()
+	app := newManagedTestServer(t, store).Handler()
 
 	resp := doJSON(t, app, http.MethodPost, "/api/admin/providers", map[string]any{
 		"id":         "prv_custom_inventory_required",
@@ -96,7 +96,7 @@ func TestCustomProviderCreationRequiresDiscoveredModelSelection(t *testing.T) {
 }
 
 func TestUsageRecordsExternalChargeAndProviderCostSeparately(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	external := store.AddModel(Model{
 		Name:                    "public-model",
 		Modality:                "chat",
@@ -150,7 +150,7 @@ func TestUsageRecordsExternalChargeAndProviderCostSeparately(t *testing.T) {
 }
 
 func TestProviderCostUsesPricingPeriodAtRequestStart(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	provider := store.AddProvider(Provider{ID: "prv_period_cost", Name: "Period Cost", Type: ProviderMock, Status: StatusActive})
 	peakInput, peakOutput := 4.0, 10.0
 	store.AddProviderModel(ProviderModel{
@@ -176,7 +176,7 @@ func TestProviderCostUsesPricingPeriodAtRequestStart(t *testing.T) {
 }
 
 func TestProviderCostDoesNotEstimateAnUnconfiguredCachePrice(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	provider := store.AddProvider(Provider{ID: "prv_exact_cost", Name: "Exact Cost", Type: ProviderMock, Status: StatusActive})
 	store.AddProviderModel(ProviderModel{
 		ProviderID: provider.ID, UpstreamModel: "exact-model", Modality: "chat", Status: StatusActive,
@@ -192,7 +192,7 @@ func TestProviderCostDoesNotEstimateAnUnconfiguredCachePrice(t *testing.T) {
 }
 
 func TestProviderCostAllowsConfiguredFreeCacheWrites(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	provider := store.AddProvider(Provider{ID: "prv_free_cache_write", Name: "Free Cache Write", Type: ProviderMock, Status: StatusActive})
 	store.AddProviderModel(ProviderModel{
 		ProviderID: provider.ID, UpstreamModel: "free-cache-write-model", Modality: "chat", Status: StatusActive,
@@ -208,14 +208,14 @@ func TestProviderCostAllowsConfiguredFreeCacheWrites(t *testing.T) {
 }
 
 func TestProviderModelCostPatchCanClearPrices(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	provider := store.AddProvider(Provider{ID: "prv_clear_cost", Name: "Clear Cost", Type: ProviderMock, Status: StatusActive})
 	model := store.AddProviderModel(ProviderModel{
 		ProviderID: provider.ID, UpstreamModel: "priced-model", Status: StatusActive,
 		InputPriceUSDPer1M: 1, CacheReadPriceUSDPer1M: 0.5, CacheWritePriceUSDPer1M: 1.1, OutputPriceUSDPer1M: 2,
 	})
 
-	resp := doJSON(t, New(store).Handler(), http.MethodPatch, "/api/admin/provider-models/"+model.ID, map[string]any{
+	resp := doJSON(t, newManagedTestServer(t, store).Handler(), http.MethodPatch, "/api/admin/provider-models/"+model.ID, map[string]any{
 		"input_price_usd_per_1m":      0,
 		"cache_read_price_usd_per_1m": 0,
 		"output_price_usd_per_1m":     0,
@@ -228,7 +228,7 @@ func TestProviderModelCostPatchCanClearPrices(t *testing.T) {
 		t.Fatalf("provider prices were not cleared: %+v", updated)
 	}
 
-	resp = doJSON(t, New(store).Handler(), http.MethodPatch, "/api/admin/provider-models/"+model.ID, map[string]any{
+	resp = doJSON(t, newManagedTestServer(t, store).Handler(), http.MethodPatch, "/api/admin/provider-models/"+model.ID, map[string]any{
 		"cache_write_price_configured": false,
 	}, "")
 	if resp.Code != http.StatusOK {
@@ -241,7 +241,7 @@ func TestProviderModelCostPatchCanClearPrices(t *testing.T) {
 }
 
 func TestProviderCostsAreRedactedOutsideGlobalOperations(t *testing.T) {
-	server := New(NewMemoryStore())
+	server := newManagedTestServer(t, newTestMemoryStore(t))
 	userDetail := map[string]any{"usage": []UsageRecord{{CostUSD: 12, ProviderCostUSD: 4}}}
 	server.redactProviderCostsForUser(AdminUser{Role: "user"}, userDetail)
 	userUsage := userDetail["usage"].([]UsageRecord)
@@ -268,7 +268,7 @@ func TestProviderCostIsNeverSerializedInPublicUsage(t *testing.T) {
 }
 
 func TestAdminRejectsNegativeProviderModelCostWithoutPersistingIt(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	if err := SeedDemoData(store); err != nil {
 		t.Fatal(err)
 	}
@@ -280,7 +280,7 @@ func TestAdminRejectsNegativeProviderModelCostWithoutPersistingIt(t *testing.T) 
 		OutputPriceUSDPer1M:    2,
 		Status:                 StatusActive,
 	})
-	app := New(store).Handler()
+	app := newManagedTestServer(t, store).Handler()
 
 	updated := doJSON(t, app, http.MethodPatch, "/api/admin/provider-models/"+providerModel.ID, map[string]any{
 		"input_price_usd_per_1m":      -1,
@@ -309,11 +309,11 @@ func TestAdminRejectsNegativeProviderModelCostWithoutPersistingIt(t *testing.T) 
 }
 
 func TestProviderCreationRejectsNegativeImportedModelCost(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	if err := SeedDemoData(store); err != nil {
 		t.Fatal(err)
 	}
-	app := New(store).Handler()
+	app := newManagedTestServer(t, store).Handler()
 
 	created := doJSON(t, app, http.MethodPost, "/api/admin/providers", map[string]any{
 		"id":              "prv_invalid_cost",
@@ -344,11 +344,11 @@ func TestProviderCreationRejectsNegativeImportedModelCost(t *testing.T) {
 }
 
 func TestProviderModelImportRejectsNegativeCost(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	if err := SeedDemoData(store); err != nil {
 		t.Fatal(err)
 	}
-	app := New(store).Handler()
+	app := newManagedTestServer(t, store).Handler()
 
 	imported := doJSON(t, app, http.MethodPost, "/api/admin/provider-models/import", map[string]any{
 		"provider_id": "prv_mock",
@@ -370,7 +370,7 @@ func TestProviderModelImportRejectsNegativeCost(t *testing.T) {
 }
 
 func TestAdminRejectsNonFiniteProviderModelCostWithoutPersistingIt(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	if err := SeedDemoData(store); err != nil {
 		t.Fatal(err)
 	}
@@ -382,7 +382,7 @@ func TestAdminRejectsNonFiniteProviderModelCostWithoutPersistingIt(t *testing.T)
 		OutputPriceUSDPer1M:    2,
 		Status:                 StatusActive,
 	})
-	app := New(store).Handler()
+	app := newManagedTestServer(t, store).Handler()
 
 	req := httptest.NewRequest(
 		http.MethodPatch,
@@ -405,7 +405,7 @@ func TestAdminRejectsNonFiniteProviderModelCostWithoutPersistingIt(t *testing.T)
 }
 
 func TestAdminProviderModelPartialPatchPreservesConfiguredCosts(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	if err := SeedDemoData(store); err != nil {
 		t.Fatal(err)
 	}
@@ -417,7 +417,7 @@ func TestAdminProviderModelPartialPatchPreservesConfiguredCosts(t *testing.T) {
 		OutputPriceUSDPer1M:    3.5,
 		Status:                 StatusActive,
 	})
-	app := New(store).Handler()
+	app := newManagedTestServer(t, store).Handler()
 
 	updated := doJSON(t, app, http.MethodPatch, "/api/admin/provider-models/"+providerModel.ID, map[string]any{
 		"status": StatusDisabled,

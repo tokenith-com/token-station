@@ -15,7 +15,7 @@ func TestEmbeddingSpaceIsStableAcrossRequestsAndHealthChanges(t *testing.T) {
 		writeJSON(w, 200, map[string]any{"data": []any{map[string]any{"index": 0, "embedding": []float64{1, 2}}}, "usage": map[string]any{"total_tokens": 1}})
 	}))
 	defer upstream.Close()
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	if err := SeedDemoData(store); err != nil {
 		t.Fatal(err)
 	}
@@ -29,7 +29,7 @@ func TestEmbeddingSpaceIsStableAcrossRequestsAndHealthChanges(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	app := New(store)
+	app := newManagedTestServer(t, store)
 	for i := 0; i < 4; i++ {
 		if i == 2 {
 			if err := store.db.Model(&Provider{}).Where("id = ?", "a").Update("healthy", false).Error; err != nil {
@@ -61,7 +61,7 @@ func TestEmbeddingSpaceIsStableAcrossRequestsAndHealthChanges(t *testing.T) {
 }
 
 func TestEmbeddingSpaceIncludesResourceOverridesAndProviderFallback(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	store.AddProvider(Provider{ID: "p", Type: ProviderOpenAICompatible, Options: map[string]string{"embedding_spaces": `{"m":"space-a"}`}})
 	store.AddRoute(ModelRoute{ModelName: "m", ProviderID: "p", ProviderModel: "m", Status: StatusActive})
 	resource, err := store.AddProviderResource(ProviderResource{ProviderID: "p", Name: "r", ResourceType: "api_key", Status: StatusActive, Healthy: false, Options: map[string]string{"embedding_spaces": `{"m":"space-b"}`}})

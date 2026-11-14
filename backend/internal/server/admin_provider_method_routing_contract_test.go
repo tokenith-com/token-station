@@ -117,7 +117,7 @@ func TestAdminProviderMethodRoutesRejectRealHEAD(t *testing.T) {
 }
 
 func TestAdminProviderMethodRoutesPreserveCORSPreflight(t *testing.T) {
-	app := newTestServer()
+	app := newTestServer(t)
 	for _, route := range adminProviderMethodRoutes() {
 		t.Run(route.name, func(t *testing.T) {
 			request := httptest.NewRequest(http.MethodOptions, route.path, nil)
@@ -194,13 +194,13 @@ func TestAdminProviderMethodRoutesReachCatalogHandlers(t *testing.T) {
 }
 
 func TestAdminProviderTestRouteUsesPluginAction(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	providerType := "provider_probe_plugin"
 	provider := store.AddProvider(Provider{
 		ID: "prv_provider_probe_plugin", Name: "Provider Probe Plugin", Type: providerType,
 		Status: StatusActive, Healthy: true,
 	})
-	server := New(store)
+	server := newManagedTestServer(t, store)
 	pluginID := "tokenhub.provider.provider-probe-plugin"
 	if err := server.adapterRegistry.RegisterPlugin(pluginmeta.BuiltInProvider(pluginID, "Provider Probe Plugin", []string{providerType}, []string{string(AdapterCapabilityProbe)}), AdapterRegistration{
 		Type:         providerType,
@@ -249,7 +249,7 @@ func TestAdminProviderTestRouteUsesPluginAction(t *testing.T) {
 }
 
 func TestAdminProviderCatalogRouteUsesProviderModelsAction(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	providerType := "provider_models_plugin"
 	provider := store.AddProvider(Provider{
 		ID: "prv_provider_models_plugin", Name: "Provider Models Plugin", Type: providerType,
@@ -262,7 +262,7 @@ func TestAdminProviderCatalogRouteUsesProviderModelsAction(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	server := New(store)
+	server := newManagedTestServer(t, store)
 	pluginID := "tokenhub.provider.provider-models-plugin"
 	catalogEntry := pluginProviderCatalogEntry{
 		ID:          "provider-models-plugin",
@@ -336,7 +336,7 @@ func TestAdminProviderCatalogRoutesPreserveCodexQueriesCredentialsAndHeaders(t *
 	config := ConfigFromEnv()
 	config.AdminToken = "dev_admin_token"
 	config.BootstrapAdminPassword = "provider-codex-catalog-password"
-	store := NewMemoryStoreWithConfig(config)
+	store := newTestMemoryStoreWithConfig(t, config)
 	if err := BootstrapBaseDataWithConfig(store, config); err != nil {
 		t.Fatal(err)
 	}
@@ -368,7 +368,7 @@ func TestAdminProviderCatalogRoutesPreserveCodexQueriesCredentialsAndHeaders(t *
 		accountID string
 	}
 	observed := make([]observedCredentials, 0, 2)
-	server := NewWithConfig(store, config)
+	server := newManagedTestServerWithConfig(t, store, config)
 	mustCodexSubscriptionAdapterForTest(t, server).ModelsURL = "https://codex-models.example/models"
 	mustCodexSubscriptionAdapterForTest(t, server).Client = &http.Client{Transport: roundTripperFunc(func(request *http.Request) (*http.Response, error) {
 		if request.Method != http.MethodGet || request.URL.String() != "https://codex-models.example/models?client_version="+openAICodexVersion {
@@ -437,7 +437,7 @@ func TestAdminProviderCatalogRoutesPreserveRefreshQuery(t *testing.T) {
 	config.AdminToken = "dev_admin_token"
 	config.BootstrapAdminPassword = "provider-catalog-refresh-password"
 	config.ProviderCatalogFile = catalogFile
-	store := NewMemoryStoreWithConfig(config)
+	store := newTestMemoryStoreWithConfig(t, config)
 	if err := BootstrapBaseDataWithConfig(store, config); err != nil {
 		t.Fatal(err)
 	}
@@ -445,7 +445,7 @@ func TestAdminProviderCatalogRoutesPreserveRefreshQuery(t *testing.T) {
 		http.Error(w, "upstream unavailable", http.StatusServiceUnavailable)
 	}))
 	t.Cleanup(upstream.Close)
-	server := NewWithConfig(store, config)
+	server := newManagedTestServerWithConfig(t, store, config)
 	server.providerCatalog.upstreamURL = upstream.URL
 	server.providerCatalog.upstreamClient = upstream.Client()
 	app := server.Handler()

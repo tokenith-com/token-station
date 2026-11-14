@@ -65,7 +65,7 @@ func TestInventoryConfirmationDoesNotConfirmHiddenRetrievalRates(t *testing.T) {
 }
 
 func TestProviderZeroCostSavePublishesAndPersistsKnownFreeSnapshot(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	provider := store.AddProvider(Provider{ID: "confirmed-price", Type: ProviderOpenAICompatible, Status: StatusActive, Healthy: true})
 	inventory := store.AddProviderModel(ProviderModel{
 		ProviderID: provider.ID, UpstreamModel: "synthetic-chat", Modality: "chat", Status: StatusActive,

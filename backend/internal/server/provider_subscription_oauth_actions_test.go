@@ -34,7 +34,7 @@ func subscriptionActionFixture(t *testing.T, server *Server, providerType, capab
 }
 
 func TestSubscriptionActionsAdvertiseResourcePolicyAndAuthorization(t *testing.T) {
-	server := New(NewMemoryStore())
+	server := newManagedTestServer(t, newTestMemoryStore(t))
 	for _, definition := range builtinSubscriptionDefinitions() {
 		descriptor, ok := server.adapterRegistry.Describe(definition.providerType)
 		if !ok || descriptor.ProviderPolicy.CredentialsScope != providerCredentialsScopeResource || !descriptor.ProviderPolicy.RouteRequiresResource || descriptor.ProviderPolicy.SupportsCustomHeaders {
@@ -52,8 +52,8 @@ func TestSubscriptionActionsAdvertiseResourcePolicyAndAuthorization(t *testing.T
 }
 
 func TestSubscriptionAuthorizationBindsActorProviderAndCallback(t *testing.T) {
-	store := NewMemoryStore()
-	server := New(store)
+	store := newTestMemoryStore(t)
+	server := newManagedTestServer(t, store)
 	for _, providerType := range []string{ProviderChatGPTSubscription, providerGeminiCLISubscription, providerAntigravitySubscription} {
 		t.Run(providerType, func(t *testing.T) {
 			started, err := subscriptionActionFixture(t, server, providerType, "oauth.start", "administrator", map[string]any{"inputs": map[string]string{"client_id": "synthetic-google-client", "client_secret": "synthetic-google-secret"}})
@@ -103,8 +103,8 @@ func TestSubscriptionAuthorizationBindsActorProviderAndCallback(t *testing.T) {
 }
 
 func TestSubscriptionChatGPTExchangeIsSingleUse(t *testing.T) {
-	store := NewMemoryStore()
-	server := New(store)
+	store := newTestMemoryStore(t)
+	server := newManagedTestServer(t, store)
 	started, err := subscriptionActionFixture(t, server, ProviderChatGPTSubscription, "oauth.start", "administrator", map[string]any{})
 	if err != nil {
 		t.Fatal(err)
@@ -163,8 +163,8 @@ func TestSubscriptionChatGPTExchangeIsSingleUse(t *testing.T) {
 }
 
 func TestSubscriptionCopilotDevicePollingIsBoundedAndSingleUse(t *testing.T) {
-	store := NewMemoryStore()
-	server := New(store)
+	store := newTestMemoryStore(t)
+	server := newManagedTestServer(t, store)
 	var polls atomic.Int32
 	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/start" {

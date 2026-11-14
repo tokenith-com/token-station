@@ -26,7 +26,7 @@ func loginAsTeamMemberActor(t *testing.T, app http.Handler, email string, passwo
 }
 
 func TestTeamLeaderCreatesMemberAssignedToFirstManageableProject(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	store.CreateResource("teams", AdminResource{ID: "team_alpha", Name: "Alpha Team", Status: StatusActive})
 	store.CreateResource("teams", AdminResource{ID: "team_beta", Name: "Beta Team", Status: StatusActive})
 	leader, err := store.CreateAdminUser(AdminUser{
@@ -43,7 +43,7 @@ func TestTeamLeaderCreatesMemberAssignedToFirstManageableProject(t *testing.T) {
 	firstProject := store.CreateProject(Project{Name: "Alpha First Project", TeamID: "team_alpha"})
 	store.CreateProject(Project{Name: "Alpha Second Project", TeamID: "team_alpha"})
 	otherProject := store.CreateProject(Project{Name: "Beta Project", TeamID: "team_beta"})
-	app := New(store).Handler()
+	app := newManagedTestServer(t, store).Handler()
 	token := loginAsTeamMemberActor(t, app, leader.Email, "leader123456")
 
 	created := doJSON(t, app, http.MethodPost, "/api/admin/team-members", map[string]any{
@@ -88,7 +88,7 @@ func TestTeamLeaderCreatesMemberAssignedToFirstManageableProject(t *testing.T) {
 }
 
 func TestTeamLeaderCreateMemberWithoutManageableProject(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	store.CreateResource("teams", AdminResource{ID: "team_alpha", Name: "Alpha Team", Status: StatusActive})
 	store.CreateResource("teams", AdminResource{ID: "team_beta", Name: "Beta Team", Status: StatusActive})
 	leader, err := store.CreateAdminUser(AdminUser{
@@ -103,7 +103,7 @@ func TestTeamLeaderCreateMemberWithoutManageableProject(t *testing.T) {
 		t.Fatal(err)
 	}
 	store.CreateProject(Project{Name: "Beta Only Project", TeamID: "team_beta"})
-	app := New(store).Handler()
+	app := newManagedTestServer(t, store).Handler()
 	token := loginAsTeamMemberActor(t, app, leader.Email, "leader123456")
 
 	created := doJSON(t, app, http.MethodPost, "/api/admin/team-members", map[string]any{
@@ -122,7 +122,7 @@ func TestTeamLeaderCreateMemberWithoutManageableProject(t *testing.T) {
 }
 
 func TestAdminCreatesMemberWithExplicitTeam(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	store.CreateResource("teams", AdminResource{ID: "team_alpha", Name: "Alpha Team", Status: StatusActive})
 	if _, err := store.CreateAdminUser(AdminUser{
 		Username: "platform-admin",
@@ -134,7 +134,7 @@ func TestAdminCreatesMemberWithExplicitTeam(t *testing.T) {
 		t.Fatal(err)
 	}
 	project := store.CreateProject(Project{Name: "Alpha Project", TeamID: "team_alpha"})
-	app := New(store).Handler()
+	app := newManagedTestServer(t, store).Handler()
 	token := loginAsTeamMemberActor(t, app, "platform-admin@tokenhub.local", "admin123456")
 
 	missingTeam := doJSON(t, app, http.MethodPost, "/api/admin/team-members", map[string]any{
@@ -176,7 +176,7 @@ func TestAdminCreatesMemberWithExplicitTeam(t *testing.T) {
 }
 
 func TestTeamMemberCreateRejectsUnauthorizedRoles(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	store.CreateResource("teams", AdminResource{ID: "team_alpha", Name: "Alpha Team", Status: StatusActive})
 	store.CreateProject(Project{Name: "Alpha Project", TeamID: "team_alpha"})
 	if _, err := store.CreateAdminUser(AdminUser{
@@ -196,7 +196,7 @@ func TestTeamMemberCreateRejectsUnauthorizedRoles(t *testing.T) {
 	}, "user123456"); err != nil {
 		t.Fatal(err)
 	}
-	app := New(store).Handler()
+	app := newManagedTestServer(t, store).Handler()
 
 	for _, credentials := range [][2]string{
 		{"sec-admin@tokenhub.local", "security123456"},
@@ -215,7 +215,7 @@ func TestTeamMemberCreateRejectsUnauthorizedRoles(t *testing.T) {
 }
 
 func TestTeamLeaderCannotCreateMemberForOtherTeam(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	store.CreateResource("teams", AdminResource{ID: "team_alpha", Name: "Alpha Team", Status: StatusActive})
 	store.CreateResource("teams", AdminResource{ID: "team_beta", Name: "Beta Team", Status: StatusActive})
 	leader, err := store.CreateAdminUser(AdminUser{
@@ -229,7 +229,7 @@ func TestTeamLeaderCannotCreateMemberForOtherTeam(t *testing.T) {
 		t.Fatal(err)
 	}
 	store.CreateProject(Project{Name: "Alpha Project", TeamID: "team_alpha"})
-	app := New(store).Handler()
+	app := newManagedTestServer(t, store).Handler()
 	token := loginAsTeamMemberActor(t, app, leader.Email, "leader123456")
 
 	created := doJSON(t, app, http.MethodPost, "/api/admin/team-members", map[string]any{

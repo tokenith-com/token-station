@@ -317,12 +317,12 @@ func newMethodRoutingReconciliationServer(t *testing.T, maxJSONBytes int64) (*Go
 	if maxJSONBytes > 0 {
 		config.MaxJSONRequestBytes = maxJSONBytes
 	}
-	store := NewMemoryStoreWithConfig(config)
+	store := newTestMemoryStoreWithConfig(t, config)
 	if err := BootstrapBaseDataWithConfig(store, config); err != nil {
 		t.Fatal(err)
 	}
 	connector := createReconciliationTestConnector(t, store, "reconciliation-routing-connector")
-	return store, NewWithConfig(store, config).Handler(), connector
+	return store, newManagedTestServerWithConfig(t, store, config).Handler(), connector
 }
 
 func createMethodRoutingReconciliationRule(t *testing.T, app http.Handler, connectorID string) ReconciliationRule {

@@ -10,7 +10,7 @@ import (
 )
 
 func TestAuthContextHookAddsMetadataForDownstreamHooks(t *testing.T) {
-	server := New(NewMemoryStore())
+	server := newManagedTestServer(t, newTestMemoryStore(t))
 	authHook := pluginmeta.GatewayHookDescriptor{
 		PluginID:      "tokenhub.test-auth",
 		HookID:        "tenant-context",
@@ -74,7 +74,7 @@ func TestAuthContextHookAddsMetadataForDownstreamHooks(t *testing.T) {
 }
 
 func TestAuthContextHookCannotChangeCoreAuthenticationFacts(t *testing.T) {
-	server := New(NewMemoryStore())
+	server := newManagedTestServer(t, newTestMemoryStore(t))
 	hook := pluginmeta.GatewayHookDescriptor{
 		PluginID:      "tokenhub.test-auth",
 		HookID:        "unsafe-context",

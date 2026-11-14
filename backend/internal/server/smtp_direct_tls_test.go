@@ -116,7 +116,7 @@ func deliverEmailAlert(t *testing.T, store *GormStore, channelID string, rootCAs
 	if err := store.db.Create(&alert).Error; err != nil {
 		t.Fatal(err)
 	}
-	srv := New(store)
+	srv := newManagedTestServer(t, store)
 	srv.smtpRootCAs = rootCAs
 	app := srv.Handler()
 	resp := doJSON(t, app, http.MethodPost, "/api/admin/alerts/"+alert.ID+"/deliver", map[string]any{"channel_id": channelID}, "")
@@ -126,7 +126,7 @@ func deliverEmailAlert(t *testing.T, store *GormStore, channelID string, rootCAs
 }
 
 func TestEmailDeliveryViaImplicitTLSSMTP(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	messages, rootCAs := configureTestTLSSMTPChannel(t, store)
 	channels := store.ListResources("notification-channels")
 	if len(channels) != 1 {
@@ -175,7 +175,7 @@ func TestDirectSMTPTLSEnabled(t *testing.T) {
 // The implicit-TLS dial must honour the caller context: a cancelled request
 // fails fast instead of blocking until the net.Dialer timeout.
 func TestDirectTLSSMTPDialHonorsContextCancellation(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	_, rootCAs := configureTestTLSSMTPChannel(t, store)
 	channels := store.ListResources("notification-channels")
 	if len(channels) != 1 {

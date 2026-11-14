@@ -28,7 +28,7 @@ func TestNotificationSecretsRedactSMTPQuotedErrors(t *testing.T) {
 }
 
 func TestAlertDeliveryCredentialsAreRedactedAcrossAdminSurfaces(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	var received strings.Builder
 	webhook := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		_, _ = io.Copy(&received, r.Body)
@@ -69,7 +69,7 @@ func TestAlertDeliveryCredentialsAreRedactedAcrossAdminSurfaces(t *testing.T) {
 }
 
 func TestAlertDeliveryRequestErrorsDoNotPersistTelegramBotToken(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	const botToken = "telegram%invalid-secret"
 	channel := store.CreateResource("notification-channels", AdminResource{
 		Name:   "Telegram",
@@ -99,7 +99,7 @@ func TestAlertDeliveryRequestErrorsDoNotPersistTelegramBotToken(t *testing.T) {
 }
 
 func TestLegacyAlertDeliveryAndAuditResponsesRedactCredentialURLs(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	const pathSecret = "legacy-delivery-path-secret"
 	const querySecret = "legacy-delivery-query-secret"
 	legacyURL := "https://hooks.example.test/services/" + pathSecret + "?token=" + querySecret

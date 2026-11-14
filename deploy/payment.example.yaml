@@ -2,6 +2,9 @@
 # Set TOKENHUB_PAYMENT_CONFIG_FILE to its path. Credential paths are relative
 # to the YAML. Keep private keys and the API v3 key in separate files.
 # Remove a channel's section to disable it.
+# Enable after publishing a CNY exchange rate (USD per CNY) and testing the eligible models.
+prepaid_usage: false
+
 plans:
   - id: cny-10
     name: Recharge CNY 10

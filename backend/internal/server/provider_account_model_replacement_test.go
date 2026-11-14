@@ -21,7 +21,7 @@ func (a replacementModelFailureAdapter) Responses(context.Context, Provider, str
 }
 
 func TestModelRejectionFromPreviousAccountPreservesReplacementCatalog(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	server := New(store)
 	t.Cleanup(func() { _ = server.Shutdown(context.Background()) })
 	provider := store.AddProvider(Provider{Name: "Replacement catalog", Type: ProviderChatGPTSubscription, Status: StatusActive, Healthy: true})

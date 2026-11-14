@@ -10,7 +10,7 @@ import (
 )
 
 func TestSelectRouteCandidatesBatchesLookupQueries(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	seed := func(modelName string, count int) {
 		t.Helper()
 		store.AddModel(Model{Name: modelName, Modality: "chat", Status: StatusActive})
@@ -75,7 +75,7 @@ func TestSelectRouteCandidatesBatchesLookupQueries(t *testing.T) {
 }
 
 func TestSelectRouteCandidatesChunksBatchLookups(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	modelName := "chunked-route-lookups"
 	store.AddModel(Model{Name: modelName, Modality: "chat", Status: StatusActive})
 	count := routeCandidateLookupBatchSize + 1
@@ -126,7 +126,7 @@ func TestSelectRouteCandidatesChunksBatchLookups(t *testing.T) {
 }
 
 func TestSelectRouteCandidatesValidatesResourceOwnershipAndOrdersTies(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	modelName := "resource-order-model"
 	store.AddModel(Model{Name: modelName, Modality: "chat", Status: StatusActive})
 	provider := store.AddProvider(Provider{
@@ -170,7 +170,7 @@ func TestSelectRouteCandidatesValidatesResourceOwnershipAndOrdersTies(t *testing
 }
 
 func TestSelectRouteCandidatesPreservesGroupsAndProviderFallback(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	modelName := "resource-group-model"
 	store.AddModel(Model{Name: modelName, Modality: "chat", Status: StatusActive})
 	provider := store.AddProvider(Provider{
@@ -210,7 +210,7 @@ func TestSelectRouteCandidatesPreservesGroupsAndProviderFallback(t *testing.T) {
 func TestSelectRouteCandidatesFallsBackAfterBatchLookupErrors(t *testing.T) {
 	for _, target := range []string{"providers", "provider_resources"} {
 		t.Run(target, func(t *testing.T) {
-			store := NewMemoryStore()
+			store := newTestMemoryStore(t)
 			modelName := "lookup-error-" + target
 			store.AddModel(Model{Name: modelName, Modality: "chat", Status: StatusActive})
 			badProvider := store.AddProvider(Provider{
@@ -281,7 +281,7 @@ func TestSelectRouteCandidatesFallsBackAfterBatchLookupErrors(t *testing.T) {
 }
 
 func TestSelectRouteCandidatesIgnoresOptionalRuntimeStatsErrors(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	modelName := "runtime-stats-error-model"
 	store.AddModel(Model{Name: modelName, Modality: "chat", Status: StatusActive})
 	provider := store.AddProvider(Provider{
@@ -349,7 +349,7 @@ func TestSelectCodexRouteCandidatesDistinguishesResourceAvailability(t *testing.
 			{name: "healthy", resource: &ProviderResource{Status: StatusActive, Healthy: true}, wantCandidate: true},
 		} {
 			t.Run(binding+"/"+test.name, func(t *testing.T) {
-				store := NewMemoryStore()
+				store := newTestMemoryStore(t)
 				modelName := "codex-resource-availability"
 				store.AddModel(Model{Name: modelName, Modality: "chat", Status: StatusActive})
 				provider := store.AddProvider(Provider{
@@ -415,7 +415,7 @@ func TestSelectPluginAccountRouteCandidatesRequireExistingAccountResource(t *tes
 			{name: "healthy", resource: &ProviderResource{Status: StatusActive, Healthy: true}, wantCandidate: true},
 		} {
 			t.Run(binding+"/"+test.name, func(t *testing.T) {
-				store := NewMemoryStore()
+				store := newTestMemoryStore(t)
 				modelName := "plugin-account-resource-availability"
 				store.AddModel(Model{Name: modelName, Modality: "chat", Status: StatusActive})
 				provider := store.AddProvider(Provider{
@@ -463,7 +463,7 @@ func TestSelectPluginAccountRouteCandidatesRequireExistingAccountResource(t *tes
 }
 
 func TestPluginAccountRouteCandidatesUseProviderFallbackWhenNoResourcesExist(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	modelName := "plugin-account-provider-fallback"
 	store.AddModel(Model{Name: modelName, Modality: "chat", Status: StatusActive})
 	provider := store.AddProvider(Provider{
@@ -486,7 +486,7 @@ func TestPluginAccountRouteCandidatesUseProviderFallbackWhenNoResourcesExist(t *
 }
 
 func TestPluginAccountExplicitMissingResourceFails(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	modelName := "plugin-account-explicit-missing-resource"
 	store.AddModel(Model{Name: modelName, Modality: "chat", Status: StatusActive})
 	provider := store.AddProvider(Provider{
@@ -521,7 +521,7 @@ func TestRouteCandidatesRequireResourceFromProviderPolicy(t *testing.T) {
 		{name: "healthy", resource: &ProviderResource{Status: StatusActive, Healthy: true}, wantCandidate: true},
 	} {
 		t.Run(test.name, func(t *testing.T) {
-			store := NewMemoryStore()
+			store := newTestMemoryStore(t)
 			modelName := "provider-policy-requires-resource"
 			store.AddModel(Model{Name: modelName, Modality: "chat", Status: StatusActive})
 			provider := store.AddProvider(Provider{
@@ -565,7 +565,7 @@ func TestRouteCandidatesRequireResourceFromProviderPolicy(t *testing.T) {
 }
 
 func TestProviderCredentialScopeRejectsProviderLevelAPIKey(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	provider := store.AddProvider(Provider{
 		ID: "prv_resource_credentials", Name: "Resource Credentials",
 		Type: "subscription_plugin", APIKey: "create-secret", Status: StatusActive, Healthy: true,
@@ -586,7 +586,7 @@ func TestProviderCredentialScopeRejectsProviderLevelAPIKey(t *testing.T) {
 }
 
 func TestPluginAccountGroupedResourceMissingSurvivesBatchLookupFallback(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	modelName := "plugin-account-grouped-resource-missing"
 	store.AddModel(Model{Name: modelName, Modality: "chat", Status: StatusActive})
 	provider := store.AddProvider(Provider{
@@ -651,7 +651,7 @@ func TestProviderLevelRouteKeepsResourceOptional(t *testing.T) {
 				{name: "healthy resource", resource: &ProviderResource{Status: StatusActive, Healthy: true}, wantResource: true},
 			} {
 				t.Run(test.name, func(t *testing.T) {
-					store := NewMemoryStore()
+					store := newTestMemoryStore(t)
 					modelName := "provider-level-resource-optional-" + providerType
 					store.AddModel(Model{Name: modelName, Modality: "chat", Status: StatusActive})
 					provider := store.AddProvider(Provider{
@@ -693,7 +693,7 @@ func TestProviderLevelRouteKeepsResourceOptional(t *testing.T) {
 }
 
 func TestProviderLevelFallbackSurvivesBatchLookupFallback(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	modelName := "provider-level-batch-fallback"
 	store.AddModel(Model{Name: modelName, Modality: "chat", Status: StatusActive})
 	provider := store.AddProvider(Provider{
@@ -740,7 +740,7 @@ func TestProviderLevelFallbackSurvivesBatchLookupFallback(t *testing.T) {
 }
 
 func TestProviderResourceCapacityRejectsResourceDisabledAfterSelection(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	provider := store.AddProvider(Provider{
 		ID: "prv_disable_after_selection", Name: "Disable after selection",
 		Type: ProviderOpenAICodex, Status: StatusActive, Healthy: true,

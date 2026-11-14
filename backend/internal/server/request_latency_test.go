@@ -22,7 +22,7 @@ func skewedCall(requestID string, skew time.Duration) CallContext {
 }
 
 func TestFinishCallLatencyIsNotNegativeWhenDatabaseClockRunsAhead(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	route := RouteSelection{Provider: Provider{ID: "provider_clock_skew", Type: ProviderOpenAI}}
 
 	store.FinishCall(skewedCall("req_clock_skew", 4*time.Minute), route, Usage{
@@ -52,7 +52,7 @@ func TestFinishCallLatencyIsNotNegativeWhenDatabaseClockRunsAhead(t *testing.T) 
 }
 
 func TestRecordPlaygroundRequestLatencyIsNotNegativeWhenDatabaseClockRunsAhead(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	route := RouteSelection{Provider: Provider{ID: "provider_playground_skew", Type: ProviderOpenAI}}
 
 	store.RecordPlaygroundRequest(skewedCall("req_playground_skew", 4*time.Minute), route, 200, "", "127.0.0.1", "latency-test")
@@ -67,7 +67,7 @@ func TestRecordPlaygroundRequestLatencyIsNotNegativeWhenDatabaseClockRunsAhead(t
 }
 
 func TestCompleteImageJobLatencyIsNotNegativeWhenDatabaseClockRunsAhead(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	project := store.CreateProject(Project{Name: "Image Clock Skew"})
 	call := skewedCall("req_image_skew", 4*time.Minute)
 	call.Project = project
@@ -108,7 +108,7 @@ func TestCompleteImageJobLatencyIsNotNegativeWhenDatabaseClockRunsAhead(t *testi
 }
 
 func TestFailUnfinishedImageJobsLatencyIsNotNegativeForFutureCreatedAt(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	project := store.CreateProject(Project{Name: "Image Recovery Skew"})
 
 	// A replica whose clock ran ahead queued this job, so its created_at is in the
@@ -136,7 +136,7 @@ func TestFailUnfinishedImageJobsLatencyIsNotNegativeForFutureCreatedAt(t *testin
 }
 
 func TestStartCallRecordsLocalLatencyReference(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	project := store.CreateProject(Project{Name: "Latency Reference"})
 	key, _, err := store.CreateAPIKey(project.ID, APIKey{
 		Name: "latency-reference", Allowed: []string{"reference-chat"}, Status: StatusActive,

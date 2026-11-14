@@ -7,7 +7,7 @@ import (
 )
 
 func TestGetAPIKeyHydratesAndRedactsLegacyRecord(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	project := store.CreateProject(Project{ID: "prj_get_api_key", Name: "Get API key"})
 	stored := APIKey{
 		ID:        "key_get_api_key",

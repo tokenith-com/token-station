@@ -17,6 +17,7 @@ const backendURL = `http://127.0.0.1:${backendPort}`;
 const upstreamURL = `http://127.0.0.1:${upstreamPort}`;
 const nextDistName = process.env.TOKENHUB_NEXT_DIST_DIR ?? e2eDefaults.nextDistDir;
 const children = [];
+const useProcessGroups = process.platform !== "win32";
 let ready = false;
 let shuttingDown = false;
 
@@ -24,6 +25,7 @@ function start(name, command, args, options) {
   const child = spawn(command, args, {
     ...options,
     stdio: "inherit",
+    detached: useProcessGroups,
   });
   child.name = name;
   children.push(child);
@@ -40,10 +42,19 @@ function start(name, command, args, options) {
   return child;
 }
 
+async function buildBackend(binary) {
+  const build = start("Go backend build", "go", ["build", "-o", binary, "./cmd/tokenhub"], {
+    cwd: backendDirectory,
+  });
+  const code = await new Promise(resolve => build.once("exit", resolve));
+  if (code !== 0) throw new Error(`Go backend build exited with code ${code}`);
+}
+
 function signal(child, signal) {
-  if (child.exitCode !== null || child.signalCode !== null) return;
+  if (!child.pid) return;
   try {
-    child.kill(signal);
+    if (useProcessGroups) process.kill(-child.pid, signal);
+    else if (child.exitCode === null && child.signalCode === null) child.kill(signal);
   } catch (error) {
     if (error?.code !== "ESRCH") throw error;
   }
@@ -104,7 +115,7 @@ try {
   );
 
   const sharedEnvironment = {
-    ...process.env,
+    ...Object.fromEntries(Object.entries(process.env).filter(([key]) => !key.startsWith("TOKENHUB_") || key.startsWith("TOKENHUB_E2E_"))),
     TOKENHUB_E2E_UPSTREAM_PORT: String(upstreamPort),
     TOKENHUB_E2E_UPSTREAM_KEY: process.env.TOKENHUB_E2E_UPSTREAM_KEY ?? e2eDefaults.upstreamKey,
   };
@@ -115,8 +126,11 @@ try {
   });
   await waitForURL("fake upstream", `${upstreamURL}/healthz`);
 
-  start("Go backend", "go", ["run", "./cmd/tokenhub"], {
-    cwd: backendDirectory,
+  // Run the standalone binary in the scratch directory so local .env files are outside its search path.
+  const backendBinary = path.join(temporaryDirectory, process.platform === "win32" ? "tokenhub.exe" : "tokenhub");
+  await buildBackend(backendBinary);
+  start("Go backend", backendBinary, [], {
+    cwd: temporaryDirectory,
     env: {
       ...sharedEnvironment,
       TOKENHUB_ENV: "test",

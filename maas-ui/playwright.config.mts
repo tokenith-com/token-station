@@ -32,6 +32,7 @@ export default defineConfig({
     command: "node e2e/start-stack.mjs",
     url: baseURL,
     reuseExistingServer: false,
+    gracefulShutdown: { signal: "SIGTERM", timeout: 10_000 },
     timeout: 240_000,
     stdout: "pipe",
     stderr: "pipe",

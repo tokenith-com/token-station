@@ -36,11 +36,11 @@ var staticGatewayMethodRoutes = []staticGatewayMethodRoute{
 }
 
 func TestStaticGatewayMethodRoutesRejectWrongMethods(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	if err := SeedDemoData(store); err != nil {
 		t.Fatal(err)
 	}
-	app := New(store).Handler()
+	app := newManagedTestServer(t, store).Handler()
 	requestLogsBefore := len(store.ListRequestLogs())
 	auditEventsBefore := len(store.ListAuditEvents())
 	imageJobsBefore := len(store.ListImageJobs(1000))
@@ -69,7 +69,7 @@ func TestStaticGatewayMethodRoutesRejectWrongMethods(t *testing.T) {
 }
 
 func TestStaticGatewayMethodRoutesReachAuthentication(t *testing.T) {
-	app := newTestServer()
+	app := newTestServer(t)
 	for _, route := range staticGatewayMethodRoutes {
 		t.Run(route.method+" "+route.path, func(t *testing.T) {
 			response := methodRoutingRequest(app, route.method, route.path, "")
@@ -84,7 +84,7 @@ func TestStaticGatewayMethodRoutesReachAuthentication(t *testing.T) {
 }
 
 func TestStaticGatewayGETRoutesRejectRealHEAD(t *testing.T) {
-	server := httptest.NewServer(newTestServer())
+	server := httptest.NewServer(newTestServer(t))
 	t.Cleanup(server.Close)
 
 	for _, path := range []string{"/v1/models", "/api/v1/analytics/token-costs"} {
@@ -123,7 +123,7 @@ func TestStaticGatewayGETRoutesRejectRealHEAD(t *testing.T) {
 }
 
 func TestStaticGatewayMethodRoutesPreserveCORSPreflight(t *testing.T) {
-	app := newTestServer()
+	app := newTestServer(t)
 	for _, route := range staticGatewayMethodRoutes {
 		t.Run(route.path, func(t *testing.T) {
 			request := httptest.NewRequest(http.MethodOptions, route.path, nil)
@@ -145,7 +145,7 @@ func TestStaticGatewayMethodRoutesPreserveCORSPreflight(t *testing.T) {
 }
 
 func TestStaticGatewayMethodRoutesPreserveMetricsScope(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	if err := SeedDemoData(store); err != nil {
 		t.Fatal(err)
 	}

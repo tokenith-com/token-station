@@ -144,7 +144,7 @@ type reviewImageAdmissionStore struct{ Store }
 func TestImageAdmissionCarriesProtocolThroughScopedHooks(t *testing.T) {
 	for _, mode := range []string{"atomic", "fallback"} {
 		t.Run(mode, func(t *testing.T) {
-			store := NewMemoryStore()
+			store := newTestMemoryStore(t)
 			project := store.CreateProject(Project{Name: "Image protocol review", Status: StatusActive})
 			_, secret, err := store.CreateAPIKey(project.ID, APIKey{Name: "images", Allowed: []string{openAIImageModelName}, Status: StatusActive}, "thk_image_protocol_review")
 			if err != nil {

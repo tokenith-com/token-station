@@ -305,6 +305,7 @@ type Store interface {
 var _ Store = (*GormStore)(nil)
 
 type GormStore struct {
+	prepaidUsage        bool
 	db                  *gorm.DB
 	analyticsDB         *gorm.DB
 	readDB              *gorm.DB

@@ -30,7 +30,7 @@ func TestProviderCredentialReplacementDoesNotRetainPreviousAccount(t *testing.T)
 		},
 	} {
 		t.Run(test.name, func(t *testing.T) {
-			store := NewMemoryStore()
+			store := newTestMemoryStore(t)
 			provider := store.AddProvider(Provider{Name: test.name, Type: test.providerType, Status: StatusActive})
 			resource, err := store.AddProviderResource(ProviderResource{ProviderID: provider.ID, Name: "Account replacement", ResourceType: test.resourceType, Credentials: &test.original, Options: map[string]string{"scopes": test.original.Scopes, "label": "kept"}})
 			if err != nil {
@@ -98,7 +98,7 @@ func TestProviderCredentialReplacementDoesNotRetainPreviousAccount(t *testing.T)
 }
 
 func TestProviderCredentialPartialUpdateKeepsOmittedAuthentication(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	provider := store.AddProvider(Provider{Name: "Partial credentials", Type: providerGeminiCLISubscription, Status: StatusActive})
 	original := ProviderResourceCredentials{AuthType: "oauth", AccessToken: "original-access", RefreshToken: "original-refresh", ClientID: "original-client", ClientSecret: "original-secret", AccountID: "original-account"}
 	resource, err := store.AddProviderResource(ProviderResource{ProviderID: provider.ID, Name: "Partial account", ResourceType: "gemini_cli_account", Credentials: &original})
@@ -116,7 +116,7 @@ func TestProviderCredentialPartialUpdateKeepsOmittedAuthentication(t *testing.T)
 }
 
 func TestProviderCredentialReplacementRejectsMissingAuthentication(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	provider := store.AddProvider(Provider{Name: "Invalid replacement", Type: providerClaudeSubscription, Status: StatusActive})
 	resource, err := store.AddProviderResource(ProviderResource{ProviderID: provider.ID, Name: "Valid account", ResourceType: providerResourceClaudeSubscription, Credentials: &ProviderResourceCredentials{AccessToken: "retained-token"}})
 	if err != nil {
