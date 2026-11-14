@@ -115,7 +115,7 @@ try {
   });
   await waitForURL("fake upstream", `${upstreamURL}/healthz`);
 
-  start("Go backend", "go", ["run", "./cmd/tokenhub"], {
+  start("Go backend", "go", ["run", "./cmd/tokenstation"], {
     cwd: backendDirectory,
     env: {
       ...sharedEnvironment,

@@ -1332,7 +1332,7 @@ func periodEnd(period string) time.Time {
 }
 
 func defaultInvoiceNote(period string, costCenter string, amount float64) string {
-	return fmt.Sprintf("TokenHub %s AI 用量内部结算，成本中心 %s，金额 USD %.4f。", period, costCenter, roundMoney(amount))
+	return fmt.Sprintf("TokenStation %s AI 用量内部结算，成本中心 %s，金额 USD %.4f。", period, costCenter, roundMoney(amount))
 }
 
 func roundMoney(value float64) float64 {

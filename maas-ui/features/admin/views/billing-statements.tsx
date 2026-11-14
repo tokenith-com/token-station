@@ -91,7 +91,7 @@ export function BillingStatements({ api, side = "tenant", model = "", providerID
   function download() {
     if (!result) return;
     const url = URL.createObjectURL(new Blob([statementCSV(result)], { type: "text/csv;charset=utf-8" }));
-    const anchor = document.createElement("a"); anchor.href = url; anchor.download = `tokenhub-${result.query.side}-${result.query.from}-${result.query.to}.csv`; anchor.click();
+    const anchor = document.createElement("a"); anchor.href = url; anchor.download = `tokenstation-${result.query.side}-${result.query.from}-${result.query.to}.csv`; anchor.click();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
   const money = (amount: string | null, currency: string) => amount === null ? tx("未知") : formatStatementAmount(amount, currency, languageLocale());

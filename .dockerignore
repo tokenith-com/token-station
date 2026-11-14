@@ -12,6 +12,7 @@ output
 **/node_modules
 backend/data
 backend/tokenhub
+backend/tokenstation
 data/*
 !data/model-catalog.yaml
 !data/provider-catalog.json

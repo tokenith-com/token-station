@@ -92,7 +92,7 @@ func legacyLooksLikeTokenHub(driver string) func(ctx context.Context, db *sql.DB
 			return err
 		}
 		if count == 0 {
-			return errors.New("database holds tables but none from a known TokenHub release")
+			return errors.New("database holds tables but none from a known TokenStation release")
 		}
 		return nil
 	}

@@ -2,9 +2,9 @@
 
 言語：[English](../media-apis.md) | [简体中文](../zh-CN/media-apis.md) | 日本語
 
-TokenHub の共通ゲートウェイとプロジェクト API キーで、許可されたテキスト・メディアモデルを呼び出します。このガイドは用途別の API リファレンス構成で、TokenHub 独自の認証、ルーティング、タスク分離、制限を説明します。
+TokenStation の共通ゲートウェイとプロジェクト API キーで、許可されたテキスト・メディアモデルを呼び出します。このガイドは用途別の API リファレンス構成で、TokenStation 独自の認証、ルーティング、タスク分離、制限を説明します。
 
-**エンドポイントへの対応は、モデルが利用可能であることを意味しません。** 管理者による上流認証情報の設定、公開モデル ID の登録、上流モデルへのマッピング、キーへのアクセス許可が必要です。形式、長さ、解像度、音声、モデルのバージョン、素材の有効期限は上流に依存します。TokenHub はベンダーアカウントを同梱せず、上流プロバイダーの全モデル・機能を保証しません。
+**エンドポイントへの対応は、モデルが利用可能であることを意味しません。** 管理者による上流認証情報の設定、公開モデル ID の登録、上流モデルへのマッピング、キーへのアクセス許可が必要です。形式、長さ、解像度、音声、モデルのバージョン、素材の有効期限は上流に依存します。TokenStation はベンダーアカウントを同梱せず、上流プロバイダーの全モデル・機能を保証しません。
 
 ## API を選ぶ
 
@@ -46,7 +46,7 @@ curl --fail-with-body "$TOKENHUB_URL/v1/chat/completions" \
   -d '{"model":"text-model","messages":[{"role":"user","content":"Explain an API gateway in one sentence."}],"stream":false}'
 ```
 
-テキストは `choices[].message.content` から読み取ります。調査用にリクエスト ID を保存し、**リクエストログ**で確認します。`/v1/models` への表示は可視性と利用条件を満たすルートの存在を示しますが、上流の全機能の稼働を保証しません。プロバイダー固有の `expand` メタデータ形式とアカウント残高 API は汎用 TokenHub API として実装していません。
+テキストは `choices[].message.content` から読み取ります。調査用にリクエスト ID を保存し、**リクエストログ**で確認します。`/v1/models` への表示は可視性と利用条件を満たすルートの存在を示しますが、上流の全機能の稼働を保証しません。プロバイダー固有の `expand` メタデータ形式とアカウント残高 API は汎用 TokenStation API として実装していません。
 
 ## プロバイダー設定とモデル選択
 
@@ -54,7 +54,7 @@ curl --fail-with-body "$TOKENHUB_URL/v1/chat/completions" \
 
 Anthropic と Gemini のネイティブ要求には、そのプロトコルと応答形式に対応するルートが必要です。OpenAI-compatible のベース URL 設定だけではネイティブ互換性は確認できません。アダプターと SDK 設定は[利用者ガイド](user-guide.md)を参照してください。ベンダーの例ではテキスト応答にラッパーが付くこともあるため、クライアントが期待する形式を返すルートか確認してください。
 
-公開名 `gpt-image-2`、Codex サブスクリプション画像モデル、管理対象画像プラグインは TokenHub の管理対象画像フローを使います。上流 Images の非同期生成など全仕様を使う場合は、`image-model` など別のエイリアスを公開し、上流の画像モデル ID にマッピングします。[管理対象画像ガイド](user-guide.md#codex-サブスクリプション画像生成)を参照してください。
+公開名 `gpt-image-2`、Codex サブスクリプション画像モデル、管理対象画像プラグインは TokenStation の管理対象画像フローを使います。上流 Images の非同期生成など全仕様を使う場合は、`image-model` など別のエイリアスを公開し、上流の画像モデル ID にマッピングします。[管理対象画像ガイド](user-guide.md#codex-サブスクリプション画像生成)を参照してください。
 
 アップグレード時は通常の起動時マイグレーションで v8 `add-media-task-bindings` を適用します。タスク関連付けは再起動後も保持されます。保存した上流 ID を復号できるようサーバーの秘密鍵を維持してください。新しい環境変数は不要です。
 
@@ -124,7 +124,7 @@ curl --fail-with-body "$TOKENHUB_URL/v1/images/generations" \
 | `image_urls` など | 対応モデルの参照画像 |
 | `response_format` | `url`、`b64_json`、`base64` など上流が対応する形式 |
 
-同期応答は通常 `data[].url` または `data[].b64_json` を含みます。非同期応答は `data[].task_id`、または `data.object:"generation.task"` を伴う `data.id` を含みます。返された各 TokenHub ID を以下のタスク API で照会します。プロバイダーの結果フィールドを保持し、TokenHub は URL のダウンロードや有効期限の延長を行いません。
+同期応答は通常 `data[].url` または `data[].b64_json` を含みます。非同期応答は `data[].task_id`、または `data.object:"generation.task"` を伴う `data.id` を含みます。返された各 TokenStation ID を以下のタスク API で照会します。プロバイダーの結果フィールドを保持し、TokenStation は URL のダウンロードや有効期限の延長を行いません。
 
 ### 画像編集とマスク
 
@@ -147,7 +147,7 @@ curl --fail-with-body "$TOKENHUB_URL/v1/images/edits" \
 curl --fail-with-body "$TOKENHUB_URL/v1/audio/speech" \
   -H "Authorization: Bearer $TOKENHUB_API_KEY" \
   -H 'Content-Type: application/json' \
-  -d '{"model":"speech-model","input":"Hello from TokenHub.","voice":"alloy","response_format":"opus","speed":1}' \
+  -d '{"model":"speech-model","input":"Hello from TokenStation.","voice":"alloy","response_format":"opus","speed":1}' \
   --output speech.opus
 ```
 
@@ -177,7 +177,7 @@ multipart の文字起こしと翻訳では、空でない `file` を 1 個だ�
 
 公開するルートのアダプターは明示的に `transcription` をサポートし、モデルのエンドポイントに対象操作を含める必要があります。OpenAI と設定済み OpenAI 互換/ローカルアダプターが対応し、各要求で最新のインポート済みエンドポイント情報も再確認します。JSON ベンダー拡張は一致するプロバイダー呼び出しフックで処理できますが、multipart アップロードにはネイティブアダプターが必要です。公開、フック、アップロード検証、SDK スモークテストは[文字起こしアップロードと計量の契約](media-api-operations.md#文字起こしアップロードと計量の契約)を参照してください。
 
-音声クローンと音楽は、既存のプロバイダー固有 Chat/Responses フローを引き続き使用できます。[メディア運用](media-api-operations.md)を参照してください。プロバイダー固有の `/v1/music/*`、音声・素材管理、アップロード、webhook 管理を汎用 TokenHub API としては実装していません。
+音声クローンと音楽は、既存のプロバイダー固有 Chat/Responses フローを引き続き使用できます。[メディア運用](media-api-operations.md)を参照してください。プロバイダー固有の `/v1/music/*`、音声・素材管理、アップロード、webhook 管理を汎用 TokenStation API としては実装していません。
 
 ## 動画と Seedance
 
@@ -217,9 +217,9 @@ curl --fail-with-body "$TOKENHUB_URL/v1/videos/generations" \
 {"code":202,"data":{"id":"task_example","object":"generation.task","type":"image","status":"pending","progress":0,"poll_url":"/v1/tasks/task_example"}}
 ```
 
-上流がバージョン選択ヘッダーでこの形式を選ぶ場合は、プロバイダーのカスタムヘッダーに、そのドキュメントで指定されたヘッダー名と値を設定します。TokenHub はクライアントのヘッダーを自動転送しません。HTTP `202` と受付構造を保持し、`data.id` を置き換え、既存の `poll_url` を対応する TokenHub パスに書き換えます。この相対パスをゲートウェイのオリジンに結合して照会してください。通常の同期画像のアセット ID は変更しません。
+上流がバージョン選択ヘッダーでこの形式を選ぶ場合は、プロバイダーのカスタムヘッダーに、そのドキュメントで指定されたヘッダー名と値を設定します。TokenStation はクライアントのヘッダーを自動転送しません。HTTP `202` と受付構造を保持し、`data.id` を置き換え、既存の `poll_url` を対応する TokenStation パスに書き換えます。この相対パスをゲートウェイのオリジンに結合して照会してください。通常の同期画像のアセット ID は変更しません。
 
-どちらの受付形式も上流が要求を受け付けたことを示し、生成完了を意味しません。TokenHub はベンダーのタスク ID を不透明な ID に置き換え、送信プロジェクト・キー・プロバイダー・リソースの関連を永続化します。**送信時と同じプロジェクト API キー**と返された ID を使ってください。
+どちらの受付形式も上流が要求を受け付けたことを示し、生成完了を意味しません。TokenStation はベンダーのタスク ID を不透明な ID に置き換え、送信プロジェクト・キー・プロバイダー・リソースの関連を永続化します。**送信時と同じプロジェクト API キー**と返された ID を使ってください。
 
 ```bash
 export TOKENHUB_TASK_ID='TASK_ID_FROM_SUBMISSION'
@@ -231,22 +231,22 @@ curl --fail-with-body "$TOKENHUB_URL/v1/tasks/$TOKENHUB_TASK_ID?language=en" \
 
 | 応答フィールド | 意味 |
 | --- | --- |
-| `data.id` | この照会フローの TokenHub タスク ID |
+| `data.id` | この照会フローの TokenStation タスク ID |
 | `data.status` | 上流タスクの状態 |
 | `data.progress` | 任意の上流進捗。ゲートウェイの推定値ではない |
 | `data.result` | モデル固有の結果。例えば `images[]` や `videos[]` 内の `url` 配列などを含む |
 | `data.error` | 存在する場合は上流タスクの失敗情報 |
-| `data.cost`、`data.credits_cost` | 上流メタデータ。TokenHub の請求額ではない |
+| `data.cost`、`data.credits_cost` | 上流メタデータ。TokenStation の請求額ではない |
 
 `pending`/`processing` は総タイムアウトと間隔を設け、例えば 3–5 秒からバックオフして照会します。`completed` は成功、`failed` と `cancelled` は終了した失敗です。他の進行中状態は上流仕様に従います。URL は速やかに保存し、`expires_at` を確認します。HTTP 200 でも失敗タスクを返すため、HTTP ステータスと `data.status` の両方を確認してください。
 
-照会は元のルート・アカウントを使用し、別アカウントへフェイルオーバーしません。キーは有効で、モデル権限を維持している必要があります。同じプロジェクト内でも別キーからの照会はできず、任意の上流 ID も受け付けません。ルートやプロバイダーの変更によって既存タスクを照会できなくなる場合があります。生成は上流が実行し、TokenHub はワーカー、キャンセル、完了 webhook サービスを追加しません。TokenHub の外で設定したプロバイダーのコールバックは、そのプロバイダーの ID と仕様を使います。
+照会は元のルート・アカウントを使用し、別アカウントへフェイルオーバーしません。キーは有効で、モデル権限を維持している必要があります。同じプロジェクト内でも別キーからの照会はできず、任意の上流 ID も受け付けません。ルートやプロバイダーの変更によって既存タスクを照会できなくなる場合があります。生成は上流が実行し、TokenStation はワーカー、キャンセル、完了 webhook サービスを追加しません。TokenStation の外で設定したプロバイダーのコールバックは、そのプロバイダーの ID と仕様を使います。
 
 関連付けは**送信から 30 日後**に期限切れとなり、上流素材 URL の有効期限とは独立しています。期限切れ・不明・権限のないタスクは `404 media_task_not_found` になります。プロジェクトキーのローテーションで旧タスクが新キーへ移ることはありません。元の上流認証情報、URL、ヘッダー、その他のアカウント設定を変更すると、同じモデルを使えるアカウントでも `503 media_task_route_unavailable` になります。関連付けの保存に失敗した送信は `503 media_task_binding_unavailable` を返しますが、上流は既に生成を受け付けている可能性があるため、再送前にログを確認してください。
 
 ### 動画の継続・再生成
 
-既存タスクを参照できる動画モデルでは、該当するトップレベルのフィールドに**元の送信で返された TokenHub タスク ID**を指定します。
+既存タスクを参照できる動画モデルでは、該当するトップレベルのフィールドに**元の送信で返された TokenStation タスク ID**を指定します。
 
 | フィールド | 上流操作の例 |
 | --- | --- |
@@ -257,7 +257,7 @@ curl --fail-with-body "$TOKENHUB_URL/v1/tasks/$TOKENHUB_TASK_ID?language=en" \
 
 これらのフィールドは `POST /v1/videos/generations` でのみ認識します。例えば `{"model":"followup-video","source_task_id":"task_example"}` は、管理者が公開した互換再生成モデルの別名を使用します。完了状態、有効期間、解像度、パラメーターの制限は引き続き上流が検証し、すべてのモデルがすべてのフィールドに対応するわけではありません。プロンプト、素材 URL、入れ子の拡張識別子はタスク参照として扱いません。
 
-同じプロジェクト API キーを使用し、元のモデルと対象モデルの両方への権限を維持して、関連付けの 30 日間の有効期限内に参照します。不正・不明・期限切れ・別キー所有のタスクや直接指定した上流タスク ID は、生成前に `404 media_task_not_found` を返します。TokenHub は許可された ID を上流 ID に解決し、元のプロバイダーアカウント・リソースを使用します。そのアカウントが後続操作に対応していれば、対象の別名、ルート、上流モデルは異なっていても構いません。TokenHub は別のアカウントに切り替えません。認証情報や設定などの変更でアカウントのフィンガープリントが変わると `503 media_task_route_unavailable` を返します。元のアカウントが利用できない場合には、通常のルーティング、ポリシー、容量制限のエラーも適用されます。
+同じプロジェクト API キーを使用し、元のモデルと対象モデルの両方への権限を維持して、関連付けの 30 日間の有効期限内に参照します。不正・不明・期限切れ・別キー所有のタスクや直接指定した上流タスク ID は、生成前に `404 media_task_not_found` を返します。TokenStation は許可された ID を上流 ID に解決し、元のプロバイダーアカウント・リソースを使用します。そのアカウントが後続操作に対応していれば、対象の別名、ルート、上流モデルは異なっていても構いません。TokenStation は別のアカウントに切り替えません。認証情報や設定などの変更でアカウントのフィンガープリントが変わると `503 media_task_route_unavailable` を返します。元のアカウントが利用できない場合には、通常のルーティング、ポリシー、容量制限のエラーも適用されます。
 
 複数の参照が異なるアカウントを指す場合は `400 invalid_media_task_reference` になります。それ以外の有効な参照の組み合わせをサポートするかどうかは上流が判断します。受け付けられた後続生成は新しいタスクを作成し、新たな上流料金が発生する場合があります。リクエストフックでは公開 ID を保持し、プロバイダー呼び出しフックには解決済みの上流 ID を渡します。
 
@@ -266,7 +266,7 @@ curl --fail-with-body "$TOKENHUB_URL/v1/tasks/$TOKENHUB_TASK_ID?language=en" \
 | 仕組み | ID と照会 |
 | --- | --- |
 | 画像・動画の非同期タスク | 返された `task_id` または `data.id`。`GET /v1/tasks/{task_id}` |
-| TokenHub 管理対象画像ジョブ | [画像ガイド](user-guide.md#codex-サブスクリプション画像生成)の管理対象ジョブ仕様 |
+| TokenStation 管理対象画像ジョブ | [画像ガイド](user-guide.md#codex-サブスクリプション画像生成)の管理対象ジョブ仕様 |
 | Responses の `background:true` | ローカル Responses ジョブ。完了は上流 API 呼び出しの終了であり、上流レンダリング完了ではない |
 
 完了したバックグラウンドメディア Responses は、妥当な上流ルート ID を `x-tokenhub-upstream-response-id` に返します。プロバイダーの補助照会モデルへ渡す ID であり、`/v1/tasks` の ID ではありません。

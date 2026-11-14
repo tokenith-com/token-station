@@ -1,6 +1,6 @@
 # Performance Benchmarking
 
-TokenHub includes two complementary benchmark layers. Black-box benchmarks exercise an OpenAI-compatible HTTP endpoint and can compare TokenHub with another gateway. In-process Go benchmarks isolate TokenHub's routing and governance costs and report allocations. Neither layer calls a real model provider.
+TokenStation includes two complementary benchmark layers. Black-box benchmarks exercise an OpenAI-compatible HTTP endpoint and can compare TokenStation with another gateway. In-process Go benchmarks isolate TokenStation's routing and governance costs and report allocations. Neither layer calls a real model provider.
 
 ## What the numbers mean
 
@@ -20,23 +20,23 @@ From the repository root:
 
 ```bash
 mkdir -p .tmp
-(cd backend && go build -o ../.tmp/tokenhub-benchmark ./cmd/tokenhub-benchmark)
+(cd backend && go build -o ../.tmp/tokenstation-benchmark ./cmd/tokenstation-benchmark)
 ```
 
 The tool provides six commands:
 
 - `mocker`: deterministic OpenAI-compatible Chat Completions, Responses, Embeddings, and SSE endpoints.
-- `gateway`: self-contained in-memory TokenHub plus the deterministic upstream, for a zero-configuration TokenHub smoke baseline.
+- `gateway`: self-contained in-memory TokenStation plus the deterministic upstream, for a zero-configuration TokenStation smoke baseline.
 - `run`: fixed-concurrency or fixed-rate HTTP load with warmup and unique prompts that defeat response caching.
 - `check`: scenario-compatible baseline comparison using a tolerant performance budget.
 - `summarize-go`: convert repeated standard Go benchmark output into median JSON metrics.
 - `check-go`: compare internal `ns/op`, `B/op`, and `allocs/op` metrics with a tracked baseline.
 
-For a quick TokenHub-only smoke run, start the self-contained gateway in one terminal. The key is synthetic, exists only in the in-memory benchmark database, and is still passed through the environment rather than a command-line argument:
+For a quick TokenStation-only smoke run, start the self-contained gateway in one terminal. The key is synthetic, exists only in the in-memory benchmark database, and is still passed through the environment rather than a command-line argument:
 
 ```bash
 TOKENHUB_BENCHMARK_API_KEY=thk_benchmark_local \
-./.tmp/tokenhub-benchmark gateway \
+./.tmp/tokenstation-benchmark gateway \
   --listen 127.0.0.1:18080 \
   --model benchmark-model \
   --upstream-latency 5ms
@@ -47,7 +47,7 @@ Then use `run` against `http://127.0.0.1:18080`. The tracked `benchmarks/baselin
 ## Run the deterministic upstream
 
 ```bash
-./.tmp/tokenhub-benchmark mocker \
+./.tmp/tokenstation-benchmark mocker \
   --listen 127.0.0.1:18081 \
   --latency 5ms \
   --response-bytes 1024 \
@@ -57,7 +57,7 @@ Then use `run` against `http://127.0.0.1:18080`. The tracked `benchmarks/baselin
 
 Configure both gateways with a route named `benchmark-model` that forwards to `http://127.0.0.1:18081/v1`. Give each gateway a local benchmark API key. The mocker can also inject deterministic failures with `--failure-every` to test failover.
 
-## Compare TokenHub and Bifrost
+## Compare TokenStation and Bifrost
 
 Start each gateway on the same otherwise idle machine, using the same database class and telemetry settings. Avoid running both measured gateways at once when they would compete for CPU. Run each target multiple times and alternate their order.
 
@@ -77,7 +77,7 @@ For streaming, Responses, Embeddings, or fixed-rate saturation tests, invoke the
 
 ```bash
 TOKENHUB_BENCHMARK_API_KEY=YOUR_LOCAL_BENCHMARK_KEY \
-./.tmp/tokenhub-benchmark run \
+./.tmp/tokenstation-benchmark run \
   --label tokenhub-stream-c32 \
   --base-url http://127.0.0.1:8080 \
   --model benchmark-model \
@@ -127,7 +127,7 @@ Set the PostgreSQL URL as well when updating that profile. Baseline checks fail 
 The tracked budget in `benchmarks/budget.json` requires at least 99.9% success, at least 90% of baseline throughput, no more than 15% mean-latency regression, and no more than 20% P99 regression. These tolerances reduce false failures from shared-runner jitter while still exposing material changes. Tracked local baselines cover Chat, Responses, streaming, and invoked failover.
 
 ```bash
-./.tmp/tokenhub-benchmark check \
+./.tmp/tokenstation-benchmark check \
   --baseline benchmarks/baselines/tokenhub-local-smoke.json \
   --current output/benchmarks/tokenhub-local-smoke.json \
   --budget benchmarks/budget.json \
@@ -146,4 +146,4 @@ The scenario fingerprint also includes duration, warmup, timeout, maximum in-fli
 
 ## Interpreting a comparison
 
-Treat a run as invalid if success rate differs materially, the load generator saturates, either gateway retries a different number of times, or CPU and memory pressure differ. Compare throughput at fixed concurrency, latency at fixed offered RPS, streaming TTFT, and allocations separately. A single maximum-throughput number does not explain the cost of TokenHub's persistence, audit, routing, metrics, and tracing guarantees.
+Treat a run as invalid if success rate differs materially, the load generator saturates, either gateway retries a different number of times, or CPU and memory pressure differ. Compare throughput at fixed concurrency, latency at fixed offered RPS, streaming TTFT, and allocations separately. A single maximum-throughput number does not explain the cost of TokenStation's persistence, audit, routing, metrics, and tracing guarantees.

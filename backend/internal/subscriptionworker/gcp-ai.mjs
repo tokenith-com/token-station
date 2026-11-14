@@ -146,7 +146,7 @@ export async function createGCPProvider({ client }) {
         return;
       }
       complete(url.searchParams.get("code"));
-      response.writeHead(200, { "content-type": "text/plain", "cache-control": "no-store" }).end("Authorization received. Return to TokenHub.");
+      response.writeHead(200, { "content-type": "text/plain", "cache-control": "no-store" }).end("Authorization received. Return to TokenStation.");
       server.close();
     });
     server.on("close", () => complete(null));
@@ -156,7 +156,7 @@ export async function createGCPProvider({ client }) {
       scope: "https://www.googleapis.com/auth/cloud-platform https://www.googleapis.com/auth/userinfo.email", state,
       code_challenge: createHash("sha256").update(verifier).digest("base64url"), code_challenge_method: "S256" });
     return { url: `https://accounts.google.com/o/oauth2/v2/auth?${query}`, method: "auto",
-      instructions: "Approve Google access. If your browser cannot reach the backend callback, paste the complete localhost callback URL into TokenHub.",
+      instructions: "Approve Google access. If your browser cannot reach the backend callback, paste the complete localhost callback URL into TokenStation.",
       async callback() {
         const code = await pending;
         if (!code) return { type: "failed" };

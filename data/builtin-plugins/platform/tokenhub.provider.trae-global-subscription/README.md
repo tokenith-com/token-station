@@ -1,6 +1,6 @@
 # Trae Global
 
-Connect an explicitly authorized Trae Global account to TokenHub.
+Connect an explicitly authorized Trae Global account to TokenStation.
 
 - Plugin ID: `tokenhub.provider.trae-global-subscription`
 - Configuration: Provider management, with a separate account resource

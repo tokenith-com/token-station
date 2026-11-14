@@ -1,9 +1,9 @@
 openapi: 3.1.0
 info:
-  title: TokenHub Public Gateway API
-  summary: OpenAPI contract for TokenHub's externally supported model gateway.
+  title: TokenStation Public Gateway API
+  summary: OpenAPI contract for TokenStation's externally supported model gateway.
   description: |
-    TokenHub exposes text, image, audio, and video model APIs using OpenAI-compatible,
+    TokenStation exposes text, image, audio, and video model APIs using OpenAI-compatible,
     Anthropic-compatible, native Gemini, and TypeSafe System One protocols.
     Asynchronous image and video submissions can be polled through /v1/tasks/{task_id}.
     Model names are administrator-published aliases, not a guarantee of upstream availability.
@@ -40,7 +40,7 @@ tags:
   - name: Videos
     description: Text, image, and reference-media video generation through compatible providers.
   - name: Media Tasks
-    description: Query provider-managed image and video tasks using their TokenHub task IDs.
+    description: Query provider-managed image and video tasks using their TokenStation task IDs.
   - name: Gemini Native
     description: Native Gemini v1beta model, generation, streaming, and token-counting routes.
 paths:
@@ -112,7 +112,7 @@ paths:
                   model: gpt-4.1-mini
                   messages:
                     - role: user
-                      content: Say hello from TokenHub.
+                      content: Say hello from TokenStation.
               streaming:
                 value:
                   model: gpt-4.1-mini
@@ -183,12 +183,12 @@ paths:
               buffered:
                 value:
                   model: gpt-4.1-mini
-                  input: Write one sentence about TokenHub.
+                  input: Write one sentence about TokenStation.
               streaming:
                 value:
                   model: gpt-4.1-mini
                   stream: true
-                  input: Stream one sentence about TokenHub.
+                  input: Stream one sentence about TokenStation.
               background:
                 value:
                   model: gpt-4.1-mini
@@ -349,7 +349,7 @@ paths:
       summary: Create an Anthropic-compatible message.
       description: |
         Accepts Anthropic Messages requests. Set `stream: true` for Anthropic-compatible SSE events.
-        Anthropic-compatible clients may send the TokenHub project API key in `x-api-key`.
+        Anthropic-compatible clients may send the TokenStation project API key in `x-api-key`.
       x-tokenhub-public-gateway: true
       x-tokenhub-interactive: true
       security:
@@ -371,7 +371,7 @@ paths:
                   max_tokens: 128
                   messages:
                     - role: user
-                      content: Say hello from TokenHub.
+                      content: Say hello from TokenStation.
       responses:
         "200":
           description: Anthropic message or message stream.
@@ -417,7 +417,7 @@ paths:
       operationId: countAnthropicMessageTokens
       tags: [Anthropic Messages]
       summary: Count Anthropic message tokens.
-      description: Counts tokens for an Anthropic-compatible Messages request without invoking generation. Anthropic-compatible clients may send the TokenHub project API key in `x-api-key`.
+      description: Counts tokens for an Anthropic-compatible Messages request without invoking generation. Anthropic-compatible clients may send the TokenStation project API key in `x-api-key`.
       x-tokenhub-public-gateway: true
       x-tokenhub-interactive: true
       security:
@@ -529,7 +529,7 @@ paths:
             x-request-id:
               $ref: "#/components/headers/XRequestID"
             x-typesafe-request-id:
-              description: Winning upstream request ID, when reported. Read by the TypeSafe SDK withResponse().requestId; distinct from TokenHub's x-request-id.
+              description: Winning upstream request ID, when reported. Read by the TypeSafe SDK withResponse().requestId; distinct from TokenStation's x-request-id.
               schema:
                 type: string
             x-ratelimit-limit-requests:
@@ -955,9 +955,9 @@ paths:
         managed image models accept `url` or `b64_json`; managed plugin models
         enforce their configured response formats.
         Compatible asynchronous responses keep their provider envelope, with
-        task_id replaced by a TokenHub ID for GET /v1/tasks/{task_id}. Versioned
+        task_id replaced by a TokenStation ID for GET /v1/tasks/{task_id}. Versioned
         generation.task receipts preserve HTTP 202, replace data.id, and rewrite
-        an existing poll_url to the TokenHub task path. If the upstream requires a
+        an existing poll_url to the TokenStation task path. If the upstream requires a
         response-version header, configure the header specified by its documentation
         in the provider settings; client headers are not automatically forwarded. Task queries require
         the same creating API key and are independent of local image jobs.
@@ -1181,13 +1181,13 @@ paths:
         Text, first/last frames, reference images, videos, audio, and provider-specific
         options are forwarded with the routed upstream model name. Supported parameters,
         resolutions, durations, and media combinations depend on the upstream model.
-        Async task_id values are replaced with opaque TokenHub IDs bound to the creating
+        Async task_id values are replaced with opaque TokenStation IDs bound to the creating
         project API key and provider resource. Poll GET /v1/tasks/{task_id} with the same key.
         Submission completion does not mean that video generation has finished.
         At most 128 task IDs can be bound in one submission; oversized or invalid
         task receipts fail atomically. Ambiguous generation failures are not automatically resubmitted.
         Top-level draft_task_id, draft_from_task_id, extend_from_task_id, and source_task_id
-        reference TokenHub handles returned by previous submissions. The same API key must
+        reference TokenStation handles returned by previous submissions. The same API key must
         retain access to the source and target models, and the source binding must be unexpired.
         References resolve to provider IDs on the original provider account/resource, without
         switching accounts. A different target alias, route, or upstream model is allowed on
@@ -1226,7 +1226,7 @@ paths:
                   duration: 5
       responses:
         "200":
-          description: Provider submission response with TokenHub task IDs.
+          description: Provider submission response with TokenStation task IDs.
           headers:
             x-request-id:
               $ref: "#/components/headers/XRequestID"
@@ -1293,14 +1293,14 @@ paths:
       tags: [Media Tasks]
       summary: Query an image or video generation task.
       description: |
-        Retrieves current upstream state for a task created through TokenHub. Use the
+        Retrieves current upstream state for a task created through TokenStation. Use the
         opaque task_id returned by an image or video submission and the exact same
         project API key. Unknown tasks, other keys' tasks, and revoked model access
         are not accessible. The original provider/resource is pinned; a task cannot
         fail over to a different account. Responses are not cached.
         Bindings expire after 30 days. Replacing the original upstream credentials,
         base URL, or account headers makes its existing task queries unavailable.
-        Provider result URLs and extensions are preserved; TokenHub does not download
+        Provider result URLs and extensions are preserved; TokenStation does not download
         the media. Polling consumes request quota but does not bill cumulative upstream
         generation tokens again. Task state remains owned by the upstream provider.
         This endpoint is separate from local /v1/image-jobs and /v1/responses jobs.
@@ -1310,7 +1310,7 @@ paths:
         - name: task_id
           in: path
           required: true
-          description: Opaque TokenHub task ID from the submission response.
+          description: Opaque TokenStation task ID from the submission response.
           schema:
             type: string
         - name: language
@@ -1475,7 +1475,7 @@ paths:
       operationId: getGeminiModel
       tags: [Gemini Native]
       summary: Get a native Gemini model.
-      description: Returns Gemini-compatible model metadata. Gemini-compatible clients may send the TokenHub project API key in `x-goog-api-key`.
+      description: Returns Gemini-compatible model metadata. Gemini-compatible clients may send the TokenStation project API key in `x-goog-api-key`.
       x-tokenhub-public-gateway: true
       x-tokenhub-interactive: true
       security:
@@ -1499,7 +1499,7 @@ paths:
       operationId: generateGeminiContent
       tags: [Gemini Native]
       summary: Generate Gemini content.
-      description: Native Gemini `generateContent` route with TokenHub routing and authentication. Models configured with media output use native Gemini providers and preserve media configuration and generated parts; text models retain the Responses compatibility bridge. Gemini-compatible clients may send the TokenHub project API key in `x-goog-api-key`.
+      description: Native Gemini `generateContent` route with TokenStation routing and authentication. Models configured with media output use native Gemini providers and preserve media configuration and generated parts; text models retain the Responses compatibility bridge. Gemini-compatible clients may send the TokenStation project API key in `x-goog-api-key`.
       x-tokenhub-public-gateway: true
       x-tokenhub-interactive: true
       security:
@@ -1552,7 +1552,7 @@ paths:
       operationId: streamGeminiContent
       tags: [Gemini Native]
       summary: Stream Gemini content.
-      description: Native Gemini streaming route. Use `?alt=sse` for SSE framing. Models configured with media output preserve native Gemini events, buffered up to 128 MiB before delivery. Gemini-compatible clients may send the TokenHub project API key in `x-goog-api-key`.
+      description: Native Gemini streaming route. Use `?alt=sse` for SSE framing. Models configured with media output preserve native Gemini events, buffered up to 128 MiB before delivery. Gemini-compatible clients may send the TokenStation project API key in `x-goog-api-key`.
       x-tokenhub-public-gateway: true
       x-tokenhub-interactive: true
       security:
@@ -1596,7 +1596,7 @@ paths:
                 type: string
               examples:
                 candidate:
-                  value: "data: {\"candidates\":[{\"content\":{\"role\":\"model\",\"parts\":[{\"text\":\"Hello from TokenHub.\"}]},\"finishReason\":\"STOP\",\"index\":0}],\"usageMetadata\":{\"promptTokenCount\":8,\"candidatesTokenCount\":5,\"totalTokenCount\":13}}\n\n"
+                  value: "data: {\"candidates\":[{\"content\":{\"role\":\"model\",\"parts\":[{\"text\":\"Hello from TokenStation.\"}]},\"finishReason\":\"STOP\",\"index\":0}],\"usageMetadata\":{\"promptTokenCount\":8,\"candidatesTokenCount\":5,\"totalTokenCount\":13}}\n\n"
         "400":
           $ref: "#/components/responses/BadRequest"
         "401":
@@ -1614,7 +1614,7 @@ paths:
       operationId: countGeminiTokens
       tags: [Gemini Native]
       summary: Count Gemini tokens.
-      description: Native Gemini token-counting route translated through TokenHub authentication. Gemini-compatible clients may send the TokenHub project API key in `x-goog-api-key`.
+      description: Native Gemini token-counting route translated through TokenStation authentication. Gemini-compatible clients may send the TokenStation project API key in `x-goog-api-key`.
       x-tokenhub-public-gateway: true
       x-tokenhub-interactive: true
       security:
@@ -1649,8 +1649,8 @@ components:
     TokenHubProjectKey:
       type: http
       scheme: bearer
-      bearerFormat: TokenHub project API key
-      description: Project API key generated by TokenHub. Never use an administrator token here.
+      bearerFormat: TokenStation project API key
+      description: Project API key generated by TokenStation. Never use an administrator token here.
     TokenHubXAPIKey:
       type: apiKey
       in: header
@@ -1703,7 +1703,7 @@ components:
       in: header
       required: false
       description: >-
-        Anthropic protocol version sent by native Anthropic clients. TokenHub
+        Anthropic protocol version sent by native Anthropic clients. TokenStation
         forwards this header to native Anthropic routes when present; provider
         defaults apply when it is omitted.
       schema:
@@ -1718,7 +1718,7 @@ components:
       description: >-
         Comma-separated Anthropic beta feature names. Include
         `mid-conversation-system-2026-04-07` when a message item uses
-        `role: system`; without that beta, TokenHub accepts only `user` and
+        `role: system`; without that beta, TokenStation accepts only `user` and
         `assistant` message roles.
       schema:
         type: string
@@ -1738,13 +1738,13 @@ components:
       in: header
       required: false
       description: >-
-        TokenHub extension equivalent to `Prefer: respond-async` when set to
+        TokenStation extension equivalent to `Prefer: respond-async` when set to
         `true`.
       schema:
         type: boolean
   headers:
     XRequestID:
-      description: TokenHub request identifier.
+      description: TokenStation request identifier.
       schema:
         type: string
     XRateLimitLimitRequests:
@@ -2016,7 +2016,7 @@ components:
         model:
           type: string
           minLength: 1
-          description: Published TokenHub model name; the route supplies the upstream model name.
+          description: Published TokenStation model name; the route supplies the upstream model name.
         state:
           type: [string, object, array, "null"]
           description: Shared context for all questions. Nested JSON values retain their original numeric precision.
@@ -2777,7 +2777,7 @@ components:
     ResponseTool:
       type: object
       description: >
-        Responses tool definition. TokenHub forwards OpenAI-compatible function
+        Responses tool definition. TokenStation forwards OpenAI-compatible function
         tools and built-in Responses tools such as web_search and file_search,
         preserving additional provider-supported tool fields.
       required: [type]
@@ -3343,7 +3343,7 @@ components:
       properties:
         model:
           type: string
-          description: Published TokenHub model alias.
+          description: Published TokenStation model alias.
         prompt:
           type: string
         duration:
@@ -3384,20 +3384,20 @@ components:
             type: string
         draft_task_id:
           $ref: "#/components/schemas/MediaTaskReference"
-          description: TokenHub source task handle for a compatible draft-to-final operation, such as Seedance 2.5.
+          description: TokenStation source task handle for a compatible draft-to-final operation, such as Seedance 2.5.
         draft_from_task_id:
           $ref: "#/components/schemas/MediaTaskReference"
-          description: TokenHub source task handle for a compatible draft-to-final operation, such as FLUX.3.
+          description: TokenStation source task handle for a compatible draft-to-final operation, such as FLUX.3.
         extend_from_task_id:
           $ref: "#/components/schemas/MediaTaskReference"
-          description: TokenHub source task handle for compatible video extension models.
+          description: TokenStation source task handle for compatible video extension models.
         source_task_id:
           $ref: "#/components/schemas/MediaTaskReference"
-          description: TokenHub source task handle for compatible regeneration models, including operations using a different target model.
+          description: TokenStation source task handle for compatible regeneration models, including operations using a different target model.
     MediaTaskReference:
       type: string
       description: |
-        An opaque TokenHub task ID owned by the same project API key, with an unexpired
+        An opaque TokenStation task ID owned by the same project API key, with an unexpired
         30-day binding and continued source-model access. Raw provider IDs are not accepted.
         Resolved only for recognized top-level video reference fields; prompts, asset URLs,
         and nested vendor identifiers remain unchanged. Follow-up submissions use the original
@@ -3408,8 +3408,8 @@ components:
       description: |
         Provider-specific submission envelope, with up to 128 bound tasks. Legacy
         task_id fields and id fields explicitly tagged with object: generation.task
-        are replaced with opaque TokenHub IDs. Existing poll_url fields become
-        relative /v1/tasks/{TokenHub task ID} URLs. Ordinary synchronous asset IDs
+        are replaced with opaque TokenStation IDs. Existing poll_url fields become
+        relative /v1/tasks/{TokenStation task ID} URLs. Ordinary synchronous asset IDs
         remain untouched. Legacy receipts can use code and a data array;
         versioned HTTP 202 receipts use a generation.task data object. Compatible
         providers may also return the task at the root. Ambiguous task locations,
@@ -3421,12 +3421,12 @@ components:
           type: string
         id:
           type: string
-          description: TokenHub task ID when object is generation.task.
+          description: TokenStation task ID when object is generation.task.
         object:
           type: string
         poll_url:
           type: string
-          description: TokenHub task path when present on a recognized task object.
+          description: TokenStation task path when present on a recognized task object.
         data:
           oneOf:
             - $ref: "#/components/schemas/MediaTaskSubmissionItem"
@@ -3441,22 +3441,22 @@ components:
           type: string
         id:
           type: string
-          description: TokenHub task ID when object is generation.task.
+          description: TokenStation task ID when object is generation.task.
         object:
           type: string
           description: generation.task identifies a versioned asynchronous receipt.
         poll_url:
           type: string
-          description: Relative TokenHub task path; only present when supplied by the provider.
+          description: Relative TokenStation task path; only present when supplied by the provider.
         status:
           type: string
     MediaTaskResponse:
       type: object
       additionalProperties: true
       description: |
-        Provider task response, with its task identity mapped back to the TokenHub ID.
+        Provider task response, with its task identity mapped back to the TokenStation ID.
         Compatible providers return code and data. Known statuses include pending, processing,
-        completed, failed, and cancelled. Provider cost fields are not TokenHub invoices.
+        completed, failed, and cancelled. Provider cost fields are not TokenStation invoices.
       properties:
         code:
           type: integer

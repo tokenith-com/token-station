@@ -77,8 +77,8 @@ func chatGPTSubscriptionCallbackPage(w http.ResponseWriter, status int) {
 	w.Header().Set("X-Content-Type-Options", "nosniff")
 	w.WriteHeader(status)
 	if status == http.StatusOK {
-		_, _ = io.WriteString(w, `<!doctype html><html lang="en"><meta charset="utf-8"><title>TokenHub authorization</title><h1>Authorization received</h1><p>Return to TokenHub to finish adding the account.</p><p lang="zh-CN">授权结果已收到，请返回 TokenHub 继续添加账号。</p></html>`)
+		_, _ = io.WriteString(w, `<!doctype html><html lang="en"><meta charset="utf-8"><title>TokenStation authorization</title><h1>Authorization received</h1><p>Return to TokenStation to finish adding the account.</p><p lang="zh-CN">授权结果已收到，请返回 TokenStation 继续添加账号。</p></html>`)
 	} else {
-		_, _ = io.WriteString(w, `<!doctype html><html lang="en"><meta charset="utf-8"><title>TokenHub authorization</title><h1>Authorization callback unavailable</h1><p>Return to TokenHub and check the authorization status.</p><p lang="zh-CN">此授权回调不可用，请返回 TokenHub 查看授权状态。</p></html>`)
+		_, _ = io.WriteString(w, `<!doctype html><html lang="en"><meta charset="utf-8"><title>TokenStation authorization</title><h1>Authorization callback unavailable</h1><p>Return to TokenStation and check the authorization status.</p><p lang="zh-CN">此授权回调不可用，请返回 TokenStation 查看授权状态。</p></html>`)
 	}
 }

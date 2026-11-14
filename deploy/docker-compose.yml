@@ -1,6 +1,6 @@
 services:
-  tokenhub-backend:
-    container_name: tokenhub-backend
+  tokenstation-backend:
+    container_name: tokenstation-backend
     image: ghcr.io/astaxie/tokenhub-backend:${TOKENHUB_IMAGE_TAG:-latest}
     build:
       context: ..
@@ -102,7 +102,7 @@ services:
       start_period: 20s
     stop_grace_period: ${TOKENHUB_STOP_GRACE_PERIOD:-180s}
     networks:
-      - tokenhub
+      - tokenstation
 
 volumes:
   tokenhub-data:
@@ -113,5 +113,5 @@ volumes:
     name: tokenhub-releases
 
 networks:
-  tokenhub:
-    name: tokenhub
+  tokenstation:
+    name: tokenstation

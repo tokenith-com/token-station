@@ -2,11 +2,11 @@
 
 Language: English | [简体中文](zh-CN/deployment.md) | [日本語](ja/deployment.md)
 
-TokenHub is designed for private deployment with a Go backend, a Next.js admin console, and support for SQLite or PostgreSQL persistence.
+TokenStation is designed for private deployment with a Go backend, a Next.js admin console, and support for SQLite or PostgreSQL persistence.
 
 ## Database Selection
 
-TokenHub supports two database backends:
+TokenStation supports two database backends:
 
 The commands below use Docker Compose. Both backends are equally supported without Docker; see [Native Release with systemd](#native-release-with-systemd).
 
@@ -93,7 +93,9 @@ Run the real two-instance PostgreSQL E2E suite with `./deploy/test-multi-instanc
 
 ### Kubernetes (Helm)
 
-Kubernetes clusters use the Helm chart at `deploy/helm/tokenhub`. Every pod runs both processes in one container, pairs with a managed PostgreSQL service in production (a built-in subchart is available for quick testing), and is stateless by default: runtime-installed plugin packages are removed on pod replacement unless they are baked into the image. Optional PodMonitor and ExternalSecret support requires the matching operator CRDs. See [Kubernetes Deployment](kubernetes.md) for install steps, routing, and upgrade behavior.
+Kubernetes clusters use the Helm chart at `deploy/helm/tokenstation`. Every pod runs both processes in one container, pairs with a managed PostgreSQL service in production (a built-in subchart is available for quick testing), and is stateless by default: runtime-installed plugin packages are removed on pod replacement unless they are baked into the image. Optional PodMonitor and ExternalSecret support requires the matching operator CRDs. See [Kubernetes Deployment](kubernetes.md) for install steps, routing, and upgrade behavior.
+
+For an existing Helm installation, keep its original release name, namespace, values, and any existing `nameOverride`/`fullnameOverride`. The default legacy release `tokenhub` retains its `tokenhub` selectors and resource names automatically. For an old release using the default chart name, upgrade with `helm upgrade <existing-release> deploy/helm/tokenstation -n <existing-namespace> -f <existing-values.yaml> --set nameOverride=tokenhub`; preserve a custom name override instead if one was already used. Do not run `helm upgrade --install tokenstation` to upgrade an existing differently named release: that creates a second deployment and may provision a different image-storage PVC. New installations can use the `tokenstation` release name and new defaults.
 
 ## Native Release with systemd
 
@@ -103,15 +105,15 @@ Download and inspect the installer, then install the latest stable Release:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/astaxie/TokenHub/main/deploy/native/install.sh \
-  -o /tmp/tokenhub-install.sh
-sudo bash /tmp/tokenhub-install.sh install
+  -o /tmp/tokenstation-install.sh
+sudo bash /tmp/tokenstation-install.sh install
 ```
 
 When `TOKENHUB_PUBLIC_HOST` is not set, the installer requests `https://ipinfo.io/json` and uses its validated IP response. If that lookup fails, it falls back to the first address from `hostname -I`, then `127.0.0.1`. The detected egress IP might not be the inbound address when the server is behind NAT, a proxy, or a load balancer, so set `TOKENHUB_PUBLIC_HOST` when users open a different IP address or hostname. IPv6 literals are automatically bracketed when URLs are generated:
 
 ```bash
 sudo env TOKENHUB_PUBLIC_HOST=tokenhub.example.com \
-  bash /tmp/tokenhub-install.sh install
+  bash /tmp/tokenstation-install.sh install
 ```
 
 The resolved host is stored in `/etc/tokenhub/tokenhub.env` and reused by later installer runs, so upgrade output remains consistent even when automatic IP discovery changes.
@@ -121,10 +123,10 @@ To use PostgreSQL from the first start instead of the default SQLite database, p
 ```bash
 sudo env \
   TOKENHUB_DATABASE_URL='postgres://user:password@db.example.com:5432/tokenhub?sslmode=require' \
-  bash /tmp/tokenhub-install.sh install
+  bash /tmp/tokenstation-install.sh install
 ```
 
-The installer writes this value to `/etc/tokenhub/tokenhub.env` only when creating the configuration. Later install, upgrade, and rollback runs preserve the existing file; edit it and restart TokenHub when intentionally changing databases.
+The installer writes this value to `/etc/tokenhub/tokenhub.env` only when creating the configuration. Later install, upgrade, and rollback runs preserve the existing file; edit it and restart TokenStation when intentionally changing databases.
 
 The first installation generates production secrets and an initial admin password. The password is printed once. Runtime files are kept in separate locations:
 
@@ -145,10 +147,10 @@ sudo journalctl -u tokenhub -f
 The installer verifies the Release archive against `checksums.txt` before activation and preserves configuration and data during upgrades:
 
 ```bash
-sudo bash /tmp/tokenhub-install.sh upgrade
-sudo bash /tmp/tokenhub-install.sh upgrade --version 0.3.3
-sudo bash /tmp/tokenhub-install.sh rollback --version 0.3.2
-sudo bash /tmp/tokenhub-install.sh uninstall
+sudo bash /tmp/tokenstation-install.sh upgrade
+sudo bash /tmp/tokenstation-install.sh upgrade --version 0.3.3
+sudo bash /tmp/tokenstation-install.sh rollback --version 0.3.2
+sudo bash /tmp/tokenstation-install.sh uninstall
 ```
 
 `upgrade` refuses a target older than the installed version; use the explicit `rollback` command for a downgrade. Upgrading an installation created by an older installer automatically adds `/var/lib/tokenhub/images` as persistent image storage unless `TOKENHUB_IMAGE_STORAGE_DIR` is already configured.
@@ -156,11 +158,11 @@ sudo bash /tmp/tokenhub-install.sh uninstall
 `uninstall` preserves `/etc/tokenhub` and `/var/lib/tokenhub`. Use `uninstall --purge` only when configuration and application data should also be deleted.
 The installer records ownership markers in the application, configuration, and state directories. Uninstall refuses to recursively remove an unmarked or mismatched directory, and system-level paths such as `/opt`, `/etc`, and `/var/lib` are never accepted as managed directory targets. A fresh installation rejects equal backend and frontend ports. When `ss` or `lsof` is available, it also rejects occupied ports before downloading a Release. Install and upgrade report success only after the systemd unit is active and both the backend health endpoint and admin console respond; readiness failures include recent service logs.
 
-For a fork, use its installer URL and tell TokenHub which public Release repository to query:
+For a fork, use its installer URL and tell TokenStation which public Release repository to query:
 
 ```bash
-sudo env TOKENHUB_RELEASE_REPOSITORY=your-account/TokenHub \
-  bash /tmp/tokenhub-install.sh install --version 0.3.3
+sudo env TOKENHUB_RELEASE_REPOSITORY=your-account/TokenStation \
+  bash /tmp/tokenstation-install.sh install --version 0.3.3
 ```
 
 Native Release installations are labeled `Native Release` in the version panel. Administrators can download and verify an update or rollback directly from the panel, then select **Restart now** to activate it through systemd. Each GitHub Release tag must be a strict `v`-prefixed semantic version and contain the Linux archive and `checksums.txt`; `.github/workflows/native-release.yml` builds and attaches the `linux/amd64` and `linux/arm64` assets when a Release is published.
@@ -177,9 +179,9 @@ cp deploy/.env.example deploy/.env
 Review `deploy/.env` before starting:
 
 - `TOKENHUB_ADMIN_TOKEN`: Optional static Admin API token. Set at least 32 random bytes when operational automation needs it; otherwise leave the placeholder to disable it.
-- `TOKENHUB_BOOTSTRAP_ADMIN_PASSWORD`: Optional initial `admin` password. Set at least 12 bytes, or leave the placeholder so TokenHub generates one.
-- `TOKENHUB_SECRET_KEY`: Backend encryption root key. PostgreSQL and existing SQLite databases require at least 32 stable bytes. A brand-new file-backed SQLite deployment can leave the placeholder so TokenHub generates a `0600` key file beside the database.
-- `TOKENHUB_IMAGE_TAG`: Managed TokenHub image tag. Default: `latest`.
+- `TOKENHUB_BOOTSTRAP_ADMIN_PASSWORD`: Optional initial `admin` password. Set at least 12 bytes, or leave the placeholder so TokenStation generates one.
+- `TOKENHUB_SECRET_KEY`: Backend encryption root key. PostgreSQL and existing SQLite databases require at least 32 stable bytes. A brand-new file-backed SQLite deployment can leave the placeholder so TokenStation generates a `0600` key file beside the database.
+- `TOKENHUB_IMAGE_TAG`: Managed TokenStation image tag. Default: `latest`.
 - `TOKENHUB_PUBLIC_BASE_URL`: Public backend URL shown to users.
 - `TOKENHUB_API_BASE_URL`: Backend URL used by the browser admin console. The frontend server reads it at runtime. The deprecated `NEXT_PUBLIC_API_BASE_URL` remains a fallback for one compatibility cycle.
 - `TOKENHUB_BACKEND_PORT`: Host port for the backend. Default: `8080`.
@@ -224,14 +226,14 @@ The first GHCR publication creates a private package. The repository owner must 
 
 ### Docker version status and rollback
 
-Platform administrators can select the version badge below the TokenHub logo to inspect the running version, check the latest stable GitHub Release, and list up to three older stable releases. Release builds receive their exact version from the publication workflow; local source builds use the package version and are labeled as source builds. Managed update, rollback, and restart requests are recorded in the administrator audit log.
+Platform administrators can select the version badge below the TokenStation logo to inspect the running version, check the latest stable GitHub Release, and list up to three older stable releases. Release builds receive their exact version from the publication workflow; local source builds use the package version and are labeled as source builds. Managed update, rollback, and restart requests are recorded in the administrator audit log.
 
 The check makes a time-limited outbound HTTPS request to the public GitHub Releases API and caches successful results for 20 minutes. It checks `astaxie/TokenHub` by default. Maintainers can set `TOKENHUB_RELEASE_REPOSITORY` to another trusted public `owner/repository` when validating releases from a fork. A GitHub outage or a repository without releases does not affect gateway traffic. The panel reports the unavailable state and keeps the current version visible.
 
 For example, check a fork while running from source:
 
 ```bash
-TOKENHUB_RELEASE_REPOSITORY=your-account/TokenHub ./start.sh
+TOKENHUB_RELEASE_REPOSITORY=your-account/TokenStation ./start.sh
 ```
 
 The default SQLite and local PostgreSQL Compose files run a single managed application container. An administrator can select **Update now**, wait for the checksummed platform Release bundle to be installed under the `tokenhub-releases` volume, and then select **Restart now**. The process exits after responding; Docker's `restart: unless-stopped` policy starts the selected backend and frontend together. The container never mounts the Docker socket or controls the host daemon.
@@ -294,14 +296,14 @@ Initial admin login:
 
 ```bash
 docker compose --env-file deploy/.env -f deploy/docker-compose.yml \
-  exec tokenhub-backend /opt/tokenhub/current/bin/tokenhub initial-admin-password
+  exec tokenhub-backend /opt/tokenhub/current/bin/tokenstation initial-admin-password
 ```
 
 The generated password is stored only as ciphertext and stops being retrievable after the first successful login or a password reset. Change it after signing in. In Kubernetes, use the same command through `kubectl exec <pod> -- ...`.
 
-For `prod`, `production`, staging, and other non-development environments, known Admin Token and bootstrap-password placeholders are treated as unset. Other non-empty weak values are rejected. The encryption root key remains mandatory except for a brand-new file-backed SQLite database, where it is generated once and persisted beside the database. TokenHub never generates a replacement key for an existing database.
+For `prod`, `production`, staging, and other non-development environments, known Admin Token and bootstrap-password placeholders are treated as unset. Other non-empty weak values are rejected. The encryption root key remains mandatory except for a brand-new file-backed SQLite database, where it is generated once and persisted beside the database. TokenStation never generates a replacement key for an existing database.
 
-If startup cannot proceed safely, the process remains available on `/livez` but returns `503` from `/readyz`, `/healthz`, and application routes. This prevents an orchestrator liveness loop while keeping the Pod out of service. Correct the configuration and restart TokenHub; use `/livez` for liveness and `/readyz` for readiness probes.
+If startup cannot proceed safely, the process remains available on `/livez` but returns `503` from `/readyz`, `/healthz`, and application routes. This prevents an orchestrator liveness loop while keeping the Pod out of service. Correct the configuration and restart TokenStation; use `/livez` for liveness and `/readyz` for readiness probes.
 
 View or follow logs manually:
 
@@ -338,7 +340,7 @@ docker inspect --format 'memory={{.HostConfig.Memory}} memory_swap={{.HostConfig
 
 ## Running the Production Build Locally (without Docker)
 
-`deploy/local/run-local.sh` runs the backend and the console on your own machine from a production build, with no Docker, no root and no systemd. This is a development aid, not a deployment method: to install TokenHub on a server, use [Native Release with systemd](#native-release-with-systemd) or [Docker Compose](#docker-compose).
+`deploy/local/run-local.sh` runs the backend and the console on your own machine from a production build, with no Docker, no root and no systemd. This is a development aid, not a deployment method: to install TokenStation on a server, use [Native Release with systemd](#native-release-with-systemd) or [Docker Compose](#docker-compose).
 
 ```bash
 ./deploy/local/run-local.sh          # foreground, Ctrl-C stops both
@@ -377,7 +379,7 @@ Options: `--rebuild`, `--reset` to drop the local database, `--backend-port N`, 
 | `TOKENHUB_PROVIDER_UPSTREAM_ALLOWED_CIDRS` | empty | Optional restrictive private CIDR list. An empty list allows RFC1918/ULA literals in both modes. In auto mode those ranges also apply to private DNS results. A nonempty list restricts private literals, and in auto mode also restricts private DNS results. Invalid nonempty entries do not enable unrestricted access. Special-use addresses cannot be allowlisted |
 | `TOKENHUB_PROVIDER_UPSTREAM_NAT64_PREFIX` | empty | Optional RFC 6052 DNS64/NAT64 prefix used to classify its embedded IPv4 targets. Supported prefix lengths: 32, 40, 48, 56, 64, and 96. Configure this when using a network-specific prefix such as `64:ff9b:1::/48`; the well-known `64:ff9b::/96` prefix works automatically |
 | `TOKENHUB_PROVIDER_UPSTREAM_ALLOW_LOOPBACK` | `false` | Effective in strict mode or with a nonempty private allowlist. There, `true` permits localhost/127.0.0.1/::1. Auto mode without a private allowlist allows loopback regardless of this value |
-| `HTTP_PROXY` / `HTTPS_PROXY` | empty | Standard outbound forward proxy used by every HTTP Provider channel. Proxy selection is operator-managed; direct requests continue to use TokenHub's DNS/IP egress checks |
+| `HTTP_PROXY` / `HTTPS_PROXY` | empty | Standard outbound forward proxy used by every HTTP Provider channel. Proxy selection is operator-managed; direct requests continue to use TokenStation's DNS/IP egress checks |
 | `NO_PROXY` | empty | Standard comma-separated proxy bypass list. Matching Provider requests use the guarded direct path |
 | `TOKENHUB_CORS_ALLOWED_ORIGINS` | public URL | Comma-separated exact browser origins allowed to call the backend; when set, the same origins are the exact allowlist for OAuth console returns. Each entry must contain only the scheme, host, and optional port, with no path |
 | `TOKENHUB_ADMIN_TOKEN` | `change-me-tokenhub-admin-token` | Optional static Admin API token; the known placeholder disables it |
@@ -442,7 +444,7 @@ Options: `--rebuild`, `--reset` to drop the local database, `--backend-port N`, 
 | `TOKENHUB_DB_MAX_OPEN_CONNS` | `25` | Maximum open database connections (PostgreSQL only) |
 | `TOKENHUB_DB_MAX_IDLE_CONNS` | `5` | Maximum idle database connections (PostgreSQL only) |
 | `TOKENHUB_DB_CONN_MAX_LIFETIME_MINUTES` | `30` | Maximum connection lifetime in minutes (PostgreSQL only) |
-| `TOKENHUB_API` | empty | Target Admin API for the `tokenhub-migrate` CLI. Read only by that CLI, never by the running server; overridden by `--to` |
+| `TOKENHUB_API` | empty | Target Admin API for the `tokenstation-migrate` CLI. Read only by that CLI, never by the running server; overridden by `--to` |
 
 To run the optional Redis billing component with Compose, add the overlay file to the normal command:
 
@@ -454,17 +456,17 @@ docker compose --env-file deploy/.env \
 
 ### Local and private model services
 
-Administrators can enter HTTP private-literal endpoints such as `http://192.168.1.10:8000/v1` without changing the access mode. Set `auto` to also allow loopback and private DNS names such as `http://127.0.0.1:8000/v1`, `host.docker.internal`, a Docker service name, or an enterprise DNS name, without configuring a CIDR allowlist. The address must be reachable from the backend. A container's loopback address refers to that container, not its host. TokenHub does not create DNS entries, Docker network attachments, or host aliases.
+Administrators can enter HTTP private-literal endpoints such as `http://192.168.1.10:8000/v1` without changing the access mode. Set `auto` to also allow loopback and private DNS names such as `http://127.0.0.1:8000/v1`, `host.docker.internal`, a Docker service name, or an enterprise DNS name, without configuring a CIDR allowlist. The address must be reachable from the backend. A container's loopback address refers to that container, not its host. TokenStation does not create DNS entries, Docker network attachments, or host aliases.
 
 Saving validates URL syntax and literal addresses without DNS queries, so offline services can be configured without blocking storage operations. Before sending a request, HTTP hostnames must resolve entirely to permitted local addresses. Public or mixed public/private HTTP results are rejected before any credentials or body are sent. Direct connections use the validated addresses without a second lookup; proxy requests keep the original Host and TLS server name. Metadata, link-local, multicast and other protected special-use targets remain denied. Redirects may keep the same scheme and authority, including a local same-origin redirect; cross-origin redirects remain denied.
 
-When proxying an HTTP hostname, TokenHub uses CONNECT to a validated IP and preserves the original Host inside the tunnel. The proxy must permit CONNECT to the model service port; a rejection does not fall back to direct access.
+When proxying an HTTP hostname, TokenStation uses CONNECT to a validated IP and preserves the original Host inside the tunnel. The proxy must permit CONNECT to the model service port; a rejection does not fall back to direct access.
 
 Strict mode is the default. It allows RFC1918/ULA literals and still requires `TOKENHUB_PROVIDER_UPSTREAM_ALLOW_LOOPBACK` for localhost. Operators must set `TOKENHUB_PROVIDER_UPSTREAM_ACCESS_MODE=auto` to permit private DNS names. Nonempty private allowlists remain restrictive in either mode, including when denying all private literals. Set `TOKENHUB_PROVIDER_UPSTREAM_PROXY_LOCAL=true` separately when local traffic must follow the selected proxy. These deployment settings require a backend restart or container recreation.
 
 Provider egress can also be changed without restarting under **System Settings → Base Settings → Provider Egress Mode**. `Inherit Environment Proxy` (the upgrade default) reads `HTTP_PROXY`, `HTTPS_PROXY`, and `NO_PROXY` captured at process startup; `Direct Connection` bypasses them; `Use Global Proxy` applies one HTTP or HTTPS forward proxy to every Provider upstream channel, including inference, streaming, images, model discovery, provider catalog refresh, quota calls, and Provider credential refresh. Identity login, notifications, tracing, and version updates are not routed through this setting.
 
-The configured proxy supports optional Basic authentication. Its password is encrypted at rest and masked in APIs and the console. Saving the proxy validates its syntax only; **Test Proxy Connection** uses the current unsaved form and an existing Provider to verify proxy TCP/TLS, authentication, CONNECT, and target TLS with system CAs, without sending Provider credentials or a model request. Provider and Provider Resource base URLs retain their existing save-time scheme and literal-address validation in every proxy mode: metadata and other always-denied targets remain rejected, while local targets follow the auto/strict access policy described above. Before every proxied request, TokenHub resolves the original Provider hostname locally, applies the configured local-address and special-use policy, and pins the proxy request or CONNECT tunnel to the validated IP while preserving the original HTTP Host and TLS server name. Direct and `NO_PROXY` requests apply the same address policy in their guarded dial path. Proxy configuration, authentication, connection, timeout, and HTTPS CONNECT failures are treated as platform egress failures: they do not penalize a Provider resource or trigger route failover. For plaintext HTTP proxy requests, an HTTP error response may come from either the proxy or the Provider and retains normal upstream error handling. Replicas reload shared settings within five seconds and keep the last valid setting across temporary database read failures.
+The configured proxy supports optional Basic authentication. Its password is encrypted at rest and masked in APIs and the console. Saving the proxy validates its syntax only; **Test Proxy Connection** uses the current unsaved form and an existing Provider to verify proxy TCP/TLS, authentication, CONNECT, and target TLS with system CAs, without sending Provider credentials or a model request. Provider and Provider Resource base URLs retain their existing save-time scheme and literal-address validation in every proxy mode: metadata and other always-denied targets remain rejected, while local targets follow the auto/strict access policy described above. Before every proxied request, TokenStation resolves the original Provider hostname locally, applies the configured local-address and special-use policy, and pins the proxy request or CONNECT tunnel to the validated IP while preserving the original HTTP Host and TLS server name. Direct and `NO_PROXY` requests apply the same address policy in their guarded dial path. Proxy configuration, authentication, connection, timeout, and HTTPS CONNECT failures are treated as platform egress failures: they do not penalize a Provider resource or trigger route failover. For plaintext HTTP proxy requests, an HTTP error response may come from either the proxy or the Provider and retains normal upstream error handling. Replicas reload shared settings within five seconds and keep the last valid setting across temporary database read failures.
 
 When the backend uses Fake-IP DNS, configure the actual pool under **System Settings → Base Settings → Synthetic DNS / Fake-IP Ranges**. This independent exception applies only to DNS results, not literal Provider IPs, and remains disabled by default. Do not assume every proxy uses `198.18.0.0/15`: that range is reserved for benchmarking and is not Fake-IP-specific. Private synthetic pools require the separate explicit private-range trust setting. A hostname matching an enabled synthetic pool continues to require HTTPS and does not receive the automatic local proxy bypass, even when its synthetic IP falls inside RFC1918/ULA. Real local services follow the auto/strict policy above independently. Synthetic exceptions cannot authorize loopback, link-local, metadata, multicast or protected NAT64 targets.
 
@@ -510,7 +512,7 @@ Record timestamps and compare the same time window before restarting, if the hos
 
 Stored request and response audit snapshots are each limited to 8 KiB, including any truncation marker, with UTF-8 boundaries and redaction preserved. Very large or complex payloads are omitted before making full serialization/redaction copies and carry an omission marker plus the truncated flag. Trace payload capture uses the same bounded snapshots. This reduces per-request audit work; it does not remove existing large snapshots or cap total database size. Configure request-payload retention in gateway settings and monitor database growth separately.
 
-For WAL maintenance, use SQLite's backup API or TokenHub's backup feature before making changes; copying only an active `.db` file can lose committed WAL data. A long-lived reader or sustained traffic can prevent a checkpoint from completing. A large WAL is a diagnostic signal, not proof of corruption or a single root cause. Never delete `-wal` or `-shm` files manually.
+For WAL maintenance, use SQLite's backup API or TokenStation's backup feature before making changes; copying only an active `.db` file can lose committed WAL data. A long-lived reader or sustained traffic can prevent a checkpoint from completing. A large WAL is a diagnostic signal, not proof of corruption or a single root cause. Never delete `-wal` or `-shm` files manually.
 
 Schedule a maintenance window, drain requests, stop every process that opens the database, and use a SQLite CLI with access to the persistent volume. Run `PRAGMA wal_checkpoint(TRUNCATE);` against the database and inspect its busy/log/checkpointed result; a busy result means the checkpoint did not complete, so investigate remaining connections instead of repeatedly forcing it. `VACUUM` is optional offline space reclamation after retention cleanup: it rewrites the database, needs exclusive access and substantial temporary free disk space (potentially up to twice the database size). It is not a routine live-load remedy. Restart the application and verify readiness and a small usage query afterward.
 
@@ -532,13 +534,13 @@ The custom mount intentionally overrides the image catalog and is therefore mana
 
 ### Connecting to Kronk
 
-TokenHub connects to an external Kronk Model Server; it does not install Kronk, download GGUF files, or embed llama.cpp. `127.0.0.1` inside the TokenHub container points to that container, not the Docker host. When Kronk runs on the host, use a host-reachable private IP or `host.docker.internal` where supported; when it runs in another container, use a shared Docker network and the Kronk service name. Literal private IPs work in the default strict mode. DNS names such as `host.docker.internal` require `TOKENHUB_PROVIDER_UPSTREAM_ACCESS_MODE=auto`. Use loopback only when TokenHub and Kronk share the same network namespace; strict mode requires `TOKENHUB_PROVIDER_UPSTREAM_ALLOW_LOOPBACK`.
+TokenStation connects to an external Kronk Model Server; it does not install Kronk, download GGUF files, or embed llama.cpp. `127.0.0.1` inside the TokenStation container points to that container, not the Docker host. When Kronk runs on the host, use a host-reachable private IP or `host.docker.internal` where supported; when it runs in another container, use a shared Docker network and the Kronk service name. Literal private IPs work in the default strict mode. DNS names such as `host.docker.internal` require `TOKENHUB_PROVIDER_UPSTREAM_ACCESS_MODE=auto`. Use loopback only when TokenStation and Kronk share the same network namespace; strict mode requires `TOKENHUB_PROVIDER_UPSTREAM_ALLOW_LOOPBACK`.
 
-Kronk listens on plaintext HTTP by default. For remote deployment, use a trusted private network or a TLS reverse proxy and enable an appropriate Kronk authorization mode. TokenHub accesses only inference, model discovery, liveness, and readiness endpoints; it does not proxy model download, directory, security administration, debug, pprof, or management UI endpoints.
+Kronk listens on plaintext HTTP by default. For remote deployment, use a trusted private network or a TLS reverse proxy and enable an appropriate Kronk authorization mode. TokenStation accesses only inference, model discovery, liveness, and readiness endpoints; it does not proxy model download, directory, security administration, debug, pprof, or management UI endpoints.
 
 ## Reverse Proxy
 
-For production, place TokenHub behind HTTPS and forward:
+For production, place TokenStation behind HTTPS and forward:
 
 - Admin console traffic to the frontend service.
 - `/api/*`, `/v1/*`, `/v1beta/*`, `/docs`, `/openapi.json`, `/openapi.yaml`, `/livez`, `/readyz`, and `/healthz` traffic to the backend service.

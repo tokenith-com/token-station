@@ -1,6 +1,6 @@
 # PostgreSQL Setup Guide
 
-TokenHub supports PostgreSQL as a production database. This guide explains how to configure and deploy the PostgreSQL setup.
+TokenStation supports PostgreSQL as a production database. This guide explains how to configure and deploy the PostgreSQL setup.
 
 ## Why PostgreSQL?
 
@@ -47,9 +47,9 @@ docker compose --env-file deploy/.env -f deploy/docker-compose.postgres.yml up -
 
 Default administrator account:
 - Username: `admin`
-- Password: the configured `TOKENHUB_BOOTSTRAP_ADMIN_PASSWORD`. If it is omitted, retrieve the generated value with `tokenhub initial-admin-password` inside a backend container.
+- Password: the configured `TOKENHUB_BOOTSTRAP_ADMIN_PASSWORD`. If it is omitted, retrieve the generated value with `tokenstation initial-admin-password` inside a backend container.
 
-Change the initial password after signing in. PostgreSQL deployments must always provide the same stable `TOKENHUB_SECRET_KEY` to every replica; TokenHub does not generate that shared key.
+Change the initial password after signing in. PostgreSQL deployments must always provide the same stable `TOKENHUB_SECRET_KEY` to every replica; TokenStation does not generate that shared key.
 
 ### Manual PostgreSQL Installation
 
@@ -109,7 +109,7 @@ TOKENHUB_DB_CONN_MAX_LIFETIME_MINUTES=30
 
 ```bash
 cd backend
-go run ./cmd/tokenhub
+go run ./cmd/tokenstation
 ```
 
 ## Connection Pool Configuration
@@ -149,7 +149,7 @@ postgresql://user:pass@host:5432/db?pool_max_conns=25&pool_min_conns=5
 
 ## Backup and Recovery
 
-TokenHub's built-in backup feature only supports SQLite. For PostgreSQL, use `pg_dump` and `pg_restore`.
+TokenStation's built-in backup feature only supports SQLite. For PostgreSQL, use `pg_dump` and `pg_restore`.
 
 ### Backing Up the Database
 
@@ -187,7 +187,7 @@ Add it to crontab (backup daily at 2 AM):
 
 ## Migrating from SQLite to PostgreSQL
 
-The current version of TokenHub does not include an automatic migration tool. Migration steps:
+The current version of TokenStation does not include an automatic migration tool. Migration steps:
 
 1. **Export SQLite data as SQL**
 
@@ -211,7 +211,7 @@ psql -h localhost -U tokenhub -d tokenhub -f tokenhub_sqlite.sql
 
 ### Index Optimization
 
-TokenHub automatically creates the necessary indexes, but you can add extra indexes based on your query patterns:
+TokenStation automatically creates the necessary indexes, but you can add extra indexes based on your query patterns:
 
 ```sql
 -- If you frequently query projects by cost_center

@@ -106,7 +106,7 @@ import com.openai.client.okhttp.OpenAIOkHttpClient;
 import com.openai.models.ChatModel;
 import com.openai.models.chat.completions.ChatCompletionCreateParams;
 
-public class TokenHubExample {
+public class TokenStationExample {
   public static void main(String[] args) {
     OpenAIClient client = OpenAIOkHttpClient.builder()
         .apiKey(System.getenv().getOrDefault("TOKENHUB_API_KEY", "YOUR_TOKENHUB_API_KEY"))

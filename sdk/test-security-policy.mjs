@@ -36,7 +36,7 @@ const desiredPolicy = {
   },
 };
 
-console.log("TokenHub security policy smoke test");
+console.log("TokenStation security policy smoke test");
 console.log(`Admin URL: ${adminBaseURL}`);
 console.log(`Policy ID: ${policyID}`);
 console.log(`Policy:    ${policyName}`);

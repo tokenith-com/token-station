@@ -2,12 +2,12 @@
 
 Language: English | [简体中文](zh-CN/typesafe.md) | [日本語](ja/typesafe.md)
 
-TokenHub exposes TypeSafe System One through a dedicated Provider adapter and `POST /v1/systemone`. Jev evaluates typed decisions against shared state. It returns labels, probabilities, and scores; it does not generate chat text. This first phase adds Provider setup, model metadata, discovery, health checks, routing, governance, and accounting. A dedicated playground and internal semantic routing are outside this phase.
+TokenStation exposes TypeSafe System One through a dedicated Provider adapter and `POST /v1/systemone`. Jev evaluates typed decisions against shared state. It returns labels, probabilities, and scores; it does not generate chat text. This first phase adds Provider setup, model metadata, discovery, health checks, routing, governance, and accounting. A dedicated playground and internal semantic routing are outside this phase.
 
 ## Configure a Provider
 
 1. In **Provider Channels**, add **TypeSafe**. The adapter type is `typesafe` and the upstream Base URL is `https://api.typesafe.ai/v1`.
-2. Enter the TypeSafe API key in the credential field and import the required Jev models. Credentials use TokenHub's existing encrypted storage and redaction rules.
+2. Enter the TypeSafe API key in the credential field and import the required Jev models. Credentials use TokenStation's existing encrypted storage and redaction rules.
 3. Publish a model with modality `decision`, capability `systemone`, and a route to the imported Provider model. Grant the project key access to the published model. Provider inventory costs and client-facing model prices are configured separately.
 4. Run the Provider health check. It authenticates against upstream `GET /v1/models`; it does not run inference. Use a synthetic System One request to verify inference separately.
 
@@ -15,7 +15,7 @@ The catalog includes `jev-1.13.0`, `jev-latest`, and `jev-preview`. Pin a versio
 
 ## Call the gateway
 
-Use the published TokenHub model name and a **TokenHub project API key**:
+Use the published TokenStation model name and a **TokenStation project API key**:
 
 ```bash
 curl https://tokenhub.example/v1/systemone \
@@ -38,7 +38,7 @@ curl https://tokenhub.example/v1/systemone \
 
 The native response contains `model`, `answers`, and `usage.input_tokens` / `usage.output_tokens`. Answer keys match question keys. The response model is the upstream resolved version; request logs also retain the published model and route's upstream model name.
 
-Successful responses include TokenHub's `x-request-id` and, when reported by the winning upstream, `x-typesafe-request-id`. The SDK's `client.systemOne(...).withResponse().requestId` reads the latter. Both headers are exposed to browser clients; a missing upstream ID remains absent.
+Successful responses include TokenStation's `x-request-id` and, when reported by the winning upstream, `x-typesafe-request-id`. The SDK's `client.systemOne(...).withResponse().requestId` reads the latter. Both headers are exposed to browser clients; a missing upstream ID remains absent.
 
 | Primitive | Criteria | Answer |
 | --- | --- | --- |
@@ -52,11 +52,11 @@ The gateway accepts 1–1,024 questions, at most 4,096 criteria per question, an
 
 Each System One request or response is limited to 8 MiB and 32,768 JSON nodes, counting containers, scalar values, and object keys across the entire payload. Numeric exponents may contain at most 128 digits, including leading zeros. Duplicate object members (including escaped spellings of the same key) and alternate casing of protocol field names are rejected before decoding into maps or structs. The same checks apply to hook payloads. Request JSON limit violations return `400`; exceeding the shared 32,768 guardrail-target limit returns `422`. Invalid upstream or hook responses return a sanitized `502`; only independently valid, unambiguous usage is retained.
 
-The catalog records a 64,000-token total context and a 32,000-token state-plus-largest-question limit from the upstream model documentation. TokenHub estimates tokens for quota admission; TypeSafe remains authoritative for tokenizer-specific context validation. Streaming and chat-only fields are rejected. Invalid JSON or unknown fields return `400`; invalid primitive semantics return `422`.
+The catalog records a 64,000-token total context and a 32,000-token state-plus-largest-question limit from the upstream model documentation. TokenStation estimates tokens for quota admission; TypeSafe remains authoritative for tokenizer-specific context validation. Streaming and chat-only fields are rejected. Invalid JSON or unknown fields return `400`; invalid primitive semantics return `422`.
 
 ## JavaScript SDK compatibility
 
-`@typesafe-ai/sdk@0.6.0` can call `client.systemOne()` with `baseURL` set to the **TokenHub origin without `/v1`**; the SDK appends `/v1/systemone` itself. Supply the TokenHub key and published model name. The SDK smoke test uses this method:
+`@typesafe-ai/sdk@0.6.0` can call `client.systemOne()` with `baseURL` set to the **TokenStation origin without `/v1`**; the SDK appends `/v1/systemone` itself. Supply the TokenStation key and published model name. The SDK smoke test uses this method:
 
 ```bash
 cd sdk
@@ -66,7 +66,7 @@ TOKENHUB_API_KEY="$TOKENHUB_API_KEY" \
 TOKENHUB_MODEL=jev-1.13.0 npm run test:systemone
 ```
 
-This phase covers `systemOne()`, not the complete TypeSafe SDK surface. TokenHub retains its existing multi-protocol `/v1/models` contract; it does not emulate TypeSafe's model-list response for SDK `models.list()`. OpenAI chat, Responses, embeddings, and streaming contracts are unchanged. The existing chat playground does not execute Jev.
+This phase covers `systemOne()`, not the complete TypeSafe SDK surface. TokenStation retains its existing multi-protocol `/v1/models` contract; it does not emulate TypeSafe's model-list response for SDK `models.list()`. OpenAI chat, Responses, embeddings, and streaming contracts are unchanged. The existing chat playground does not execute Jev.
 
 ## Governance and accounting
 
@@ -84,4 +84,4 @@ The catalog snapshot verified on **2026-09-19** uses **USD 0.042 per million inp
 
 Start with a dedicated project key and an explicit Jev route. Validate labeled examples for the intended language and task before application decisions depend on the scores. Observe latency, upstream errors, actual usage, and costs. This integration adds no database migration or deployment environment variable. Disable the published model or its routes to stop traffic. Disabling `tokenhub.provider.typesafe` removes both its catalog entry and executable adapter. Existing TypeSafe routes then become unavailable; a model with only TypeSafe routes returns `501 provider_capability_not_supported` on `/v1/systemone`. Re-enabling the plugin restores the adapter for the existing route configuration. Disable individual models or routes when only selected traffic should stop.
 
-Protocol references: [HTTP API](https://docs.typesafe.ai/api), [advanced inputs](https://docs.typesafe.ai/primitives/advanced), [confidence](https://docs.typesafe.ai/confidence), and TokenHub's live `/openapi.json` contract.
+Protocol references: [HTTP API](https://docs.typesafe.ai/api), [advanced inputs](https://docs.typesafe.ai/primitives/advanced), [confidence](https://docs.typesafe.ai/confidence), and TokenStation's live `/openapi.json` contract.

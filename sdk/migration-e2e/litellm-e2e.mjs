@@ -8,7 +8,7 @@ const TOKENHUB_API = process.env.TOKENHUB_API || "http://localhost:8080";
 const TOKENHUB_TOKEN = process.env.TOKENHUB_ADMIN_TOKEN || "admin-token";
 const LITELLM_API = process.env.LITELLM_API || "http://localhost:4000";
 const LITELLM_KEY = process.env.MIGRATION_E2E_LITELLM_KEY || "sk-test-key";
-const MIGRATE_BIN = process.env.TOKENHUB_MIGRATE_BIN || "tokenhub-migrate";
+const MIGRATE_BIN = process.env.TOKENHUB_MIGRATE_BIN || "tokenstation-migrate";
 const FIXTURE = resolve("fixtures/proxy_config.yaml");
 
 let passed = 0;
@@ -62,7 +62,7 @@ function fetchLiteLLM(path, options = {}) {
   return requestJSON(`${LITELLM_API}${path}`, LITELLM_KEY, options);
 }
 
-function fetchTokenHub(path, options = {}) {
+function fetchTokenStation(path, options = {}) {
   return requestJSON(`${TOKENHUB_API}${path}`, TOKENHUB_TOKEN, options);
 }
 
@@ -83,14 +83,14 @@ async function waitForStatus(request, expectedStatus = 200, attempts = 90) {
 }
 
 async function ensureEmailNotificationChannel() {
-  const listed = await fetchTokenHub("/api/admin/resources/notification-channels");
+  const listed = await fetchTokenStation("/api/admin/resources/notification-channels");
   if (listed.status !== 200) return listed;
   const existing = (listed.body?.data || []).find(
     (channel) => channel.status === "active" && channel.fields?.type === "email",
   );
   if (existing) return { status: 200, body: existing };
 
-  return fetchTokenHub("/api/admin/resources/notification-channels", {
+  return fetchTokenStation("/api/admin/resources/notification-channels", {
     method: "POST",
     body: JSON.stringify({
       name: "Migration E2E SMTP",
@@ -106,7 +106,7 @@ async function ensureEmailNotificationChannel() {
 }
 
 async function main() {
-  console.log("TokenHub Migration E2E: LiteLLM\n");
+  console.log("TokenStation Migration E2E: LiteLLM\n");
 
   if (!existsSync(FIXTURE)) {
     record(false, "fixture exists", FIXTURE);
@@ -121,7 +121,7 @@ async function main() {
   const bundlePath = join(workDir, "bundle.json");
   const checkpointPath = join(workDir, "checkpoint.json");
   const newKeysPath = join(workDir, "new-keys.json");
-  // Every migration command below targets the remote TokenHub instance so
+  // Every migration command below targets the remote TokenStation instance so
   // the apply/verify/re-apply/rollback cycle exercises the real Admin API.
   const remoteEnv = {
     TOKENHUB_API,
@@ -132,8 +132,8 @@ async function main() {
   console.log("1. Verify LiteLLM connectivity");
   const health = await waitForStatus(() => fetchLiteLLM("/health"));
   record(health.status === 200, "LiteLLM health check", JSON.stringify(health.body));
-  const tokenHubHealth = await waitForStatus(() => fetchTokenHub("/healthz"));
-  record(tokenHubHealth.status === 200, "TokenHub health check", JSON.stringify(tokenHubHealth.body));
+  const tokenHubHealth = await waitForStatus(() => fetchTokenStation("/healthz"));
+  record(tokenHubHealth.status === 200, "TokenStation health check", JSON.stringify(tokenHubHealth.body));
 
   console.log("\n2. Send chat completion through LiteLLM");
   const chat = await fetchLiteLLM("/v1/chat/completions", {
@@ -146,11 +146,11 @@ async function main() {
   record(chat.status === 200, "LiteLLM chat completion succeeds", JSON.stringify(chat.body));
   record(Boolean(chat.body?.choices?.[0]?.message?.content), "LiteLLM response has content");
 
-  console.log("\n3. Configure TokenHub SMTP delivery for user import");
+  console.log("\n3. Configure TokenStation SMTP delivery for user import");
   const emailChannel = await ensureEmailNotificationChannel();
   record(
     emailChannel.status === 200 || emailChannel.status === 201,
-    "TokenHub email notification channel is ready",
+    "TokenStation email notification channel is ready",
     JSON.stringify(emailChannel.body),
   );
 
@@ -159,12 +159,12 @@ async function main() {
   record(extract.success, "Extract succeeds", extract.stderr || extract.stdout);
   record(existsSync(bundlePath), "Bundle file created", bundlePath);
 
-  console.log("\n5. Plan the migration against TokenHub");
+  console.log("\n5. Plan the migration against TokenStation");
   const plan = run(MIGRATE_BIN, ["plan", "--bundle", bundlePath], { silent: true, env: remoteEnv });
   record(plan.success, "Plan succeeds", plan.stderr || plan.stdout);
   record(plan.stdout.includes("Created"), "Plan prints created count", plan.stdout);
 
-  console.log("\n6. Apply the bundle to TokenHub");
+  console.log("\n6. Apply the bundle to TokenStation");
   const apply = run(
     MIGRATE_BIN,
     ["apply", "--bundle", bundlePath, "--checkpoint-out", checkpointPath, "--new-keys-out", newKeysPath],
@@ -175,7 +175,7 @@ async function main() {
   record(existsSync(checkpointPath), "Apply persists rollback checkpoint", checkpointPath);
   record(existsSync(newKeysPath), "Apply persists one-time API key secrets", newKeysPath);
 
-  console.log("\n7. Verify the applied state on TokenHub");
+  console.log("\n7. Verify the applied state on TokenStation");
   const verify = run(MIGRATE_BIN, ["verify", "--bundle", bundlePath], { silent: true, env: remoteEnv });
   record(verify.success, "Verify passes against applied state", verify.stderr || verify.stdout);
 
@@ -193,7 +193,7 @@ async function main() {
   const rollback = run(MIGRATE_BIN, ["rollback", "--checkpoint", checkpointPath], { silent: true, env: remoteEnv });
   record(rollback.success, "Rollback command succeeds", rollback.stderr || rollback.stdout);
   record(/Rollback:\s*[1-9]/.test(rollback.stdout), "Rollback reverts applied changes", rollback.stdout);
-  const usersAfterRollback = await fetchTokenHub("/api/admin/users");
+  const usersAfterRollback = await fetchTokenStation("/api/admin/users");
   const importedUserRemains = (usersAfterRollback.body?.data || []).some(
     (user) => user.email === "alice@example.com",
   );

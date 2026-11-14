@@ -3,7 +3,7 @@ id: "tokenhub.provider.qoder-cn-subscription"
 name: "Qoder China"
 version: 1.0.0
 summary: "Connect a Qoder China subscription account."
-description: "Connect an explicitly authorized Qoder China subscription account through TokenHub's isolated bundled runtime."
+description: "Connect an explicitly authorized Qoder China subscription account through TokenStation's isolated bundled runtime."
 category: provider_integration
 tokenhub:
   plugin_api: v2

@@ -1,8 +1,8 @@
-# TokenHub Documentation
+# TokenStation Documentation
 
 Language: English | [简体中文](zh-CN/README.md) | [日本語](ja/README.md)
 
-TokenHub documentation is organized around the three roles used in enterprise Token Governance. The default documentation language is English. Localized Chinese and Japanese versions use the same English screenshots and the same English sample data set.
+TokenStation documentation is organized around the three roles used in enterprise Token Governance. The default documentation language is English. Localized Chinese and Japanese versions use the same English screenshots and the same English sample data set.
 
 ## Model Request API Manual
 
@@ -35,8 +35,8 @@ TokenHub documentation is organized around the three roles used in enterprise To
 | [Text Reranking](rerank.md) | Application developers and administrators | Rank documents, configure prices, and verify provider behavior |
 | [Agent Token Cost API](agent-token-cost-api.md) | Local reporting agents and platform administrators | Create least-privilege analytics credentials and pull filtered, aggregated, incremental token costs as JSON or CSV |
 | [Image Generation Guide](user-guide.md#codex-subscription-image-generation) | Application developers using image models | Generate and edit images, run asynchronous jobs, and distinguish Codex subscription capacity from OpenAI API usage |
-| [Connect Codex to TokenHub: Profile Quick Setup](codex-tokenhub-profile-quick-start.md) | Codex users who only need an isolated profile | Create the profile, set the key, validate the connection, and recover |
-| [Connect Codex to TokenHub: Four Configuration Methods and Recovery](codex-tokenhub-configuration.md) | Codex users and developers comparing integration methods | Configure TokenHub through a profile, process-local override, global CLI settings, or the desktop app |
+| [Connect Codex to TokenStation: Profile Quick Setup](codex-tokenstation-profile-quick-start.md) | Codex users who only need an isolated profile | Create the profile, set the key, validate the connection, and recover |
+| [Connect Codex to TokenStation: Four Configuration Methods and Recovery](codex-tokenstation-configuration.md) | Codex users and developers comparing integration methods | Configure TokenStation through a profile, process-local override, global CLI settings, or the desktop app |
 
 ## Shared English Sample Data
 
@@ -63,7 +63,7 @@ Product screenshots are captured from the English UI. The Codex guides use the s
 | Routes | `assets/screenshots/routes-en.png` |
 | Usage | `assets/screenshots/usage-en.png` |
 | Settings | `assets/screenshots/settings-en.png` |
-| Codex Profile configuration | `assets/codex-profile/tokenhub-profile-config-redacted.png` |
+| Codex Profile configuration | `assets/codex-profile/tokenstation-profile-config-redacted.png` |
 | Codex Profile status | `assets/codex-profile/codex-status-redacted.png` |
 
 ## Recommended Reading Order

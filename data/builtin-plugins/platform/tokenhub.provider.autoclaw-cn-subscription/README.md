@@ -1,6 +1,6 @@
 # AutoClaw China
 
-Connect an explicitly authorized AutoClaw China account to TokenHub.
+Connect an explicitly authorized AutoClaw China account to TokenStation.
 
 - Plugin ID: `tokenhub.provider.autoclaw-cn-subscription`
 - Configuration: Provider management, with a separate account resource

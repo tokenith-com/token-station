@@ -1,6 +1,6 @@
 # Trae China
 
-Connect an explicitly authorized Trae China account to TokenHub.
+Connect an explicitly authorized Trae China account to TokenStation.
 
 - Plugin ID: `tokenhub.provider.trae-cn-subscription`
 - Configuration: Provider management, with a separate account resource

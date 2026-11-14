@@ -1,10 +1,10 @@
-# TokenHub Plugin Development
+# TokenStation Plugin Development
 
 Language: English | [简体中文](../zh-CN/plugin-development/README.md) | [日本語](../ja/plugin-development/README.md)
 
-This directory is the single documentation entry point for building TokenHub plugins. The executable SDK, contract harness, and reference packages live in [`plugin-devkit`](../../plugin-devkit/README.md); installed packages live in `TOKENHUB_PLUGIN_DIR`. The hosted marketplace is a separate distribution index, not this devkit.
+This directory is the single documentation entry point for building TokenStation plugins. The executable SDK, contract harness, and reference packages live in [`plugin-devkit`](../../plugin-devkit/README.md); installed packages live in `TOKENHUB_PLUGIN_DIR`. The hosted marketplace is a separate distribution index, not this devkit.
 
-> **Current runtime limitation:** The Devkit and manifest schemas define the external command contract, but TokenHub cannot yet enforce the required host-level process, network, and resource isolation. The runtime therefore fails closed and rejects every runtime-loaded external Provider, gateway hook, background job, and management action command before launch. Packages can still be installed and inspected, declarative presentation contributions remain available, and in-process built-ins are unaffected.
+> **Current runtime limitation:** The Devkit and manifest schemas define the external command contract, but TokenStation cannot yet enforce the required host-level process, network, and resource isolation. The runtime therefore fails closed and rejects every runtime-loaded external Provider, gateway hook, background job, and management action command before launch. Packages can still be installed and inspected, declarative presentation contributions remain available, and in-process built-ins are unaffected.
 
 ## Start Here
 
@@ -25,7 +25,7 @@ This directory is the single documentation entry point for building TokenHub plu
 docs/plugin-development/     documentation and navigation
 plugin-devkit/               SDK, contract harness, fixtures, examples
 your-plugin-repository/      real plugin source and release workflow
-TOKENHUB_PLUGIN_DIR/         packages installed into a TokenHub deployment
+TOKENHUB_PLUGIN_DIR/         packages installed into a TokenStation deployment
 marketplace index            released versions, URLs, checksums and signatures
 ```
 

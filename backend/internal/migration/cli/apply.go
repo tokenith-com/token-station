@@ -20,7 +20,7 @@ func init() {
 	rootCmd.AddCommand(rollbackCmd)
 
 	applyCmd.Flags().String("bundle", "", "Path to bundle JSON file")
-	applyCmd.Flags().String("to", "", "TokenHub admin API base URL")
+	applyCmd.Flags().String("to", "", "TokenStation admin API base URL")
 	applyCmd.Flags().String("token", "", "Admin API token")
 	applyCmd.Flags().Bool("dry-run", false, "Perform a dry-run instead of writing")
 	applyCmd.Flags().String("checkpoint-out", "", "Write the rollback checkpoint JSON to this path (default: <bundle>.checkpoint.json)")
@@ -28,17 +28,17 @@ func init() {
 	_ = applyCmd.MarkFlagRequired("bundle")
 
 	planCmd.Flags().String("bundle", "", "Path to bundle JSON file")
-	planCmd.Flags().String("to", "", "TokenHub admin API base URL")
+	planCmd.Flags().String("to", "", "TokenStation admin API base URL")
 	planCmd.Flags().String("token", "", "Admin API token")
 	_ = planCmd.MarkFlagRequired("bundle")
 
 	verifyCmd.Flags().String("bundle", "", "Path to bundle JSON file")
-	verifyCmd.Flags().String("to", "", "TokenHub admin API base URL")
+	verifyCmd.Flags().String("to", "", "TokenStation admin API base URL")
 	verifyCmd.Flags().String("token", "", "Admin API token")
 	_ = verifyCmd.MarkFlagRequired("bundle")
 
 	rollbackCmd.Flags().String("checkpoint", "", "Path to checkpoint JSON file")
-	rollbackCmd.Flags().String("to", "", "TokenHub admin API base URL")
+	rollbackCmd.Flags().String("to", "", "TokenStation admin API base URL")
 	rollbackCmd.Flags().String("token", "", "Admin API token")
 	_ = rollbackCmd.MarkFlagRequired("checkpoint")
 }
@@ -92,7 +92,7 @@ func requireRemoteTarget(action string, baseURL string) error {
 	if strings.TrimSpace(baseURL) != "" {
 		return nil
 	}
-	return errExit(ExitSinkRejected, fmt.Sprintf("%s requires a TokenHub target: pass --to or set TOKENHUB_API (refusing to %s against a transient in-memory store)", action, action))
+	return errExit(ExitSinkRejected, fmt.Sprintf("%s requires a TokenStation target: pass --to or set TOKENHUB_API (refusing to %s against a transient in-memory store)", action, action))
 }
 
 // writeSecretFile persists payload with owner-only permissions. The
@@ -221,7 +221,7 @@ var planCmd = &cobra.Command{
 
 var applyCmd = &cobra.Command{
 	Use:   "apply",
-	Short: "Apply a bundle to TokenHub",
+	Short: "Apply a bundle to TokenStation",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		bundlePath, _ := cmd.Flags().GetString("bundle")
 		dryRun, _ := cmd.Flags().GetBool("dry-run")

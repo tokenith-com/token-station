@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Run TokenHub locally from a production build, without Docker, root or systemd.
+# Run TokenStation locally from a production build, without Docker, root or systemd.
 #
 # Everything stays inside the repository: the binary, the console bundle, the
 # SQLite database, the logs and the pid files all live under .tokenhub/, which is
@@ -32,7 +32,7 @@ CONSOLE_PORT="${TOKENHUB_LOCAL_CONSOLE_PORT:-3000}"
 STATE_DIR="$RUN_DIR/run"
 LOG_DIR="$RUN_DIR/logs"
 WEB_DIR="$RUN_DIR/web"
-BACKEND_BIN="$RUN_DIR/bin/tokenhub"
+BACKEND_BIN="$RUN_DIR/bin/tokenstation"
 DB_PATH="$RUN_DIR/data/tokenhub.db"
 READY_TIMEOUT=90
 
@@ -45,8 +45,8 @@ FOLLOW=false
 BACKEND_PID=""
 CONSOLE_PID=""
 
-log() { printf '[tokenhub] %s\n' "$*"; }
-error() { printf '[tokenhub] ERROR: %s\n' "$*" >&2; }
+log() { printf '[tokenstation] %s\n' "$*"; }
+error() { printf '[tokenstation] ERROR: %s\n' "$*" >&2; }
 
 usage() {
   cat <<'EOF'
@@ -264,15 +264,15 @@ case "$ACTION" in
     fi
     for service in backend console; do
       if pid="$(service_pid "$service")"; then
-        printf '[tokenhub] %-8s running (pid %s)\n' "$service" "$pid"
+        printf '[tokenstation] %-8s running (pid %s)\n' "$service" "$pid"
       else
-        printf '[tokenhub] %-8s not running\n' "$service"
+        printf '[tokenstation] %-8s not running\n' "$service"
       fi
     done
-    printf '[tokenhub] console  http://127.0.0.1:%s\n' "$CONSOLE_PORT"
-    printf '[tokenhub] backend  http://127.0.0.1:%s\n' "$BACKEND_PORT"
-    printf '[tokenhub] data     %s\n' "$DB_PATH"
-    printf '[tokenhub] logs     %s\n' "$LOG_DIR"
+    printf '[tokenstation] console  http://127.0.0.1:%s\n' "$CONSOLE_PORT"
+    printf '[tokenstation] backend  http://127.0.0.1:%s\n' "$BACKEND_PORT"
+    printf '[tokenstation] data     %s\n' "$DB_PATH"
+    printf '[tokenstation] logs     %s\n' "$LOG_DIR"
     exit 0
     ;;
   logs)
@@ -359,7 +359,7 @@ needs_backend_build() {
 if needs_backend_build; then
   log "Building backend"
   # cgo is required: the SQLite driver fails at runtime without it.
-  (cd "$BACKEND_DIR" && CGO_ENABLED=1 go build -o "$BACKEND_BIN" ./cmd/tokenhub)
+  (cd "$BACKEND_DIR" && CGO_ENABLED=1 go build -o "$BACKEND_BIN" ./cmd/tokenstation)
 else
   log "Backend binary is current"
 fi
@@ -513,7 +513,7 @@ wait_for_http "http://127.0.0.1:$CONSOLE_PORT/" "Console" "$CONSOLE_PID" \
 print_summary() {
   cat <<EOF
 
-TokenHub is running locally.
+TokenStation is running locally.
 
   Console:  http://127.0.0.1:$CONSOLE_PORT
   Backend:  http://127.0.0.1:$BACKEND_PORT

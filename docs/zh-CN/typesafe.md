@@ -2,12 +2,12 @@
 
 语言：[English](../typesafe.md) | 简体中文 | [日本語](../ja/typesafe.md)
 
-TokenHub 通过独立 Provider 适配器和 `POST /v1/systemone` 提供 TypeSafe System One 能力。Jev 根据共享状态返回分类、概率和评分，不生成聊天文本。第一阶段覆盖 Provider 配置、模型元数据、模型发现、健康检查、路由、治理和计费。专用 Playground 和网关内部语义路由不在本阶段范围内。
+TokenStation 通过独立 Provider 适配器和 `POST /v1/systemone` 提供 TypeSafe System One 能力。Jev 根据共享状态返回分类、概率和评分，不生成聊天文本。第一阶段覆盖 Provider 配置、模型元数据、模型发现、健康检查、路由、治理和计费。专用 Playground 和网关内部语义路由不在本阶段范围内。
 
 ## 配置 Provider
 
 1. 在「Provider 渠道」新增「TypeSafe」。适配器类型为 `typesafe`，上游 Base URL 为 `https://api.typesafe.ai/v1`。
-2. 在凭据字段填写 TypeSafe API Key，引入所需的 Jev 模型。凭据沿用 TokenHub 的加密存储和脱敏规则。
+2. 在凭据字段填写 TypeSafe API Key，引入所需的 Jev 模型。凭据沿用 TokenStation 的加密存储和脱敏规则。
 3. 发布能力类型为 `decision`、能力标记为 `systemone` 的模型，并配置到已引入 Provider 模型的路由。为项目 Key 开通该模型权限。Provider 库存成本和模型对外价格分别配置。
 4. 执行 Provider 健康检查。该检查通过上游 `GET /v1/models` 验证凭据，不执行推理；推理能力通过合成 System One 请求单独验证。
 
@@ -15,7 +15,7 @@ TokenHub 通过独立 Provider 适配器和 `POST /v1/systemone` 提供 TypeSafe
 
 ## 调用网关
 
-请求使用已发布的 TokenHub 模型名和 **TokenHub 项目 API Key**：
+请求使用已发布的 TokenStation 模型名和 **TokenStation 项目 API Key**：
 
 ```bash
 curl https://tokenhub.example/v1/systemone \
@@ -38,7 +38,7 @@ curl https://tokenhub.example/v1/systemone \
 
 原生响应包含 `model`、`answers` 和 `usage.input_tokens` / `usage.output_tokens`。答案键与问题键一致。响应中的模型名是上游解析后的版本；请求日志同时保留对外模型名和路由配置的上游模型名。
 
-成功响应包含 TokenHub 的 `x-request-id`；成功上游报告请求 ID 时，还包含 `x-typesafe-request-id`。SDK 的 `client.systemOne(...).withResponse().requestId` 读取后者。两个响应头均向浏览器客户端开放读取；上游未报告 ID 时，不补造该值。
+成功响应包含 TokenStation 的 `x-request-id`；成功上游报告请求 ID 时，还包含 `x-typesafe-request-id`。SDK 的 `client.systemOne(...).withResponse().requestId` 读取后者。两个响应头均向浏览器客户端开放读取；上游未报告 ID 时，不补造该值。
 
 | 原语 | 判断标准 | 结果 |
 | --- | --- | --- |
@@ -52,11 +52,11 @@ curl https://tokenhub.example/v1/systemone \
 
 每个 System One 请求或响应最多 8 MiB，整个载荷累计最多 32,768 个 JSON 节点，节点包括容器、标量值和对象键。数字指数部分最多 128 位，包含前导零。在解码为 map 或结构体前，网关会拒绝重复对象键（包括转义后相同的键）及协议字段名的大小写变体。钩子载荷适用相同检查。请求 JSON 超限返回 `400`；全请求累计安全检查目标超过 32,768 个时返回 `422`。无效上游或钩子响应返回脱敏 `502`，仅保留可独立验证且无歧义的有效用量。
 
-目录按上游文档记录 64,000 token 总上下文和 32,000 token 的「状态加最大问题」限制。TokenHub 为配额准入估算 token，依赖 TypeSafe 按其 tokenizer 校验实际上下文。流式参数和聊天专属字段会被拒绝。JSON 格式错误或未知字段返回 `400`，原语语义校验失败返回 `422`。
+目录按上游文档记录 64,000 token 总上下文和 32,000 token 的「状态加最大问题」限制。TokenStation 为配额准入估算 token，依赖 TypeSafe 按其 tokenizer 校验实际上下文。流式参数和聊天专属字段会被拒绝。JSON 格式错误或未知字段返回 `400`，原语语义校验失败返回 `422`。
 
 ## JavaScript SDK 兼容范围
 
-`@typesafe-ai/sdk@0.6.0` 的 `client.systemOne()` 可直接使用网关。`baseURL` 设置为 **不含 `/v1` 的 TokenHub 站点地址**，SDK 会追加 `/v1/systemone`；凭据和模型分别使用 TokenHub 项目 Key 与已发布模型名。SDK 冒烟测试使用该方法：
+`@typesafe-ai/sdk@0.6.0` 的 `client.systemOne()` 可直接使用网关。`baseURL` 设置为 **不含 `/v1` 的 TokenStation 站点地址**，SDK 会追加 `/v1/systemone`；凭据和模型分别使用 TokenStation 项目 Key 与已发布模型名。SDK 冒烟测试使用该方法：
 
 ```bash
 cd sdk
@@ -66,7 +66,7 @@ TOKENHUB_API_KEY="$TOKENHUB_API_KEY" \
 TOKENHUB_MODEL=jev-1.13.0 npm run test:systemone
 ```
 
-本阶段只覆盖 `systemOne()`，不承诺完整 TypeSafe SDK 兼容。TokenHub 保持已有的多协议 `/v1/models` 契约，不为 SDK 的 `models.list()` 模拟 TypeSafe 模型列表响应。OpenAI Chat、Responses、Embeddings 和流式协议保持不变。现有聊天 Playground 不执行 Jev 请求。
+本阶段只覆盖 `systemOne()`，不承诺完整 TypeSafe SDK 兼容。TokenStation 保持已有的多协议 `/v1/models` 契约，不为 SDK 的 `models.list()` 模拟 TypeSafe 模型列表响应。OpenAI Chat、Responses、Embeddings 和流式协议保持不变。现有聊天 Playground 不执行 Jev 请求。
 
 ## 治理与计费
 
@@ -84,4 +84,4 @@ TOKENHUB_MODEL=jev-1.13.0 npm run test:systemone
 
 先配置专用项目 Key 和明确的 Jev 路由。应用依赖评分前，使用目标语言和业务的标注样本验证效果，并观察延迟、上游错误、实际用量和成本。本次接入不增加数据库迁移或部署环境变量。禁用对外模型或路由即可停止流量。禁用 `tokenhub.provider.typesafe` 会同时移除目录条目和可执行适配器，已有 TypeSafe 路由随之不可用；仅有 TypeSafe 路由的模型调用 `/v1/systemone` 时返回 `501 provider_capability_not_supported`。重新启用插件后，适配器恢复，已有路由配置可继续使用。若只需停止部分流量，应禁用对应模型或路由。
 
-协议参考：[HTTP API](https://docs.typesafe.ai/api)、[高级输入](https://docs.typesafe.ai/primitives/advanced)、[置信度](https://docs.typesafe.ai/confidence)，以及 TokenHub 的 `/openapi.json` 契约。
+协议参考：[HTTP API](https://docs.typesafe.ai/api)、[高级输入](https://docs.typesafe.ai/primitives/advanced)、[置信度](https://docs.typesafe.ai/confidence)，以及 TokenStation 的 `/openapi.json` 契约。

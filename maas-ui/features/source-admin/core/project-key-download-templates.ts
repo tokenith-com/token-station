@@ -83,5 +83,5 @@ function escapeTomlString(value: string) {
 
 function templateFilename(value: string) {
   const normalized = value.trim().toLowerCase().replace(/[^a-z0-9._-]+/g, "-").replace(/^-+|-+$/g, "");
-  return normalized || "tokenhub-key";
+  return normalized || "tokenstation-key";
 }

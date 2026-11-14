@@ -1,8 +1,8 @@
-# TokenHub 整体架构
+# TokenStation 整体架构
 
 Language: [English](../architecture.md) | 简体中文 | [日本語](../ja/architecture.md)
 
-本文描述当前仓库已经实现的 TokenHub 架构，供开发、运维和安全人员理解部署形态、请求链路与数据边界。TokenHub 默认采用 SQLite 单实例部署，同时支持 PostgreSQL 单实例和基于远端 PostgreSQL 的多实例部署。
+本文描述当前仓库已经实现的 TokenStation 架构，供开发、运维和安全人员理解部署形态、请求链路与数据边界。TokenStation 默认采用 SQLite 单实例部署，同时支持 PostgreSQL 单实例和基于远端 PostgreSQL 的多实例部署。
 
 ## 架构概览
 
@@ -16,7 +16,7 @@ flowchart TB
     app["业务应用 / SDK"]
     ingress["直接端口或 HTTPS 反向代理"]
     frontend["Next.js 管理后台"]
-    backend["TokenHub Go 后端"]
+    backend["TokenStation Go 后端"]
 
     subgraph backendProcess["后端进程"]
         adminApi["管理 API\n/api/admin/*"]
@@ -129,7 +129,7 @@ flowchart LR
 | 后台任务与管理动作 | `backend/internal/plugin/background_scheduler.go`、`background_job.go`、`action_broker.go` | 调度进程内任务并代理管理员操作；与持久化后台 Responses 任务分开 |
 | 界面 | `backend/internal/plugin/admin_ui.go`、`sim.go` | 由控制台渲染声明式面板、设置、主题和布局；不执行任意插件 React 或 JavaScript |
 
-插件包通过 `plugin.yaml` 声明 manifest schema `2` 和 Plugin API `v2`；schema `1` 与 API `v1` 仍通过兼容适配器支持。权限决定未来调用时可投影哪些 Core 数据，以及 Core 可接受哪些结构化修改。这不等同于操作系统沙箱：命令策略当前将网络和资源强制隔离标记为 `unsupported`。因此，在宿主机能够强制执行进程、网络和资源隔离前，TokenHub 会采取失败关闭策略，在启动前拒绝所有由运行时加载的外部 Action、后台任务、Provider 命令和请求链命令。带可执行后端入口的启用包会持久化为 `failed_startup`，保持已安装且可检查，但不会发布任何运行时能力。纯声明式界面包和进程内置插件不受影响。通用命令限制仍属于未来执行契约：默认超时 30 秒、输入上限 4 MiB、输出上限 1 MiB，各能力面还可使用自己的限制，例如请求链 Hook 默认 5 秒。外部命令禁用期间，外部 Provider 流式调用同样不可用；当前协议形态描述的是事件数组，而不是对子进程输出的实时转发。
+插件包通过 `plugin.yaml` 声明 manifest schema `2` 和 Plugin API `v2`；schema `1` 与 API `v1` 仍通过兼容适配器支持。权限决定未来调用时可投影哪些 Core 数据，以及 Core 可接受哪些结构化修改。这不等同于操作系统沙箱：命令策略当前将网络和资源强制隔离标记为 `unsupported`。因此，在宿主机能够强制执行进程、网络和资源隔离前，TokenStation 会采取失败关闭策略，在启动前拒绝所有由运行时加载的外部 Action、后台任务、Provider 命令和请求链命令。带可执行后端入口的启用包会持久化为 `failed_startup`，保持已安装且可检查，但不会发布任何运行时能力。纯声明式界面包和进程内置插件不受影响。通用命令限制仍属于未来执行契约：默认超时 30 秒、输入上限 4 MiB、输出上限 1 MiB，各能力面还可使用自己的限制，例如请求链 Hook 默认 5 秒。外部命令禁用期间，外部 Provider 流式调用同样不可用；当前协议形态描述的是事件数组，而不是对子进程输出的实时转发。
 
 三种 Compose 编排均将 `tokenhub-plugins` 挂载到 `/app/plugins`，并提供 `TOKENHUB_PLUGIN_DIR` 和 `TOKENHUB_PLUGIN_MARKETPLACE_URL`。插件文件与生命周期状态保存在文件系统，注册表和执行器则属于各进程。插件生命周期操作会热加载处理该请求的服务进程，因此包校验、声明式贡献变更和生命周期失败呈现无需重启服务。热加载会评估外部命令包，但不会使其变为可执行。PostgreSQL 不负责分发插件二进制，也不会刷新所有副本的注册表；多实例部署仍需协调插件版本，并逐副本执行热加载。
 
@@ -152,7 +152,7 @@ flowchart LR
 
 Provider 类型与主要能力如下：
 
-下表列出当前可运行的内置 Provider 注册项。实际能力由启用的内置插件与适配器描述、Provider 策略以及模型和资源支持共同决定。外部 manifest 可以为包检查和 Devkit 契约测试描述额外 Provider 类型，但当前 TokenHub 版本不会激活其命令型适配器。
+下表列出当前可运行的内置 Provider 注册项。实际能力由启用的内置插件与适配器描述、Provider 策略以及模型和资源支持共同决定。外部 manifest 可以为包检查和 Devkit 契约测试描述额外 Provider 类型，但当前 TokenStation 版本不会激活其命令型适配器。
 
 | Provider 类型 | 适配器与能力 |
 | --- | --- |
@@ -174,7 +174,7 @@ Provider 类型与主要能力如下：
 ```mermaid
 sequenceDiagram
     participant C as 业务应用
-    participant G as TokenHub /v1
+    participant G as TokenStation /v1
     participant S as Store + 数据库
     participant H as 请求链 Hook
     participant A as Provider Adapter
@@ -213,7 +213,7 @@ sequenceDiagram
 ## 鉴权、网络与健康检查
 
 - 业务调用使用项目 API Key：后端校验摘要、状态、项目状态、过期时间、模型范围、IP 白名单、配额和并发。
-- 管理调用使用管理员登录生成的会话 Token，或可选的 `TOKENHUB_ADMIN_TOKEN`。配置 `TOKENHUB_BOOTSTRAP_ADMIN_PASSWORD` 时，初始 `admin` 用户使用该密码；未配置时由 TokenHub 自动生成，首次成功登录或重置密码后会删除可查询的密文副本。
+- 管理调用使用管理员登录生成的会话 Token，或可选的 `TOKENHUB_ADMIN_TOKEN`。配置 `TOKENHUB_BOOTSTRAP_ADMIN_PASSWORD` 时，初始 `admin` 用户使用该密码；未配置时由 TokenStation 自动生成，首次成功登录或重置密码后会删除可查询的密文副本。
 - 非开发环境会禁用可选引导凭据的已知占位值，并拒绝其他非空弱值。`TOKENHUB_SECRET_KEY` 仍为必填项；仅全新文件型 SQLite 数据库可以在数据库旁生成持久密钥文件，已有数据库不会自动生成替代密钥。
 - `TOKENHUB_TRUSTED_PROXY_CIDRS` 限定哪些代理可提供 `X-Forwarded-For`、`X-Forwarded-Host` 和 `X-Forwarded-Proto`，可信代理必须覆盖这些请求头；`TOKENHUB_CORS_ALLOWED_ORIGINS` 限定允许携带浏览器凭证的 Origin。反向代理部署必须正确配置这两项。
 - `/livez` 只用于进程存活探针；`/readyz` 以及兼容的 `/healthz` 会检查数据库可用性与数据库演进状态：数据库不可用、迁移处于脏状态、账本校验失败，或阻塞型数据回填未完成时返回 `503`。待执行的在线回填不影响就绪状态。启动配置不安全时，也只有 `/livez` 保持正常，所有就绪探针和业务接口都会返回 `503`，直至修正配置并重启进程。

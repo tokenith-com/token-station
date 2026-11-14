@@ -2,7 +2,7 @@
 set -eu
 
 SCRIPT_DIR="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
-PROJECT_NAME="tokenhub-e2e-$$"
+PROJECT_NAME="tokenstation-e2e-$$"
 COMPOSE_FILE="$SCRIPT_DIR/docker-compose.e2e.yml"
 
 cleanup() {
@@ -13,4 +13,4 @@ trap cleanup EXIT INT TERM
 
 docker compose -p "$PROJECT_NAME" -f "$COMPOSE_FILE" up \
   --abort-on-container-exit \
-  --exit-code-from tokenhub-e2e
+  --exit-code-from tokenstation-e2e

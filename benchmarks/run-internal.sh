@@ -24,7 +24,7 @@ go test ./internal/server \
   -count "$COUNT" | tee "$RESULT_PATH"
 
 if [ "${TOKENHUB_BENCHMARK_UPDATE_BASELINE:-0}" = "1" ]; then
-  go run ./cmd/tokenhub-benchmark summarize-go \
+  go run ./cmd/tokenstation-benchmark summarize-go \
     --input "$RESULT_PATH" \
     --output "$BASELINE_PATH"
   printf 'Updated internal benchmark baseline: %s\n' "$BASELINE_PATH"
@@ -37,10 +37,10 @@ if [ ! -f "$BASELINE_PATH" ]; then
   exit 1
 fi
 
-go run ./cmd/tokenhub-benchmark summarize-go \
+go run ./cmd/tokenstation-benchmark summarize-go \
   --input "$RESULT_PATH" \
   --output "$SUMMARY_PATH"
-go run ./cmd/tokenhub-benchmark check-go \
+go run ./cmd/tokenstation-benchmark check-go \
   --baseline "$BASELINE_PATH" \
   --current "$RESULT_PATH" \
   --budget "$BUDGET_PATH" | tee "$REPORT_PATH"

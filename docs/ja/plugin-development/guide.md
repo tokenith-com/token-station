@@ -1,14 +1,14 @@
-# TokenHub プラグインアーキテクチャと開発ガイド
+# TokenStation プラグインアーキテクチャと開発ガイド
 
 Language: [English](../../plugin-development/guide.md) | [简体中文](../../zh-CN/plugin-development/guide.md) | 日本語
 
-このガイドは、現在の TokenHub のプラグイン方針と、その上でどう開発するかを説明します。プラグイン作者、プラットフォームエンジニア、運用担当者向けです。
+このガイドは、現在の TokenStation のプラグイン方針と、その上でどう開発するかを説明します。プラグイン作者、プラットフォームエンジニア、運用担当者向けです。
 
-このガイドは、まず最小のプラグインを動かし、その後で完全な契約を説明する順序で構成しています。WordPress がメインファイルのヘッダーからプラグインを検出するのと同様に、TokenHub はパッケージルートの `plugin.yaml` からプラグインを検出、検証、読み込みます。TokenHub ではさらに、配置先、capability、最小権限を明示的に宣言する必要があります。
+このガイドは、まず最小のプラグインを動かし、その後で完全な契約を説明する順序で構成しています。WordPress がメインファイルのヘッダーからプラグインを検出するのと同様に、TokenStation はパッケージルートの `plugin.yaml` からプラグインを検出、検証、読み込みます。TokenStation ではさらに、配置先、capability、最小権限を明示的に宣言する必要があります。
 
 > **現在の実装範囲:** Plugin API v2 が現在の Manifest contract であり、既存 package は v1 adapter 経由で引き続き動作します。ランタイムはホストレベルのプロセス、ネットワーク、リソース隔離をまだ強制できないため、動的に読み込まれた外部 Provider、Gateway Hook、バックグラウンドジョブ、管理 Action の各コマンドを起動前にすべて拒否します。このガイドのコマンド例は、現在デプロイ可能な integration ではなく、開発契約を定義するものです。UI template は宣言的な theme/layout capability で、任意の React / JavaScript 拡張機構ではありません。すべての built-in plugin に検査可能な package file があります。Manifest が実在する編集可能設定を宣言した場合だけ Settings route を表示し、source file は read-only preview のままで管理画面から編集できません。
 
-TokenHub は core を小さく保ちます。
+TokenStation は core を小さく保ちます。
 
 - core は認証、ルーティング、課金、監査、互換性、アップグレード安全性を担当する
 - 変化の速い部分は plugin に任せる
@@ -17,7 +17,7 @@ TokenHub は core を小さく保ちます。
 
 ## インストール済みプラグインの管理
 
-TokenHub は Office Add-ins を企業ガバナンスの参考にし、Obsidian を plugin management interaction の参考にします。Plugin Management の第 1 階層は 2 つです。**インストール済みプラグイン**は検索、status filter、version、update、lifecycle action を扱い、**プラグインを探す**は利用可能な plugin と Marketplace、URL install、ZIP upload、checksum、permission diff preview を扱います。Installed view の統一リスト左側に Provider Integration、Request Pipeline、UI Template、Automation の 4 category filter を直接配置し、独立した Extension Types table は置きません。
+TokenStation は Office Add-ins を企業ガバナンスの参考にし、Obsidian を plugin management interaction の参考にします。Plugin Management の第 1 階層は 2 つです。**インストール済みプラグイン**は検索、status filter、version、update、lifecycle action を扱い、**プラグインを探す**は利用可能な plugin と Marketplace、URL install、ZIP upload、checksum、permission diff preview を扱います。Installed view の統一リスト左側に Provider Integration、Request Pipeline、UI Template、Automation の 4 category filter を直接配置し、独立した Extension Types table は置きません。
 
 インストール済み一覧では、プラグイン名と **詳細** が概要を開きます。**設定** は編集可能な項目があるプラグインだけに表示され、設定ページを直接開きます。UI テンプレート一覧では、編集可能な theme token があるテンプレートは設定を、それ以外は詳細を開きます。デフォルトの変更は別の操作なので、設定を開くだけで現在の UI が意図せず切り替わることはありません。この階層は WordPress の[インストール、更新、管理パターン](https://www.waimaob2c.com/wordpress-plugins)を参考にしていますが、企業ゲートウェイに適さないオンラインコード編集や自動更新はコピーしません。
 
@@ -30,18 +30,18 @@ TokenHub は Office Add-ins を企業ガバナンスの参考にし、Obsidian �
 
 概要には capability の生値やシリアライズされた JSON を表示しません。「開発者情報」はデフォルトで折りたたまれ、展開すると capability、Hook、UI 拡張、管理操作、バックグラウンドジョブの各項目で用途を説明してから技術 ID を表示します。
 
-「ファイル」ページは WordPress の Plugin File Editor をそのまま再現しません。TokenHub はパッケージの絶対パスを公開せず、インストール済み実行コードを編集しません。symbolic link は除外し、binary、runtime state、hidden file、credential、secret、private、サイズ超過ファイルのプレビューを拒否します。これにより、管理画面をリモートコード実行面にせず、パッケージを確認できます。
+「ファイル」ページは WordPress の Plugin File Editor をそのまま再現しません。TokenStation はパッケージの絶対パスを公開せず、インストール済み実行コードを編集しません。symbolic link は除外し、binary、runtime state、hidden file、credential、secret、private、サイズ超過ファイルのプレビューを拒否します。これにより、管理画面をリモートコード実行面にせず、パッケージを確認できます。
 
 管理者認証が必要な inspection API は読み取り専用です。
 
 - `GET /api/admin/plugins/{plugin_id}/detail`
 - `GET /api/admin/plugins/{plugin_id}/file?path={package-relative-path}`
 
-built-in と external plugin はどちらも、file count、total size、kind、および安全条件を満たす Manifest、README、license、source、configuration、Schema を含む検査可能な package inventory を表示します。概念上の参考は WordPress の[プラグイン管理ドキュメント](https://wordpress.org/documentation/article/manage-plugins/)ですが、TokenHub は独自の Manifest、permission、security model を維持します。
+built-in と external plugin はどちらも、file count、total size、kind、および安全条件を満たす Manifest、README、license、source、configuration、Schema を含む検査可能な package inventory を表示します。概念上の参考は WordPress の[プラグイン管理ドキュメント](https://wordpress.org/documentation/article/manage-plugins/)ですが、TokenStation は独自の Manifest、permission、security model を維持します。
 
 ## 1. プラグイン家族
 
-TokenHub はプラグインをいくつかの明確な家族に分けます。
+TokenStation はプラグインをいくつかの明確な家族に分けます。
 
 | 家族 | 担当するもの | 例 |
 | --- | --- | --- |
@@ -70,7 +70,7 @@ schema_version: 2
 id: tokenhub.provider.kimi-go
 name: Kimi Subscription Go Provider
 version: 1.0.0
-summary: Connect TokenHub to a Kimi subscription account.
+summary: Connect TokenStation to a Kimi subscription account.
 description: Reference Go Provider plugin using the stdio-json-v1 transport.
 category: provider_integration
 tokenhub:
@@ -111,7 +111,7 @@ distribution:
 
 ## 3. Runtime 面
 
-TokenHub には 3 つの core runtime 面と、1 つの過渡的な互換面があります。
+TokenStation には 3 つの core runtime 面と、1 つの過渡的な互換面があります。
 
 - `ServeProvider`
 - `ServeGatewayHook`
@@ -182,7 +182,7 @@ Admin UI 貢献は独立した runtime 面ではありません。宣言的な p
 5. contract tests を追加する
 6. ローカルで実行する
 7. marketplace に公開する
-8. TokenHub にインストールしてパッケージ検査とライフサイクル表示を確認する
+8. TokenStation にインストールしてパッケージ検査とライフサイクル表示を確認する
 
 コードを書く前に次を答えます。
 
@@ -230,9 +230,9 @@ Plugin Devkit にはローカル harness があります。
 
 ```bash
 go test ./...
-go run ./cmd/tokenhub-plugin-test provider --package "$PWD/examples/provider-kimi-go"
-go run ./cmd/tokenhub-plugin-test hook --package "$PWD/examples/hook-trace-go"
-go run ./cmd/tokenhub-plugin-test background --package "$PWD/examples/background-heartbeat-go"
+go run ./cmd/tokenstation-plugin-test provider --package "$PWD/examples/provider-kimi-go"
+go run ./cmd/tokenstation-plugin-test hook --package "$PWD/examples/hook-trace-go"
+go run ./cmd/tokenstation-plugin-test background --package "$PWD/examples/background-heartbeat-go"
 ```
 
 `--package` は自分の plugin ディレクトリに置き換えてください。
@@ -243,7 +243,7 @@ go run ./cmd/tokenhub-plugin-test background --package "$PWD/examples/background
 
 ```text
 plugin-devkit/
-├── cmd/tokenhub-plugin-test/          # ローカル契約テストツール
+├── cmd/tokenstation-plugin-test/          # ローカル契約テストツール
 ├── sdk/go/tokenhubplugin/             # Go プロトコル補助
 └── examples/background-heartbeat-go/
     ├── main.go
@@ -257,11 +257,11 @@ cd plugin-devkit
 mkdir -p examples/background-heartbeat-go/bin
 go build -o examples/background-heartbeat-go/bin/background-heartbeat-go \
   ./examples/background-heartbeat-go
-go run ./cmd/tokenhub-plugin-test background \
+go run ./cmd/tokenstation-plugin-test background \
   --package "$PWD/examples/background-heartbeat-go"
 ```
 
-サンプルの manifest は、プラグインの識別情報と TokenHub から呼び出せる契約を一緒に定義します。
+サンプルの manifest は、プラグインの識別情報と TokenStation から呼び出せる契約を一緒に定義します。
 
 ```yaml
 schema_version: 2
@@ -366,7 +366,7 @@ func handle(_ context.Context, invocation tokenhubplugin.BackgroundJobInvocation
 
 ### 5.1 Provider plugin
 
-Provider plugin は TokenHub を model service や subscription account に接続します。
+Provider plugin は TokenStation を model service や subscription account に接続します。
 
 通常は次を宣言します。
 
@@ -426,8 +426,8 @@ schema_version: 2
 id: example.sim.operations
 name: Operations UI Template
 version: 1.0.0
-description: A compact operations template for TokenHub.
-summary: Apply a compact operations layout to TokenHub.
+description: A compact operations template for TokenStation.
+summary: Apply a compact operations layout to TokenStation.
 category: ui_template
 tokenhub:
   plugin_api: v2
@@ -552,7 +552,7 @@ Schema の control type には `text`、`secret`、`url`、`select`、`multi_sel
 
 ## 6. パッケージ化と配布
 
-TokenHub は built-in と external plugin に同じ package 形を使います。
+TokenStation は built-in と external plugin に同じ package 形を使います。
 
 典型的な package 内容:
 
@@ -571,7 +571,7 @@ distribution metadata には少なくとも次を含めます。
 - license
 - compatibility metadata
 
-plugin marketplace の URL は既定では未設定です。有効な HTTP または HTTPS のサイトを設定すると外部リンクを表示します。オンライン JSON インデックスは分離署名と失効フィードを検証するまで探索専用です。運用者はオフラインミラーまたは直接の ZIP URL から package を導入して checksum を確認できます。 TokenHub は package の検証結果とライフサイクル状態を直ちに再評価します。この処理で対応済みの宣言的な貢献を有効化できますが、外部コマンド実行は有効になりません。
+plugin marketplace の URL は既定では未設定です。有効な HTTP または HTTPS のサイトを設定すると外部リンクを表示します。オンライン JSON インデックスは分離署名と失効フィードを検証するまで探索専用です。運用者はオフラインミラーまたは直接の ZIP URL から package を導入して checksum を確認できます。 TokenStation は package の検証結果とライフサイクル状態を直ちに再評価します。この処理で対応済みの宣言的な貢献を有効化できますが、外部コマンド実行は有効になりません。
 
 ZIP では `plugin.yaml` をアーカイブルート、または 1 階層だけの plugin directory に置けます。検出される manifest は必ず 1 つだけにしてください。symlink は含めないでください。runtime entrypoint の実行権限を保持し、`entry.backend.command` は plugin directory からの相対パスにします。
 
@@ -587,7 +587,7 @@ cd ../../..
 shasum -a 256 background-heartbeat-go.zip
 ```
 
-Admin console の **Plugin Management > Browse Plugins > Manual Install** で ZIP を upload するか、HTTPS `download_url` と小文字の SHA-256 checksum を指定します。install 成功後、TokenHub はパッケージを再評価します。宣言的な画面貢献は有効化できますが、外部コマンドを持つパッケージは `failed_startup` を記録し、検査可能なままランタイム機能を一切公開しません。実行可能契約のテストには Devkit を使用します。
+Admin console の **Plugin Management > Browse Plugins > Manual Install** で ZIP を upload するか、HTTPS `download_url` と小文字の SHA-256 checksum を指定します。install 成功後、TokenStation はパッケージを再評価します。宣言的な画面貢献は有効化できますが、外部コマンドを持つパッケージは `failed_startup` を記録し、検査可能なままランタイム機能を一切公開しません。実行可能契約のテストには Devkit を使用します。
 
 ## 7. バージョンと互換性
 
@@ -595,7 +595,7 @@ versioning は 3 つに分けて考えます。
 
 | Version | 意味 |
 | --- | --- |
-| Core version | TokenHub 製品の version |
+| Core version | TokenStation 製品の version |
 | Plugin API version | plugin protocol と envelope 契約の version |
 | Plugin package version | plugin package 自身の version |
 
@@ -624,7 +624,7 @@ versioning は 3 つに分けて考えます。
 2. manifest parsing tests
 3. contract tests
 4. package-level tests
-5. TokenHub integration tests
+5. TokenStation integration tests
 6. marketplace / compatibility checks
 7. install、ファイル検査、lifecycle failure の検証
 
@@ -652,7 +652,7 @@ versioning は 3 つに分けて考えます。
 ## 10. 簡単な判断ツリー
 
 ```text
-それは TokenHub を model service や subscription account に接続するか？
+それは TokenStation を model service や subscription account に接続するか？
   -> Provider plugin
 
 それは user token request から provider response までの path に影響するか？

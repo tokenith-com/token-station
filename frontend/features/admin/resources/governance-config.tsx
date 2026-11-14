@@ -368,7 +368,7 @@ export function reportExportPath(dataset: string, period?: string) {
 }
 
 export function reportFilename(dataset: string, period?: string) {
-  return `tokenhub-${dataset}${period ? `-${period}` : ""}.csv`;
+  return `tokenstation-${dataset}${period ? `-${period}` : ""}.csv`;
 }
 
 export function currentBillingPeriod() {
@@ -379,7 +379,7 @@ export async function downloadSQLiteBackup(ctx: ApiContext, item: SQLiteBackup) 
   const resp = await adminFetch(ctx, `/api/admin/sqlite/backups/${item.id}/download`);
   if (!resp.ok) throw new Error(`download sqlite backup ${resp.status}`);
   const blob = await resp.blob();
-  downloadBlob(blob, item.file_name || `tokenhub-${item.id}.sqlite3`);
+  downloadBlob(blob, item.file_name || `tokenstation-${item.id}.sqlite3`);
 }
 
 export async function restoreSQLiteBackup(ctx: ApiContext, item: SQLiteBackup) {

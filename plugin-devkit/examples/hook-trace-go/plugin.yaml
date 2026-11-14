@@ -3,7 +3,7 @@ id: tokenhub.hook.trace-go
 name: Trace Go Hook
 version: 1.0.0
 summary: Export trace data after request processing completes.
-description: Reference observe-only trace export hook using the TokenHub stdio-json-v1 transport.
+description: Reference observe-only trace export hook using the TokenStation stdio-json-v1 transport.
 category: request_pipeline
 tokenhub:
   plugin_api: v2

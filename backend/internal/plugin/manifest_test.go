@@ -12,7 +12,7 @@ schema_version: 1
 id: tokenhub.openai-codex
 name: OpenAI Codex Subscription
 version: 1.0.0
-description: Connects an OpenAI Codex subscription to TokenHub.
+description: Connects an OpenAI Codex subscription to TokenStation.
 tokenhub:
   plugin_api: v1
 distribution:
@@ -133,7 +133,7 @@ permissions:
 	if descriptor.ID != "tokenhub.openai-codex" {
 		t.Fatalf("descriptor id = %q", descriptor.ID)
 	}
-	if descriptor.Description != "Connects an OpenAI Codex subscription to TokenHub." {
+	if descriptor.Description != "Connects an OpenAI Codex subscription to TokenStation." {
 		t.Fatalf("descriptor description = %q", descriptor.Description)
 	}
 	if len(descriptor.Kinds) != 3 {

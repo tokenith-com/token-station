@@ -1,6 +1,6 @@
 # OpenAI Codex Subscription
 
-Built-in provider integration plugin for TokenHub.
+Built-in provider integration plugin for TokenStation.
 
 - Plugin ID: `tokenhub.provider.openai-codex`
 - Configuration: Provider management

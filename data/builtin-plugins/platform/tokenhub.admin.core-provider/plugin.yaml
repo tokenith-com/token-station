@@ -1,6 +1,6 @@
 schema_version: 2
 id: "tokenhub.admin.core-provider"
-name: "TokenHub Core Provider Settings"
+name: "TokenStation Core Provider Settings"
 version: 1.0.0
 summary: "Add host-managed Provider settings to the admin console."
 description: "Add host-managed Provider settings to the admin console."

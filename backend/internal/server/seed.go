@@ -486,7 +486,7 @@ func seedAdminResources(store Store) error {
 	store.CreateResource("announcements", AdminResource{
 		ID:          "ann_mvp",
 		Name:        "Internal Rollout Notice",
-		Description: "TokenHub is available for internal rollout. Provider credentials must only be used for enterprise-authorized APIs.",
+		Description: "TokenStation is available for internal rollout. Provider credentials must only be used for enterprise-authorized APIs.",
 		Status:      StatusActive,
 		Fields: map[string]any{
 			"notify_mode": "silent",

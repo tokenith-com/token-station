@@ -789,7 +789,7 @@ export const adminDomainRuTranslations: Record<string, string> = {
   "外部跳转": "Внешний переход",
   "失败处理": "При сбое",
   "失败策略": "Политика при сбое",
-  "存在待执行的 expand 迁移；请运行 tokenhub db migrate 或重启服务器": "Имеются ожидающие expand-миграции; выполните tokenhub db migrate или перезапустите сервер",
+  "存在待执行的 expand 迁移；请运行 tokenstation db migrate 或重启服务器": "Имеются ожидающие expand-миграции; выполните tokenstation db migrate или перезапустите сервер",
   "安装": "Установить",
   "完全收敛": "Полная конвергенция",
   "完成": "Завершено",

@@ -1,11 +1,11 @@
 <p align="center">
-  <img src="frontend/public/brand/tokenhub-logo.png" alt="TokenHub" width="96" />
+  <img src="frontend/public/brand/tokenstation-logo.png" alt="TokenStation" width="96" />
 </p>
 
-<h1 align="center">TokenHub</h1>
+<h1 align="center">TokenStation</h1>
 
 <p align="center">
-  TokenHub は、AI 時代のエンタープライズ Token Governance 基盤です。モデルルーティング、権限管理、Token コスト最適化、Provider 照合、あらゆる上流モデル Provider への統制されたアクセスを提供します。
+  TokenStation は、AI 時代のエンタープライズ Token Governance 基盤です。モデルルーティング、権限管理、Token コスト最適化、Provider 照合、あらゆる上流モデル Provider への統制されたアクセスを提供します。
 </p>
 
 <p align="center">
@@ -26,7 +26,7 @@
 <table>
   <tr>
     <td width="180"><a href="https://aicoding.inc/i/tokhub"><img src="docs/assets/sponsors/aicoding.svg" alt="AICoding" width="150" /></a></td>
-    <td>本プロジェクトをご支援いただいている AICoding に感謝いたします！<a href="https://aicoding.inc/i/tokhub">AICoding</a> —— 世界の主要 AI モデルをお得に利用できる API 中継サービス！Claude Code は通常価格の 19%、GPT はわずか 1%！数百社の企業にコストパフォーマンスの高い AI サービスを提供しています。Claude Code、GPT、Gemini、中国の主要モデルに対応し、エンタープライズ向けの高い同時処理性能、迅速な請求書発行、24 時間・年中無休の専任テクニカルサポートを提供します。<a href="https://aicoding.inc/i/tokhub">こちらのリンク</a>から登録した TokenHub ユーザーは、初回チャージが 10% オフになります！</td>
+    <td>本プロジェクトをご支援いただいている AICoding に感謝いたします！<a href="https://aicoding.inc/i/tokhub">AICoding</a> —— 世界の主要 AI モデルをお得に利用できる API 中継サービス！Claude Code は通常価格の 19%、GPT はわずか 1%！数百社の企業にコストパフォーマンスの高い AI サービスを提供しています。Claude Code、GPT、Gemini、中国の主要モデルに対応し、エンタープライズ向けの高い同時処理性能、迅速な請求書発行、24 時間・年中無休の専任テクニカルサポートを提供します。<a href="https://aicoding.inc/i/tokhub">こちらのリンク</a>から登録した TokenStation ユーザーは、初回チャージが 10% オフになります！</td>
   </tr>
   <tr>
     <td width="180"><a href="https://subsub.cn/i/tokhub"><img src="docs/assets/sponsors/subsub.svg" alt="SubSub" width="150" /></a></td>
@@ -36,18 +36,18 @@
 
 ## エンタープライズ Token ガバナンス
 
-TokenHub は、Provider 接続、プロジェクト Key、ルーティングポリシー、利用主体の特定、予算管理、請求照合まで、AI モデルライフサイクルのためのガバナンス層を企業に提供します。
+TokenStation は、Provider 接続、プロジェクト Key、ルーティングポリシー、利用主体の特定、予算管理、請求照合まで、AI モデルライフサイクルのためのガバナンス層を企業に提供します。
 
-本当に解きたいのは、企業内の AI アプリケーションとモデルが増え続けたあと、Token をどう管理するかです。TokenHub は、すべてのモデル呼び出しの手前に次のガバナンス制御を置きます。
+本当に解きたいのは、企業内の AI アプリケーションとモデルが増え続けたあと、Token をどう管理するかです。TokenStation は、すべてのモデル呼び出しの手前に次のガバナンス制御を置きます。
 
 - モデルルーティング: シナリオ、コスト、性能、ヘルス状態、フェイルオーバー方針に応じて適切なモデルを選びます。
 - 権限管理: 人、チーム、プロジェクト、アプリケーションの間で Token アクセスを割り当て、制御します。
 - Token 節約: キャッシュ、モデル選択、クォータ、呼び出し戦略によって企業の AI コストを下げます。
 - Provider 照合: 社内の実利用量と Provider 請求を突き合わせ、財務、プラットフォーム、事業チームが AI コストを説明できるようにします。
 
-## TokenHub が選ばれる理由
+## TokenStation が選ばれる理由
 
-多くのオープンソース AI ゲートウェイは Provider 集約に重点を置いています。つまり、1 つのエンドポイントから複数の上流を呼び出す仕組みです。これは開発者のモデル接続には役立ちますが、企業運用の課題をそれだけで解決できるわけではありません。TokenHub は、その不足しているガバナンス層を中心に設計されています。
+多くのオープンソース AI ゲートウェイは Provider 集約に重点を置いています。つまり、1 つのエンドポイントから複数の上流を呼び出す仕組みです。これは開発者のモデル接続には役立ちますが、企業運用の課題をそれだけで解決できるわけではありません。TokenStation は、その不足しているガバナンス層を中心に設計されています。
 
 - Token 配布をプロジェクトとチームで管理し、生の Provider Key を各アプリケーションへ散在させません。
 - モデルアクセス、ルーティング、フェイルオーバーを管理者がポリシーとして変更でき、クライアントコードの変更を抑えられます。
@@ -57,12 +57,12 @@ TokenHub は、Provider 接続、プロジェクト Key、ルーティングポ�
 ## スクリーンショット
 
 <p align="center">
-  <img src="docs/assets/screenshots/tokenhub-tour.webp" alt="TokenHub 製品ツアー：ログイン、概要、API ドキュメント、Provider チャネル、モデルカタログ、ルーティングポリシー、利用分析、システム設定" width="100%">
+  <img src="docs/assets/screenshots/tokenstation-tour.webp" alt="TokenStation 製品ツアー：ログイン、概要、API ドキュメント、Provider チャネル、モデルカタログ、ルーティングポリシー、利用分析、システム設定" width="100%">
 </p>
 
 ## 3つのロールを中心に設計
 
-TokenHub は、日常的なモデル利用、チームガバナンス、プラットフォーム運用を明確に分け、企業ユーザーが自分の責任に合ったワークフローへすぐ入れるようにします。
+TokenStation は、日常的なモデル利用、チームガバナンス、プラットフォーム運用を明確に分け、企業ユーザーが自分の責任に合ったワークフローへすぐ入れるようにします。
 
 | ロール | ワークスペースの重点 | ガイド |
 | --- | --- | --- |
@@ -87,17 +87,17 @@ TokenHub は、日常的なモデル利用、チームガバナンス、プラ�
 
 ## Provider エコシステム
 
-Provider は TokenHub の接続境界です。ホスト型 API、サブスクリプションチャネル、ローカルモデル、カスタム上流は Provider 抽象を通じて接続され、同じエンタープライズポリシーであらゆるモデル経路を統制できます。
+Provider は TokenStation の接続境界です。ホスト型 API、サブスクリプションチャネル、ローカルモデル、カスタム上流は Provider 抽象を通じて接続され、同じエンタープライズポリシーであらゆるモデル経路を統制できます。
 
-ルーティング、権限、Token 節約、利用主体の特定、監査、照合の制御を整えたうえで、TokenHub はその管理されたワークフローを OpenAI、Azure OpenAI、Anthropic、Gemini、DeepSeek、Qwen、Codex サブスクリプション、ローカルモデル、カスタム OpenAI-Compatible 上流へ接続します。
+ルーティング、権限、Token 節約、利用主体の特定、監査、照合の制御を整えたうえで、TokenStation はその管理されたワークフローを OpenAI、Azure OpenAI、Anthropic、Gemini、DeepSeek、Qwen、Codex サブスクリプション、ローカルモデル、カスタム OpenAI-Compatible 上流へ接続します。
 
-TokenHub は、OpenAI、Azure OpenAI、Anthropic、Gemini、DeepSeek、Qwen、Codex サブスクリプション、ローカルモデル向けのネイティブ Provider アダプターに加え、150 以上の Provider テンプレートを備えています。主な接続先：
+TokenStation は、OpenAI、Azure OpenAI、Anthropic、Gemini、DeepSeek、Qwen、Codex サブスクリプション、ローカルモデル向けのネイティブ Provider アダプターに加え、150 以上の Provider テンプレートを備えています。主な接続先：
 
 <p align="center">
-  <img src="docs/assets/provider-showcase.svg" alt="商用モデル、サブスクリプションモデル、ローカルモデル、カスタム上流を含む TokenHub の主な Provider 接続先。" width="100%">
+  <img src="docs/assets/provider-showcase.svg" alt="商用モデル、サブスクリプションモデル、ローカルモデル、カスタム上流を含む TokenStation の主な Provider 接続先。" width="100%">
 </p>
 
-Provider テンプレートは、利用可能な場合は対応するネイティブアダプターを使用し、それ以外は OpenAI-Compatible エンドポイントへ接続します。利用可能なモデルと機能は、上流サービスおよびアカウントによって異なり、企業側のポリシーは TokenHub に集約されます。
+Provider テンプレートは、利用可能な場合は対応するネイティブアダプターを使用し、それ以外は OpenAI-Compatible エンドポイントへ接続します。利用可能なモデルと機能は、上流サービスおよびアカウントによって異なり、企業側のポリシーは TokenStation に集約されます。
 
 ## クイックスタート
 
@@ -105,8 +105,8 @@ Linux systemd ホストでネイティブ Release を使用する場合:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/astaxie/TokenHub/main/deploy/native/install.sh \
-  -o /tmp/tokenhub-install.sh
-sudo bash /tmp/tokenhub-install.sh install
+  -o /tmp/tokenstation-install.sh
+sudo bash /tmp/tokenstation-install.sh install
 ```
 
 リポジトリのチェックアウトから Docker Compose を使用する場合:
@@ -142,7 +142,7 @@ cp deploy/.env.example deploy/.env
 
 ## Contributors
 
-TokenHub は、実際のエンタープライズ利用からのフィードバック、ゲートウェイ連携、ドキュメント、テスト、継続的なメンテナンスによって育っています。プロジェクトをより信頼できるものにしてくれるすべての方に感謝します。
+TokenStation は、実際のエンタープライズ利用からのフィードバック、ゲートウェイ連携、ドキュメント、テスト、継続的なメンテナンスによって育っています。プロジェクトをより信頼できるものにしてくれるすべての方に感謝します。
 
 <!-- readme: contributors -start -->
 
@@ -345,4 +345,4 @@ TokenHub は、実際のエンタープライズ利用からのフィードバ�
 
 ## License
 
-TokenHub は [Apache License 2.0](LICENSE) の下で提供されています。
+TokenStation は [Apache License 2.0](LICENSE) の下で提供されています。

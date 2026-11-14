@@ -669,7 +669,7 @@ function LoginUtilityActions({
       {showBrand ? (
         <div className="login-brand-lockup">
           <span className="login-brand-mark" aria-hidden="true">
-            <img src="/brand/tokenhub-logo.png" alt="" />
+            <img src="/brand/tokenstation-logo.png" alt="" />
           </span>
           <span className="login-brand-copy">
             <strong>Token<span>Hub</span></strong>

@@ -1,6 +1,6 @@
 # Database Evolution
 
-TokenHub evolves its database with explicit, forward-only migrations. This page explains the model, the maintenance commands, and how upgrades and rollbacks interact with the database.
+TokenStation evolves its database with explicit, forward-only migrations. This page explains the model, the maintenance commands, and how upgrades and rollbacks interact with the database.
 
 This page is the repository's normative source for the database evolution lifecycle and safety contract implemented by `backend/internal/dbschema`, the maintenance CLI, managed upgrades, and CI.
 
@@ -20,13 +20,13 @@ Readiness (`/readyz`, `/healthz`) fails while the ledger is dirty or unverifiabl
 The main binary ships a `db` subcommand:
 
 ```bash
-tokenhub db status                                  # ledger, backfills, live instances
-tokenhub db verify                                  # ledger checksums + semantic schema check
-tokenhub db prepare                                 # startup-compatible adoption + expands, without serving
-tokenhub db migrate                                 # apply pending expand migrations
-tokenhub db repair --version <n>                    # clear a dirty migration (verified repair only)
-tokenhub db contract --dry-run                      # preflight a contract migration
-tokenhub db contract --backup-reference <ref> --maintenance
+tokenstation db status                                  # ledger, backfills, live instances
+tokenstation db verify                                  # ledger checksums + semantic schema check
+tokenstation db prepare                                 # startup-compatible adoption + expands, without serving
+tokenstation db migrate                                 # apply pending expand migrations
+tokenstation db repair --version <n>                    # clear a dirty migration (verified repair only)
+tokenstation db contract --dry-run                      # preflight a contract migration
+tokenstation db contract --backup-reference <ref> --maintenance
 ```
 
 The database is resolved from `TOKENHUB_DATABASE_URL` (or the default SQLite path).
@@ -35,8 +35,8 @@ The database is resolved from `TOKENHUB_DATABASE_URL` (or the default SQLite pat
 
 ## Operational notes
 
-- A startup error `checksum_mismatch (version 4)` can result from the historical metering migration checksum regression. Use a release containing the compatibility fix, then run `tokenhub db prepare` and `tokenhub db verify` before restarting normally. It recognizes both the original SQL checksum and the exact intermediate `tokenhub-schema-metering-evidence-v2` value, preserves existing ledger rows, and leaves audit correlation changes in migration 5. Other checksum mismatches still refuse startup; do not delete the database or edit its ledger to bypass verification. `db repair` is for dirty migrations and does not resolve this clean-ledger mismatch.
-- `tokenhub db migrate` on a database without an adoption baseline points you at a normal server start: adoption happens there, inside the serialized schema section.
+- A startup error `checksum_mismatch (version 4)` can result from the historical metering migration checksum regression. Use a release containing the compatibility fix, then run `tokenstation db prepare` and `tokenstation db verify` before restarting normally. It recognizes both the original SQL checksum and the exact intermediate `tokenhub-schema-metering-evidence-v2` value, preserves existing ledger rows, and leaves audit correlation changes in migration 5. Other checksum mismatches still refuse startup; do not delete the database or edit its ledger to bypass verification. `db repair` is for dirty migrations and does not resolve this clean-ledger mismatch.
+- `tokenstation db migrate` on a database without an adoption baseline points you at a normal server start: adoption happens there, inside the serialized schema section.
 - A refused contract tells you which precondition failed; nothing was executed.
 - After a rollback to a previous release, the previous release keeps working on the current database; when the newer release returns, it re-verifies the ledger and continues.
 - A managed upgrade runs the target release's own binary against the database first: `db prepare` executes the serialized startup-compatible adoption and expand flow without publishing a serving heartbeat, so supported pre-ledger databases can be prepared before activation; `db verify` then verifies the resulting ledger and schema semantically. The target is activated only after both pass. If the activated release then fails its first boot, the previous release is re-activated automatically once (only when the upgrade ran no contract and the previous release's compatibility record covers the database state); a second failure stops version switching for operator recovery.

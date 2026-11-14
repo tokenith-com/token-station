@@ -520,7 +520,7 @@ func notificationChannelPayloadForChannel(channel AdminResource, payload map[str
 }
 
 func notificationChannelText(alert AlertEvent) string {
-	return fmt.Sprintf("[TokenHub] %s\n%s\n对象：%s/%s", alert.Code, alert.Message, alert.ScopeType, alert.ScopeID)
+	return fmt.Sprintf("[TokenStation] %s\n%s\n对象：%s/%s", alert.Code, alert.Message, alert.ScopeType, alert.ScopeID)
 }
 
 func notificationChannelTarget(channel AdminResource) string {
@@ -755,8 +755,8 @@ func (s *Server) adminPasswordResetLink(r *http.Request, token string) string {
 
 func passwordResetEmailMessage(fields map[string]any, recipients []string, user AdminUser, resetLink string, expiresAt time.Time) []byte {
 	from := strings.TrimSpace(firstStringField(fields, "smtp_from", "from_email", "from"))
-	subject := sanitizeEmailHeader("[TokenHub] 重置控制台登录密码")
-	body := fmt.Sprintf("您好 %s，\n\n管理员已为您的 TokenHub 控制台账号发起密码重置。\n账号：%s\n邮箱：%s\n\n请在 24 小时内打开以下链接设置新密码：\n%s\n\n过期时间：%s\n如非本人操作，请联系管理员。\n",
+	subject := sanitizeEmailHeader("[TokenStation] 重置控制台登录密码")
+	body := fmt.Sprintf("您好 %s，\n\n管理员已为您的 TokenStation 控制台账号发起密码重置。\n账号：%s\n邮箱：%s\n\n请在 24 小时内打开以下链接设置新密码：\n%s\n\n过期时间：%s\n如非本人操作，请联系管理员。\n",
 		defaultString(user.Name, user.Username),
 		user.Username,
 		user.Email,
@@ -773,7 +773,7 @@ func passwordResetEmailMessage(fields map[string]any, recipients []string, user 
 }
 
 func emailAlertMessage(from string, recipients []string, alert AlertEvent) []byte {
-	subject := sanitizeEmailHeader("[TokenHub] " + alert.Code)
+	subject := sanitizeEmailHeader("[TokenStation] " + alert.Code)
 	body := fmt.Sprintf("告警事件：%s\n级别：%s\n对象：%s/%s\n说明：%s\n时间：%s\n",
 		alert.Code,
 		alert.Severity,

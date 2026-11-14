@@ -16,7 +16,7 @@ RUN test -n "$TOKENHUB_VERSION" && \
       -tags "netgo osusergo" \
       -trimpath \
       -ldflags="-s -w -linkmode external -extldflags '-static' -X main.buildVersion=${TOKENHUB_VERSION} -X main.buildType=release -X main.deploymentType=native" \
-      -o /out/tokenhub ./cmd/tokenhub
+      -o /out/tokenstation ./cmd/tokenstation
 
 FROM scratch AS artifact
-COPY --from=builder /out/tokenhub /tokenhub
+COPY --from=builder /out/tokenstation /tokenstation

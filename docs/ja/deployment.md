@@ -2,11 +2,11 @@
 
 Language: [English](../deployment.md) | [简体中文](../zh-CN/deployment.md) | 日本語
 
-TokenHub は、Go バックエンド、Next.js 管理コンソール、SQLite 永続化で構成されるプライベートデプロイ向けのサービスです。
+TokenStation は、Go バックエンド、Next.js 管理コンソール、SQLite 永続化で構成されるプライベートデプロイ向けのサービスです。
 
 ## データベースの選択
 
-TokenHub は 2 種類のデータベースバックエンドをサポートしています。
+TokenStation は 2 種類のデータベースバックエンドをサポートしています。
 
 以下のコマンドは Docker Compose を使用します。どちらのバックエンドも Docker なしで同様にサポートされます。[ネイティブ Release + systemd](#ネイティブ-release--systemd)を参照してください。
 
@@ -93,7 +93,9 @@ docker compose --env-file deploy/.env \
 
 ### Kubernetes（Helm）
 
-Kubernetes クラスターでは `deploy/helm/tokenhub` の Helm チャートを使用します。各 Pod は 1 つのコンテナで両プロセスを実行し、本番ではマネージド PostgreSQL と組み合わせ(クイックテストには組み込みサブチャートを利用可能)、デフォルトでステートレスです。実行時にインストールしたプラグインパッケージは、イメージに焼き込まない限り Pod の入れ替えで失われます。オプションの PodMonitor と ExternalSecret 対応には、対応する Operator CRD が必要です。インストール手順、ルーティング、アップグレードの動作は [Kubernetes デプロイ](kubernetes.md) を参照してください。
+Kubernetes クラスターでは `deploy/helm/tokenstation` の Helm チャートを使用します。各 Pod は 1 つのコンテナで両プロセスを実行し、本番ではマネージド PostgreSQL と組み合わせ(クイックテストには組み込みサブチャートを利用可能)、デフォルトでステートレスです。実行時にインストールしたプラグインパッケージは、イメージに焼き込まない限り Pod の入れ替えで失われます。オプションの PodMonitor と ExternalSecret 対応には、対応する Operator CRD が必要です。インストール手順、ルーティング、アップグレードの動作は [Kubernetes デプロイ](kubernetes.md) を参照してください。
+
+既存の Helm インストールを更新する場合は、元の release 名、namespace、values、および既存の `nameOverride`/`fullnameOverride` を維持してください。デフォルトの旧 release `tokenhub` では、`tokenhub` の selector とリソース名が自動的に維持されます。旧デフォルトの chart 名を使用する release は、`helm upgrade <existing-release> deploy/helm/tokenstation -n <existing-namespace> -f <existing-values.yaml> --set nameOverride=tokenhub` で更新できます。既にカスタム名を指定している場合は、その値を維持してください。別名の既存 release を更新するために `helm upgrade --install tokenstation` を実行しないでください。2 つ目のデプロイが作成され、画像ストレージ用の別 PVC が割り当てられる可能性があります。新規インストールでは `tokenstation` release 名と新しいデフォルト値を使用できます。
 
 ## ネイティブ Release + systemd
 
@@ -103,15 +105,15 @@ systemd を使用する単一 Linux ホストでは、ネイティブ Release �
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/astaxie/TokenHub/main/deploy/native/install.sh \
-  -o /tmp/tokenhub-install.sh
-sudo bash /tmp/tokenhub-install.sh install
+  -o /tmp/tokenstation-install.sh
+sudo bash /tmp/tokenstation-install.sh install
 ```
 
 `TOKENHUB_PUBLIC_HOST` が未設定の場合、インストーラーは `https://ipinfo.io/json` に問い合わせ、検証済みの IP を使用します。取得できない場合は、`hostname -I` の最初のアドレス、次に `127.0.0.1` へフォールバックします。NAT、プロキシ、ロードバランサーの背後では、検出した送信元 IP とユーザーがアクセスする受信先アドレスが異なることがあるため、その場合は `TOKENHUB_PUBLIC_HOST` を明示的に設定してください。IPv6 リテラルを使用すると、URL の生成時に角括弧が自動的に追加されます。
 
 ```bash
 sudo env TOKENHUB_PUBLIC_HOST=tokenhub.example.com \
-  bash /tmp/tokenhub-install.sh install
+  bash /tmp/tokenstation-install.sh install
 ```
 
 解決したホストは `/etc/tokenhub/tokenhub.env` に保存され、その後のインストーラー実行でも再利用されます。これにより、自動 IP 検出の結果が変化してもアップグレード時の表示 URL は変わりません。
@@ -121,10 +123,10 @@ sudo env TOKENHUB_PUBLIC_HOST=tokenhub.example.com \
 ```bash
 sudo env \
   TOKENHUB_DATABASE_URL='postgres://user:password@db.example.com:5432/tokenhub?sslmode=require' \
-  bash /tmp/tokenhub-install.sh install
+  bash /tmp/tokenstation-install.sh install
 ```
 
-インストーラーがこの値を `/etc/tokenhub/tokenhub.env` に書き込むのは、設定を初めて作成するときだけです。その後の install、upgrade、rollback では既存の設定を保持します。データベースを意図的に変更する場合は、このファイルを編集して TokenHub を再起動してください。
+インストーラーがこの値を `/etc/tokenhub/tokenhub.env` に書き込むのは、設定を初めて作成するときだけです。その後の install、upgrade、rollback では既存の設定を保持します。データベースを意図的に変更する場合は、このファイルを編集して TokenStation を再起動してください。
 
 初回インストールでは、本番用シークレットと初期管理者パスワードが生成されます。パスワードは一度だけ表示されます。実行ファイルは次の場所に分けて保存されます。
 
@@ -145,10 +147,10 @@ sudo journalctl -u tokenhub -f
 インストーラーは、Release アーカイブを `checksums.txt` で検証してから有効化し、アップグレード時も設定とデータを保持します。
 
 ```bash
-sudo bash /tmp/tokenhub-install.sh upgrade
-sudo bash /tmp/tokenhub-install.sh upgrade --version 0.3.3
-sudo bash /tmp/tokenhub-install.sh rollback --version 0.3.2
-sudo bash /tmp/tokenhub-install.sh uninstall
+sudo bash /tmp/tokenstation-install.sh upgrade
+sudo bash /tmp/tokenstation-install.sh upgrade --version 0.3.3
+sudo bash /tmp/tokenstation-install.sh rollback --version 0.3.2
+sudo bash /tmp/tokenstation-install.sh uninstall
 ```
 
 `upgrade` は、インストール済みバージョンより古い対象を拒否します。ダウングレードする場合は、明示的に `rollback` を使用してください。古いインストーラーで作成した環境をアップグレードすると、`TOKENHUB_IMAGE_STORAGE_DIR` が未設定の場合に限り、永続画像ディレクトリとして `/var/lib/tokenhub/images` が自動的に追加されます。
@@ -159,8 +161,8 @@ sudo bash /tmp/tokenhub-install.sh uninstall
 fork をテストする場合は、その fork のインストーラーをダウンロードし、公開 Release リポジトリを指定します。
 
 ```bash
-sudo env TOKENHUB_RELEASE_REPOSITORY=your-account/TokenHub \
-  bash /tmp/tokenhub-install.sh install --version 0.3.3
+sudo env TOKENHUB_RELEASE_REPOSITORY=your-account/TokenStation \
+  bash /tmp/tokenstation-install.sh install --version 0.3.3
 ```
 
 ネイティブ Release インストールは、バージョンパネルに「ネイティブ Release」と表示されます。管理者はパネルから更新またはロールバックを直接ダウンロードして検証し、「今すぐ再起動」を選択して systemd で対象バージョンを有効化できます。各 GitHub Release タグは `v` で始まる厳密なセマンティックバージョンで、Linux アーカイブと `checksums.txt` を含む必要があります。Release の公開時に `.github/workflows/native-release.yml` が `linux/amd64` と `linux/arm64` のファイルをビルドして添付します。
@@ -177,9 +179,9 @@ cp deploy/.env.example deploy/.env
 起動前に `deploy/.env` を確認してください。
 
 - `TOKENHUB_ADMIN_TOKEN`: 任意の Admin API 静的 Token。運用自動化で必要な場合は 32 バイト以上のランダム値を設定し、不要な場合はプレースホルダーのままにして無効化します。
-- `TOKENHUB_BOOTSTRAP_ADMIN_PASSWORD`: 任意の初期 `admin` パスワード。12 バイト以上の値を設定するか、プレースホルダーのままにして TokenHub に生成させます。
+- `TOKENHUB_BOOTSTRAP_ADMIN_PASSWORD`: 任意の初期 `admin` パスワード。12 バイト以上の値を設定するか、プレースホルダーのままにして TokenStation に生成させます。
 - `TOKENHUB_SECRET_KEY`: バックエンド暗号化ルートキー。PostgreSQL と既存の SQLite データベースでは、32 バイト以上の安定した値が必須です。新規のファイル型 SQLite デプロイでは、プレースホルダーのままにするとデータベースの隣に権限 `0600` のキーファイルを生成します。
-- `TOKENHUB_IMAGE_TAG`: 管理対象 TokenHub イメージのタグ。デフォルトは `latest`。
+- `TOKENHUB_IMAGE_TAG`: 管理対象 TokenStation イメージのタグ。デフォルトは `latest`。
 - `TOKENHUB_PUBLIC_BASE_URL`: ユーザーに表示するバックエンド URL。
 - `TOKENHUB_API_BASE_URL`: ブラウザの管理コンソールが使用するバックエンド URL。フロントエンドサーバーが実行時に読み取ります。非推奨の `NEXT_PUBLIC_API_BASE_URL` は、1 回の互換期間に限りフォールバックとして残します。
 - `TOKENHUB_BACKEND_PORT`: バックエンドのホスト側ポート。デフォルトは `8080`。
@@ -224,14 +226,14 @@ GHCR で初めて公開した Package はデフォルトで非公開です。匿
 
 ### Docker のバージョン状態とロールバック
 
-プラットフォーム管理者は TokenHub ロゴの下にあるバージョンバッジを選択すると、実行中のバージョン、最新の安定版 GitHub Release、最大 3 件の過去の安定版を確認できます。正式なイメージビルドには公開ワークフローから正確なバージョンが設定され、ローカルのソースビルドにはパッケージバージョンとソースビルドの表示が使用されます。管理対象の更新、ロールバック、再起動リクエストは管理者監査ログに記録されます。
+プラットフォーム管理者は TokenStation ロゴの下にあるバージョンバッジを選択すると、実行中のバージョン、最新の安定版 GitHub Release、最大 3 件の過去の安定版を確認できます。正式なイメージビルドには公開ワークフローから正確なバージョンが設定され、ローカルのソースビルドにはパッケージバージョンとソースビルドの表示が使用されます。管理対象の更新、ロールバック、再起動リクエストは管理者監査ログに記録されます。
 
 バージョン確認は、タイムアウト付きの送信 HTTPS リクエストで公開 GitHub Releases API にアクセスし、成功結果を 20 分間キャッシュします。デフォルトでは `astaxie/TokenHub` を確認します。fork の Release を検証する場合、管理者は `TOKENHUB_RELEASE_REPOSITORY` に信頼できる公開 `owner/repository` を設定できます。GitHub の障害や Release がまだない状態でもゲートウェイトラフィックには影響せず、パネルは現在のバージョンを保ったまま利用不可の状態を表示します。
 
 たとえば、ソース実行中に fork の Release を確認するには次を実行します。
 
 ```bash
-TOKENHUB_RELEASE_REPOSITORY=your-account/TokenHub ./start.sh
+TOKENHUB_RELEASE_REPOSITORY=your-account/TokenStation ./start.sh
 ```
 
 デフォルトの SQLite およびローカル PostgreSQL Compose は、1 つの管理対象アプリケーションコンテナを使用します。管理者は「今すぐ更新」を選択し、チェックサム検証済みのプラットフォーム Release バンドルが `tokenhub-releases` ボリュームへインストールされた後に「今すぐ再起動」を選択できます。応答後にプロセスが終了し、Docker の `restart: unless-stopped` が対象バージョンのバックエンドとフロントエンドを同時に起動します。Docker Socket のマウントやホスト daemon の操作は行いません。
@@ -294,14 +296,14 @@ docker compose --env-file deploy/.env -f deploy/docker-compose.yml ps
 
 ```bash
 docker compose --env-file deploy/.env -f deploy/docker-compose.yml \
-  exec tokenhub-backend /opt/tokenhub/current/bin/tokenhub initial-admin-password
+  exec tokenhub-backend /opt/tokenhub/current/bin/tokenstation initial-admin-password
 ```
 
 自動生成パスワードは暗号文としてのみ保存され、初回ログイン成功後またはパスワードリセット後は取得できません。ログイン後に変更してください。Kubernetes では `kubectl exec <pod> -- ...` から同じコマンドを実行できます。
 
 `prod`、`production`、ステージングなどの非開発環境では、既知の Admin Token と初期パスワードのプレースホルダーを未設定として扱い、それ以外の空でない弱い値は拒否します。暗号化ルートキーは、新規のファイル型 SQLite データベースで一度だけ生成する場合を除いて必須です。既存データベースに対して代替キーを自動生成することはありません。
 
-安全に起動できない構成では、プロセスは `/livez` に応答し続けますが、`/readyz`、`/healthz`、アプリケーションルートは `503` を返します。これによりオーケストレーターの liveness 再起動ループを防ぎながら、Pod をサービス対象から外します。構成を修正して TokenHub を再起動してください。liveness probe には `/livez`、readiness probe には `/readyz` を使用します。
+安全に起動できない構成では、プロセスは `/livez` に応答し続けますが、`/readyz`、`/healthz`、アプリケーションルートは `503` を返します。これによりオーケストレーターの liveness 再起動ループを防ぎながら、Pod をサービス対象から外します。構成を修正して TokenStation を再起動してください。liveness probe には `/livez`、readiness probe には `/readyz` を使用します。
 
 ログを手動で確認または追跡します。
 
@@ -338,7 +340,7 @@ docker inspect --format 'memory={{.HostConfig.Memory}} memory_swap={{.HostConfig
 
 ## ローカルで本番ビルドを実行する（Docker なし）
 
-`deploy/local/run-local.sh` は、Docker も root も systemd も使わずに、自分のマシンで本番ビルドからバックエンドとコンソールを実行します。これは開発用の補助手段であり、デプロイ手段ではありません。サーバーに TokenHub をインストールする場合は[ネイティブ Release + systemd](#ネイティブ-release--systemd) または [Docker Compose](#docker-compose) を使用してください。
+`deploy/local/run-local.sh` は、Docker も root も systemd も使わずに、自分のマシンで本番ビルドからバックエンドとコンソールを実行します。これは開発用の補助手段であり、デプロイ手段ではありません。サーバーに TokenStation をインストールする場合は[ネイティブ Release + systemd](#ネイティブ-release--systemd) または [Docker Compose](#docker-compose) を使用してください。
 
 ```bash
 ./deploy/local/run-local.sh          # フォアグラウンド。Ctrl-C で両方停止
@@ -377,7 +379,7 @@ docker inspect --format 'memory={{.HostConfig.Memory}} memory_swap={{.HostConfig
 | `TOKENHUB_PROVIDER_UPSTREAM_ALLOWED_CIDRS` | 空 | 任意の制限用プライベート CIDR リスト。空のリストはどちらのモードでも RFC1918/ULA リテラルを許可します。auto ではこれらの範囲が内部 DNS 結果にも適用されます。非空ならプライベートリテラルを制限し、auto では内部 DNS 結果も制限します。無効な非空設定で制限が解除されることはなく、特殊な危険アドレスは許可できません |
 | `TOKENHUB_PROVIDER_UPSTREAM_NAT64_PREFIX` | 空 | 埋め込まれた IPv4 宛先を分類するための任意の RFC 6052 DNS64/NAT64 プレフィックス。32、40、48、56、64、96 ビット長をサポートします。`64:ff9b:1::/48` などのネットワーク固有プレフィックスを使用する場合に設定します。標準の `64:ff9b::/96` は設定不要です |
 | `TOKENHUB_PROVIDER_UPSTREAM_ALLOW_LOOPBACK` | `false` | strict または非空のプライベートリストで有効です。その場合 `true` で localhost/127.0.0.1/::1 を許可します。auto かつリストが空ならこの値にかかわらずループバックを許可します |
-| `HTTP_PROXY` / `HTTPS_PROXY` | 空 | すべての HTTP Provider チャネルが使用する標準の送信 forward proxy。プロキシ選択は運用者が管理し、プロキシを使用しないリクエストには TokenHub の DNS/IP 送信先検証が引き続き適用されます |
+| `HTTP_PROXY` / `HTTPS_PROXY` | 空 | すべての HTTP Provider チャネルが使用する標準の送信 forward proxy。プロキシ選択は運用者が管理し、プロキシを使用しないリクエストには TokenStation の DNS/IP 送信先検証が引き続き適用されます |
 | `NO_PROXY` | 空 | 標準のカンマ区切りプロキシ除外リスト。一致した Provider リクエストは保護された直接接続経路を使用します |
 | `TOKENHUB_CORS_ALLOWED_ORIGINS` | 公開 URL | バックエンドを呼び出せる正確なブラウザー Origin（カンマ区切り）。設定時は同じ一覧が OAuth コンソールの戻り先 Origin の完全一致 allowlist にもなります。各値には scheme、host、任意の port だけを含め、path は含めません |
 | `TOKENHUB_ADMIN_TOKEN` | `change-me-tokenhub-admin-token` | 任意の Admin API 静的 Token。既知のプレースホルダーは無効化を意味します |
@@ -439,7 +441,7 @@ docker inspect --format 'memory={{.HostConfig.Memory}} memory_swap={{.HostConfig
 | `TOKENHUB_RESPONSE_LEASE_TTL_SECONDS` | `30` | 複数レプリカ間でバックグラウンド Responses Worker を保護するリース期間 |
 | `TOKENHUB_RESPONSE_RESULT_TTL_SECONDS` | `3600` | 完了後に暗号化されたリクエストと結果 payload を保持する期間 |
 | `TOKENHUB_RESPONSE_MAX_QUEUED_JOBS` | `1000` | 1 つのデプロイで受け付ける待機中および実行中のバックグラウンド Responses ジョブの上限 |
-| `TOKENHUB_API` | 空 | `tokenhub-migrate` CLI が対象とする Admin API の URL。この CLI のみが読み取り、バックエンドサーバーは読み取りません。`--to` で上書きされます |
+| `TOKENHUB_API` | 空 | `tokenstation-migrate` CLI が対象とする Admin API の URL。この CLI のみが読み取り、バックエンドサーバーは読み取りません。`--to` で上書きされます |
 
 Compose で任意の Redis 課金コンポーネントを実行する場合は、通常のコマンドに overlay ファイルを追加します。
 
@@ -451,7 +453,7 @@ docker compose --env-file deploy/.env \
 
 ### ローカルおよび内部モデルサービス
 
-管理者はアクセスモードを変えずに `http://192.168.1.10:8000/v1` のような HTTP プライベートリテラルを入力できます。`auto` を設定すると、追加の CIDR 設定なしでループバックと内部 DNS 名も許可され、`http://127.0.0.1:8000/v1`、`host.docker.internal`、Docker サービス名、企業の内部 DNS 名を入力できます。アドレスはバックエンドから到達可能である必要があります。コンテナーのループバックはコンテナー自身を指します。TokenHub が DNS レコード、Docker ネットワーク接続、ホスト別名を自動作成することはありません。
+管理者はアクセスモードを変えずに `http://192.168.1.10:8000/v1` のような HTTP プライベートリテラルを入力できます。`auto` を設定すると、追加の CIDR 設定なしでループバックと内部 DNS 名も許可され、`http://127.0.0.1:8000/v1`、`host.docker.internal`、Docker サービス名、企業の内部 DNS 名を入力できます。アドレスはバックエンドから到達可能である必要があります。コンテナーのループバックはコンテナー自身を指します。TokenStation が DNS レコード、Docker ネットワーク接続、ホスト別名を自動作成することはありません。
 
 保存時は URL 構文とリテラルアドレスを検証し、DNS 問い合わせは行いません。オフラインのサービスも設定でき、ストレージ操作をブロックしません。送信前に HTTP ホスト名が許可済みローカルアドレスだけへ解決される必要があります。公開アドレスや公開／内部の混合結果は認証情報と本文の送信前に拒否します。直接接続は再度名前解決せず検証済みアドレスを使い、プロキシは元の Host と TLS サーバー名を維持します。metadata、link-local、multicast など危険な特殊用途アドレスは引き続き拒否します。同じスキームと authority へのリダイレクトは内部サービスでも許可し、クロスオリジンのリダイレクトは拒否します。
 
@@ -461,7 +463,7 @@ strict モードが既定値です。RFC1918/ULA リテラルは許可され、l
 
 再起動せずに **システム設定 → 基本設定 → Provider エグレスモード** で送信経路を変更できます。アップグレード時の既定値である「環境変数のプロキシを継承」は、プロセス起動時に取得した `HTTP_PROXY`、`HTTPS_PROXY`、`NO_PROXY` を使用します。「直接接続」はこれらを無視し、「統一プロキシを使用」は 1 つの HTTP または HTTPS forward proxy を推論、ストリーミング、画像、モデル検出、Provider catalog 更新、Quota、Provider 資格情報更新を含むすべての Provider 上流チャネルに適用します。ID ログイン、通知、Tracing、バージョン更新には適用されません。
 
-統一プロキシは任意の Basic 認証に対応し、パスワードは暗号化して保存され、API とコンソールではマスクされます。プロキシ設定の保存時はその構文だけを検証します。**プロキシ接続をテスト** は現在の未保存フォームと既存 Provider を使い、Provider 資格情報やモデルリクエストを送信せず、プロキシ TCP/TLS、認証、CONNECT、システム CA による対象 TLS だけを検証します。どのプロキシモードでも Provider と Provider Resource の Base URL には従来の保存時スキームおよびリテラルアドレス検証が適用されます。metadata など常に拒否される対象は引き続き拒否され、ローカル対象は上記の auto/strict ポリシーに従います。プロキシ経由の各リクエストの前に、TokenHub は元の Provider ホスト名をローカルで解決し、設定済みのローカルアドレスおよび特殊用途アドレスのポリシーを適用します。そのうえで元の HTTP Host と TLS サーバー名を維持したまま、プロキシリクエストまたは CONNECT トンネルを検証済み IP に固定します。直接接続と `NO_PROXY` に一致するリクエストも、保護されたダイヤル経路で同じアドレスポリシーを適用します。プロキシ設定、認証、接続、タイムアウト、HTTPS CONNECT の失敗はプラットフォームの送信障害として扱われ、Provider リソースへのペナルティやルート failover は発生しません。平文 HTTP プロキシリクエストの場合、HTTP エラー応答はプロキシまたは Provider のどちらから返される可能性があるため、通常の上流エラー処理を維持します。レプリカは共有設定を 5 秒以内に再読み込みし、データベースの一時的な読み取り失敗時は直前の有効設定を保持します。
+統一プロキシは任意の Basic 認証に対応し、パスワードは暗号化して保存され、API とコンソールではマスクされます。プロキシ設定の保存時はその構文だけを検証します。**プロキシ接続をテスト** は現在の未保存フォームと既存 Provider を使い、Provider 資格情報やモデルリクエストを送信せず、プロキシ TCP/TLS、認証、CONNECT、システム CA による対象 TLS だけを検証します。どのプロキシモードでも Provider と Provider Resource の Base URL には従来の保存時スキームおよびリテラルアドレス検証が適用されます。metadata など常に拒否される対象は引き続き拒否され、ローカル対象は上記の auto/strict ポリシーに従います。プロキシ経由の各リクエストの前に、TokenStation は元の Provider ホスト名をローカルで解決し、設定済みのローカルアドレスおよび特殊用途アドレスのポリシーを適用します。そのうえで元の HTTP Host と TLS サーバー名を維持したまま、プロキシリクエストまたは CONNECT トンネルを検証済み IP に固定します。直接接続と `NO_PROXY` に一致するリクエストも、保護されたダイヤル経路で同じアドレスポリシーを適用します。プロキシ設定、認証、接続、タイムアウト、HTTPS CONNECT の失敗はプラットフォームの送信障害として扱われ、Provider リソースへのペナルティやルート failover は発生しません。平文 HTTP プロキシリクエストの場合、HTTP エラー応答はプロキシまたは Provider のどちらから返される可能性があるため、通常の上流エラー処理を維持します。レプリカは共有設定を 5 秒以内に再読み込みし、データベースの一時的な読み取り失敗時は直前の有効設定を保持します。
 
 バックエンドが Fake-IP DNS を使用する場合は、**システム設定 → 基本設定 → Synthetic DNS / Fake-IP 範囲** に実際のプールを設定します。この独立した例外は既定で無効で、DNS 結果だけに適用され、Provider の IP リテラルには適用されません。`198.18.0.0/15` はベンチマーク用であり、すべてのプロキシが使用する Fake-IP 専用範囲ではありません。プライベート synthetic プールには別途明示的な信頼設定が必要です。有効な synthetic プールに一致するホスト名は、その IP が RFC1918/ULA でも HTTPS が必須で、ローカル通信の自動プロキシ迂回を受けません。実際のローカルサービスは上記の auto/strict ポリシーに独立して従います。Synthetic 例外で loopback、link-local、metadata、multicast、保護された NAT64 対象を許可することはできません。
 
@@ -507,7 +509,7 @@ WAL モードのファイル型 SQLite は、書き込み用の主接続 1 本�
 
 保存するリクエストとレスポンスの監査スナップショットは、切り詰めマーカーを含めて各 8 KiB に制限し、UTF-8 境界とマスキングを維持します。特に大きい、または複雑なペイロードは、全体のシリアライズ/マスキング用コピーを作成する前に省略し、省略マーカーと切り詰めフラグを残します。Trace のペイロード取得も同じ制限済みスナップショットを使用します。これはリクエストごとの監査負荷を減らしますが、既存の大きなスナップショットを削除せず、データベース全体のサイズも制限しません。ゲートウェイ設定でリクエストペイロードの保持期間を設定し、データベースの増大を別途監視してください。
 
-WAL の保守前には SQLite のバックアップ API または TokenHub のバックアップ機能を使用します。稼働中の `.db` ファイルだけのコピーでは、WAL にコミット済みのデータを失う可能性があります。長時間の読み取りや継続的な負荷でチェックポイントが完了しない場合があります。大きな WAL は診断材料であり、破損や単一原因の証明ではありません。`-wal` と `-shm` ファイルを手動で削除してはいけません。
+WAL の保守前には SQLite のバックアップ API または TokenStation のバックアップ機能を使用します。稼働中の `.db` ファイルだけのコピーでは、WAL にコミット済みのデータを失う可能性があります。長時間の読み取りや継続的な負荷でチェックポイントが完了しない場合があります。大きな WAL は診断材料であり、破損や単一原因の証明ではありません。`-wal` と `-shm` ファイルを手動で削除してはいけません。
 
 保守時間を設け、リクエストを排出し、データベースを開く全プロセスを停止してから、永続ボリュームにアクセスできる SQLite CLI を使用します。対象データベースで `PRAGMA wal_checkpoint(TRUNCATE);` を実行し、busy/log/checkpointed の結果を確認します。busy は未完了を示すため、繰り返し強制せず、残る接続を調査してください。`VACUUM` は保持期間による削除後の、任意のオフライン領域回収です。データベースを書き直すため、排他的アクセスと十分な一時ディスク空き容量（最大でデータベースサイズの約 2 倍）が必要です。高負荷中の通常の対処として使わないでください。終了後にアプリケーションを再起動し、readiness と短い期間の利用量クエリを確認します。
 
@@ -529,9 +531,9 @@ WAL の保守前には SQLite のバックアップ API または TokenHub の�
 
 ### Kronk への接続
 
-TokenHub は外部の Kronk Model Server に接続するだけで、Kronk のインストール、GGUF ファイルのダウンロード、llama.cpp の組み込みは行いません。TokenHub コンテナ内の `127.0.0.1` は Docker ホストではなく、そのコンテナ自身を指します。Kronk をホストで実行する場合は、ホスト到達可能なプライベート IP または環境で利用可能な `host.docker.internal` を使用してください。別コンテナで実行する場合は、共有 Docker ネットワークと Kronk のサービス名を使用します。プライベートリテラルは既定の strict モードで利用できます。`host.docker.internal` などの DNS 名には `TOKENHUB_PROVIDER_UPSTREAM_ACCESS_MODE=auto` が必要です。ループバックは TokenHub と Kronk が同じネットワーク名前空間を共有する場合に使用し、strict モードでは `TOKENHUB_PROVIDER_UPSTREAM_ALLOW_LOOPBACK` が必要です。
+TokenStation は外部の Kronk Model Server に接続するだけで、Kronk のインストール、GGUF ファイルのダウンロード、llama.cpp の組み込みは行いません。TokenStation コンテナ内の `127.0.0.1` は Docker ホストではなく、そのコンテナ自身を指します。Kronk をホストで実行する場合は、ホスト到達可能なプライベート IP または環境で利用可能な `host.docker.internal` を使用してください。別コンテナで実行する場合は、共有 Docker ネットワークと Kronk のサービス名を使用します。プライベートリテラルは既定の strict モードで利用できます。`host.docker.internal` などの DNS 名には `TOKENHUB_PROVIDER_UPSTREAM_ACCESS_MODE=auto` が必要です。ループバックは TokenStation と Kronk が同じネットワーク名前空間を共有する場合に使用し、strict モードでは `TOKENHUB_PROVIDER_UPSTREAM_ALLOW_LOOPBACK` が必要です。
 
-Kronk は既定で平文 HTTP を待ち受けます。リモート配置では、信頼済みプライベートネットワークまたは TLS リバースプロキシを使用し、適切な Kronk authorization mode を有効にしてください。TokenHub は推論、モデル検出、liveness、readiness エンドポイントだけを使用し、モデルダウンロード、ディレクトリ、セキュリティ管理、debug、pprof、管理 UI の各エンドポイントはプロキシしません。
+Kronk は既定で平文 HTTP を待ち受けます。リモート配置では、信頼済みプライベートネットワークまたは TLS リバースプロキシを使用し、適切な Kronk authorization mode を有効にしてください。TokenStation は推論、モデル検出、liveness、readiness エンドポイントだけを使用し、モデルダウンロード、ディレクトリ、セキュリティ管理、debug、pprof、管理 UI の各エンドポイントはプロキシしません。
 
 ## リバースプロキシ
 

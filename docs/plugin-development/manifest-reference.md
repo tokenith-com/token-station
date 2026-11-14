@@ -2,7 +2,7 @@
 
 Language: English | [简体中文](../zh-CN/plugin-development/manifest-reference.md) | [日本語](../ja/plugin-development/manifest-reference.md)
 
-Every package has one `plugin.yaml` at its package root. TokenHub validates it before registering or executing any capability.
+Every package has one `plugin.yaml` at its package root. TokenStation validates it before registering or executing any capability.
 
 | Field | Purpose |
 | --- | --- |

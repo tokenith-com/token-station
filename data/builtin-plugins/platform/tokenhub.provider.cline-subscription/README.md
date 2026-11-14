@@ -1,6 +1,6 @@
 # Cline
 
-Connect an explicitly authorized Cline account to TokenHub.
+Connect an explicitly authorized Cline account to TokenStation.
 
 - Plugin ID: `tokenhub.provider.cline-subscription`
 - Configuration: Provider management, with a separate account resource

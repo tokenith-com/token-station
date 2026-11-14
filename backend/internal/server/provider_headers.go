@@ -59,7 +59,7 @@ func normalizeProviderHeaders(headers map[string]string) (map[string]string, err
 		}
 		lowerName := strings.ToLower(name)
 		if coreReservedProviderHeaders[lowerName] {
-			return nil, NewHTTPError(http.StatusBadRequest, "provider_header_reserved", "Custom request header is managed by TokenHub and cannot be overridden")
+			return nil, NewHTTPError(http.StatusBadRequest, "provider_header_reserved", "Custom request header is managed by TokenStation and cannot be overridden")
 		}
 		canonicalName := http.CanonicalHeaderKey(name)
 		if seen[canonicalName] {
@@ -545,7 +545,7 @@ func (s *GormStore) protectProviderHeaders(
 			return nil, nil, NewHTTPError(http.StatusBadRequest, "provider_header_name_invalid", "Custom request header name is invalid")
 		}
 		if coreReservedProviderHeaders[strings.ToLower(name)] {
-			return nil, nil, NewHTTPError(http.StatusBadRequest, "provider_header_reserved", "Custom request header is managed by TokenHub and cannot be overridden")
+			return nil, nil, NewHTTPError(http.StatusBadRequest, "provider_header_reserved", "Custom request header is managed by TokenStation and cannot be overridden")
 		}
 		canonicalName := http.CanonicalHeaderKey(name)
 		if seenNames[canonicalName] {

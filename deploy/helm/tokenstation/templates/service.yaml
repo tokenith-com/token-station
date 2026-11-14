@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "tokenstation.fullname" . }}
+  labels:
+    {{- include "tokenstation.labels" . | nindent 4 }}
+spec:
+  type: ClusterIP
+  ports:
+    - name: api
+      port: 8080
+      targetPort: api
+      protocol: TCP
+    - name: console
+      port: 3000
+      targetPort: console
+      protocol: TCP
+  selector:
+    {{- include "tokenstation.selectorLabels" . | nindent 4 }}

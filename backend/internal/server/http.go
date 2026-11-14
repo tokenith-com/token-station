@@ -253,10 +253,10 @@ func newWithConfig(store Store, config Config, dependencies ApplicationDependenc
 	s.pluginBackgroundRunner.SetSchedulerSnapshotLocker(s.pluginRuntimeMu.RLocker())
 	s.installServerPluginHandlers(&pluginBootstrap)
 	if err := pluginmeta.NewRuntime(config.PluginDir).CompleteRuntimeRestart(); err != nil {
-		panic(fmt.Errorf("complete TokenHub plugin runtime restart: %w", err))
+		panic(fmt.Errorf("complete TokenStation plugin runtime restart: %w", err))
 	}
 	if err := s.publishServerPluginStoreConfiguration(&pluginBootstrap); err != nil {
-		panic(fmt.Errorf("publish TokenHub plugin store configuration: %w", err))
+		panic(fmt.Errorf("publish TokenStation plugin store configuration: %w", err))
 	}
 	s.billingAdmin = admin.NewBillingHandler(dependencies.Repository, s.billing, admin.BillingTransport{
 		DecodeJSON:         s.decodeJSON,
@@ -589,5 +589,5 @@ func modelDescription(model Model) string {
 	}
 	modality := firstNonEmpty(model.Modality, "chat")
 	family := firstNonEmpty(model.Family, model.Category, "custom")
-	return fmt.Sprintf("TokenHub %s model in the %s family.", modality, family)
+	return fmt.Sprintf("TokenStation %s model in the %s family.", modality, family)
 }

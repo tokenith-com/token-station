@@ -23,7 +23,7 @@
 
 ## ベクトル空間
 
-既定では Provider、上流モデル、アダプター種別、実効 Base URL、Embedding プロトコルとパスが一致する必要があります。リソース上書きも反映し、異なる配備は共有空間の明示確認が必要です。互換性確認済みの配備には `embedding_spaces` にモデル ID と空間 ID の JSON 対応表（例 `{"my-embedding-model":"space-v1"}`）を設定できます。モデルのバージョンと符号化動作の互換性を確認してください。同じ次元数だけでは不十分です。空間変更時はアプリケーションで索引を再構築します。TokenHub は外部索引を変更しません。
+既定では Provider、上流モデル、アダプター種別、実効 Base URL、Embedding プロトコルとパスが一致する必要があります。リソース上書きも反映し、異なる配備は共有空間の明示確認が必要です。互換性確認済みの配備には `embedding_spaces` にモデル ID と空間 ID の JSON 対応表（例 `{"my-embedding-model":"space-v1"}`）を設定できます。モデルのバージョンと符号化動作の互換性を確認してください。同じ次元数だけでは不十分です。空間変更時はアプリケーションで索引を再構築します。TokenStation は外部索引を変更しません。
 
 計量証拠では未報告とゼロを区別し、推定を実測に置き換えません。上流コストとテナント料金は別設定です。
 
@@ -33,7 +33,7 @@
 {"model":"public-embedding","input":["最初の文書","次の文書"],"dimensions":1024,"encoding_format":"float"}
 ```
 
-OpenAI SDK は `client.embeddings.create` を使用します。Dify、LangChain/LlamaIndex では対応する統合に公開モデル名と TokenHub URL を設定してください。実際のクライアントバージョンの受け入れ検証は別途必要です。
+OpenAI SDK は `client.embeddings.create` を使用します。Dify、LangChain/LlamaIndex では対応する統合に公開モデル名と TokenStation URL を設定してください。実際のクライアントバージョンの受け入れ検証は別途必要です。
 
 モデル検出は明示された type、modality、model_type を優先します。未指定の場合は BGE、GTE、E5、Voyage、sentence-transformer の既知の名前を認識し、再ランキング名を優先して分類します。名前からの推定は配備能力の検証ではありません。
 

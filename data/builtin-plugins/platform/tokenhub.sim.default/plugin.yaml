@@ -1,9 +1,9 @@
 schema_version: 2
 id: "tokenhub.sim.default"
-name: "TokenHub Default Interface Template"
+name: "TokenStation Default Interface Template"
 version: 1.0.0
-summary: "Provide the default TokenHub admin console theme and layout."
-description: "Provide the default TokenHub admin console theme and layout."
+summary: "Provide the default TokenStation admin console theme and layout."
+description: "Provide the default TokenStation admin console theme and layout."
 category: ui_template
 tokenhub:
   plugin_api: v2

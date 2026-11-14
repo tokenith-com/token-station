@@ -1,5 +1,5 @@
 name: Feature request
-description: Propose an improvement that solves a concrete TokenHub use case.
+description: Propose an improvement that solves a concrete TokenStation use case.
 labels: ["enhancement"]
 body:
   - type: markdown

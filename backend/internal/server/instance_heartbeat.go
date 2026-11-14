@@ -87,7 +87,7 @@ func upsertInstanceHeartbeat(db *gorm.DB, instanceID, release string) error {
 // publishInitialInstanceHeartbeat creates the heartbeat table and publishes
 // the first row for this instance. OpenStoreWithConfig calls it while the
 // schema migration lock is still held: once that lock is released, a
-// `tokenhub db contract` preflight must never observe a serving boot-in-progress
+// `tokenstation db contract` preflight must never observe a serving boot-in-progress
 // as zero live instances. The returned ID is kept on the store so
 // StartInstanceHeartbeat refreshes this row instead of adding another one.
 func publishInitialInstanceHeartbeat(db *gorm.DB, release string) (string, error) {
@@ -259,7 +259,7 @@ func (s *GormStore) DatabaseEvolutionStatus(ctx context.Context) DatabaseEvoluti
 	if len(status.PendingExpand) > 0 {
 		return DatabaseEvolutionStatus{
 			ReasonCode:    "expand_pending",
-			Reason:        fmt.Sprintf("%d expand migration(s) pending; run tokenhub db migrate or restart the server", len(status.PendingExpand)),
+			Reason:        fmt.Sprintf("%d expand migration(s) pending; run tokenstation db migrate or restart the server", len(status.PendingExpand)),
 			SchemaVersion: status.CurrentVersion,
 		}
 	}

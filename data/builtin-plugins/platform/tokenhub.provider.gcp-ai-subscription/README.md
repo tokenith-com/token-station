@@ -1,6 +1,6 @@
 # GCP AI
 
-Connect an explicitly authorized GCP AI account to TokenHub.
+Connect an explicitly authorized GCP AI account to TokenStation.
 
 - Plugin ID: `tokenhub.provider.gcp-ai-subscription`
 - Configuration: Provider management, with a separate account resource

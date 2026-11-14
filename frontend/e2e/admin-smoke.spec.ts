@@ -131,7 +131,7 @@ test("admin can inspect plugin details and files without fake settings", async (
   await expect(catalogPluginRow.getByRole("button", { name: "安装", exact: true })).toHaveCount(0);
 
   await page.getByRole("tab", { name: "全部插件" }).click();
-  await pluginSearch.fill("TokenHub Default Interface Template");
+  await pluginSearch.fill("TokenStation Default Interface Template");
   const configurableRow = page.locator(".plugin-installed-row").filter({
     has: page.getByRole("button", { name: "设置", exact: true }),
   }).first();
@@ -149,7 +149,7 @@ test("admin can inspect plugin details and files without fake settings", async (
   expect(settingsBox!.width).toBeGreaterThanOrEqual(80);
 
   await pluginSearch.fill("");
-  const detailOnlyRow = page.getByRole("button", { name: "查看插件 TokenHub Core Provider Settings 的详情" })
+  const detailOnlyRow = page.getByRole("button", { name: "查看插件 TokenStation Core Provider Settings 的详情" })
     .locator("xpath=ancestor::article");
   await expect(detailOnlyRow.getByRole("button", { name: "设置", exact: true })).toHaveCount(0);
   const detailOnlyBox = await detailOnlyRow
@@ -162,7 +162,7 @@ test("admin can inspect plugin details and files without fake settings", async (
   await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
   await expect.poll(() => page.locator(".plugin-installed-actions").evaluateAll((actions) => actions.every((item) => item.scrollWidth <= item.clientWidth))).toBe(true);
   await page.setViewportSize({ width: 1440, height: 900 });
-  await page.getByRole("button", { name: "查看插件 TokenHub Core Provider Settings 的详情" }).click();
+  await page.getByRole("button", { name: "查看插件 TokenStation Core Provider Settings 的详情" }).click();
   await expect(page).toHaveURL(/\/plugins\/tokenhub\.admin\.core-provider$/);
   await expect(page.getByText("兼容", { exact: true })).toBeVisible();
   await page.getByRole("tab", { name: "文件" }).click();
@@ -215,14 +215,14 @@ test("admin can adjust UI template settings", async ({ page }) => {
   await login(page);
   await sidebar(page).getByRole("button", { name: "插件管理", exact: true }).click();
   await page.getByRole("tab", { name: "UI 模板" }).click();
-  const templateRow = page.locator(".plugin-installed-row").filter({ hasText: "TokenHub Default Interface Template" });
+  const templateRow = page.locator(".plugin-installed-row").filter({ hasText: "TokenStation Default Interface Template" });
   await templateRow.getByRole("button", { name: "设置", exact: true }).click();
   await expect(page).toHaveURL(/\/plugins\/tokenhub\.sim\.default\/settings$/);
-  await expect(page.getByRole("heading", { name: "TokenHub Default Interface Template" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "TokenStation Default Interface Template" })).toBeVisible();
   await page.reload();
   await expect(page).toHaveURL(/\/plugins\/tokenhub\.sim\.default\/settings$/);
-  await expect(page.getByRole("tab", { name: "TokenHub 默认浅色" })).toBeVisible();
-  await page.getByRole("tab", { name: "TokenHub 默认浅色" }).click();
+  await expect(page.getByRole("tab", { name: "TokenStation 默认浅色" })).toBeVisible();
+  await page.getByRole("tab", { name: "TokenStation 默认浅色" }).click();
   await page.getByRole("textbox", { name: "主题色 当前值" }).fill("#16a34a");
   await page.getByRole("button", { name: "保存设置" }).click();
   await expect(page.getByRole("status")).toContainText("设置已保存");
@@ -272,7 +272,7 @@ test("admin can preview and export separate billing statements", async ({ page, 
   await expect(page.getByRole("button", { name: "导出当前预览 CSV" })).toBeVisible();
   const downloaded = page.waitForEvent("download");
   await page.getByRole("button", { name: "导出当前预览 CSV" }).click();
-  expect((await downloaded).suggestedFilename()).toMatch(/^tokenhub-tenant-/);
+  expect((await downloaded).suggestedFilename()).toMatch(/^tokenstation-tenant-/);
   await page.getByLabel("对账单类型").selectOption("provider");
   await expect(page.getByRole("button", { name: "导出当前预览 CSV" })).toHaveCount(0);
   await page.getByRole("button", { name: "预览对账单", exact: true }).click();

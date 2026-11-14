@@ -1,6 +1,6 @@
 # 数据库演进
 
-TokenHub 使用显式、只前进的迁移演进数据库。本文说明演进模型、维护命令，以及升级与回退和数据库的关系。
+TokenStation 使用显式、只前进的迁移演进数据库。本文说明演进模型、维护命令，以及升级与回退和数据库的关系。
 
 本文是仓库内数据库演进生命周期与安全契约的规范来源；`backend/internal/dbschema`、维护 CLI、托管升级和 CI 均以此为准。
 
@@ -20,13 +20,13 @@ TokenHub 使用显式、只前进的迁移演进数据库。本文说明演进�
 主二进制提供 `db` 子命令：
 
 ```bash
-tokenhub db status                                  # ledger、回填、在线实例
-tokenhub db verify                                  # ledger 校验和 + 语义校验
-tokenhub db prepare                                 # 以启动兼容方式采纳并执行扩展迁移，但不提供服务
-tokenhub db migrate                                 # 执行待执行的扩展迁移
-tokenhub db repair --version <n>                    # 清除 dirty 迁移（仅限受验证的修复）
-tokenhub db contract --dry-run                      # 收缩迁移预检
-tokenhub db contract --backup-reference <ref> --maintenance
+tokenstation db status                                  # ledger、回填、在线实例
+tokenstation db verify                                  # ledger 校验和 + 语义校验
+tokenstation db prepare                                 # 以启动兼容方式采纳并执行扩展迁移，但不提供服务
+tokenstation db migrate                                 # 执行待执行的扩展迁移
+tokenstation db repair --version <n>                    # 清除 dirty 迁移（仅限受验证的修复）
+tokenstation db contract --dry-run                      # 收缩迁移预检
+tokenstation db contract --backup-reference <ref> --maintenance
 ```
 
 数据库连接取自 `TOKENHUB_DATABASE_URL`（或默认 SQLite 路径）。
@@ -35,8 +35,8 @@ tokenhub db contract --backup-reference <ref> --maintenance
 
 ## 运维要点
 
-- 历史上的计量迁移校验值回归可能导致启动时报 `checksum_mismatch (version 4)`。请使用包含兼容性修复的版本，依次运行 `tokenhub db prepare` 和 `tokenhub db verify` 后正常重启。修复同时识别原始 SQL 校验值和中间版本的确切值 `tokenhub-schema-metering-evidence-v2`，保留已有账本记录，审计关联字段仍由迁移 5 添加。其他校验值不匹配仍会阻止启动；请勿删除数据库或修改账本来绕过校验。`db repair` 用于修复脏迁移，不能解决这种干净账本的校验值不匹配。
-- 对没有采纳基线的数据库执行 `tokenhub db migrate` 会提示先正常启动一次服务：采纳在服务的串行结构流程中完成。
+- 历史上的计量迁移校验值回归可能导致启动时报 `checksum_mismatch (version 4)`。请使用包含兼容性修复的版本，依次运行 `tokenstation db prepare` 和 `tokenstation db verify` 后正常重启。修复同时识别原始 SQL 校验值和中间版本的确切值 `tokenhub-schema-metering-evidence-v2`，保留已有账本记录，审计关联字段仍由迁移 5 添加。其他校验值不匹配仍会阻止启动；请勿删除数据库或修改账本来绕过校验。`db repair` 用于修复脏迁移，不能解决这种干净账本的校验值不匹配。
+- 对没有采纳基线的数据库执行 `tokenstation db migrate` 会提示先正常启动一次服务：采纳在服务的串行结构流程中完成。
 - 被拒绝的 contract 会说明失败的前置条件；此时没有执行任何操作。
 - 回退到旧版本后，旧版本可在当前数据库上继续工作；新版本回归时重新校验 ledger 并继续演进。
 - 托管升级会先用目标 Release 自身的二进制执行 `db prepare`：在不发布服务实例心跳的情况下，运行串行且与启动一致的采纳与 expand 流程，因此受支持但尚无 ledger 的旧数据库也能在激活前完成准备；随后执行 `db verify`，对准备后的 ledger 和数据库结构做语义校验。两者都成功后才激活目标 Release。激活后的 Release 首次启动失败时，自动重新激活上一 Release 一次（仅当本次升级未执行 contract、且上一 Release 的兼容记录覆盖当前数据库状态时）；第二次失败则停止版本切换，交由人工恢复。

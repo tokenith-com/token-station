@@ -1,10 +1,10 @@
-# TokenHub プラグイン開発
+# TokenStation プラグイン開発
 
 Language: [English](../../plugin-development/README.md) | [简体中文](../../zh-CN/plugin-development/README.md) | 日本語
 
-このディレクトリは TokenHub プラグイン開発ドキュメントの統一エントリです。実行可能な SDK、contract harness、参考 package は [`plugin-devkit`](../../../plugin-devkit/README.md) にあり、インストール済み package は `TOKENHUB_PLUGIN_DIR` にあります。ホストされる Marketplace は別の配布 index であり、この Devkit ではありません。
+このディレクトリは TokenStation プラグイン開発ドキュメントの統一エントリです。実行可能な SDK、contract harness、参考 package は [`plugin-devkit`](../../../plugin-devkit/README.md) にあり、インストール済み package は `TOKENHUB_PLUGIN_DIR` にあります。ホストされる Marketplace は別の配布 index であり、この Devkit ではありません。
 
-> **現在のランタイム制限:** Devkit と Manifest Schema は外部コマンド契約を定義していますが、TokenHub は必要なホストレベルのプロセス、ネットワーク、リソース隔離をまだ強制できません。そのためランタイムはフェイルクローズし、動的に読み込まれた外部 Provider、ゲートウェイ Hook、バックグラウンドジョブ、管理 Action の各コマンドを起動前にすべて拒否します。パッケージのインストールと検査、および宣言的な画面貢献は引き続き利用でき、プロセス内の組み込みプラグインには影響しません。
+> **現在のランタイム制限:** Devkit と Manifest Schema は外部コマンド契約を定義していますが、TokenStation は必要なホストレベルのプロセス、ネットワーク、リソース隔離をまだ強制できません。そのためランタイムはフェイルクローズし、動的に読み込まれた外部 Provider、ゲートウェイ Hook、バックグラウンドジョブ、管理 Action の各コマンドを起動前にすべて拒否します。パッケージのインストールと検査、および宣言的な画面貢献は引き続き利用でき、プロセス内の組み込みプラグインには影響しません。
 
 ## ここから始める
 
@@ -25,7 +25,7 @@ Language: [English](../../plugin-development/README.md) | [简体中文](../../z
 docs/plugin-development/     ドキュメントとナビゲーション
 plugin-devkit/               SDK、contract harness、fixture、Examples
 your-plugin-repository/      実際のプラグインソースと release workflow
-TOKENHUB_PLUGIN_DIR/         TokenHub deployment に導入済みの package
+TOKENHUB_PLUGIN_DIR/         TokenStation deployment に導入済みの package
 marketplace index            release version、URL、checksum、signature
 ```
 

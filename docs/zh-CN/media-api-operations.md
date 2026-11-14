@@ -4,7 +4,7 @@
 
 本文是[文本与多模态 API 指南](media-apis.md)的补充，说明供应商特定工作流、钩子、计量和校验。Chat/Responses 辅助工作流原样传递供应商 ID；兼容的 Images/Videos 提交则将返回任务 ID 绑定到提交密钥和原供应商账户，用于 `/v1/tasks/{task_id}` 查询。
 
-TokenHub 通过兼容的媒体协议接入上游模型。调用前需配置上游供应商，并分别发布生成、上传、查询和下载模型。这里的支持指协议兼容；模型可用性和参数取值由上游决定，不内置供应商凭证或价格。
+TokenStation 通过兼容的媒体协议接入上游模型。调用前需配置上游供应商，并分别发布生成、上传、查询和下载模型。这里的支持指协议兼容；模型可用性和参数取值由上游决定，不内置供应商凭证或价格。
 
 ## 接口范围
 
@@ -33,9 +33,9 @@ TokenHub 通过兼容的媒体协议接入上游模型。调用前需配置上�
 
 Gemini 原生媒体流会拒绝终止错误事件名、`type:"error"` 或 `*.failed` 数据，以及非 null 的嵌套 `response.error`，供应商钩子输出同样适用。即使候选结果已报告结束原因，这些错误仍会记为失败；保留已知 Token 用量和插件显式用量覆盖，且不返回错误中的供应商凭证。嵌套 `response.error:null` 仍允许作为成功事件返回。
 
-托管的 `gpt-image-2`、Codex 订阅及插件图片配置继续使用原有校验、单图任务、素材存储和 `Prefer: respond-async`。如果上游模型与托管公开模型同名，又需要完整供应商 Images 参数，请发布另一个公开别名（如 `vendor-gpt-image`），映射到该上游 ID。普通图片路由保留供应商结果，但识别到的任务 ID 会被替换为已绑定的 TokenHub ID，用于 `/v1/tasks` 查询。本地图片任务执行与 TokenHub 签名图片链接仅适用于托管任务。直通图片请求接受供应商自定义的 `response_format` 字符串，例如 Qwen Image 的 `base64`；内置托管图片仍仅接受 `url` 或 `b64_json`，托管插件模型按其配置校验格式。
+托管的 `gpt-image-2`、Codex 订阅及插件图片配置继续使用原有校验、单图任务、素材存储和 `Prefer: respond-async`。如果上游模型与托管公开模型同名，又需要完整供应商 Images 参数，请发布另一个公开别名（如 `vendor-gpt-image`），映射到该上游 ID。普通图片路由保留供应商结果，但识别到的任务 ID 会被替换为已绑定的 TokenStation ID，用于 `/v1/tasks` 查询。本地图片任务执行与 TokenStation 签名图片链接仅适用于托管任务。直通图片请求接受供应商自定义的 `response_format` 字符串，例如 Qwen Image 的 `base64`；内置托管图片仍仅接受 `url` 或 `b64_json`，托管插件模型按其配置校验格式。
 
-对 `/v1/responses` 设置 `background:true` 时，响应正文的 `id` 标识 TokenHub 本地请求任务。媒体任务完成后的查询响应通过 `x-tokenhub-upstream-response-id` 返回供应商原始根 ID，可将其用于供应商的辅助查询模型。本地任务完成表示上游 API 调用结束，供应商的生成任务可能仍需继续轮询。字符串和数字 ID 保持精确；非标量 ID、含控制字符或首尾空白、超过 2048 字节的值不会写入该响应头。
+对 `/v1/responses` 设置 `background:true` 时，响应正文的 `id` 标识 TokenStation 本地请求任务。媒体任务完成后的查询响应通过 `x-tokenhub-upstream-response-id` 返回供应商原始根 ID，可将其用于供应商的辅助查询模型。本地任务完成表示上游 API 调用结束，供应商的生成任务可能仍需继续轮询。字符串和数字 ID 保持精确；非标量 ID、含控制字符或首尾空白、超过 2048 字节的值不会写入该响应头。
 
 ## 调用示例
 
@@ -45,7 +45,7 @@ Gemini 原生媒体流会拒绝终止错误事件名、`type:"error"` 或 `*.fai
 curl https://tokenhub.example/v1/audio/speech \
   -H "Authorization: Bearer $TOKENHUB_API_KEY" \
   -H 'Content-Type: application/json' \
-  -d '{"model":"speech-2.6-hd","input":"Hello from TokenHub","voice":"male-qn-qingse","response_format":"mp3"}' \
+  -d '{"model":"speech-2.6-hd","input":"Hello from TokenStation","voice":"male-qn-qingse","response_format":"mp3"}' \
   --output speech.mp3
 
 curl https://tokenhub.example/v1/audio/transcriptions \
@@ -66,7 +66,7 @@ curl https://tokenhub.example/v1/responses \
 
 ## 限制、计量和验证
 
-新增直通媒体接口使用 `TOKENHUB_MAX_MULTIMODAL_REQUEST_BYTES`（默认 32 MiB）。multipart 最多 128 个部分，每个文本字段最多 1 MiB。响应最多缓存 128 MiB 后交付，保留供应商内容类型；这条路径不提供低延迟逐块交付。托管图片原有限制保持不变，TokenHub 不主动下载响应中的 URL。
+新增直通媒体接口使用 `TOKENHUB_MAX_MULTIMODAL_REQUEST_BYTES`（默认 32 MiB）。multipart 最多 128 个部分，每个文本字段最多 1 MiB。响应最多缓存 128 MiB 后交付，保留供应商内容类型；这条路径不提供低延迟逐块交付。托管图片原有限制保持不变，TokenStation 不主动下载响应中的 URL。
 
 multipart 的 `model` 和 `stream` 必须是单个文本字段。`/v1/audio/speech` 的 `stream_format:"sse"` 同样会选择流式准入和供应商钩子；`stream_format` 必须是单个非空文本值，请求钩子不能改变实际流式模式。JSON 的 `stream` 必须是布尔值，multipart 的 `stream` 必须是布尔值文本。有歧义的控制字段会在路由前被拒绝，请求钩子的修改也接受同样的校验。文本策略检查 `input`、`instructions`、`prompt`、`negative_prompt` 和 `text` 的每个值，包括重复的 multipart 字段，同时保留 `timestamp_granularities[]` 等重复选项。
 

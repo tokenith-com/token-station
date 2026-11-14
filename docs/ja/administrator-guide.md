@@ -2,7 +2,7 @@
 
 Language: [English](../administrator-guide.md) | [简体中文](../zh-CN/administrator-guide.md) | 日本語
 
-このガイドは、TokenHub を企業 AI ゲートウェイとして運用するプラットフォーム管理者、セキュリティ運用者、インフラ担当者向けです。
+このガイドは、TokenStation を企業 AI ゲートウェイとして運用するプラットフォーム管理者、セキュリティ運用者、インフラ担当者向けです。
 
 ## 管理者の範囲
 
@@ -35,7 +35,7 @@ Language: [English](../administrator-guide.md) | [简体中文](../zh-CN/adminis
 7. Model Playground と Request Logs でフローを検証します。
 8. Key を広く発行する前に利用量配賦を確認します。
 
-Anthropic Provider は既定で `x-api-key` 認証を使用します。Anthropic 互換の上流サービスが `Authorization: Bearer` を要求する場合は、Provider の **詳細** タブを開き、**Provider タイプ**を **Claude / Anthropic** にしたまま、**Anthropic 認証方式**で **Authorization Bearer** を選択します。TokenHub は暗号化して保存された Provider API Key から選択した Header を生成し、認証 Header は 1 種類だけ送信します。カスタム Header に同じ認証情報を重複して設定しないでください。
+Anthropic Provider は既定で `x-api-key` 認証を使用します。Anthropic 互換の上流サービスが `Authorization: Bearer` を要求する場合は、Provider の **詳細** タブを開き、**Provider タイプ**を **Claude / Anthropic** にしたまま、**Anthropic 認証方式**で **Authorization Bearer** を選択します。TokenStation は暗号化して保存された Provider API Key から選択した Header を生成し、認証 Header は 1 種類だけ送信します。カスタム Header に同じ認証情報を重複して設定しないでください。
 
 ## プロバイダー、モデル、ルートの管理
 
@@ -95,13 +95,13 @@ Provider プラグインは manifest でルーティングと認証情報のポ�
 
 リクエストのセッションアフィニティをサポートするプラグインは、`capabilities.gateway` に `session_affinity` を宣言し、`capabilities.provider.session_affinity_kind` を `provider_session` または `codex_session` に設定できます。Responses、Chat、Anthropic、Gemini、Responses Compact ルートが session header や request metadata から粘着的な Provider Resource binding を生成するとき、Core はこのポリシーを使用します。
 
-登録済みのプロセス内バックグラウンドジョブは、バックグラウンドジョブマニフェスト表から手動実行できます。手動実行はスケジュール実行と同じ Core runner を使い、入力 Schema 検証、再試行設定、タイムアウト処理、同時実行制限、最新実行記録、結果のサニタイズ、管理者監査イベントを適用します。TokenHub は実行結果をコンソールへ返す前に、access token、refresh token、API key、パスワード、cookie、秘密鍵などの機密らしいフィールドをマスクします。外部実行を利用できない間、外部コマンドジョブは登録されません。
+登録済みのプロセス内バックグラウンドジョブは、バックグラウンドジョブマニフェスト表から手動実行できます。手動実行はスケジュール実行と同じ Core runner を使い、入力 Schema 検証、再試行設定、タイムアウト処理、同時実行制限、最新実行記録、結果のサニタイズ、管理者監査イベントを適用します。TokenStation は実行結果をコンソールへ返す前に、access token、refresh token、API key、パスワード、cookie、秘密鍵などの機密らしいフィールドをマスクします。外部実行を利用できない間、外部コマンドジョブは登録されません。
 
 ## Model Playground の診断
 
 コンソールの **Model Playground** では、通常のゲートウェイトラフィックと同じルーティングおよび Provider adapter を使ってモデルを検証できます。各 assistant ターンには、配信モード、ゲートウェイ計測の Time to First Token（TTFT）、出力スループット、総所要時間、コンテキスト全体の input tokens、output tokens、推定コスト、ローカル完了時刻、Request ID の要約が残ります。**診断詳細**を開くと、ミリ秒単位の時刻と実レスポンスの詳細を確認できます。明示的にエクスポートしない限り、セッションは現在のブラウザページだけに保持されます。
 
-TokenHub は Playground に統一 SSE イベントを返します。選択した上流がストリーミングに対応する場合、TTFT はゲートウェイがリクエストを受け付けてから最初の content delta まで、出力スループットは最初から最後の content delta までの時間で計測します。上流が buffered response のみに対応する場合は自動的に buffered mode へフォールバックし、TTFT を「該当なし」と表示して、架空の first-token 値ではなく end-to-end の出力スループットを示します。停止時は部分出力を保持して候補を cancelled とし、Provider が返した場合だけ正式な Token 数を表示します。
+TokenStation は Playground に統一 SSE イベントを返します。選択した上流がストリーミングに対応する場合、TTFT はゲートウェイがリクエストを受け付けてから最初の content delta まで、出力スループットは最初から最後の content delta までの時間で計測します。上流が buffered response のみに対応する場合は自動的に buffered mode へフォールバックし、TTFT を「該当なし」と表示して、架空の first-token 値ではなく end-to-end の出力スループットを示します。停止時は部分出力を保持して候補を cancelled とし、Provider が返した場合だけ正式な Token 数を表示します。
 
 assistant ターンを再実行すると、そのターンに新しい候補を作成し、後続ターンを削除します。これにより、新しい分岐が古いコンテキストを暗黙に再利用しません。モデル変更はデフォルトで新しいセッションになり、既存コンテキストを引き継ぐには明示的な選択が必要です。パラメーター UI は選択モデルの `supported_parameters` に従い、モデルカタログで非対応とされた値を送信しません。
 
@@ -111,11 +111,11 @@ Playground の利用を許可されたすべてのユーザーは、性能、利
 
 **セキュリティポリシー > コンテンツセキュリティ**では、すべての Project または選択した Project を対象とするポリシーを作成できます。1 つのポリシーに、キーワードまたは正規表現、機密データ検出、任意の Qwen3Guard モデル検出を組み合わせられます。検出項目はまとめて評価され、最も厳しいアクションが適用されます。優先順位は `block`、`mask`、`audit` の順です。変更は保存後すぐに反映されます。
 
-決定論的な検出器は TokenHub 内で実行されます。設定済みの Qwen3Guard 検出器を呼び出す前に、TokenHub は検出専用のテキストコピーで、ローカルの `mask` ルールがすでに検出した機密値を `[REDACTED]` に置き換えます。これらの生の値はモデルサービスへ送信されません。ローカルのマスクルールに一致しなかったテキストは、引き続き `TOKENHUB_GUARDRAIL_MODEL_URL` で設定したサービスへ送信されます。そのサービスは承認済みのデータ境界内にデプロイし、転送、ログ、保持の管理を確認してください。リモートサービスが保持するコピーは TokenHub では管理できません。URL が空の場合はモデルを呼び出さず、各モデル検出項目に設定された利用不可時の動作を適用します。
+決定論的な検出器は TokenStation 内で実行されます。設定済みの Qwen3Guard 検出器を呼び出す前に、TokenStation は検出専用のテキストコピーで、ローカルの `mask` ルールがすでに検出した機密値を `[REDACTED]` に置き換えます。これらの生の値はモデルサービスへ送信されません。ローカルのマスクルールに一致しなかったテキストは、引き続き `TOKENHUB_GUARDRAIL_MODEL_URL` で設定したサービスへ送信されます。そのサービスは承認済みのデータ境界内にデプロイし、転送、ログ、保持の管理を確認してください。リモートサービスが保持するコピーは TokenStation では管理できません。URL が空の場合はモデルを呼び出さず、各モデル検出項目に設定された利用不可時の動作を適用します。
 
 機密データ検出は、ラベル付きまたは構造検証済みの中国身分証番号、中国本土の携帯電話番号、メールアドレス、銀行カード番号、Credential と秘密鍵、氏名、住所、生年月日などを対象とします。日付の妥当性、身分証のチェックサム、Luhn 検証などにより、一般的な数値の誤検知を抑えます。広く有効化する前に、**ポリシーをテスト**で代表的な陽性例と陰性例を確認してください。
 
-現在のリクエスト側検査は `/v1/chat/completions`、`/v1/responses`、`/v1/responses/compact`、`/v1/messages` を対象とし、Model Playground からのリクエストも含みます。TokenHub は Provider へルーティングする前に、通常のユーザー表示テキストを検査します。このバージョンでは、構造化された tool 引数、JSON payload 内の値、コード固有の解析、Provider レスポンスは検査しません。セキュリティ検査自体には独立したテキストサイズ上限を設けず、設定済みのリクエスト本文サイズ上限は引き続き適用されます。決定論的な検出にはルール複雑度で重み付けした集約作業予算と検出件数予算も適用し、長文、高コストな式、または密集したマスキング一致の病的な組み合わせが CPU やメモリを長時間占有することを防ぎます。上限超過時は HTTP 503 `guardrail_evaluation_budget_exceeded` を返し、通常の長いコンテキストと適度なルール数は引き続き処理できます。
+現在のリクエスト側検査は `/v1/chat/completions`、`/v1/responses`、`/v1/responses/compact`、`/v1/messages` を対象とし、Model Playground からのリクエストも含みます。TokenStation は Provider へルーティングする前に、通常のユーザー表示テキストを検査します。このバージョンでは、構造化された tool 引数、JSON payload 内の値、コード固有の解析、Provider レスポンスは検査しません。セキュリティ検査自体には独立したテキストサイズ上限を設けず、設定済みのリクエスト本文サイズ上限は引き続き適用されます。決定論的な検出にはルール複雑度で重み付けした集約作業予算と検出件数予算も適用し、長文、高コストな式、または密集したマスキング一致の病的な組み合わせが CPU やメモリを長時間占有することを防ぎます。上限超過時は HTTP 503 `guardrail_evaluation_budget_exceeded` を返し、通常の長いコンテキストと適度なルール数は引き続き処理できます。
 
 ポリシーがリクエストをブロックすると、互換 API は HTTP 403 と `guardrail_blocked` を返します。エラー詳細には `categories`、`reason_codes`、`policy_matches` が含まれ、各ポリシー一致からポリシー、検出項目、検出器タイプ、カテゴリ、理由コードを確認できます。監査記録との対応付けにはレスポンスの `request_id` を使用します。一致した原文はエラー詳細に含まれません。Model Playground にも同じポリシーと理由が表示されるため、「Request blocked by a content security policy」だけでなく、再現可能な情報を管理者へ報告できます。
 
@@ -131,7 +131,7 @@ Project 別の帰属テーブルには、参照可能な Project 名を解決で
 
 ## 全体使用量ダッシュボード
 
-**Usage** を開き、上部の **今日**、**7 日**、**30 日**、**すべて**から集計期間を選択します。初期選択は今日です。推定コスト、Token、キャッシュ読み取り、推論 Token、リクエスト数、入力・出力の推移、帰属テーブルはすべて選択した期間に連動します。キャッシュ読み取りは入力 Token に、推論 Token は出力 Token に含まれており、合計には重複加算しません。推定コストは TokenHub の記録済み使用量に基づく値で、プロバイダーアカウントの残高や照合済みの上流請求額ではありません。リクエスト数には失敗も含まれますが、帰属テーブルは使用量レコード数を数えるため、両者が異なる場合があります。Playground のリクエストは集計対象外です。
+**Usage** を開き、上部の **今日**、**7 日**、**30 日**、**すべて**から集計期間を選択します。初期選択は今日です。推定コスト、Token、キャッシュ読み取り、推論 Token、リクエスト数、入力・出力の推移、帰属テーブルはすべて選択した期間に連動します。キャッシュ読み取りは入力 Token に、推論 Token は出力 Token に含まれており、合計には重複加算しません。推定コストは TokenStation の記録済み使用量に基づく値で、プロバイダーアカウントの残高や照合済みの上流請求額ではありません。リクエスト数には失敗も含まれますが、帰属テーブルは使用量レコード数を数えるため、両者が異なる場合があります。Playground のリクエストは集計対象外です。
 
 暦日の境界は **System Settings > Gateway Base Settings > Dashboard Timezone** で決まります。`UTC`、`Asia/Shanghai`、`America/New_York` などの IANA タイムゾーンを指定してください。**今日**はそのタイムゾーンの午前 0 時から、**7 日**と **30 日**は今日および直前の 6 日間または 29 日間、**すべて**は現在の権限範囲で最も古い使用量レコードまたはリクエストログから集計し、最初の使用量レコードより前の失敗したリクエストも含みます。どちらの記録もない場合、レポートに開始時刻は設定されません。いずれも現在時刻までが対象です。今日の推移は時間単位、それ以外は日単位で表示し、全期間の履歴が 90 日を超える場合は月単位で集計します。画面の集計ウィンドウとタイムゾーンで対象範囲を確認できます。
 
@@ -151,13 +151,13 @@ Project 別の帰属テーブルには、参照可能な Project 名を解決で
 
 ## Key 単位の RPM・TPM 制限
 
-各 API Key には、1 分あたりのリクエスト数（RPM）と Token 数（TPM）を任意で設定できます。未設定または `null` は、適用されるグローバル・プロジェクト・チームポリシーを継承します。`0` は Key 固有の上限を追加しませんが、上位レベルの制限を回避することはできません。正の値は Key 固有の上限を追加します。複数の正の制限が適用される場合、TokenHub は最も厳しい値を適用します。Key を無効にすると、制限値にかかわらずすべてのリクエストが拒否されます。
+各 API Key には、1 分あたりのリクエスト数（RPM）と Token 数（TPM）を任意で設定できます。未設定または `null` は、適用されるグローバル・プロジェクト・チームポリシーを継承します。`0` は Key 固有の上限を追加しませんが、上位レベルの制限を回避することはできません。正の値は Key 固有の上限を追加します。複数の正の制限が適用される場合、TokenStation は最も厳しい値を適用します。Key を無効にすると、制限値にかかわらずすべてのリクエストが拒否されます。
 
 RPM は Provider 呼び出し前に消費されます。TPM も同じ時点で、推定入力数と最大出力数から予約されます。最大出力を明示していないテキストリクエストでは、出力 4,096 Token を予約します。リクエスト完了後、Provider が返した総 Token 数で精算し、総数がない場合はプロンプトと補完 Token の合計を使用します。キャッシュ Token と推論 Token はこれらの合計に含まれているため、再加算しません。失敗または中断したリクエストでは、未使用の予約分を返却します。
 
-上限超過時は HTTP 429 と `api_key_rpm_exceeded` または `api_key_tpm_exceeded` を返し、`Retry-After` と、対応する `X-RateLimit-Limit-*`、`X-RateLimit-Remaining-*`、`X-RateLimit-Reset-*` ヘッダーを付与します。分単位バケットはデータベースに保存されます。PostgreSQL は複数の TokenHub インスタンス間で強制状態を共有し、SQLite はサポート対象の単一バックエンド動作を維持します。メトリクスには短いハッシュ化済み Key 参照だけが含まれ、完全な API Key は公開されません。
+上限超過時は HTTP 429 と `api_key_rpm_exceeded` または `api_key_tpm_exceeded` を返し、`Retry-After` と、対応する `X-RateLimit-Limit-*`、`X-RateLimit-Remaining-*`、`X-RateLimit-Reset-*` ヘッダーを付与します。分単位バケットはデータベースに保存されます。PostgreSQL は複数の TokenStation インスタンス間で強制状態を共有し、SQLite はサポート対象の単一バックエンド動作を維持します。メトリクスには短いハッシュ化済み Key 参照だけが含まれ、完全な API Key は公開されません。
 
-高同時実行のデプロイでは `TOKENHUB_BILLING_REDIS_URL` を設定できます。設定すると、TokenHub は書き込み頻度の高い admission 経路を Redis で処理します。対象は API Key とユーザー単位の分単位 RPM/TPM 予約、および API Key とユーザー単位の同時実行リースです。日次・月次カウンター、利用量レコード、リクエストログ、監査履歴、精算の冪等性については、データベースが引き続き永続的な課金台帳です。Redis エンドポイントを設定した場合、起動時に接続できる必要があります。空欄にするとデータベース-backed admission 経路を使用します。Docker Compose デプロイでは `deploy/docker-compose.redis.yml` を追加して、同じ Compose プロジェクトで任意の Redis コンポーネントを実行できます。
+高同時実行のデプロイでは `TOKENHUB_BILLING_REDIS_URL` を設定できます。設定すると、TokenStation は書き込み頻度の高い admission 経路を Redis で処理します。対象は API Key とユーザー単位の分単位 RPM/TPM 予約、および API Key とユーザー単位の同時実行リースです。日次・月次カウンター、利用量レコード、リクエストログ、監査履歴、精算の冪等性については、データベースが引き続き永続的な課金台帳です。Redis エンドポイントを設定した場合、起動時に接続できる必要があります。空欄にするとデータベース-backed admission 経路を使用します。Docker Compose デプロイでは `deploy/docker-compose.redis.yml` を追加して、同じ Compose プロジェクトで任意の Redis コンポーネントを実行できます。
 
 ## ユーザー集約クォータ
 
@@ -169,7 +169,7 @@ RPM は Provider 呼び出し前に消費されます。TPM も同じ時点で�
 
 データベーススキーマの移行は不要です。旧バージョンは `all_users` テンプレートを適用しないため、ロールバック前に、引き続き制限が必要なユーザーへ同等の個別ユーザーポリシーを作成してください。
 
-TokenHub は利用量集計と同じ順序で帰属ユーザーを解決します。最初に API Key の `owner_user_id`、次に旧 Key メタデータの `created_by`、最後に Project の `owner_user_id` を使用します。同じユーザーに帰属するすべての Key は、別 Project の Key も含めて同じユーザーバケットを消費します。バケットは Key ではなくユーザーに属するため、Key のローテーション、失効、削除、置換でカウンターはリセットされません。
+TokenStation は利用量集計と同じ順序で帰属ユーザーを解決します。最初に API Key の `owner_user_id`、次に旧 Key メタデータの `created_by`、最後に Project の `owner_user_id` を使用します。同じユーザーに帰属するすべての Key は、別 Project の Key も含めて同じユーザーバケットを消費します。バケットは Key ではなくユーザーに属するため、Key のローテーション、失効、削除、置換でカウンターはリセットされません。
 
 ユーザー上限は、適用される API Key、Project、Team、グローバル上限と同時に強制されます。正の上限には既存の最厳値ルールが適用されますが、ユーザーカウンターは Key ごとの個別枠ではなく集約されたままです。ユーザー最大同時実行 Lease は、有効な Key スコープの同時実行 Lease と同時に保持されるため、どちらの制約ももう一方を回避できません。
 
@@ -183,11 +183,11 @@ OpenAI-compatible アダプターでセルフホストのサービスに接続�
 
 ## Provider カタログの可用性
 
-TokenHub は、最後に正常に読み込んだ Provider カタログをデータベースに保存します。バックエンドの起動時には毎回、設定済みのローカル `provider-catalog.json` を検証して読み込み、データベースのスナップショットをアトミックに置き換えます。通常の **Provider Channels** リクエストはデータベースのスナップショットだけを読み取ります。管理者が明示的に更新すると、最新の `PublicProviderConf` カタログをダウンロードして同じ完全性検証を行い、検証に成功した場合だけスナップショットをアトミックに置き換えます。上流リクエストまたは検証に失敗した場合は、設定済みのローカルカタログへフォールバックします。ローカルへのフォールバックにも失敗した場合、更新リクエストはエラーを返し、最後に有効だったスナップショットを引き続き使用します。更新レスポンスでは、実際に採用したソースを `upstream-provider-catalog` または `local-provider-catalog` として示します。
+TokenStation は、最後に正常に読み込んだ Provider カタログをデータベースに保存します。バックエンドの起動時には毎回、設定済みのローカル `provider-catalog.json` を検証して読み込み、データベースのスナップショットをアトミックに置き換えます。通常の **Provider Channels** リクエストはデータベースのスナップショットだけを読み取ります。管理者が明示的に更新すると、最新の `PublicProviderConf` カタログをダウンロードして同じ完全性検証を行い、検証に成功した場合だけスナップショットをアトミックに置き換えます。上流リクエストまたは検証に失敗した場合は、設定済みのローカルカタログへフォールバックします。ローカルへのフォールバックにも失敗した場合、更新リクエストはエラーを返し、最後に有効だったスナップショットを引き続き使用します。更新レスポンスでは、実際に採用したソースを `upstream-provider-catalog` または `local-provider-catalog` として示します。
 
 ## Codex OAuth Token の更新
 
-保存済みの refresh token を持つ有効な OpenAI Codex Subscription アカウントでは、TokenHub はバックエンド起動時に一度、その後は毎分認証情報を確認します。Access Token の有効期限が五分以内の場合にだけ更新します。データベースの認証情報 Lease により、クラスタ構成でも同じアカウントを更新するインスタンスは一つだけです。**Provider Channels > Advanced > Subscription quota** の **Token を更新** では、管理者が一つのアカウントを手動更新できます。手動更新は復旧用途にとどめ、繰り返しクリックしないでください。上流は更新レスポンスで refresh token をローテーションする場合がありますが、TokenHub は返却された新しい値を自動保存します。OpenAI が無効化された refresh token を返した場合、TokenHub はアカウントを再認可が必要な状態にし、定期更新を停止して、管理者に再認可の案内を表示します。
+保存済みの refresh token を持つ有効な OpenAI Codex Subscription アカウントでは、TokenStation はバックエンド起動時に一度、その後は毎分認証情報を確認します。Access Token の有効期限が五分以内の場合にだけ更新します。データベースの認証情報 Lease により、クラスタ構成でも同じアカウントを更新するインスタンスは一つだけです。**Provider Channels > Advanced > Subscription quota** の **Token を更新** では、管理者が一つのアカウントを手動更新できます。手動更新は復旧用途にとどめ、繰り返しクリックしないでください。上流は更新レスポンスで refresh token をローテーションする場合がありますが、TokenStation は返却された新しい値を自動保存します。OpenAI が無効化された refresh token を返した場合、TokenStation はアカウントを再認可が必要な状態にし、定期更新を停止して、管理者に再認可の案内を表示します。
 
 ### Kronk ローカル推論
 
@@ -195,11 +195,11 @@ TokenHub は、最後に正常に読み込んだ Provider カタログをデー�
 
 モデル選択画面は `GET /v1/models` から現在のインベントリを検出し、`/`、`:`、量子化サフィックスを含む Kronk モデル ID 全体を保持します。選択したインベントリを取り込んだ後、**Model Directory** で外部標準モデル名を作成し、**Routing Policies** で Kronk モデル ID にマッピングします。繰り返し取り込んでも冪等です。後続の検出が成功すると、Kronk から削除されたモデルはインベントリやルートを削除せず利用不可としてマークされます。検出に失敗した場合、既存設定は変更されません。
 
-Kronk ルートは SSE ストリーミングを含む OpenAI 互換 Chat Completions、Responses、Embeddings をサポートします。TokenHub は引き続きクライアント認証、Project 分離、クォータ、監査、ルーティング、フェイルオーバーを適用します。呼び出し元の `Authorization` ヘッダーを Kronk へ転送せず、保存済み Kronk token を管理レスポンス、監査ペイロード、ログ、上流エラーレスポンスへ公開しません。
+Kronk ルートは SSE ストリーミングを含む OpenAI 互換 Chat Completions、Responses、Embeddings をサポートします。TokenStation は引き続きクライアント認証、Project 分離、クォータ、監査、ルーティング、フェイルオーバーを適用します。呼び出し元の `Authorization` ヘッダーを Kronk へ転送せず、保存済み Kronk token を管理レスポンス、監査ペイロード、ログ、上流エラーレスポンスへ公開しません。
 
 ### Dify アプリケーション
 
-タイプ `dify` の Provider を作成すると、Dify アプリケーションを 1 件、chat-completion モデルとして公開できます。Base URL には Dify インスタンスのルートを指定します（末尾の `/v1` は正規化されます）。API key には対象アプリの「API アクセス」ページにある Service API key を指定します。1 つの Provider が 1 つの Dify アプリに正確に対応し、Provider へルーティングされるモデル名は TokenHub ローカルの名前です。通常どおり **Model Directory** で外部モデルを作成し、**Routing Policies** でマッピングしてください。この Provider は管理 API で `"type": "dify"` を指定して作成し、アプリのインベントリをカスタムモデルとして取り込みます。接続テストはモデル一覧ではなく `GET /v1/parameters` でアプリキーを検証します。
+タイプ `dify` の Provider を作成すると、Dify アプリケーションを 1 件、chat-completion モデルとして公開できます。Base URL には Dify インスタンスのルートを指定します（末尾の `/v1` は正規化されます）。API key には対象アプリの「API アクセス」ページにある Service API key を指定します。1 つの Provider が 1 つの Dify アプリに正確に対応し、Provider へルーティングされるモデル名は TokenStation ローカルの名前です。通常どおり **Model Directory** で外部モデルを作成し、**Routing Policies** でマッピングしてください。この Provider は管理 API で `"type": "dify"` を指定して作成し、アプリのインベントリをカスタムモデルとして取り込みます。接続テストはモデル一覧ではなく `GET /v1/parameters` でアプリキーを検証します。
 
 Provider オプションでアプリのプロトコルを制御します:
 
@@ -209,11 +209,11 @@ Provider オプションでアプリのプロトコルを制御します:
 | `dify_input_variable` | 平文化した会話全体を受け取る Workflow 入力変数名。既定は `query` |
 | `dify_output_variable` | 回答を保持する Workflow 出力変数名。既定は `answer` で、見つからない場合は `text`、`result`、`output`、唯一の文字列出力の順にフォールバック |
 
-ゲートウェイは Dify に対してステートレスです。各リクエストは新しい Dify 会話を開始し、OpenAI のメッセージ一覧全体が呼び出しに平文化されて含まれるため、Dify 側の会話メモリは使用されません。Chat 系アプリは Dify の `metadata.usage` から prompt、completion、total の使用量を完全に報告します。Workflow 実行は `total_tokens` の実行合計のみを報告し、TokenHub は入出力の分割を捏造せずそのまま記録します。そのためワークフロー前提モデルのコンポーネント単位の原価計算は、そのモデルの価格設定に依存します。
+ゲートウェイは Dify に対してステートレスです。各リクエストは新しい Dify 会話を開始し、OpenAI のメッセージ一覧全体が呼び出しに平文化されて含まれるため、Dify 側の会話メモリは使用されません。Chat 系アプリは Dify の `metadata.usage` から prompt、completion、total の使用量を完全に報告します。Workflow 実行は `total_tokens` の実行合計のみを報告し、TokenStation は入出力の分割を捏造せずそのまま記録します。そのためワークフロー前提モデルのコンポーネント単位の原価計算は、そのモデルの価格設定に依存します。
 
 ストリーミングでは Dify の SSE イベントを OpenAI チャンクへマッピングします。chat アプリは `message` と `message_end`（Agent アプリの可視回答は代わりに `agent_message` で配信されます）、workflow アプリは `text_chunk` と `workflow_finished` です。終端イベントなしに閉じた Dify ストリームは完了ではなく打ち切りとして扱われます。Dify Provider がサポートするのは chat とストリーミング chat のみで、Responses と embeddings は `501 provider_capability_not_supported` を返します。
 
-逆方向で Dify アプリから TokenHub 経由でモデルを呼び出すには、Dify 側で TokenHub の `/v1` エンドポイントと TokenHub API key を指す `OpenAI-API-compatible` モデルプロバイダーを追加するだけでよく、TokenHub 側の設定は不要です。
+逆方向で Dify アプリから TokenStation 経由でモデルを呼び出すには、Dify 側で TokenStation の `/v1` エンドポイントと TokenStation API key を指す `OpenAI-API-compatible` モデルプロバイダーを追加するだけでよく、TokenStation 側の設定は不要です。
 
 ## システムプロンプト変換の処理
 
@@ -221,7 +221,7 @@ Claude Code は、Anthropic Messages リクエストの `system` 配列の先頭
 
 各 Provider には `system_prompt_transform_policy` を設定できます。Provider プラグインは `system_prompt_transform_default` provider policy capability で既定ポリシーを宣言します。新しいサードパーティー Provider は、プラグインが別の既定値を宣言しない限り、上流のプロンプト接頭辞キャッシュを再利用しやすくするため `strip` を既定値にします。既存 Provider でこの設定がない場合は、引き続き帰属ブロックを保持します。従来の `claude_code_attribution_policy` option と `claude_code_attribution_default` capability は、アップグレード互換の別名として引き続き受け付けます。`strip` は、最初のトップレベル `system` 要素の `type` が `"text"` で、テキストが `x-anthropic-billing-header:` から厳密に始まる場合に限り、その要素を削除します。文字列形式の `system` プロンプト、後続要素、先頭に空白があるテキスト、その他の要素型は削除しません。
 
-Provider Resource は既定で Provider ポリシーを継承し、`options.system_prompt_transform_policy` を `preserve` または `strip` に設定して上書きできます。この Resource オプションを省略すると継承に戻ります。TokenHub はルート試行ごとに有効なポリシーを適用するため、フェイルオーバー先の Resource は元のリクエストを受け取り、独自の設定を適用します。監査ペイロードにも元のリクエストを保持します。`POST /v1/messages/count_tokens` は具体的な Provider Resource を選択しないため、引き続き元のリクエストをカウントします。
+Provider Resource は既定で Provider ポリシーを継承し、`options.system_prompt_transform_policy` を `preserve` または `strip` に設定して上書きできます。この Resource オプションを省略すると継承に戻ります。TokenStation はルート試行ごとに有効なポリシーを適用するため、フェイルオーバー先の Resource は元のリクエストを受け取り、独自の設定を適用します。監査ペイロードにも元のリクエストを保持します。`POST /v1/messages/count_tokens` は具体的な Provider Resource を選択しないため、引き続き元のリクエストをカウントします。
 
 ## Codex フィンガープリント集約
 
@@ -237,7 +237,7 @@ OpenAI Codex Subscription Resource では、Responses または Compact リク�
 
 ## Provider インベントリ、モデルディレクトリ、公開
 
-TokenHub はモデルのライフサイクルを 3 つの管理領域に分離します。
+TokenStation はモデルのライフサイクルを 3 つの管理領域に分離します。
 
 | 管理領域 | 意味 |
 | --- | --- |
@@ -266,13 +266,13 @@ Provider Channels、Model Directory、Routing Policies に設定データがな�
 
 ## カスタム上流リクエストヘッダー
 
-「Provider Channels」で、Provider の接続設定または Provider Resource の詳細設定に固定カスタムリクエストヘッダーを追加できます。Provider ヘッダーが既定値となり、Resource に同名（大文字小文字を区別しない）のヘッダーがある場合、その実際のルーティング試行では Resource の値が上書きします。アカウントリソースをフェイルオーバーするたびに、TokenHub は選択した Resource ごとの有効ヘッダーを再計算します。たとえば Provider に `User-Agent: TokenHub-Custom-Client/1.0` を設定し、各 Resource で `X-Tenant` を上書きできます。
+「Provider Channels」で、Provider の接続設定または Provider Resource の詳細設定に固定カスタムリクエストヘッダーを追加できます。Provider ヘッダーが既定値となり、Resource に同名（大文字小文字を区別しない）のヘッダーがある場合、その実際のルーティング試行では Resource の値が上書きします。アカウントリソースをフェイルオーバーするたびに、TokenStation は選択した Resource ごとの有効ヘッダーを再計算します。たとえば Provider に `User-Agent: TokenStation-Custom-Client/1.0` を設定し、各 Resource で `X-Tenant` を上書きできます。
 
 有効ヘッダーは、接続テスト、カスタムモデル検出、OpenAI 互換の Chat Completions、Responses、Embeddings、Images（ストリーミングと画像編集を含む）、ネイティブ Anthropic Messages、Gemini の各リクエストへ一貫して適用されます。Azure OpenAI と OpenAI Codex のアダプターはプロトコル ID を自身で管理するため、カスタムヘッダーには対応しません。
 
-認証情報やテナント Token は機密値として指定してください。TokenHub は機密値を暗号化して保存し、管理レスポンスとプレビューではマスクし、監査スナップショットからすべてのヘッダー値を除外します。保存済みの機密行を編集するときは、マスク値を変更しないか空欄にすると秘密値を保持し、行を削除した場合だけ消去します。非機密値は引き続き管理者に表示されます。
+認証情報やテナント Token は機密値として指定してください。TokenStation は機密値を暗号化して保存し、管理レスポンスとプレビューではマスクし、監査スナップショットからすべてのヘッダー値を除外します。保存済みの機密行を編集するときは、マスク値を変更しないか空欄にすると秘密値を保持し、行を削除した場合だけ消去します。非機密値は引き続き管理者に表示されます。
 
-TokenHub は、認証ヘッダー、API Key と Cookie の認証情報ヘッダー、転送元 ID ヘッダー、`Content-Type`、`Content-Length`、`Host`、`Anthropic-Version`、`Anthropic-Beta`、`OpenAI-Organization`、`OpenAI-Project` などプロトコル管理のヘッダー、および hop-by-hop・転送ヘッダーを拒否します。ヘッダー名は有効で、大文字小文字を区別せず一意である必要があります。値は空にできず、HTTP transport が拒否する制御文字を含められません。最終的にマージされた設定は最大 32 ヘッダー、名前は 128 バイトまで、値は 1 件 4 KiB まで、合計 16 KiB までです。規則に違反する旧データは `header_validation_errors` で通知され、修正するまで上流リクエストへ適用されません。
+TokenStation は、認証ヘッダー、API Key と Cookie の認証情報ヘッダー、転送元 ID ヘッダー、`Content-Type`、`Content-Length`、`Host`、`Anthropic-Version`、`Anthropic-Beta`、`OpenAI-Organization`、`OpenAI-Project` などプロトコル管理のヘッダー、および hop-by-hop・転送ヘッダーを拒否します。ヘッダー名は有効で、大文字小文字を区別せず一意である必要があります。値は空にできず、HTTP transport が拒否する制御文字を含められません。最終的にマージされた設定は最大 32 ヘッダー、名前は 128 バイトまで、値は 1 件 4 KiB まで、合計 16 KiB までです。規則に違反する旧データは `header_validation_errors` で通知され、修正するまで上流リクエストへ適用されません。
 
 ## モデルルーティングポリシー
 
@@ -309,7 +309,7 @@ GPT-6 Sol／Luna 系のカタログにはこの設定が含まれますが、既
 
 ### スコープルーティングポリシー
 
-「スコープポリシー」で、Global ゲートウェイ、Project、API Key に個別のルーティングポリシーをバインドできます。TokenHub は API Key、Project、Global の順に解決し、1 つの有効ポリシーだけを選びます。上位のバインドが見つかった時点で解決は終了し、そのポリシーが無効、競合、または適格候補なしでも下位スコープへフォールバックせず、フェイルクローズします。各スコープ対象にバインドできるポリシーは 1 つです。未バインドの定義はトラフィックに影響させず事前に準備できます。
+「スコープポリシー」で、Global ゲートウェイ、Project、API Key に個別のルーティングポリシーをバインドできます。TokenStation は API Key、Project、Global の順に解決し、1 つの有効ポリシーだけを選びます。上位のバインドが見つかった時点で解決は終了し、そのポリシーが無効、競合、または適格候補なしでも下位スコープへフォールバックせず、フェイルクローズします。各スコープ対象にバインドできるポリシーは 1 つです。未バインドの定義はトラフィックに影響させず事前に準備できます。
 
 モデルアクセスはルーティングより先に評価されます。Project と API Key はそれぞれ `inherit` と `restricted` のモードを持ちます。制限リストはすべての上位リストとの共通部分になるため、API Key は Project アクセスを拡張できません。`restricted` で空リストの場合は全モデルを拒否します。互換性のため、アクセスモード導入前に作成され、モードとリストの両方が空のレコードは引き続き継承として扱われます。`GET /v1/models` も同じ有効アクセス範囲を使用し、有効なルーティングポリシーが許可するルートを必要とします。
 
@@ -353,7 +353,7 @@ GPT-6 Sol／Luna 系のカタログにはこの設定が含まれますが、既
 | その他の `5xx` | `502` | `provider_upstream_error` | はい | はい |
 | その他の `4xx` | `502` | `provider_error` | いいえ | いいえ |
 
-上流の `401` / `403` はそのまま転送しません。これはゲートウェイ自身がその Provider 向けに設定した認証情報が拒否されたという意味であり、呼び出し側が `401` を見ると自分の TokenHub API Key が失効したと誤解します。同じ理由で、この 2 つでは上流のレスポンスボディも返しません。Provider が拒否した鍵をその中に含めることがあるためです。元のステータスは各ルート試行の `upstream_status` に記録され、運用者が確認できます。
+上流の `401` / `403` はそのまま転送しません。これはゲートウェイ自身がその Provider 向けに設定した認証情報が拒否されたという意味であり、呼び出し側が `401` を見ると自分の TokenStation API Key が失効したと誤解します。同じ理由で、この 2 つでは上流のレスポンスボディも返しません。Provider が拒否した鍵をその中に含めることがあるためです。元のステータスは各ルート試行の `upstream_status` に記録され、運用者が確認できます。
 
 各ルート試行は両方を記録します。`status_code` は呼び出し側に返したステータス、`upstream_status` は Provider が実際に返したステータスです。
 
@@ -363,7 +363,7 @@ GPT-6 Sol／Luna 系のカタログにはこの設定が含まれますが、既
 
 ## メトリクス
 
-TokenHub は `GET /metrics` で Prometheus メトリクスを公開できます。既定では無効で、有効にするには `TOKENHUB_METRICS_ENABLED=true` を設定してください。無効の間は何も収集されず、エンドポイントは 404 を返します。このエンドポイントは常に認証を要求します。メトリクスにはモデル名、Provider とリソースの識別子、コストが含まれるため、匿名アクセスは許可されません。`Authorization: Bearer <token>` を送信してください。トークンは `TOKENHUB_METRICS_TOKEN` を使用し、未設定の場合は管理者トークンにフォールバックします。Prometheus のスクレイプ設定に管理者資格情報を置かずに済むよう、専用トークンの設定を推奨します。クエリ文字列でのトークン指定はアクセスログに残るため拒否されます。
+TokenStation は `GET /metrics` で Prometheus メトリクスを公開できます。既定では無効で、有効にするには `TOKENHUB_METRICS_ENABLED=true` を設定してください。無効の間は何も収集されず、エンドポイントは 404 を返します。このエンドポイントは常に認証を要求します。メトリクスにはモデル名、Provider とリソースの識別子、コストが含まれるため、匿名アクセスは許可されません。`Authorization: Bearer <token>` を送信してください。トークンは `TOKENHUB_METRICS_TOKEN` を使用し、未設定の場合は管理者トークンにフォールバックします。Prometheus のスクレイプ設定に管理者資格情報を置かずに済むよう、専用トークンの設定を推奨します。クエリ文字列でのトークン指定はアクセスログに残るため拒否されます。
 
 | メトリクス | 種別 | 意味 |
 | --- | --- | --- |
@@ -412,7 +412,7 @@ histogram_quantile(
 
 ## トレースのエクスポート
 
-TokenHub はゲートウェイ呼び出しごとに 1 本の OpenTelemetry トレースを OTLP/HTTP でエクスポートできます。各トレースはリクエストを表すルート span と、呼び出し処理に入った候補ごとの generation span で構成されます。そのためフェイルオーバーが起きた場合は両方の候補が、それぞれが消費した Token とコストとともに表示されます。容量を確保できずスキップされた候補は Provider に到達していないため、ルート span 上の event として記録します。メトリクスは遅延が増えたことしか伝えませんが、トレースはどのアカウントが処理し、いくらかかったのかを示します。既定では無効です。運用データを別のシステムへ送信するためです。
+TokenStation はゲートウェイ呼び出しごとに 1 本の OpenTelemetry トレースを OTLP/HTTP でエクスポートできます。各トレースはリクエストを表すルート span と、呼び出し処理に入った候補ごとの generation span で構成されます。そのためフェイルオーバーが起きた場合は両方の候補が、それぞれが消費した Token とコストとともに表示されます。容量を確保できずスキップされた候補は Provider に到達していないため、ルート span 上の event として記録します。メトリクスは遅延が増えたことしか伝えませんが、トレースはどのアカウントが処理し、いくらかかったのかを示します。既定では無効です。運用データを別のシステムへ送信するためです。
 
 `TOKENHUB_TRACING_ENDPOINT` にはシグナル固有の OTLP traces URL を、パスまで含めて設定します。値はそのまま使用され、パスは一切追加されません。推測したパス接尾辞は起動エラーではなく静かな 404 として失敗するためです。パスのない URL や、query・fragment・userinfo を含む URL は、意図しない宛先へ静かに送信されるのではなく起動時に拒否されます。OTLP/HTTP に対応する任意のバックエンドを利用できます。ゲートウェイは gRPC ではなく OTLP over HTTP を直接話すため、**OpenTelemetry Collector は不要です**。
 
@@ -424,11 +424,11 @@ TOKENHUB_TRACING_ENDPOINT=https://cloud.langfuse.com/api/public/otel/v1/traces
 TOKENHUB_TRACING_HEADERS="Authorization=Basic $(printf '%s' 'pk-lf-...:sk-lf-...' | base64),x-langfuse-ingestion-version=4"
 ```
 
-属性のマッピングは Langfuse v4 のインジェストモデルを対象としています。v4 はセルフホスト環境で一般提供されており、2026-04-14 以降に作成された Langfuse Cloud 組織の既定バージョンです。Langfuse v4 のセルフホストには、PostgreSQL・Redis・オブジェクトストレージに加えて ClickHouse 25.12 以降が必要です。TokenHub は Langfuse を自身の Compose ファイルに同梱しません。Langfuse は独自の更新サイクルを持つもう 1 つのステートフルなスタックであり、両者を結合すると Langfuse の移行がゲートウェイの停止に直結するためです。
+属性のマッピングは Langfuse v4 のインジェストモデルを対象としています。v4 はセルフホスト環境で一般提供されており、2026-04-14 以降に作成された Langfuse Cloud 組織の既定バージョンです。Langfuse v4 のセルフホストには、PostgreSQL・Redis・オブジェクトストレージに加えて ClickHouse 25.12 以降が必要です。TokenStation は Langfuse を自身の Compose ファイルに同梱しません。Langfuse は独自の更新サイクルを持つもう 1 つのステートフルなスタックであり、両者を結合すると Langfuse の移行がゲートウェイの停止に直結するためです。
 
 プロンプトとレスポンスをエクスポートするかどうかは、トレースを有効にするかどうかとは別の判断であり、`TOKENHUB_TRACING_CAPTURE_PAYLOADS` は既定で無効です。無効でもトレースにはステータス、レイテンシ、各試行を処理した Provider とリソース、Token、コスト、トランスポート、上流リクエスト ID が含まれます。有効にすると、リクエストとレスポンスの本文は保存済みペイロードログと同じマスキングと切り詰めを経て送信されます。上流のエラー本文も同じ理由でペイロードとして扱います。上流エラーにはレスポンス本文・URL・アカウント識別子が含まれ得るためです。
 
-使用量とコストは generation span にのみ付与し、ルート span には決して付与しません。Langfuse v4 は observation 単位で集計するため、ルートにも重複して持たせるとプロジェクト合計で Token もコストも二重計上されます。Token 数はエクスポート時に互いに排他的なバケットへ書き換えられます。TokenHub の入力・出力の合計には各明細カテゴリ（入力側はキャッシュ読み取り・キャッシュ書き込み・音声、出力側は推論・音声・予測）がすでに含まれている一方、Langfuse は受け取ったバケットをそのまま合計するため、各明細を合計から差し引き、残量を上限として割り当てます。エクスポートするコストは請求額のみです。Provider 自身のコストは送信しません。TokenHub が意図的に特権リクエスト監査の中に限定しているためです。
+使用量とコストは generation span にのみ付与し、ルート span には決して付与しません。Langfuse v4 は observation 単位で集計するため、ルートにも重複して持たせるとプロジェクト合計で Token もコストも二重計上されます。Token 数はエクスポート時に互いに排他的なバケットへ書き換えられます。TokenStation の入力・出力の合計には各明細カテゴリ（入力側はキャッシュ読み取り・キャッシュ書き込み・音声、出力側は推論・音声・予測）がすでに含まれている一方、Langfuse は受け取ったバケットをそのまま合計するため、各明細を合計から差し引き、残量を上限として割り当てます。エクスポートするコストは請求額のみです。Provider 自身のコストは送信しません。TokenStation が意図的に特権リクエスト監査の中に限定しているためです。
 
 ![Langfuse に表示されたフェイルオーバーのトレース: ルートのリクエスト span、到達不能なアカウントへの 2 回の失敗、そして実際に処理し独自の Token 数とコストを持つ generation](../assets/screenshots/tracing-langfuse-trace-en.png)
 
@@ -440,7 +440,7 @@ TOKENHUB_TRACING_HEADERS="Authorization=Basic $(printf '%s' 'pk-lf-...:sk-lf-...
 
 ## Prompt Cache の料金
 
-モデルカタログでは、100 万 Token あたりのキャッシュ読み取り単価とキャッシュ書き込み単価を任意で設定できます。キャッシュ書き込み価格が未設定の場合、TokenHub は従来の推定と互換にするため通常の入力価格で cache-write tokens を請求します。Provider がキャッシュ作成時間を区別する場合は、`cache_write_5m_price_usd_per_1m` と `cache_write_1h_price_usd_per_1m` も使用できます。残りの cache-write tokens には汎用キャッシュ書き込み価格を使います。キャッシュ読み取り価格が空欄の場合、DeepSeek V4 Pro は標準入力単価の約 0.83%、その他の DeepSeek モデルは 2%、残りの Embedding 以外のモデルは 10% で推定します。モデル料金表では推定値を示し、ホバー時に適用した比率を説明します。
+モデルカタログでは、100 万 Token あたりのキャッシュ読み取り単価とキャッシュ書き込み単価を任意で設定できます。キャッシュ書き込み価格が未設定の場合、TokenStation は従来の推定と互換にするため通常の入力価格で cache-write tokens を請求します。Provider がキャッシュ作成時間を区別する場合は、`cache_write_5m_price_usd_per_1m` と `cache_write_1h_price_usd_per_1m` も使用できます。残りの cache-write tokens には汎用キャッシュ書き込み価格を使います。キャッシュ読み取り価格が空欄の場合、DeepSeek V4 Pro は標準入力単価の約 0.83%、その他の DeepSeek モデルは 2%、残りの Embedding 以外のモデルは 10% で推定します。モデル料金表では推定値を示し、ホバー時に適用した比率を説明します。
 
 使用量レコードは合計の `estimated_cost_usd` に加えて、`input_cost_usd`、`cache_read_cost_usd`、`cache_write_cost_usd`、`output_cost_usd` を公開します。これにより、Provider usage から最終請求額がどのように組み立てられたかをレポートで監査できます。
 
@@ -452,9 +452,9 @@ TOKENHUB_TRACING_HEADERS="Authorization=Basic $(printf '%s' 'pk-lf-...:sk-lf-...
 
 ## 外部請求コネクター
 
-プラットフォーム管理者は「コスト請求」で外部請求ソースを管理できます。TokenHub は Aliyun `QueryInstanceBill`、NewAPI の Quota データ、OneAPI 互換ログソースをサポートします。コネクターは接続テスト、即時同期、分単位の定期同期、履歴を保持したままの無効化、再有効化が可能です。対応する TokenHub Provider ID を設定し、請求が 1 つのアカウントに対応する場合は TokenHub リソースアカウント ID も任意で設定します。照合ではこの永続化されたスコープを使用し、別の Provider やアカウントの使用量が混入するのを防ぎます。
+プラットフォーム管理者は「コスト請求」で外部請求ソースを管理できます。TokenStation は Aliyun `QueryInstanceBill`、NewAPI の Quota データ、OneAPI 互換ログソースをサポートします。コネクターは接続テスト、即時同期、分単位の定期同期、履歴を保持したままの無効化、再有効化が可能です。対応する TokenStation Provider ID を設定し、請求が 1 つのアカウントに対応する場合は TokenStation リソースアカウント ID も任意で設定します。照合ではこの永続化されたスコープを使用し、別の Provider やアカウントの使用量が混入するのを防ぎます。
 
-Aliyun では請求 RPC Base URL、AccessKey ID、AccessKey Secret、ソースタイムゾーン、任意の Product Code を設定します。TokenHub は各 RPC リクエストを HMAC-SHA1 で署名し、請求期間を月単位で進めます。NewAPI では Base URL、アクセストークン、`New-Api-User` ユーザー ID、通貨、1 通貨単位に相当する Quota を設定します。TokenHub は公式仕様の認証ヘッダーで `GET /api/data/self` を呼び出し、同期範囲を最大 30 日のウィンドウに自動分割します。OneAPI 互換ソースでは Base URL、API Token、ログパス、通貨、Quota 換算値を設定します。すべてのコネクターで 1 秒あたりのリクエスト上限を設定でき、一時的なネットワークエラー、`429`、`5xx` は上限付き指数バックオフで再試行します。
+Aliyun では請求 RPC Base URL、AccessKey ID、AccessKey Secret、ソースタイムゾーン、任意の Product Code を設定します。TokenStation は各 RPC リクエストを HMAC-SHA1 で署名し、請求期間を月単位で進めます。NewAPI では Base URL、アクセストークン、`New-Api-User` ユーザー ID、通貨、1 通貨単位に相当する Quota を設定します。TokenStation は公式仕様の認証ヘッダーで `GET /api/data/self` を呼び出し、同期範囲を最大 30 日のウィンドウに自動分割します。OneAPI 互換ソースでは Base URL、API Token、ログパス、通貨、Quota 換算値を設定します。すべてのコネクターで 1 秒あたりのリクエスト上限を設定でき、一時的なネットワークエラー、`429`、`5xx` は上限付き指数バックオフで再試行します。
 
 手動同期では RFC 3339 の `from` と `to` を指定できます。範囲を省略すると、最後に成功した終了時刻から続行します。各ページの Cursor を保存するため、再試行は同じ範囲のチェックポイントから再開します。正規化レコードは `(connector_id, external_id)` を冪等キーとし、通貨、ソースタイムゾーン、税、割引、返金、請求期間、利用開始・終了時刻を保持します。最近の同期にはページ数、リクエスト試行数、追加・更新件数、サニタイズ済みの失敗コードが表示されます。
 
@@ -462,9 +462,9 @@ Aliyun では請求 RPC Base URL、AccessKey ID、AccessKey Secret、ソース�
 
 ## コスト照合
 
-プラットフォーム管理者は「コスト請求 → コスト照合ルール」で、同期済みの Provider 請求と TokenHub の使用量を比較できます。ルールでは、1 つの請求コネクター、明細/時間/日/月の粒度、照合ディメンション、IANA タイムゾーン、1 つの ISO 通貨、金額と比率の許容差、明細時間ウィンドウ、請求遅延ウィンドウ、任意のスケジュールを指定します。通貨は常に照合ディメンションであるため、通貨ごとに別のルールが必要です。TokenHub の使用量コストは USD で保存されるため、各ルールに固定の「1 USD = 対象通貨」レートを記録し、USD ルールでは `1` が必須です。任意の Provider 側マッピングで、外部の Provider、リソースアカウント、モデル、プロジェクト値を TokenHub 識別子に正規化できます。明細ルールには `request_id` が必須で、集計ルールは Provider、リソースアカウント、モデル、プロジェクト、通貨でグループ化できます。NewAPI の請求データにはリクエスト単位の識別子がないため、NewAPI コネクターは時間、日、月のルールのみをサポートし、明細ルールはサポートしません。手動入力した請求期間の時刻は、API に送信する前にルールの IANA タイムゾーンとして解釈されます。
+プラットフォーム管理者は「コスト請求 → コスト照合ルール」で、同期済みの Provider 請求と TokenStation の使用量を比較できます。ルールでは、1 つの請求コネクター、明細/時間/日/月の粒度、照合ディメンション、IANA タイムゾーン、1 つの ISO 通貨、金額と比率の許容差、明細時間ウィンドウ、請求遅延ウィンドウ、任意のスケジュールを指定します。通貨は常に照合ディメンションであるため、通貨ごとに別のルールが必要です。TokenStation の使用量コストは USD で保存されるため、各ルールに固定の「1 USD = 対象通貨」レートを記録し、USD ルールでは `1` が必須です。任意の Provider 側マッピングで、外部の Provider、リソースアカウント、モデル、プロジェクト値を TokenStation 識別子に正規化できます。明細ルールには `request_id` が必須で、集計ルールは Provider、リソースアカウント、モデル、プロジェクト、通貨でグループ化できます。NewAPI の請求データにはリクエスト単位の識別子がないため、NewAPI コネクターは時間、日、月のルールのみをサポートし、明細ルールはサポートしません。手動入力した請求期間の時刻は、API に送信する前にルールの IANA タイムゾーンとして解釈されます。
 
-選択した請求期間でルールを実行すると、一致、Provider のみ、TokenHub のみ、金額不一致の 4 種類の件数、両側の合計、差異、考えられる原因、ドリルダウン可能なソースレコード ID が生成されます。金額はサブマイクロ精度で累積し、結果を保存または表示するときだけ最大 6 桁の小数に丸めます。明細照合では、設定ウィンドウ内の 1 対 1 の組み合わせ数を最初に最大化し、その後に合計時間距離を最小化します。期間境界の外側にある TokenHub レコードも、期間内の Provider 請求と一致する場合は結果に含まれます。Provider レコードは取り込み時刻ではなく利用時刻で期間に配賦されるため、遅れて到着した請求も元の期間に含まれます。定期実行では、設定した請求遅延を待ってから直近の完了済み時間、日、または月を照合します。
+選択した請求期間でルールを実行すると、一致、Provider のみ、TokenStation のみ、金額不一致の 4 種類の件数、両側の合計、差異、考えられる原因、ドリルダウン可能なソースレコード ID が生成されます。金額はサブマイクロ精度で累積し、結果を保存または表示するときだけ最大 6 桁の小数に丸めます。明細照合では、設定ウィンドウ内の 1 対 1 の組み合わせ数を最初に最大化し、その後に合計時間距離を最小化します。期間境界の外側にある TokenStation レコードも、期間内の Provider 請求と一致する場合は結果に含まれます。Provider レコードは取り込み時刻ではなく利用時刻で期間に配賦されるため、遅れて到着した請求も元の期間に含まれます。定期実行では、設定した請求遅延を待ってから直近の完了済み時間、日、または月を照合します。
 
 各結果には、完全なルールスナップショット、ルールのバージョンとハッシュ、入力ハッシュ、実行者、時刻、監査イベントが保存されます。再計算では保存済みのルールスナップショットを使用します。再計算に失敗した場合は直前の成功結果と明細を保持し、失敗した試行を監査に記録します。ソース行が変わらなければ入力ハッシュと分類金額を再現できます。成功した結果をロックすると、以後の再計算を禁止できます。明細 API はサーバー側の `limit`/`offset` ページングを使用します。CSV はデフォルトで全差異行とソース参照を有界バッチでストリーミングし、暗黙の行数制限はありません。Provider 認証情報や生スナップショットは含まれず、リソースアカウント識別子は管理 API と CSV の両方でマスクされ、リソースアカウントのマッピングも監査スナップショットから除外されます。
 
@@ -488,9 +488,9 @@ Aliyun では請求 RPC Base URL、AccessKey ID、AccessKey Secret、ソース�
 
 ID ソースの新規作成には 3 つの必須手順があります。ID ソースを選択し、接続設定を入力し、ログインエントリと初回ログイン権限を設定します。接続設定の手順には選択した ID プロバイダーの公式設定ガイドへのリンクが表示され、アプリの作成と認証情報の取得方法を確認できます。汎用 OIDC / OAuth2 テンプレートでは、実際に使用する ID プロバイダーのアプリ登録ガイドを確認するよう案内し、対応するプロトコルリファレンスへのリンクを表示します。3 番目の手順で、完全なエンドポイント既定値を持つテンプレートは **スキップして完了** を選択できます。必要なエンドポイントがない場合は詳細設定が必須になります。また、詳細設定でエンドポイント、Scope、Claim の既定値を上書きできます。既存の ID ソースを編集する場合は、完全なフォームを 1 画面に表示します。
 
-TokenHub バックエンドの公開 URL と callback パス `/api/admin/auth/oauth/callback` を使用します。Callback URL を空欄にするとバックエンドリクエストの Host から自動生成します。明示的に設定する場合は、完全な URL を ID プロバイダー側のリダイレクト URL と完全に一致させてください。
+TokenStation バックエンドの公開 URL と callback パス `/api/admin/auth/oauth/callback` を使用します。Callback URL を空欄にするとバックエンドリクエストの Host から自動生成します。明示的に設定する場合は、完全な URL を ID プロバイダー側のリダイレクト URL と完全に一致させてください。
 
-管理者 OAuth ログインの完了時、リダイレクト URL に管理者セッショントークンは含まれません。TokenHub は短時間だけ有効な 1 回限りの code をコンソールへ返し、コンソールはそれを 1 回だけ交換して、取得したセッションを現在のブラウザータブだけに保持します。そのタブの再読み込みではログインを維持しますが、タブを閉じると再ログインが必要です。
+管理者 OAuth ログインの完了時、リダイレクト URL に管理者セッショントークンは含まれません。TokenStation は短時間だけ有効な 1 回限りの code をコンソールへ返し、コンソールはそれを 1 回だけ交換して、取得したセッションを現在のブラウザータブだけに保持します。そのタブの再読み込みではログインを維持しますが、タブを閉じると再ログインが必要です。
 
 OAuth ログインに失敗すると、ログイン画面にエラーが表示されたままになり、同じタブから再試行できます。既知のコードは、ID プロバイダーの認可（`provider_error`）、Token 交換（`token_exchange_failed`）、ユーザー情報取得（`userinfo_failed`）、ユーザー同期（`user_sync_failed`）のどの段階で失敗したかを示します。Keycloak などの OIDC プロバイダーでは、登録した公開 Callback URL、クライアント認証情報、安定したユーザー識別子とメールアドレスの Claim マッピングを確認してください。メールアドレスが明示的に `email_verified: false` とされている場合は拒否されます。一部の対応済み企業向け ID プロバイダーでは、メールアドレスがない場合、安定したユーザー Subject から内部メールアドレスを生成できます。サポートを依頼する際はエラーコードと機密情報を除いた設定だけを共有し、トークン、認可コード、Client Secret は共有しないでください。
 
@@ -498,7 +498,7 @@ ID ソースの Client Secret と通知チャネルの機密フィールド（We
 
 ID ソースまたは通知チャネルを更新するとき、空文字列、マスク値 `********`、`••••••••`、または `[redacted]` は「保存済みの Secret を保持する」ことを意味します。Secret を明示的に消去する場合だけ JSON `null` を送信してください。通知チャネルの Secret を消去すると、`url` / `webhook_url`、`smtp_password` / `password`、およびそのチャネル固有の Token や Secret の別名もまとめて削除されます。ID ソースを作成、更新、削除できるのはプラットフォーム管理者だけで、セキュリティ管理者はマスク済み設定を読み取り専用で参照できます。
 
-| プロバイダー | 必要なアプリ設定 | TokenHub の動作 |
+| プロバイダー | 必要なアプリ設定 | TokenStation の動作 |
 | --- | --- | --- |
 | DingTalk | Web アプリを作成し、ユーザー認可を有効にし、Callback URL と App Key / App Secret を設定 | DingTalk v1.0 JSON Token API と専用のユーザー Token ヘッダーを使用します。メールがない場合は `unionId` から安定した内部メールを生成します。 |
 | Feishu | 企業カスタムアプリを作成し、Web 認可、Callback URL、App ID / App Secret を設定。可能な場合はプロフィールと企業メールの権限も付与 | Feishu OAuth v2 Token API を使い、ユーザー情報応答の `data` を展開します。メールがない場合は `union_id` から内部メールを生成します。 |
@@ -508,7 +508,7 @@ ID ソースまたは通知チャネルを更新するとき、空文字列、�
 
 ## 通知チャンネルのテスト
 
-**ヘルスとアラート → 通知チャンネル**でチャンネルを保存した後、行の**テスト通知を送信**をクリックします。TokenHub は保存済みの送信先と認証情報を使い、SMTP の受信者または設定された Webhook／ボットへテストと明記したメッセージを送信します。フォームの未保存の変更は使用しません。無効なチャンネルも、有効化せずにテストできます。
+**ヘルスとアラート → 通知チャンネル**でチャンネルを保存した後、行の**テスト通知を送信**をクリックします。TokenStation は保存済みの送信先と認証情報を使い、SMTP の受信者または設定された Webhook／ボットへテストと明記したメッセージを送信します。フォームの未保存の変更は使用しません。無効なチャンネルも、有効化せずにテストできます。
 
 コンソールには配信成功または機密情報を除去した失敗理由を表示します。HTTP 200 でも、DingTalk、Feishu、WeCom は明示的な成功コード 0 を返す必要があります。アプリケーションエラー、結果コードの欠落や不正な値、不完全または読み取り不能な HTTP 応答は失敗として扱います。業務結果の検証が必要なボットの応答本文が 4096 バイトを超える場合は失敗とし、汎用 Webhook の応答本文にはこの検証上限を適用しません。成功は SMTP サーバーまたは送信先 API がリクエストを受け付けたことを意味します。対象の受信トレイ／チャンネルで受信を確認し、メールの場合は迷惑メールも確認してください。各配信試行は**アラート配信**と監査ログに記録され、運用アラートは作成されません。テストを実行できるのはプラットフォーム管理者とセキュリティ管理者のみです。
 
@@ -518,7 +518,7 @@ API：`POST /api/admin/resources/notification-channels/{channel_id}/test`。管�
 
 ## メール通知チャンネル
 
-タイプ `email` の通知チャンネルは SMTP で配信されます。デフォルトでは TokenHub は平文で接続し、サーバーが通知する能力に応じて STARTTLS にアップグレードします（通常はポート 587）。465 などの暗黙的 TLS ポートでのみ SMTP を提供するメールサーバーの場合は、チャンネルフィールド `smtp_encryption` を `ssl`、`tls`、`smtps`、`implicit` のいずれかに設定すると、最初のバイトから TLS で接続します。他の標準フィールド（`smtp_host`、`smtp_port`、`smtp_username`、`smtp_password`、`smtp_from`、`email_to`）は変わりません。
+タイプ `email` の通知チャンネルは SMTP で配信されます。デフォルトでは TokenStation は平文で接続し、サーバーが通知する能力に応じて STARTTLS にアップグレードします（通常はポート 587）。465 などの暗黙的 TLS ポートでのみ SMTP を提供するメールサーバーの場合は、チャンネルフィールド `smtp_encryption` を `ssl`、`tls`、`smtps`、`implicit` のいずれかに設定すると、最初のバイトから TLS で接続します。他の標準フィールド（`smtp_host`、`smtp_port`、`smtp_username`、`smtp_password`、`smtp_from`、`email_to`）は変わりません。
 
 管理コンソールのメールチャンネルフォームでは、**SMTP 暗号化** セレクターで `auto`（機会的 STARTTLS、legacy デフォルト）、`starttls`（STARTTLS を必須とし、サーバーが非対応の場合は送信を拒否、ポート 587）、`ssl`（最初のバイトから暗黙的 TLS、ポート 465）を選択できます。新しいチャンネルのデフォルトは `starttls` です。`auto` を選択した場合はフィールドを空欄のままにして legacy の機会的 STARTTLS を維持し、`starttls` または `ssl` を選択した場合にのみ `smtp_encryption` フィールドに書き込まれます。
 

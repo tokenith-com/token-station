@@ -669,7 +669,7 @@ export function PlaygroundPanel({ api, data, canViewRoutes, currentUserID, onCre
     const url = URL.createObjectURL(new Blob([prettyJSON(payload)], { type: "application/json" }));
     const anchor = document.createElement("a");
     anchor.href = url;
-    anchor.download = `tokenhub-playground-${new Date().toISOString().replaceAll(":", "-")}.json`;
+    anchor.download = `tokenstation-playground-${new Date().toISOString().replaceAll(":", "-")}.json`;
     anchor.click();
     URL.revokeObjectURL(url);
   }

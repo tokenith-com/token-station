@@ -1,8 +1,8 @@
-# TokenHub Agent Guide
+# TokenStation Agent Guide
 
 ## Repository overview
 
-TokenHub is a private enterprise AI gateway with a Go backend, a Next.js admin console, SDK smoke tests, a YAML model catalog, and Docker Compose deployment files.
+TokenStation is a private enterprise AI gateway with a Go backend, a Next.js admin console, SDK smoke tests, a YAML model catalog, and Docker Compose deployment files.
 
 - `backend/`: Go HTTP API, SQLite/GORM persistence, routing, authentication, administration, and backend tests.
 - `frontend/`: Next.js and React admin console.
@@ -44,7 +44,7 @@ npm run test:e2e
 
 The browser smoke suite starts an isolated Next.js frontend, Go backend, fake
 provider upstream, and temporary SQLite database. It does not require real
-credentials or an already-running TokenHub stack.
+credentials or an already-running TokenStation stack.
 
 Run the repository gates from the repository root. These enforce the change guidelines below, so a failure names the rule that was broken:
 
@@ -75,7 +75,7 @@ For page interactions, layouts, or UI fixture changes, read [docs/development/ui
 
 ## Optional development workflows
 
-TokenHub provides two optional AI-agent workflows:
+TokenStation provides two optional AI-agent workflows:
 
 | Workflow | Intended use | Instructions |
 | --- | --- | --- |

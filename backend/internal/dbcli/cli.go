@@ -1,4 +1,4 @@
-// Package dbcli implements the `tokenhub db` maintenance commands. The
+// Package dbcli implements the `tokenstation db` maintenance commands. The
 // commands expose the migration ledger, semantic verification, pending expand
 // migrations, dirty-migration repair, and contract execution with the
 // operator-verified preconditions. They never run the server.
@@ -54,7 +54,7 @@ func cliExecutor() string {
 	return "cli"
 }
 
-// Run executes one `tokenhub db <command>` invocation and returns the process
+// Run executes one `tokenstation db <command>` invocation and returns the process
 // exit code.
 func Run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 	if len(args) == 0 {
@@ -85,7 +85,7 @@ func Run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 		return 2
 	}
 	if err != nil {
-		_, _ = fmt.Fprintf(stderr, "tokenhub db %s: %v\n", args[0], err)
+		_, _ = fmt.Fprintf(stderr, "tokenstation db %s: %v\n", args[0], err)
 		return 1
 	}
 	return 0
@@ -407,7 +407,7 @@ func heartbeatTableExists(ctx context.Context, s *session) (bool, error) {
 }
 
 func usage(w io.Writer) {
-	_, _ = fmt.Fprintln(w, `usage: tokenhub db <command> [flags]
+	_, _ = fmt.Fprintln(w, `usage: tokenstation db <command> [flags]
 
 commands:
   status                      show ledger, backfill, and instance state

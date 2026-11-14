@@ -2,7 +2,7 @@
 
 Language: [English](../administrator-guide.md) | 简体中文 | [日本語](../ja/administrator-guide.md)
 
-本指南面向将 TokenHub 作为企业 AI 网关运行的平台管理员、安全运维和基础设施负责人。
+本指南面向将 TokenStation 作为企业 AI 网关运行的平台管理员、安全运维和基础设施负责人。
 
 ## 管理员范围
 
@@ -35,7 +35,7 @@ Language: [English](../administrator-guide.md) | 简体中文 | [日本語](../j
 7. 用 Model Playground 和请求日志验证链路。
 8. 在大规模发放 Key 前检查用量归因。
 
-Anthropic Provider 默认使用 `x-api-key` 认证。如果 Anthropic 兼容上游要求 `Authorization: Bearer`，请打开 Provider 的「高级」页签，保持「渠道商类型」为「Claude / Anthropic」，并在「Anthropic 认证方式」中选择「Authorization Bearer」。TokenHub 会从加密保存的 Provider API Key 生成对应 Header，并且只发送所选的认证 Header；不要在自定义 Headers 中重复填写凭据。
+Anthropic Provider 默认使用 `x-api-key` 认证。如果 Anthropic 兼容上游要求 `Authorization: Bearer`，请打开 Provider 的「高级」页签，保持「渠道商类型」为「Claude / Anthropic」，并在「Anthropic 认证方式」中选择「Authorization Bearer」。TokenStation 会从加密保存的 Provider API Key 生成对应 Header，并且只发送所选的认证 Header；不要在自定义 Headers 中重复填写凭据。
 
 ## 管理供应商、模型和路由
 
@@ -95,13 +95,13 @@ Provider 插件可以在 manifest 中声明路由和凭据策略。对上游密�
 
 支持请求会话亲和性的插件还可以在 `capabilities.gateway` 中声明 `session_affinity`，并把 `capabilities.provider.session_affinity_kind` 设置为 `provider_session` 或 `codex_session`。当 Responses、Chat、Anthropic、Gemini 或 Responses Compact 路由根据 session header 或请求 metadata 生成粘性 Provider Resource 绑定时，Core 会使用该策略。
 
-已注册的进程内后台任务可以在后台任务清单中手动运行。手动运行会使用与定时任务相同的 Core runner，包括输入 Schema 校验、重试设置、超时处理、并发限制、最近运行记录、结果脱敏和管理员审计事件。TokenHub 在把运行结果返回给控制台前，会遮蔽 access token、refresh token、API key、密码、cookie、私钥等疑似敏感字段。外部执行不可用期间，外部命令型任务不会注册。
+已注册的进程内后台任务可以在后台任务清单中手动运行。手动运行会使用与定时任务相同的 Core runner，包括输入 Schema 校验、重试设置、超时处理、并发限制、最近运行记录、结果脱敏和管理员审计事件。TokenStation 在把运行结果返回给控制台前，会遮蔽 access token、refresh token、API key、密码、cookie、私钥等疑似敏感字段。外部执行不可用期间，外部命令型任务不会注册。
 
 ## 模型演练场诊断
 
 从控制台打开「模型演练场」，可以通过与网关流量相同的路由和 Provider 适配器验证模型。每个 assistant 轮次都保留独立的紧凑诊断摘要，包括返回模式、网关实测首 Token 时间（TTFT）、输出吞吐、总耗时、完整上下文输入 Tokens、输出 Tokens、估算成本、本地完成时间和 Request ID。展开「诊断详情」可查看毫秒级时间及实际响应详情。除非用户明确导出，否则会话只保留在当前浏览器页面。
 
-TokenHub 会向演练场输出统一的 SSE 事件格式。所选上游支持流式时，TTFT 从网关接收请求计到首个内容增量，输出吞吐按首个到最后一个内容增量之间的时长计算。上游只支持非流式响应时，TokenHub 自动退化为缓冲模式，将 TTFT 标为不适用，并展示端到端输出吞吐，不伪造首 Token 指标。停止请求会保留已生成的部分文本并把候选标为已取消；只有 Provider 返回权威 Token 用量时才展示对应数值。
+TokenStation 会向演练场输出统一的 SSE 事件格式。所选上游支持流式时，TTFT 从网关接收请求计到首个内容增量，输出吞吐按首个到最后一个内容增量之间的时长计算。上游只支持非流式响应时，TokenStation 自动退化为缓冲模式，将 TTFT 标为不适用，并展示端到端输出吞吐，不伪造首 Token 指标。停止请求会保留已生成的部分文本并把候选标为已取消；只有 Provider 返回权威 Token 用量时才展示对应数值。
 
 重跑某个 assistant 轮次会为该轮创建新候选，并移除后续轮次，防止新分支悄悄复用旧上下文。切换模型默认新建会话；如需沿用上下文，必须显式选择。参数控件以所选模型声明的 `supported_parameters` 为准，避免发送模型目录已标记为不支持的参数。
 
@@ -111,11 +111,11 @@ TokenHub 会向演练场输出统一的 SSE 事件格式。所选上游支持流
 
 在「安全策略 > 内容安全」中，可以创建适用于全部项目或指定项目的策略。一条策略可以组合关键词或正则表达式匹配、敏感数据检测，以及可选的 Qwen3Guard 模型检测器。所有检测项会共同判定，并采用命中动作中最严格的一项：`block` 高于 `mask`，`mask` 高于 `audit`。保存后立即生效。
 
-确定性检测器在 TokenHub 内部运行。调用已配置的 Qwen3Guard 检测器前，TokenHub 会在仅供检测的文本副本中，把本地 `mask` 规则已经命中的敏感值替换为 `[REDACTED]`，避免把这些原始值发送给模型服务。未被本地脱敏规则命中的文本仍会发送到 `TOKENHUB_GUARDRAIL_MODEL_URL` 配置的服务。该服务应部署在获准的数据边界内，并评估其传输、日志和保留策略；远端服务保留的副本不受 TokenHub 管理。URL 留空时不会发起模型调用，并按各模型检测项配置的不可用行为处理。
+确定性检测器在 TokenStation 内部运行。调用已配置的 Qwen3Guard 检测器前，TokenStation 会在仅供检测的文本副本中，把本地 `mask` 规则已经命中的敏感值替换为 `[REDACTED]`，避免把这些原始值发送给模型服务。未被本地脱敏规则命中的文本仍会发送到 `TOKENHUB_GUARDRAIL_MODEL_URL` 配置的服务。该服务应部署在获准的数据边界内，并评估其传输、日志和保留策略；远端服务保留的副本不受 TokenStation 管理。URL 留空时不会发起模型调用，并按各模型检测项配置的不可用行为处理。
 
 敏感数据检测覆盖带标签或经过结构校验的中国大陆身份证号、手机号、电子邮箱、银行卡号、凭证与私钥、姓名、地址和出生日期等样例。日期合法性、身份证校验位和 Luhn 校验等规则用于降低常见数字误报。策略广泛启用前，应使用「测试策略」同时验证有代表性的正例和反例。
 
-当前请求侧拦截覆盖 `/v1/chat/completions`、`/v1/responses`、`/v1/responses/compact` 和 `/v1/messages`，也包括模型演练场发出的请求。TokenHub 会在路由到 Provider 前检查普通的用户可见文本。本版本暂不检查结构化工具参数、JSON 载荷中的值、需要代码语义解析的内容，也不检查 Provider 响应。安全检查本身不再设置独立的文本大小上限，请求仍受已配置的请求体大小限制。确定性检测还会应用按规则复杂度加权的累计工作预算和命中数量预算，避免超长文本、高开销表达式或密集脱敏命中的病态组合长期占用 CPU 或内存；超限时返回 HTTP 503 `guardrail_evaluation_budget_exceeded`，普通长上下文配合适量规则仍可正常处理。
+当前请求侧拦截覆盖 `/v1/chat/completions`、`/v1/responses`、`/v1/responses/compact` 和 `/v1/messages`，也包括模型演练场发出的请求。TokenStation 会在路由到 Provider 前检查普通的用户可见文本。本版本暂不检查结构化工具参数、JSON 载荷中的值、需要代码语义解析的内容，也不检查 Provider 响应。安全检查本身不再设置独立的文本大小上限，请求仍受已配置的请求体大小限制。确定性检测还会应用按规则复杂度加权的累计工作预算和命中数量预算，避免超长文本、高开销表达式或密集脱敏命中的病态组合长期占用 CPU 或内存；超限时返回 HTTP 503 `guardrail_evaluation_budget_exceeded`，普通长上下文配合适量规则仍可正常处理。
 
 策略阻断请求时，兼容 API 返回 HTTP 403 和 `guardrail_blocked`。错误详情包含 `categories`、`reason_codes` 和 `policy_matches`；每条策略命中会标明策略、检测项、检测器类型、分类和原因码。响应还包含用于关联审计记录的 `request_id`，但不会返回命中的原始文本。模型演练场展示相同的策略与原因信息，方便管理员反馈可复现的问题，而不只是看到“请求已被内容安全策略阻断”。
 
@@ -131,7 +131,7 @@ TokenHub 会向演练场输出统一的 SSE 事件格式。所选上游支持流
 
 ## 全局用量看板
 
-打开「用量」页面，使用顶部的「今日」「7 天」「30 天」「全部」切换统计时间，默认选中今日。估算成本、Token、缓存读取、推理 Token、调用次数、输入/输出趋势和归因表格会同步使用所选时间范围。缓存读取已包含在输入 Token 中，推理 Token 已包含在输出 Token 中，不会重复计入总量。估算成本来自 TokenHub 已记录用量，不是供应商账号余额，也不是已对账的上游账单。请求数包含失败请求；归因表中的「用量记录」按实际用量记录计数，因此两者可能不同。演练场请求不计入统计。
+打开「用量」页面，使用顶部的「今日」「7 天」「30 天」「全部」切换统计时间，默认选中今日。估算成本、Token、缓存读取、推理 Token、调用次数、输入/输出趋势和归因表格会同步使用所选时间范围。缓存读取已包含在输入 Token 中，推理 Token 已包含在输出 Token 中，不会重复计入总量。估算成本来自 TokenStation 已记录用量，不是供应商账号余额，也不是已对账的上游账单。请求数包含失败请求；归因表中的「用量记录」按实际用量记录计数，因此两者可能不同。演练场请求不计入统计。
 
 自然日边界来自「系统设置 > Gateway Base Settings > 用量看板时区」。请使用 IANA 时区，例如 `UTC`、`Asia/Shanghai` 或 `America/New_York`。「今日」从该时区本地零点开始；「7 天」「30 天」分别包含今日及此前 6 个、29 个自然日；「全部」从当前权限范围内最早的用量记录或请求日志开始，包括首条用量记录之前的失败请求。两类记录都不存在时，报表不提供开始时间。各范围均截至当前时间。今日趋势按小时聚合，其余范围按天聚合；全部历史超过 90 天时按月聚合。页面显示统计窗口和时区，便于确认统计口径。
 
@@ -151,13 +151,13 @@ TokenHub 会向演练场输出统一的 SSE 事件格式。所选上游支持流
 
 ## 单 Key RPM 与 TPM 限制
 
-每个 API Key 都可以设置可选的每分钟请求数（RPM）和每分钟 Token 数（TPM）限制。未设置或 `null` 表示继承适用的全局、项目和团队策略；`0` 表示不增加 Key 自身的限制，但不能绕过上层限制；正数表示增加 Key 级限制。当多个正数限制同时适用时，TokenHub 执行其中最严格的值。禁用 Key 后，无论限制值如何，所有请求都会被拒绝。
+每个 API Key 都可以设置可选的每分钟请求数（RPM）和每分钟 Token 数（TPM）限制。未设置或 `null` 表示继承适用的全局、项目和团队策略；`0` 表示不增加 Key 自身的限制，但不能绕过上层限制；正数表示增加 Key 级限制。当多个正数限制同时适用时，TokenStation 执行其中最严格的值。禁用 Key 后，无论限制值如何，所有请求都会被拒绝。
 
 RPM 在调用 Provider 前扣减。TPM 同时按请求的预估输入量和最大输出量进行预留；文本请求未显式指定最大输出时，会预留 4,096 个输出 Token。请求结束后，系统按 Provider 返回的总 Token 数结算；若无总数，则使用提示词与补全 Token 之和。缓存与推理 Token 已包含在这些总数中，不会重复累加。失败或中断的请求会返还未使用的预留量。
 
-超过限制时返回 HTTP 429，错误码为 `api_key_rpm_exceeded` 或 `api_key_tpm_exceeded`，并附带 `Retry-After` 以及对应的 `X-RateLimit-Limit-*`、`X-RateLimit-Remaining-*` 和 `X-RateLimit-Reset-*` 响应头。分钟桶保存在数据库中；PostgreSQL 会在多个 TokenHub 实例之间共享强制状态，SQLite 保持其受支持的单后端运行方式。指标只暴露短哈希形式的 Key 引用，绝不会包含完整 API Key。
+超过限制时返回 HTTP 429，错误码为 `api_key_rpm_exceeded` 或 `api_key_tpm_exceeded`，并附带 `Retry-After` 以及对应的 `X-RateLimit-Limit-*`、`X-RateLimit-Remaining-*` 和 `X-RateLimit-Reset-*` 响应头。分钟桶保存在数据库中；PostgreSQL 会在多个 TokenStation 实例之间共享强制状态，SQLite 保持其受支持的单后端运行方式。指标只暴露短哈希形式的 Key 引用，绝不会包含完整 API Key。
 
-高并发部署可以配置 `TOKENHUB_BILLING_REDIS_URL`。设置后，TokenHub 会把高写入的准入路径放到 Redis：API Key 与用户维度的每分钟 RPM/TPM 预留，以及 API Key 与用户维度的并发租约。数据库仍是持久账本，负责日/月计数、用量记录、请求日志、审计轨迹和结算幂等。配置了 Redis 端点时，服务启动必须能连接它；留空则继续使用数据库准入路径。Docker Compose 部署可以追加 `deploy/docker-compose.redis.yml`，由同一个 Compose 项目运行可选 Redis 组件。
+高并发部署可以配置 `TOKENHUB_BILLING_REDIS_URL`。设置后，TokenStation 会把高写入的准入路径放到 Redis：API Key 与用户维度的每分钟 RPM/TPM 预留，以及 API Key 与用户维度的并发租约。数据库仍是持久账本，负责日/月计数、用量记录、请求日志、审计轨迹和结算幂等。配置了 Redis 端点时，服务启动必须能连接它；留空则继续使用数据库准入路径。Docker Compose 部署可以追加 `deploy/docker-compose.redis.yml`，由同一个 Compose 项目运行可选 Redis 组件。
 
 ## 用户聚合额度
 
@@ -169,7 +169,7 @@ RPM 在调用 Provider 前扣减。TPM 同时按请求的预估输入量和最�
 
 此功能无需数据库结构迁移。旧版本不会执行 `all_users` 模板；回滚前，应为仍需限制的用户建立等效的单用户策略。
 
-TokenHub 使用与用量统计相同的归属顺序解析用户：先取 API Key 的 `owner_user_id`，再取旧 Key 元数据中的 `created_by`，最后取项目的 `owner_user_id`。归属于同一用户的所有 Key 都会消耗同一组用户桶，包括不同项目中的 Key。轮换、吊销、删除或替换 Key 不会重置这些计数，因为桶归属于用户而不是 Key。
+TokenStation 使用与用量统计相同的归属顺序解析用户：先取 API Key 的 `owner_user_id`，再取旧 Key 元数据中的 `created_by`，最后取项目的 `owner_user_id`。归属于同一用户的所有 Key 都会消耗同一组用户桶，包括不同项目中的 Key。轮换、吊销、删除或替换 Key 不会重置这些计数，因为桶归属于用户而不是 Key。
 
 用户限额会与适用的 API Key、项目、团队和全局限额同时执行。所有正数限额继续使用现有的最严格值规则，但用户计数始终是跨 Key 聚合，而不是为每个 Key 单独发放额度。用户最大并发租约会与有效的 Key 级并发租约同时持有，因此任一约束都不能绕过另一个约束。
 
@@ -183,23 +183,23 @@ TokenHub 使用与用量统计相同的归属顺序解析用户：先取 API Key
 
 ## Provider 目录可用性
 
-TokenHub 会把最后一次成功加载的 Provider 目录保存在数据库中。每次后端启动时，系统都会校验并加载配置的本地 `provider-catalog.json`，然后原子替换数据库快照。普通「Provider 渠道」请求只读取数据库快照。管理员显式刷新时，系统会下载最新的 `PublicProviderConf` 目录，执行相同的完整性校验，并仅在校验通过后原子替换快照。若上游请求或校验失败，TokenHub 会回退到配置的本地目录；若本地回退也失败，刷新请求会返回错误，并继续使用最后一次有效快照。刷新响应会用 `upstream-provider-catalog` 或 `local-provider-catalog` 标明实际采用的来源。
+TokenStation 会把最后一次成功加载的 Provider 目录保存在数据库中。每次后端启动时，系统都会校验并加载配置的本地 `provider-catalog.json`，然后原子替换数据库快照。普通「Provider 渠道」请求只读取数据库快照。管理员显式刷新时，系统会下载最新的 `PublicProviderConf` 目录，执行相同的完整性校验，并仅在校验通过后原子替换快照。若上游请求或校验失败，TokenStation 会回退到配置的本地目录；若本地回退也失败，刷新请求会返回错误，并继续使用最后一次有效快照。刷新响应会用 `upstream-provider-catalog` 或 `local-provider-catalog` 标明实际采用的来源。
 
 ## Codex OAuth Token 续租
 
-对于已启用且保存了刷新 Token 的 OpenAI Codex Subscription 账号，TokenHub 会在后端启动时检查一次，之后每分钟检查一次。只有访问 Token 将在五分钟内过期时才会续租。数据库凭证租约保证集群部署中同一个账号只会由一个实例续租。在「Provider 渠道 > 高级 > 订阅额度」中，管理员可以点击「续租 Token」手动续租单个账号。手动续租用于故障恢复，不要重复点击：上游可能在续租响应中轮换刷新 Token，TokenHub 会自动保存返回的新值。如果 OpenAI 返回刷新 Token 已失效，TokenHub 会把账号标记为需要重新授权，停止后续定时续租，并向管理员显示重新授权提示。
+对于已启用且保存了刷新 Token 的 OpenAI Codex Subscription 账号，TokenStation 会在后端启动时检查一次，之后每分钟检查一次。只有访问 Token 将在五分钟内过期时才会续租。数据库凭证租约保证集群部署中同一个账号只会由一个实例续租。在「Provider 渠道 > 高级 > 订阅额度」中，管理员可以点击「续租 Token」手动续租单个账号。手动续租用于故障恢复，不要重复点击：上游可能在续租响应中轮换刷新 Token，TokenStation 会自动保存返回的新值。如果 OpenAI 返回刷新 Token 已失效，TokenStation 会把账号标记为需要重新授权，停止后续定时续租，并向管理员显示重新授权提示。
 
 ### Kronk 本地推理
 
-在「Provider 渠道」中选择 **Kronk**，即可连接独立运行的 Kronk Model Server。默认 Base URL 为 `http://127.0.0.1:11435/v1`，仅在自动模式且私网清单为空时自动放行；否则需要 `TOKENHUB_PROVIDER_UPSTREAM_ALLOW_LOOPBACK`。Kronk 运行在其他主机时，应填写可达的私网 IP，默认严格模式即可使用。Kronk 未启用认证时可将 application token 留空；启用认证后，TokenHub 只会将保存的密钥作为 `Authorization: Bearer <token>` 发送。连接测试会分别检查 `/v1/liveness`、`/v1/readiness` 和 `/v1/models`，从而区分进程可达、服务就绪和本地模型可用状态。
+在「Provider 渠道」中选择 **Kronk**，即可连接独立运行的 Kronk Model Server。默认 Base URL 为 `http://127.0.0.1:11435/v1`，仅在自动模式且私网清单为空时自动放行；否则需要 `TOKENHUB_PROVIDER_UPSTREAM_ALLOW_LOOPBACK`。Kronk 运行在其他主机时，应填写可达的私网 IP，默认严格模式即可使用。Kronk 未启用认证时可将 application token 留空；启用认证后，TokenStation 只会将保存的密钥作为 `Authorization: Bearer <token>` 发送。连接测试会分别检查 `/v1/liveness`、`/v1/readiness` 和 `/v1/models`，从而区分进程可达、服务就绪和本地模型可用状态。
 
 模型选择器通过 `GET /v1/models` 发现实时库存，并完整保留 Kronk 模型 ID 中的 `/`、`:` 和量化后缀。引入选中的库存后，在「模型目录」中创建对外标准模型名，再到「路由策略」将其映射到 Kronk 模型 ID。重复引入保持幂等。后续模型发现成功时，已从 Kronk 移除的模型会被标记为不可用，但不会删除其库存或路由；发现失败不会改写现有配置。
 
-Kronk 路由支持 OpenAI-compatible Chat Completions、Responses 和 Embeddings，包括 SSE 流式输出。TokenHub 继续执行客户端认证、项目隔离、配额、审计、路由与故障转移策略；不会把调用方的 `Authorization` 请求头转发给 Kronk，也不会在管理响应、审计载荷、日志或上游错误响应中暴露保存的 Kronk token。
+Kronk 路由支持 OpenAI-compatible Chat Completions、Responses 和 Embeddings，包括 SSE 流式输出。TokenStation 继续执行客户端认证、项目隔离、配额、审计、路由与故障转移策略；不会把调用方的 `Authorization` 请求头转发给 Kronk，也不会在管理响应、审计载荷、日志或上游错误响应中暴露保存的 Kronk token。
 
 ### Dify 应用
 
-创建类型为 `dify` 的 Provider，即可把一个 Dify 应用作为 chat-completion 模型对外提供。Base URL 填 Dify 实例根地址（末尾带 `/v1` 会被自动归一），API key 填该应用「API 访问」页面中的 Service API key。一个 Provider 恰好对应一个 Dify 应用；路由到该 Provider 的模型名是 TokenHub 本地名称，照常在「模型目录」创建对外模型，再到「路由策略」完成映射。该 Provider 通过管理 API 以 `"type": "dify"` 创建，应用清单以自定义模型导入，连接测试通过 `GET /v1/parameters` 校验应用密钥，而不拉取模型列表。
+创建类型为 `dify` 的 Provider，即可把一个 Dify 应用作为 chat-completion 模型对外提供。Base URL 填 Dify 实例根地址（末尾带 `/v1` 会被自动归一），API key 填该应用「API 访问」页面中的 Service API key。一个 Provider 恰好对应一个 Dify 应用；路由到该 Provider 的模型名是 TokenStation 本地名称，照常在「模型目录」创建对外模型，再到「路由策略」完成映射。该 Provider 通过管理 API 以 `"type": "dify"` 创建，应用清单以自定义模型导入，连接测试通过 `GET /v1/parameters` 校验应用密钥，而不拉取模型列表。
 
 Provider 选项决定应用协议：
 
@@ -209,11 +209,11 @@ Provider 选项决定应用协议：
 | `dify_input_variable` | 接收拼接后完整对话的 Workflow 输入变量名；默认 `query` |
 | `dify_output_variable` | 保存回答的 Workflow 输出变量名；默认 `answer`，找不到时依次尝试 `text`、`result`、`output` 以及唯一的字符串输出 |
 
-网关对 Dify 无状态：每个请求都会开启新的 Dify 会话，完整的 OpenAI 消息列表会被拼接进请求，因此不会使用 Dify 侧的会话记忆。Chat 类应用从 Dify 的 `metadata.usage` 上报完整的 prompt、completion 和 total 用量；Workflow 运行只在 `total_tokens` 中上报运行总量，TokenHub 如实记录、不虚构输入/输出拆分，因此基于组件计价的成本核算取决于该模型的定价方式。
+网关对 Dify 无状态：每个请求都会开启新的 Dify 会话，完整的 OpenAI 消息列表会被拼接进请求，因此不会使用 Dify 侧的会话记忆。Chat 类应用从 Dify 的 `metadata.usage` 上报完整的 prompt、completion 和 total 用量；Workflow 运行只在 `total_tokens` 中上报运行总量，TokenStation 如实记录、不虚构输入/输出拆分，因此基于组件计价的成本核算取决于该模型的定价方式。
 
 流式请求把 Dify SSE 事件映射为 OpenAI 分片：chat 应用为 `message` 与 `message_end`（Agent 应用的可见回答改经 `agent_message` 送达），workflow 应用为 `text_chunk` 与 `workflow_finished`；未收到终止事件就结束的 Dify 流会被视为截断而非完成。Dify Provider 仅支持 chat 与流式 chat；Responses 与 embeddings 请求返回 `501 provider_capability_not_supported`。
 
-如果想让 Dify 应用反向通过 TokenHub 调用模型，在 Dify 内添加指向 TokenHub `/v1` 端点、使用 TokenHub API key 的 `OpenAI-API-compatible` 模型供应商即可，TokenHub 侧无需任何配置。
+如果想让 Dify 应用反向通过 TokenStation 调用模型，在 Dify 内添加指向 TokenStation `/v1` 端点、使用 TokenStation API key 的 `OpenAI-API-compatible` 模型供应商即可，TokenStation 侧无需任何配置。
 
 ## 系统提示词转换处理
 
@@ -221,7 +221,7 @@ Claude Code 可能在 Anthropic Messages 请求的 `system` 数组开头插入�
 
 每个 Provider 都可以设置 `system_prompt_transform_policy`。Provider 插件通过 `system_prompt_transform_default` provider policy capability 声明默认策略。新建第三方 Provider 在插件未声明其他默认值时使用 `strip`，以提高上游提示词前缀缓存复用率。已有 Provider 未配置该字段时继续保留归因块。旧的 `claude_code_attribution_policy` option 和 `claude_code_attribution_default` capability 仍作为升级兼容别名被接受。`strip` 只在第一个顶层 `system` 元素的 `type` 为 `"text"`，且文本严格以 `x-anthropic-billing-header:` 开头时移除该元素。字符串形式的 `system` 提示词、后续元素、带前导空格的文本及其他元素类型均不会被移除。
 
-Provider Resource 默认继承 Provider 策略，也可以通过 `options.system_prompt_transform_policy` 将策略覆盖为 `preserve` 或 `strip`；省略该 Resource 选项即可恢复继承。TokenHub 会为每次路由尝试单独应用实际生效的策略，因此故障切换后的 Resource 会收到原始请求，再执行自身策略。审计载荷同样保留原始请求。`POST /v1/messages/count_tokens` 不会选择具体的 Provider Resource，因此仍按原始请求计数。
+Provider Resource 默认继承 Provider 策略，也可以通过 `options.system_prompt_transform_policy` 将策略覆盖为 `preserve` 或 `strip`；省略该 Resource 选项即可恢复继承。TokenStation 会为每次路由尝试单独应用实际生效的策略，因此故障切换后的 Resource 会收到原始请求，再执行自身策略。审计载荷同样保留原始请求。`POST /v1/messages/count_tokens` 不会选择具体的 Provider Resource，因此仍按原始请求计数。
 
 ## Codex 指纹收敛
 
@@ -237,7 +237,7 @@ OpenAI Codex Subscription 资源可以在 Responses 或 Compact 请求发往上�
 
 ## Provider 库存、模型目录与发布
 
-TokenHub 将模型生命周期拆成三个独立的管理区域：
+TokenStation 将模型生命周期拆成三个独立的管理区域：
 
 | 管理区域 | 含义 |
 | --- | --- |
@@ -266,13 +266,13 @@ Provider 模型价格代表真实上游成本，用于内部审计；模型目�
 
 ## 自定义上游请求头
 
-在「Provider 渠道」中，可以在 Provider 连接设置或 Provider Resource 高级设置里添加固定自定义请求头。Provider 请求头是默认值；Resource 中名称相同（不区分大小写）的请求头会在该次实际路由尝试中覆盖 Provider 值。因此切换账号资源时，TokenHub 会为每个选中的 Resource 重新计算最终请求头。例如，可在 Provider 级设置 `User-Agent: TokenHub-Custom-Client/1.0`，再在各 Resource 上分别覆盖 `X-Tenant`。
+在「Provider 渠道」中，可以在 Provider 连接设置或 Provider Resource 高级设置里添加固定自定义请求头。Provider 请求头是默认值；Resource 中名称相同（不区分大小写）的请求头会在该次实际路由尝试中覆盖 Provider 值。因此切换账号资源时，TokenStation 会为每个选中的 Resource 重新计算最终请求头。例如，可在 Provider 级设置 `User-Agent: TokenStation-Custom-Client/1.0`，再在各 Resource 上分别覆盖 `X-Tenant`。
 
 最终请求头会一致应用于连接测试、自定义模型发现、OpenAI 兼容的 Chat Completions、Responses、Embeddings、Images（包括流式请求和图片编辑）、原生 Anthropic Messages 以及 Gemini 请求。Azure OpenAI 与 OpenAI Codex 适配器会自行管理协议身份，因此不支持自定义请求头。
 
-凭据或租户 Token 应标记为敏感值。TokenHub 会加密保存敏感值，在管理响应和预览中遮盖，并从审计快照中排除所有请求头值。编辑已保存的敏感行时，保持遮盖值不变或留空即可保留原密钥；删除整行才会清除。非敏感值仍对管理员可见。
+凭据或租户 Token 应标记为敏感值。TokenStation 会加密保存敏感值，在管理响应和预览中遮盖，并从审计快照中排除所有请求头值。编辑已保存的敏感行时，保持遮盖值不变或留空即可保留原密钥；删除整行才会清除。非敏感值仍对管理员可见。
 
-TokenHub 禁止鉴权头、API Key 与 Cookie 凭据头、转发身份头、`Content-Type`、`Content-Length`、`Host`、`Anthropic-Version`、`Anthropic-Beta`、`OpenAI-Organization`、`OpenAI-Project` 等协议专用头，以及逐跳和传输头。请求头名称必须合法且不区分大小写唯一；值不能为空，也不能包含 HTTP transport 拒绝的控制字符。最终合并配置最多 32 个请求头，名称最长 128 字节，单值最长 4 KiB，总大小不超过 16 KiB。违反规则的旧数据会通过 `header_validation_errors` 提示，修正前不会应用到上游请求。
+TokenStation 禁止鉴权头、API Key 与 Cookie 凭据头、转发身份头、`Content-Type`、`Content-Length`、`Host`、`Anthropic-Version`、`Anthropic-Beta`、`OpenAI-Organization`、`OpenAI-Project` 等协议专用头，以及逐跳和传输头。请求头名称必须合法且不区分大小写唯一；值不能为空，也不能包含 HTTP transport 拒绝的控制字符。最终合并配置最多 32 个请求头，名称最长 128 字节，单值最长 4 KiB，总大小不超过 16 KiB。违反规则的旧数据会通过 `header_validation_errors` 提示，修正前不会应用到上游请求。
 
 ## 模型路由策略
 
@@ -309,7 +309,7 @@ GPT-6 Sol／Luna 系列目录条目已携带这些配置，已导入的库存不
 
 ### 作用域路由策略
 
-可在「作用域策略」中为全局网关、项目或 API Key 绑定独立路由策略。TokenHub 按 API Key、项目、全局的顺序解析且只选择一个有效策略。一旦命中更高优先级的绑定，即使该策略已停用、存在冲突或筛选后无合格候选，也会安全拒绝而不会回退到低优先级作用域。每个作用域对象最多绑定一个策略；未绑定的策略定义可以提前准备，不影响流量。
+可在「作用域策略」中为全局网关、项目或 API Key 绑定独立路由策略。TokenStation 按 API Key、项目、全局的顺序解析且只选择一个有效策略。一旦命中更高优先级的绑定，即使该策略已停用、存在冲突或筛选后无合格候选，也会安全拒绝而不会回退到低优先级作用域。每个作用域对象最多绑定一个策略；未绑定的策略定义可以提前准备，不影响流量。
 
 模型访问权先于路由执行。项目和 API Key 均支持 `inherit`（继承）与 `restricted`（限制）模式。限制列表会与所有上层列表取交集，因此 API Key 不能扩大项目权限；`restricted` 且列表为空表示禁止全部模型。为保持兼容，在访问模式上线前创建、且模式与列表均为空的记录仍按继承处理。`GET /v1/models` 使用同一有效访问范围，并要求至少存在一条被有效路由策略允许的路由。
 
@@ -353,7 +353,7 @@ GPT-6 Sol／Luna 系列目录条目已携带这些配置，已导入的库存不
 | 其它 `5xx` | `502` | `provider_upstream_error` | 是 | 是 |
 | 其它 `4xx` | `502` | `provider_error` | 否 | 否 |
 
-上游的 `401` / `403` 不会原样透传：它表示网关自己配置的该 Provider 凭据被拒绝，调用方看到 `401` 会误以为自己的 TokenHub API Key 失效。出于同样原因，这两种情况不会把上游响应体返回给调用方——Provider 常在其中回显被拒绝的密钥。原始状态码会记录在每次路由尝试的 `upstream_status` 上，供运维查看。
+上游的 `401` / `403` 不会原样透传：它表示网关自己配置的该 Provider 凭据被拒绝，调用方看到 `401` 会误以为自己的 TokenStation API Key 失效。出于同样原因，这两种情况不会把上游响应体返回给调用方——Provider 常在其中回显被拒绝的密钥。原始状态码会记录在每次路由尝试的 `upstream_status` 上，供运维查看。
 
 每次路由尝试都会同时记录两者：`status_code` 是告诉调用方的状态，`upstream_status` 是 Provider 实际返回的状态。
 
@@ -363,7 +363,7 @@ GPT-6 Sol／Luna 系列目录条目已携带这些配置，已导入的库存不
 
 ## 指标
 
-TokenHub 可以在 `GET /metrics` 暴露 Prometheus 指标。该功能默认关闭，需设置 `TOKENHUB_METRICS_ENABLED=true` 才会启用；关闭时不采集任何数据，端点返回 404。该端点始终需要鉴权：指标会泄露模型名、Provider 和资源标识以及花费，因此不允许匿名访问。请使用 `Authorization: Bearer <token>`，令牌取自 `TOKENHUB_METRICS_TOKEN`；该变量为空时回落到管理员令牌。建议配置独立令牌，避免把管理员凭据放进 Prometheus 抓取配置。通过查询参数传令牌会被拒绝，因为它会被记进访问日志。
+TokenStation 可以在 `GET /metrics` 暴露 Prometheus 指标。该功能默认关闭，需设置 `TOKENHUB_METRICS_ENABLED=true` 才会启用；关闭时不采集任何数据，端点返回 404。该端点始终需要鉴权：指标会泄露模型名、Provider 和资源标识以及花费，因此不允许匿名访问。请使用 `Authorization: Bearer <token>`，令牌取自 `TOKENHUB_METRICS_TOKEN`；该变量为空时回落到管理员令牌。建议配置独立令牌，避免把管理员凭据放进 Prometheus 抓取配置。通过查询参数传令牌会被拒绝，因为它会被记进访问日志。
 
 | 指标 | 类型 | 含义 |
 | --- | --- | --- |
@@ -412,7 +412,7 @@ histogram_quantile(
 
 ## 链路追踪导出
 
-TokenHub 可以通过 OTLP/HTTP 为每次网关调用导出一条 OpenTelemetry 链路。每条链路包含一个代表该请求的根 span，以及每个进入调用流程的候选各一个 generation span，因此一次故障转移会同时呈现两个候选，以及各自消耗的 Token 与成本。因容量不足而被跳过的候选从未触达 Provider，改为记录成根 span 上的一个 event。指标只能告诉你延迟升高了，链路能告诉你是哪个账号服务了这次请求、花了多少钱。该功能默认关闭：它会把运行数据发送到另一个系统。
+TokenStation 可以通过 OTLP/HTTP 为每次网关调用导出一条 OpenTelemetry 链路。每条链路包含一个代表该请求的根 span，以及每个进入调用流程的候选各一个 generation span，因此一次故障转移会同时呈现两个候选，以及各自消耗的 Token 与成本。因容量不足而被跳过的候选从未触达 Provider，改为记录成根 span 上的一个 event。指标只能告诉你延迟升高了，链路能告诉你是哪个账号服务了这次请求、花了多少钱。该功能默认关闭：它会把运行数据发送到另一个系统。
 
 `TOKENHUB_TRACING_ENDPOINT` 需填写 OTLP traces 的完整信号级 URL（含完整路径），网关按原样使用、不追加任何路径——因为猜测出来的路径后缀只会表现为静默的 404，而不是启动报错。不带路径，或带有 query、fragment、userinfo 的 URL 会在启动时被拒绝，而不是被悄悄导出到别处。任何 OTLP/HTTP 后端都可以接入；**不需要 OpenTelemetry Collector**，因为网关直接使用 OTLP over HTTP，而不是 gRPC。
 
@@ -424,11 +424,11 @@ TOKENHUB_TRACING_ENDPOINT=https://cloud.langfuse.com/api/public/otel/v1/traces
 TOKENHUB_TRACING_HEADERS="Authorization=Basic $(printf '%s' 'pk-lf-...:sk-lf-...' | base64),x-langfuse-ingestion-version=4"
 ```
 
-属性映射面向 Langfuse v4 的摄入模型；该版本对自建部署已 GA，并且是 2026-04-14 之后创建的 Langfuse Cloud 组织的默认版本。自建 Langfuse v4 除 PostgreSQL、Redis 和对象存储外，还要求 ClickHouse 25.12 或更高版本。TokenHub 不会把 Langfuse 打包进自己的 Compose 文件：那是另一套有独立升级周期的有状态服务，把两者耦合会让一次 Langfuse 迁移变成网关停机。
+属性映射面向 Langfuse v4 的摄入模型；该版本对自建部署已 GA，并且是 2026-04-14 之后创建的 Langfuse Cloud 组织的默认版本。自建 Langfuse v4 除 PostgreSQL、Redis 和对象存储外，还要求 ClickHouse 25.12 或更高版本。TokenStation 不会把 Langfuse 打包进自己的 Compose 文件：那是另一套有独立升级周期的有状态服务，把两者耦合会让一次 Langfuse 迁移变成网关停机。
 
 是否导出提示词和响应，与是否开启追踪是两个独立决策，`TOKENHUB_TRACING_CAPTURE_PAYLOADS` 默认关闭。关闭时链路依然携带状态码、耗时、每次尝试所用的 Provider 与资源、Token、成本、传输方式和上游请求 ID。开启后，请求与响应体会经过与本地 payload 日志相同的脱敏与截断；上游错误文本同样按 payload 对待，因为上游错误里可能夹带响应体、URL 或账号标识。
 
-Token 用量与成本只挂在 generation span 上，绝不挂在根 span 上。Langfuse v4 按 observation 聚合，若在根上重复携带，项目总量中的每个 Token 和每一分钱都会被算两遍。Token 计数在导出时还会被改写为互斥的分桶。TokenHub 的输入与输出总数本身已包含各自的明细类别——输入侧的缓存命中、缓存写入、音频，输出侧的推理、音频、预测——而 Langfuse 会把收到的分桶直接相加，因此每项明细都要从所属总数中扣除，并以剩余额度封顶。导出的成本只有对外计费金额；Provider 自身成本不导出，它被 TokenHub 有意限制在特权请求审计中。
+Token 用量与成本只挂在 generation span 上，绝不挂在根 span 上。Langfuse v4 按 observation 聚合，若在根上重复携带，项目总量中的每个 Token 和每一分钱都会被算两遍。Token 计数在导出时还会被改写为互斥的分桶。TokenStation 的输入与输出总数本身已包含各自的明细类别——输入侧的缓存命中、缓存写入、音频，输出侧的推理、音频、预测——而 Langfuse 会把收到的分桶直接相加，因此每项明细都要从所属总数中扣除，并以剩余额度封顶。导出的成本只有对外计费金额；Provider 自身成本不导出，它被 TokenStation 有意限制在特权请求审计中。
 
 ![Langfuse 中的一次故障转移链路：根请求 span、两次失败的不可达账号尝试，以及最终提供服务、带有自身 Token 数与成本的 generation](../assets/screenshots/tracing-langfuse-trace-en.png)
 
@@ -440,11 +440,11 @@ Token 用量与成本只挂在 generation span 上，绝不挂在根 span 上。
 
 ## Prompt Cache 计价
 
-模型目录支持按每百万 Token 配置可选的缓存读取价和缓存写入价。未配置缓存写入价时，TokenHub 会按普通输入价计算缓存写入 Token，以保持历史估算兼容。若 Provider 区分缓存创建时长，还可以配置 `cache_write_5m_price_usd_per_1m` 和 `cache_write_1h_price_usd_per_1m`；剩余缓存写入 Token 使用通用缓存写入价。缓存读取价留空时，DeepSeek V4 Pro 按标准输入价的约 0.83% 估算，其他 DeepSeek 模型按 2% 估算，其余非 Embedding 模型按 10% 估算。模型定价表会标记估算值，并在悬停时说明采用的比例。
+模型目录支持按每百万 Token 配置可选的缓存读取价和缓存写入价。未配置缓存写入价时，TokenStation 会按普通输入价计算缓存写入 Token，以保持历史估算兼容。若 Provider 区分缓存创建时长，还可以配置 `cache_write_5m_price_usd_per_1m` 和 `cache_write_1h_price_usd_per_1m`；剩余缓存写入 Token 使用通用缓存写入价。缓存读取价留空时，DeepSeek V4 Pro 按标准输入价的约 0.83% 估算，其他 DeepSeek 模型按 2% 估算，其余非 Embedding 模型按 10% 估算。模型定价表会标记估算值，并在悬停时说明采用的比例。
 
 用量记录会在总 `estimated_cost_usd` 之外暴露 `input_cost_usd`、`cache_read_cost_usd`、`cache_write_cost_usd` 和 `output_cost_usd`，方便报表审计最终费用如何由 Provider usage 组成。
 
-模型记录和 Provider 模型库存也支持 `pricing_periods`：一个按时间段覆盖价格的 JSON 数组。每个时间段可以包含 IANA `timezone`、`HH:MM` 格式的本地 `start_time` 和 `end_time`、可选的 RFC 3339 `effective_from` 和 `effective_until`，以及输入或输出价格字段。TokenHub 按请求开始时间选择价格，首个匹配的时间段生效；时间窗口可以跨午夜。
+模型记录和 Provider 模型库存也支持 `pricing_periods`：一个按时间段覆盖价格的 JSON 数组。每个时间段可以包含 IANA `timezone`、`HH:MM` 格式的本地 `start_time` 和 `end_time`、可选的 RFC 3339 `effective_from` 和 `effective_until`，以及输入或输出价格字段。TokenStation 按请求开始时间选择价格，首个匹配的时间段生效；时间窗口可以跨午夜。
 
 ## 目录元数据恢复
 
@@ -452,9 +452,9 @@ Token 用量与成本只挂在 generation span 上，绝不挂在根 span 上。
 
 ## 外部账单连接器
 
-平台管理员可在「成本账单」中管理外部账单源。TokenHub 支持阿里云 `QueryInstanceBill`、NewAPI 额度数据和 OneAPI 兼容日志源。连接器可以测试连接、立即同步、按分钟设置定时同步、停用并保留历史记录，也可以随后重新启用。连接器需配置对应的 TokenHub Provider ID；若账单只对应一个账号，还可配置 TokenHub 资源账号 ID。对账会使用这一持久化范围，避免其他 Provider 或账号的用量混入结果。
+平台管理员可在「成本账单」中管理外部账单源。TokenStation 支持阿里云 `QueryInstanceBill`、NewAPI 额度数据和 OneAPI 兼容日志源。连接器可以测试连接、立即同步、按分钟设置定时同步、停用并保留历史记录，也可以随后重新启用。连接器需配置对应的 TokenStation Provider ID；若账单只对应一个账号，还可配置 TokenStation 资源账号 ID。对账会使用这一持久化范围，避免其他 Provider 或账号的用量混入结果。
 
-阿里云连接器需要账单 RPC Base URL、AccessKey ID、AccessKey Secret、源时区，可选填写 Product Code。TokenHub 使用 HMAC-SHA1 为每个 RPC 请求签名，并按账期逐月推进。NewAPI 连接器需要 Base URL、访问令牌、`New-Api-User` 用户 ID、币种，以及一个币种单位对应的 Quota 数量；TokenHub 会按照官方文档携带鉴权请求头调用 `GET /api/data/self`，并自动把同步范围切分为最长 30 天的窗口。OneAPI 兼容连接器需要 Base URL、API Token、日志路径、币种和 Quota 换算值。所有连接器都可以设置每秒请求上限；临时网络错误、`429` 和 `5xx` 会使用有上限的指数退避重试。
+阿里云连接器需要账单 RPC Base URL、AccessKey ID、AccessKey Secret、源时区，可选填写 Product Code。TokenStation 使用 HMAC-SHA1 为每个 RPC 请求签名，并按账期逐月推进。NewAPI 连接器需要 Base URL、访问令牌、`New-Api-User` 用户 ID、币种，以及一个币种单位对应的 Quota 数量；TokenStation 会按照官方文档携带鉴权请求头调用 `GET /api/data/self`，并自动把同步范围切分为最长 30 天的窗口。OneAPI 兼容连接器需要 Base URL、API Token、日志路径、币种和 Quota 换算值。所有连接器都可以设置每秒请求上限；临时网络错误、`429` 和 `5xx` 会使用有上限的指数退避重试。
 
 手动同步可以传入 RFC 3339 格式的 `from` 和 `to`。未指定时间范围时，从上一次成功同步的结束时间继续。每页保存一次上游 Cursor，因此失败重试会从断点继续当前区间，而不是重新开始。规范化账单以 `(connector_id, external_id)` 作为幂等键，并保留币种、源时区、税费、折扣、退款、账期和用量起止时间。最近同步会展示页数、请求尝试数、新增/更新记录数和经过清理的失败代码。
 
@@ -462,9 +462,9 @@ Token 用量与成本只挂在 generation span 上，绝不挂在根 span 上。
 
 ## 成本对账
 
-平台管理员可以在「成本账单 → 成本对账规则」中，将已同步的 Provider 账单与 TokenHub 用量进行比较。规则可选择一个账单连接器、明细/小时/天/月粒度、匹配维度、IANA 时区、一个 ISO 币种、金额与比例容差、明细时间窗口、账单延迟窗口和可选定时周期。币种始终是匹配维度，因此不同币种需要分别建立规则。TokenHub 用量成本以 USD 保存，每条规则记录固定的“1 USD = 目标币种”汇率；USD 规则的汇率必须为 `1`。可选的 Provider 侧映射可将外部 Provider、资源账号、模型和项目值规范化为 TokenHub 标识。明细规则必须包含 `request_id`；聚合规则可按 Provider、资源账号、模型、项目和币种分组。NewAPI 账单没有请求级标识，因此 NewAPI 连接器只支持小时、天和月粒度，不支持明细粒度。手工输入的账期时间会先按规则的 IANA 时区解释，再发送给 API。
+平台管理员可以在「成本账单 → 成本对账规则」中，将已同步的 Provider 账单与 TokenStation 用量进行比较。规则可选择一个账单连接器、明细/小时/天/月粒度、匹配维度、IANA 时区、一个 ISO 币种、金额与比例容差、明细时间窗口、账单延迟窗口和可选定时周期。币种始终是匹配维度，因此不同币种需要分别建立规则。TokenStation 用量成本以 USD 保存，每条规则记录固定的“1 USD = 目标币种”汇率；USD 规则的汇率必须为 `1`。可选的 Provider 侧映射可将外部 Provider、资源账号、模型和项目值规范化为 TokenStation 标识。明细规则必须包含 `request_id`；聚合规则可按 Provider、资源账号、模型、项目和币种分组。NewAPI 账单没有请求级标识，因此 NewAPI 连接器只支持小时、天和月粒度，不支持明细粒度。手工输入的账期时间会先按规则的 IANA 时区解释，再发送给 API。
 
-选择账期执行规则后，结果会给出已匹配、仅 Provider 存在、仅 TokenHub 存在和金额不一致四类数量，以及两侧总额、差异、可能原因和可下钻的源记录 ID。金额先按亚微美元精度累加，只在保存或展示结果时舍入到最多六位小数。明细匹配会先在时间窗口内最大化一对一匹配数量，再最小化总时间距离；账期边界外的 TokenHub 记录若与账期内 Provider 账单匹配，也会纳入结果。Provider 记录按实际用量时间而非入库时间归属账期，因此迟到的账单仍会归入原始账期。定时任务会在配置的账单延迟后，对最近一个完整的小时、天或月执行对账。
+选择账期执行规则后，结果会给出已匹配、仅 Provider 存在、仅 TokenStation 存在和金额不一致四类数量，以及两侧总额、差异、可能原因和可下钻的源记录 ID。金额先按亚微美元精度累加，只在保存或展示结果时舍入到最多六位小数。明细匹配会先在时间窗口内最大化一对一匹配数量，再最小化总时间距离；账期边界外的 TokenStation 记录若与账期内 Provider 账单匹配，也会纳入结果。Provider 记录按实际用量时间而非入库时间归属账期，因此迟到的账单仍会归入原始账期。定时任务会在配置的账单延迟后，对最近一个完整的小时、天或月执行对账。
 
 每次结果都保存完整规则快照、规则版本与哈希、输入哈希、执行人、时间和审计事件。重新计算使用该次执行保存的规则快照；若重新计算失败，上一次成功结果及其明细仍会保留，失败尝试会写入审计。源记录不变时，输入哈希和分类金额可复现。成功结果可锁定，锁定后不能再重新计算。明细接口使用服务端 `limit`/`offset` 分页；CSV 默认按有界批次流式导出全部差异行和源记录引用，不做静默行数截断。其中不包含 Provider 凭证或原始快照，资源账号在管理 API 和 CSV 中都会脱敏，资源账号映射也不会写入审计快照。
 
@@ -488,9 +488,9 @@ Token 用量与成本只挂在 generation span 上，绝不挂在根 span 上。
 
 新增身份源包含三个必填步骤：选择身份源、填写连接方式、配置登录入口与首次登录授权。连接方式步骤会展示所选身份源的官方配置文档，可据此创建应用并获取相应凭据。通用 OIDC/OAuth2 模板则会提示查阅实际身份平台的应用注册文档，并提供相应协议参考。在第三步，已预置完整端点的模板可选择「跳过并完成」；如果模板缺少必要端点，高级设置会变为必填。也可主动进入高级设置，覆盖端点、Scope 和 Claim 默认值。编辑已有身份源时仍会在同一页展示完整表单。
 
-请使用 TokenHub 后端公开地址和回调路径 `/api/admin/auth/oauth/callback`。Callback URL 可留空，让系统按后端请求 Host 自动生成；如果显式填写，完整 URL 必须与身份平台中登记的回调地址完全一致。
+请使用 TokenStation 后端公开地址和回调路径 `/api/admin/auth/oauth/callback`。Callback URL 可留空，让系统按后端请求 Host 自动生成；如果显式填写，完整 URL 必须与身份平台中登记的回调地址完全一致。
 
-管理员 OAuth 登录完成时，重定向 URL 不会携带管理员会话 Token。TokenHub 只向控制台返回短时、单次使用的 code；控制台完成一次交换后，仅在当前浏览器标签页保留得到的会话。刷新该标签页仍会保持登录；关闭标签页后需要重新登录。
+管理员 OAuth 登录完成时，重定向 URL 不会携带管理员会话 Token。TokenStation 只向控制台返回短时、单次使用的 code；控制台完成一次交换后，仅在当前浏览器标签页保留得到的会话。刷新该标签页仍会保持登录；关闭标签页后需要重新登录。
 
 OAuth 登录失败时，登录页会保留错误提示，可在同一标签页重新发起登录。已知错误码用于区分身份源授权（`provider_error`）、Token 交换（`token_exchange_failed`）、用户信息读取（`userinfo_failed`）或用户同步（`user_sync_failed`）阶段。对接 Keycloak 等 OIDC 身份源时，请检查登记的公网回调地址、客户端凭据，以及稳定用户标识和邮箱的 Claim 映射。邮箱明确标记为 `email_verified: false` 时会拒绝登录；部分已支持的企业身份源可在未提供邮箱时，根据稳定的用户 Subject 派生内部邮箱。请求支持时只分享错误码和脱敏配置，不要提供 Token、授权码或 Client Secret。
 
@@ -498,17 +498,17 @@ OAuth 登录失败时，登录页会保留错误提示，可在同一标签页�
 
 更新身份源或通知渠道时，空字符串、掩码 `********`、`••••••••` 或 `[redacted]` 都表示“保留已存储的 Secret”。只有发送 JSON `null` 才会显式清空 Secret。清空通知渠道 Secret 时，还会一并删除相关别名，例如 `url` / `webhook_url`、`smtp_password` / `password`，以及当前渠道对应的 Token 或 Secret 别名。只有平台管理员可以新增、修改或删除身份源；安全管理员只能读取已掩码的配置。
 
-| 平台 | 应用侧必填配置 | TokenHub 处理方式 |
+| 平台 | 应用侧必填配置 | TokenStation 处理方式 |
 | --- | --- | --- |
-| 钉钉 | 创建网页应用，开启用户授权，登记回调地址，复制 App Key 和 App Secret | 使用钉钉 v1.0 JSON Token API 和专用的用户 Token 请求头。如授权资料不包含邮箱，TokenHub 会基于 `unionId` 生成稳定的内部邮箱。 |
-| 飞书 | 创建企业自建应用，开启网页授权，登记回调地址，复制 App ID 和 App Secret；在可用时授予用户资料和企业邮箱权限 | 使用飞书 OAuth v2 Token API，并解析用户信息响应的 `data` 层。如邮箱不可用，TokenHub 会基于 `union_id` 生成稳定的内部邮箱。 |
+| 钉钉 | 创建网页应用，开启用户授权，登记回调地址，复制 App Key 和 App Secret | 使用钉钉 v1.0 JSON Token API 和专用的用户 Token 请求头。如授权资料不包含邮箱，TokenStation 会基于 `unionId` 生成稳定的内部邮箱。 |
+| 飞书 | 创建企业自建应用，开启网页授权，登记回调地址，复制 App ID 和 App Secret；在可用时授予用户资料和企业邮箱权限 | 使用飞书 OAuth v2 Token API，并解析用户信息响应的 `data` 层。如邮箱不可用，TokenStation 会基于 `union_id` 生成稳定的内部邮箱。 |
 | 企业微信 | 创建自建应用并配置可信网页授权域，复制 Corp ID、应用 Secret 和 Agent ID，同时授予读取所需通讯录成员的权限 | 使用企微 CorpApp 登录，先获取应用 Token，再将回调 code 解析为 `UserId` 并读取成员资料。优先使用 `biz_mail`；缺失时基于 `userid` 生成稳定的内部邮箱。 |
 
 内部邮箱以 `<provider>.tokenhub.local` 结尾，只用于账号标识，不是可投递邮箱。在新登录链路完整验证前，请保留一个可控的密码管理员账号。
 
 ## 测试通知渠道
 
-在**健康与告警 → 通知渠道**中保存渠道后，点击该行的**发送测试通知**。TokenHub 使用已保存的目标与凭据，向 SMTP 收件人或配置的 Webhook／机器人发送一条明确标记的测试消息，不使用表单中尚未保存的修改。已禁用的渠道也可以测试，且不会被启用。
+在**健康与告警 → 通知渠道**中保存渠道后，点击该行的**发送测试通知**。TokenStation 使用已保存的目标与凭据，向 SMTP 收件人或配置的 Webhook／机器人发送一条明确标记的测试消息，不使用表单中尚未保存的修改。已禁用的渠道也可以测试，且不会被启用。
 
 控制台显示投递成功或脱敏后的失败原因。即使 HTTP 状态为 200，钉钉、飞书和企业微信也必须明确返回值为零的成功码；业务错误、结果码缺失或无效、HTTP 响应不完整或读取失败均判定为失败。需要校验业务结果的机器人响应正文超过 4096 字节时会判定失败，普通 Webhook 响应正文不受此校验大小限制。成功仅表示 SMTP 服务器或目标 API 已接受请求；请到目标收件箱／渠道确认接收，邮件还应检查垃圾邮件过滤。每次投递尝试都会写入**告警投递**及审计日志，不会创建正式告警。仅平台管理员和安全管理员可以测试。
 
@@ -518,7 +518,7 @@ API：`POST /api/admin/resources/notification-channels/{channel_id}/test`，使�
 
 ## 邮件通知渠道
 
-类型为 `email` 的通知渠道通过 SMTP 投递。默认情况下 TokenHub 使用明文连接，并按服务器通告的能力升级到 STARTTLS（通常为 587 端口）。如果邮件服务器只在隐式 TLS 端口（如 465）上提供 SMTP，请将渠道字段 `smtp_encryption` 设置为 `ssl`、`tls`、`smtps` 或 `implicit`，以便从第一个字节开始即以 TLS 建立连接。渠道的其他标准字段（`smtp_host`、`smtp_port`、`smtp_username`、`smtp_password`、`smtp_from`、`email_to`）保持不变。
+类型为 `email` 的通知渠道通过 SMTP 投递。默认情况下 TokenStation 使用明文连接，并按服务器通告的能力升级到 STARTTLS（通常为 587 端口）。如果邮件服务器只在隐式 TLS 端口（如 465）上提供 SMTP，请将渠道字段 `smtp_encryption` 设置为 `ssl`、`tls`、`smtps` 或 `implicit`，以便从第一个字节开始即以 TLS 建立连接。渠道的其他标准字段（`smtp_host`、`smtp_port`、`smtp_username`、`smtp_password`、`smtp_from`、`email_to`）保持不变。
 
 在管理控制台的邮件渠道表单中，**SMTP 加密** 下拉框提供 `auto`（机会式 STARTTLS，legacy 默认）、`starttls`（强制 STARTTLS，服务器不支持时拒绝发送，端口 587）与 `ssl`（从第一个字节即隐式 TLS，端口 465）三个选项；新渠道默认 `starttls`。选择 `auto` 时该字段留空以保留 legacy 的机会式 STARTTLS；选择 `starttls` 或 `ssl` 时该值写入 `smtp_encryption` 字段。
 

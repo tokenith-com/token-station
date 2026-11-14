@@ -42,7 +42,7 @@ test("admin can convert and export a statement against the real backend", async 
   const downloaded = page.waitForEvent("download");
   await exportButton.click();
   const download = await downloaded;
-  expect(download.suggestedFilename()).toMatch(/^tokenhub-provider-/);
+  expect(download.suggestedFilename()).toMatch(/^tokenstation-provider-/);
   const csv = await readFile((await download.path())!, "utf8");
   expect(csv).toContain('"display_currency","CNY"');
   expect(csv).toContain('"display_exchange_rate_usd_to_currency","7.200000000000"');

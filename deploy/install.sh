@@ -24,11 +24,11 @@ EOF
 }
 
 log() {
-  printf '[TokenHub] %s\n' "$*"
+  printf '[TokenStation] %s\n' "$*"
 }
 
 error() {
-  printf '[TokenHub] ERROR: %s\n' "$*" >&2
+  printf '[TokenStation] ERROR: %s\n' "$*" >&2
 }
 
 while [ "$#" -gt 0 ]; do
@@ -122,7 +122,7 @@ import json
 import sys
 
 config = json.load(sys.stdin)
-backend = config.get("services", {}).get("tokenhub-backend", {})
+backend = config.get("services", {}).get("tokenstation-backend", {})
 environment = backend.get("environment", {})
 image = backend.get("image", "")
 image_tag = image.rsplit(":", 1)[1] if ":" in image else ""
@@ -382,7 +382,7 @@ sqlite_root_key_can_be_unset() {
     fi
   fi
 
-  if backend_id="$("${compose[@]}" ps -a -q tokenhub-backend 2>/dev/null)" &&
+  if backend_id="$("${compose[@]}" ps -a -q tokenstation-backend 2>/dev/null)" &&
     [ -n "$backend_id" ]; then
     if "$DOCKER_BIN" exec "$backend_id" node -e '
 const fs = require("node:fs");
@@ -486,21 +486,21 @@ if [ "$CHECK_ONLY" = true ]; then
 fi
 
 if [ "$BUILD_LOCAL" = true ]; then
-  log "building TokenHub images from the local checkout"
+  log "building TokenStation images from the local checkout"
   if "${compose[@]}" build; then
     :
   else
     status=$?
-    error "Docker Compose failed to build TokenHub images (exit status $status)"
+    error "Docker Compose failed to build TokenStation images (exit status $status)"
     exit "$status"
   fi
 else
-  log "pulling published TokenHub images"
+  log "pulling published TokenStation images"
   if "${compose[@]}" pull; then
     :
   else
     pull_status=$?
-    error "Docker Compose failed to pull published TokenHub images (exit status $pull_status)"
+    error "Docker Compose failed to pull published TokenStation images (exit status $pull_status)"
     if [ "$image_tag" != "latest" ]; then
       error "TOKENHUB_IMAGE_TAG=$image_tag was explicitly selected; refusing to replace it with a local source build"
       error "check the tag and registry access, or use --build explicitly"
@@ -511,28 +511,28 @@ else
       :
     else
       status=$?
-      error "Docker Compose also failed to build TokenHub images locally (exit status $status)"
+      error "Docker Compose also failed to build TokenStation images locally (exit status $status)"
       exit "$status"
     fi
   fi
 fi
 
-log "starting TokenHub"
+log "starting TokenStation"
 compose_started_at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-backend_container_id_before="$("${compose[@]}" ps -a -q tokenhub-backend 2>/dev/null || true)"
+backend_container_id_before="$("${compose[@]}" ps -a -q tokenstation-backend 2>/dev/null || true)"
 backend_started_at_before=""
 if [ -n "$backend_container_id_before" ]; then
   backend_started_at_before="$("$DOCKER_BIN" inspect --format '{{.State.StartedAt}}' "$backend_container_id_before" 2>/dev/null || true)"
 fi
 
 if "${compose[@]}" up -d --remove-orphans --no-build --pull never --wait --wait-timeout 180; then
-  log "TokenHub started successfully"
+  log "TokenStation started successfully"
   "${compose[@]}" ps
 else
   status=$?
-  error "Docker Compose failed to start TokenHub (exit status $status)"
+  error "Docker Compose failed to start TokenStation (exit status $status)"
 
-  backend_container_id_after="$("${compose[@]}" ps -a -q tokenhub-backend 2>/dev/null || true)"
+  backend_container_id_after="$("${compose[@]}" ps -a -q tokenstation-backend 2>/dev/null || true)"
   backend_state=""
   backend_health=""
   backend_started_at_after=""
@@ -562,12 +562,12 @@ else
   fi
 
   if [ "$backend_changed" = true ] && [ "$backend_failed" = true ]; then
-    error "tokenhub-backend logs from this startup attempt:"
+    error "tokenstation-backend logs from this startup attempt:"
     backend_logs_since="${backend_started_at_after:-$compose_started_at}"
-    "${compose[@]}" logs --no-color --tail=100 --since "$backend_logs_since" tokenhub-backend >&2 || \
-      error "unable to read tokenhub-backend logs"
+    "${compose[@]}" logs --no-color --tail=100 --since "$backend_logs_since" tokenstation-backend >&2 || \
+      error "unable to read tokenstation-backend logs"
   else
-    error "tokenhub-backend did not both change and fail readiness during this startup attempt; its logs were not included"
+    error "tokenstation-backend did not both change and fail readiness during this startup attempt; its logs were not included"
   fi
   exit "$status"
 fi

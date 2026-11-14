@@ -3,19 +3,19 @@
 ## パイプライン概要
 
 ```
-Source Gateway  ──extract──▶  CanonicalMigrationBundle  ──apply──▶  TokenHub
+Source Gateway  ──extract──▶  CanonicalMigrationBundle  ──apply──▶  TokenStation
 (LiteLLM, ...)               (バージョン付き JSON、平文秘密なし)        (Admin API / DB)
 ```
 
 - **Source Adapter** — 競合ゲートウェイの設定を読み取り、標準化された bundle を出力。
 - **Sink** — bundle を受け取り、Admin API または DB 直接接続で幂等な upsert を実行。ロールバック用の checkpoint を記録。
-- **CLI** (`tokenhub-migrate`) — `extract`、`plan`、`apply`、`verify`、`rollback` サブコマンド。
+- **CLI** (`tokenstation-migrate`) — `extract`、`plan`、`apply`、`verify`、`rollback` サブコマンド。
 
 ## ディレクトリ構成
 
 ```
 backend/
-  cmd/tokenhub-migrate/          # CLI エントリポイント
+  cmd/tokenstation-migrate/          # CLI エントリポイント
   internal/migration/
     bundle/                      # 中間フォーマット + JSON Schema
     cli/                         # cobra コマンド登録

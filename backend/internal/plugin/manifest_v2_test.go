@@ -11,7 +11,7 @@ schema_version: 2
 id: example.provider
 name: Example Provider
 version: 1.0.0
-summary: Connect TokenHub to Example.
+summary: Connect TokenStation to Example.
 category: provider_integration
 host_adapter: openai_compatible
 tokenhub:
@@ -32,7 +32,7 @@ permissions:
 		t.Fatalf("parse plugin API v2 manifest: %v", err)
 	}
 	descriptor := manifest.Descriptor()
-	if descriptor.Summary != "Connect TokenHub to Example." || descriptor.Category != CategoryProviderIntegration || descriptor.HostAdapter != "openai_compatible" {
+	if descriptor.Summary != "Connect TokenStation to Example." || descriptor.Category != CategoryProviderIntegration || descriptor.HostAdapter != "openai_compatible" {
 		t.Fatalf("descriptor v2 metadata = %+v", descriptor)
 	}
 }

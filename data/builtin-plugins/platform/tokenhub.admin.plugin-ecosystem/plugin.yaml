@@ -1,6 +1,6 @@
 schema_version: 2
 id: "tokenhub.admin.plugin-ecosystem"
-name: "TokenHub Plugin Ecosystem Dashboard"
+name: "TokenStation Plugin Ecosystem Dashboard"
 version: 1.0.0
 summary: "Expose plugin operations and status in the admin console."
 description: "Expose plugin operations and status in the admin console."
