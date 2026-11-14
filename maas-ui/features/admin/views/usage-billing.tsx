@@ -13,11 +13,15 @@ import { adminFetch, readAdminError } from "../resources/payloads";
 import { DataSection, SimpleTable, StatusPill } from "../shared/ui";
 import { AdminUIReportTemplates } from "./admin-ui-report-templates";
 import { GlobalUsageView } from "./global-usage";
+import { TeamWalletSummary } from "./team-wallet";
+import { WalletLedger } from "./wallet-ledger";
 
 export function UsageView({ api, data, user }: { api: ApiContext; data: AppData; user: AdminUser }) {
   const role = appRole(user.role);
   const showExecutiveReport = role === "admin";
   return <>
+    {role === "admin" || role === "team_leader" ? <TeamWalletSummary key={`${api.baseURL}:${api.adminToken}:${user.id}:${user.team_id}:${role}`} api={api} teamID={role === "team_leader" ? user.team_id || "" : undefined} /> : null}
+    {role === "team_leader" ? <WalletLedger key={`${api.baseURL}:${api.adminToken}:${user.id}:${user.team_id}`} api={api} teamID={user.team_id || ""} copy={{ tx, locale: languageLocale() }} /> : null}
     <GlobalUsageView key={`${api.baseURL}:${user.id}:${user.role}`} api={api} data={data} user={user} renderReport={showExecutiveReport ? (scopedData, periodLabel) => <>
     <ExecutiveUsageReport data={scopedData} periodLabel={periodLabel} />
     <AdminUIReportTemplates api={api} data={scopedData} />
@@ -234,7 +238,7 @@ export function ExecutiveMemberTable({ rows, totalTokens }: { rows: ExecutiveMem
                 <td>{compactNumber(row.output_tokens)}</td>
                 <td><strong>{compactNumber(row.total_tokens)}</strong></td>
                 <td>{percent.toFixed(percent >= 10 ? 0 : 1)}%</td>
-                <td>${formatMoney(row.estimated_cost_usd)}</td>
+                <td>¥{formatMoney(row.estimated_cost_usd)}</td>
               </tr>
             );
           })}
@@ -749,8 +753,8 @@ function BillingConnectorEditor({ api, connector, onClose, onSaved }: { api: Api
           <label className="field"><span>{tx("同步间隔（分钟）")}</span><input min="0" type="number" value={values.schedule_interval_minutes} onChange={(event) => update("schedule_interval_minutes", event.target.value)} /></label>
           <label className="field"><span>{tx("每秒请求上限")}</span><input min="0" type="number" value={values.rate_limit_per_second} onChange={(event) => update("rate_limit_per_second", event.target.value)} /></label>
           <label className="field"><span>{tx("币种")}</span><input maxLength={3} value={values.currency} onChange={(event) => update("currency", event.target.value.toUpperCase())} /></label>
-          <label className="field"><span>{tx("TokenHub Provider ID")} *</span><input value={values.provider_id} onChange={(event) => update("provider_id", event.target.value)} required /></label>
-          <label className="field"><span>{tx("TokenHub 资源账号 ID（可选）")}</span><input value={values.provider_resource_id} onChange={(event) => update("provider_resource_id", event.target.value)} /></label>
+          <label className="field"><span>{tx("TokenStation Provider ID")} *</span><input value={values.provider_id} onChange={(event) => update("provider_id", event.target.value)} required /></label>
+          <label className="field"><span>{tx("TokenStation 资源账号 ID（可选）")}</span><input value={values.provider_resource_id} onChange={(event) => update("provider_resource_id", event.target.value)} /></label>
           {isAliyun ? (
             <>
               <label className="field"><span>AccessKey ID *</span><input autoComplete="off" value={values.access_key_id} onChange={(event) => update("access_key_id", event.target.value)} required={!connector?.credentials_configured} /></label>

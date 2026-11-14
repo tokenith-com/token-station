@@ -13,7 +13,7 @@ export const projectKeyDownloadTemplates = [
   {
     id: "codex_cli_config",
     menuLabel: "Codex CLI 配置",
-    menuSubtitle: "config.toml · 连接 TokenHub Responses",
+    menuSubtitle: "config.toml · 连接 TokenStation Responses",
     filenameSuffix: "-codex-config.toml",
     render: (item, data, apiBaseURL) => codexConfigTemplate(item, data, apiBaseURL),
   },
@@ -44,7 +44,7 @@ export function projectKeyDownloadFilename(name: string, template: ProjectKeyDow
 function codexConfigTemplate(item: APIKey, data: AppData, apiBaseURL: string) {
   const model = codexTemplateModel(item, data);
   const baseURL = apiGatewayBaseURL(apiBaseURL);
-  return `# TokenHub Codex CLI configuration for ${item.name}
+  return `# TokenStation Codex CLI configuration for ${item.name}
 # Set the API key before starting Codex:
 # export TOKENHUB_API_KEY="REPLACE_WITH_YOUR_TOKENHUB_API_KEY"
 
@@ -53,7 +53,7 @@ model_provider = "tokenhub"
 model_reasoning_effort = "medium"
 
 [model_providers.tokenhub]
-name = "TokenHub - ${escapeTomlString(item.name)}"
+name = "TokenStation - ${escapeTomlString(item.name)}"
 base_url = "${escapeTomlString(baseURL)}"
 wire_api = "responses"
 env_key = "TOKENHUB_API_KEY"
@@ -62,7 +62,7 @@ env_key_instructions = "Set TOKENHUB_API_KEY to REPLACE_WITH_YOUR_TOKENHUB_API_K
 }
 
 function tokenHubEnvironmentTemplate(item: APIKey) {
-  return `# TokenHub API Key for ${item.name}
+  return `# TokenStation API Key for ${item.name}
 TOKENHUB_API_KEY=REPLACE_WITH_YOUR_TOKENHUB_API_KEY
 `;
 }

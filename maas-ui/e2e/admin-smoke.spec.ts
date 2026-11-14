@@ -9,9 +9,10 @@ const upstreamKey = process.env.TOKENHUB_E2E_UPSTREAM_KEY ?? e2eDefaults.upstrea
 
 async function login(page: Page) {
   await page.goto("/");
-  await page.getByLabel("账号 / 邮箱").fill(adminIdentity);
+  await page.getByRole("button", { name: "登录 / 立即开始", exact: true }).click();
+  await page.getByRole("textbox", { name: "账号", exact: true }).fill(adminIdentity);
   await page.getByLabel("密码", { exact: true }).fill(adminPassword);
-  await page.getByRole("button", { name: "登录控制台" }).click();
+  await page.locator("form").getByRole("button", { name: "登录", exact: true }).click();
   await expect(page.locator(".app-shell")).toBeVisible();
 }
 
@@ -21,8 +22,11 @@ function sidebar(page: Page) {
 
 test("admin can sign in and sign out of the console", async ({ page }) => {
   await login(page);
-  await page.getByTitle("退出登录").click();
-  await expect(page.getByRole("heading", { name: "欢迎回来" })).toBeVisible();
+  await page.getByRole("button", { name: "个人中心", exact: true }).click();
+  await page.getByRole("menuitem", { name: "退出登录", exact: true }).click();
+  await expect(page.getByRole("button", { name: "登录 / 立即开始", exact: true })).toBeVisible();
+  await expect(page.locator(".app-shell")).toHaveCount(0);
+  expect(await page.evaluate(() => window.sessionStorage.getItem("tokenhub.admin.session.b"))).toBeNull();
 });
 
 test("admin can switch global usage ranges against the real backend", async ({ page }) => {
@@ -51,7 +55,7 @@ for (const authenticated of [true, false]) {
 test(`admin can validate and create a custom Provider with authentication = ${authenticated}`, async ({ page }) => {
   await login(page);
   await sidebar(page).getByRole("button", { name: "供应商", exact: true }).click();
-  await expect(page).toHaveURL(/\/providers$/);
+  await expect(page).toHaveURL(/\/providers\/?$/);
   await page.getByRole("button", { name: "添加供应商" }).click();
 
   await expect(page.getByRole("heading", { name: "选择供应商" })).toBeVisible();
@@ -76,7 +80,7 @@ test(`admin can validate and create a custom Provider with authentication = ${au
 test("admin can issue an API Key and open its usage page", async ({ page }) => {
   await login(page);
   await sidebar(page).getByRole("button", { name: "Key 管理", exact: true }).click();
-  await expect(page).toHaveURL(/\/api-keys$/);
+  await expect(page).toHaveURL(/\/api-keys\/?$/);
   await page.getByRole("button", { name: /创建 API Key|发放 Key/ }).click();
   await page.getByRole("button", { name: /Default Project Space/ }).click();
   await page.getByLabel("归属用户").selectOption({ index: 1 });
@@ -98,7 +102,7 @@ test("admin can issue an API Key and open its usage page", async ({ page }) => {
 
   const keyRow = page.getByRole("row").filter({ hasText: "E2E Regression Key" });
   await keyRow.getByRole("link", { name: "用量" }).click();
-  await expect(page).toHaveURL(/\/api-keys\/[^/]+\/usage$/);
+  await expect(page).toHaveURL(/\/api-keys\/?\?usage_key=key_[^&]+$/);
   await expect(page.getByRole("heading", { name: "E2E Regression Key" })).toBeVisible();
   await expect(page.getByText("当前 Key 有效额度", { exact: true })).toBeVisible();
   await expect(page.getByText("所选条件下暂无请求", { exact: true })).toBeVisible();
@@ -107,19 +111,17 @@ test("admin can issue an API Key and open its usage page", async ({ page }) => {
   await keyRow.getByRole("button", { name: "轮换", exact: true }).click();
   await expect(page.getByRole("dialog", { name: "确认轮换 API Key" })).toBeVisible();
   // Exercise session cleanup directly while the modal correctly retains focus.
-  await page.getByTitle("退出登录").dispatchEvent("click");
-  await expect(page.getByRole("heading", { name: "欢迎回来" })).toBeVisible();
-  await page.getByLabel("账号 / 邮箱").fill(adminIdentity);
-  await page.getByLabel("密码", { exact: true }).fill(adminPassword);
-  await page.getByRole("button", { name: "登录控制台" }).click();
-  await expect(page.locator(".app-shell")).toBeVisible();
+  await page.getByRole("button", { name: "个人中心", exact: true }).dispatchEvent("click");
+  await page.getByRole("menuitem", { name: "退出登录", exact: true }).dispatchEvent("click");
+  await expect(page.getByRole("button", { name: "登录 / 立即开始", exact: true })).toBeVisible();
+  await login(page);
   await expect(page.getByRole("dialog", { name: "确认轮换 API Key" })).toHaveCount(0);
 });
 
 test("admin can inspect plugin details and files without fake settings", async ({ page }) => {
   await login(page);
   await sidebar(page).getByRole("button", { name: "插件管理", exact: true }).click();
-  await expect(page).toHaveURL(/\/plugins$/);
+  await expect(page).toHaveURL(/\/plugins\/?$/);
 
   const pluginSearch = page.getByRole("searchbox", { name: "搜索插件" });
   await page.getByRole("tab", { name: "Provider 集成" }).click();
@@ -163,10 +165,10 @@ test("admin can inspect plugin details and files without fake settings", async (
   await expect.poll(() => page.locator(".plugin-installed-actions").evaluateAll((actions) => actions.every((item) => item.scrollWidth <= item.clientWidth))).toBe(true);
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.getByRole("button", { name: "查看插件 TokenHub Core Provider Settings 的详情" }).click();
-  await expect(page).toHaveURL(/\/plugins\/tokenhub\.admin\.core-provider$/);
+  await expect(page).toHaveURL(/\/plugins\/?\?plugin=tokenhub\.admin\.core-provider$/);
   await expect(page.getByText("兼容", { exact: true })).toBeVisible();
   await page.getByRole("tab", { name: "文件" }).click();
-  await expect(page).toHaveURL(/\/plugins\/tokenhub\.admin\.core-provider\/files$/);
+  await expect(page).toHaveURL(/\/plugins\/?\?plugin=tokenhub\.admin\.core-provider&section=files$/);
   await expect(page.getByRole("button", { name: /plugin\.yaml/ })).toBeVisible();
   await expect(page.getByText("该内置插件没有独立安装包。")).toHaveCount(0);
   await page.getByRole("button", { name: "返回插件列表" }).click();
@@ -176,7 +178,7 @@ test("admin can inspect plugin details and files without fake settings", async (
   const externalTraceRow = page.locator(".plugin-installed-row").filter({ hasText: "External Trace Hook" });
   await expect(externalTraceRow.getByText("启动失败", { exact: true })).toBeVisible();
   await externalTraceRow.getByRole("button", { name: "详情", exact: true }).click();
-  await expect(page).toHaveURL(/\/plugins\/tokenhub\.extension\.external-trace$/);
+  await expect(page).toHaveURL(/\/plugins\/?\?plugin=tokenhub\.extension\.external-trace$/);
   await expect(page.getByRole("heading", { name: "External Trace Hook" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "这个插件做什么" })).toBeVisible();
   await expect(page.getByText("Contract fixture for an external trace export gateway hook.", { exact: true })).toBeVisible();
@@ -184,10 +186,14 @@ test("admin can inspect plugin details and files without fake settings", async (
   await expect(page.getByText("此功能已声明，但插件启动失败，当前不可用。", { exact: true })).toBeVisible();
   await expect(page.getByText("当前只能在插件管理中检查此插件包；声明的外部命令不会执行。", { exact: true })).toBeVisible();
   await expect(page.getByText("export", { exact: true })).not.toBeVisible();
-  await page.getByText("开发者信息", { exact: true }).click();
+  const technicalDetails = page.locator(".plugin-technical-details");
+  await expect(technicalDetails).toHaveAttribute("open", "");
+  await technicalDetails.locator("summary").click();
+  await expect(page.getByText("trace_export", { exact: true })).toBeHidden();
+  await technicalDetails.locator("summary").click();
   await expect(page.getByText("trace_export", { exact: true })).toBeVisible();
   await expect(page.getByText("export", { exact: true })).not.toBeVisible();
-  await expect(page.getByText("告诉 TokenHub 这个插件提供的一项扩展功能。", { exact: true })).toBeVisible();
+  await expect(page.getByText("告诉 TokenStation 这个插件提供的一项扩展功能。", { exact: true })).toBeVisible();
   await page.setViewportSize({ width: 390, height: 844 });
   await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
   const overflowingTechnicalElements = await page.locator(".plugin-technical-details").evaluate((details) => [details, ...details.querySelectorAll<HTMLElement>("*")]
@@ -196,7 +202,7 @@ test("admin can inspect plugin details and files without fake settings", async (
   expect(overflowingTechnicalElements).toEqual([]);
 
   await page.getByRole("tab", { name: "文件" }).click();
-  await expect(page).toHaveURL(/\/plugins\/tokenhub\.extension\.external-trace\/files$/);
+  await expect(page).toHaveURL(/\/plugins\/?\?plugin=tokenhub\.extension\.external-trace&section=files$/);
   await expect(page.getByRole("button", { name: /plugin\.yaml/ })).toBeVisible();
   await page.getByRole("button", { name: /hook\.sh/ }).click();
   await expect(page.locator(".plugin-file-preview pre")).toContainText("#!/bin/sh");
@@ -217,19 +223,19 @@ test("admin can adjust UI template settings", async ({ page }) => {
   await page.getByRole("tab", { name: "UI 模板" }).click();
   const templateRow = page.locator(".plugin-installed-row").filter({ hasText: "TokenHub Default Interface Template" });
   await templateRow.getByRole("button", { name: "设置", exact: true }).click();
-  await expect(page).toHaveURL(/\/plugins\/tokenhub\.sim\.default\/settings$/);
+  await expect(page).toHaveURL(/\/plugins\/?\?plugin=tokenhub\.sim\.default&section=settings$/);
   await expect(page.getByRole("heading", { name: "TokenHub Default Interface Template" })).toBeVisible();
   await page.reload();
-  await expect(page).toHaveURL(/\/plugins\/tokenhub\.sim\.default\/settings$/);
+  await expect(page).toHaveURL(/\/plugins\/?\?plugin=tokenhub\.sim\.default&section=settings$/);
   await expect(page.getByRole("tab", { name: "TokenHub 默认浅色" })).toBeVisible();
   await page.getByRole("tab", { name: "TokenHub 默认浅色" }).click();
   await page.getByRole("textbox", { name: "主题色 当前值" }).fill("#16a34a");
   await page.getByRole("button", { name: "保存设置" }).click();
   await expect(page.getByRole("status")).toContainText("设置已保存");
-  await expect(page.locator(".app-shell")).toHaveAttribute("style", /--accent: #16a34a/);
+  await expect(page.locator(".source-admin-content")).toHaveAttribute("style", /--accent: #16a34a/);
 
   await page.getByRole("button", { name: "恢复默认" }).click();
-  await expect(page.locator(".app-shell")).toHaveAttribute("style", /--accent: #3e7bf6/);
+  await expect(page.locator(".source-admin-content")).toHaveAttribute("style", /--accent: #3e7bf6/);
 
   await page.setViewportSize({ width: 390, height: 844 });
   await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);

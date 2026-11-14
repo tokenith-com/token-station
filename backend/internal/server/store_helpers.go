@@ -92,6 +92,9 @@ func publicKey(key APIKey) APIKey {
 
 func publicAdminUser(user AdminUser) AdminUser {
 	user.PasswordHash = ""
+	if isConsumerRole(user.Role) {
+		user.Role = "consumer"
+	}
 	return user
 }
 

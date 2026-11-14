@@ -751,7 +751,7 @@ export function LoginView({
         onThemeToggle={onThemeToggle}
       />
       <section className="login-stage">
-        <aside className="login-hero-panel" aria-label="TokenHub">
+        <aside className="login-hero-panel" aria-label="TokenStation">
           <div className="login-hero-copy">
             <h1>
               <span>{headlineParts[0]}</span>
@@ -785,7 +785,7 @@ export function LoginView({
         <form className="login-card" onSubmit={submit}>
           <div className="login-card-head">
             <h1>{tx("欢迎回来")}</h1>
-            <p>{tx("登录 TokenHub 控制台")}</p>
+            <p>{tx("登录 TokenStation 控制台")}</p>
           </div>
           <label className="field">
             <span>{tx("账号 / 邮箱")}</span>

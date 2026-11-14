@@ -45,8 +45,9 @@ export class MockAPI {
       const request = route.request();
       const url = new URL(request.url());
       // Frontend documents/assets/RSC are allowed; same-origin APIs are not.
-      const frontendResource = ["document", "script", "stylesheet", "image", "font"].includes(request.resourceType()) || url.pathname.startsWith("/_next/static/") || request.headers().rsc === "1" || url.pathname === "/favicon.ico";
-      if (url.origin === frontendOrigin && !/^\/api(?:\/|$)/.test(url.pathname) && url.pathname !== "/_next/image" && request.method() === "GET" && frontendResource) {
+      const frontendResource = ["document", "script", "stylesheet", "image", "font"].includes(request.resourceType()) || url.pathname.startsWith("/_next/static/") || request.headers().rsc === "1" || ["/favicon.ico", "/icons/sprite.svg"].includes(url.pathname);
+      const documentProbe = request.method() === "HEAD" && /^\/[a-z][a-z0-9/-]*\/$/.test(url.pathname);
+      if (url.origin === frontendOrigin && !/^\/api(?:\/|$)/.test(url.pathname) && url.pathname !== "/_next/image" && ((request.method() === "GET" && frontendResource) || documentProbe)) {
         await route.continue();
         return;
       }

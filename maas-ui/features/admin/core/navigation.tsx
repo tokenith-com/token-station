@@ -34,7 +34,7 @@ export const userNavGroups: NavGroup[] = [
   },
 ];
 
-export const guestNavGroups: NavGroup[] = [
+export const consumerNavGroups: NavGroup[] = [
   ...userNavGroups,
   {
     title: "成本管理",
@@ -59,6 +59,7 @@ export const teamLeaderNavGroups: NavGroup[] = [
     icon: Boxes,
     items: [
       { view: "models", label: "可用模型", icon: Boxes },
+      { view: "playground", label: "模型演练场", icon: Send },
       { view: "api-keys", label: "Key 管理", icon: KeyRound },
       { view: "gateway", label: "接口文档", icon: Sparkles },
     ],
@@ -153,7 +154,7 @@ export const navGroupsByRole: Record<AppRole, NavGroup[]> = {
   admin: adminNavGroups,
   team_leader: teamLeaderNavGroups,
   user: userNavGroups,
-  guest: guestNavGroups,
+  consumer: consumerNavGroups,
 };
 
 export const allNavGroupTitles = Array.from(new Set(Object.values(navGroupsByRole).flatMap(groups => groups.map(group => group.title))));
@@ -211,14 +212,14 @@ export const roleViewAccess: Record<AppRole, ViewKey[]> = {
   ),
   team_leader: ["overview", "gateway", "playground", "models", "projects", "api-keys", "teams", "users", "usage", "billing", "audit", "approvals"],
   user: ["overview", "gateway", "playground", "models", "api-keys", "usage", "audit"],
-  guest: ["overview", "gateway", "playground", "models", "api-keys", "usage", "audit", "billing", "balance-recharge"],
+  consumer: ["overview", "gateway", "playground", "models", "api-keys", "usage", "audit", "billing", "balance-recharge"],
 };
 
 export function appRole(role: string): AppRole {
   const normalized = String(role || "").trim().toLowerCase();
   if (normalized === "admin" || normalized === "system_admin") return "admin";
   if (normalized === "team_leader" || normalized === "teamlead" || normalized === "project_admin") return "team_leader";
-  if (["guest", "individual", "consumer", "retail_user"].includes(normalized)) return "guest";
+  if (["guest", "individual", "consumer", "retail_user"].includes(normalized)) return "consumer";
   return "user";
 }
 
@@ -261,7 +262,7 @@ export const topSearchPreferredViews: Record<AppRole, ViewKey[]> = {
   admin: ["overview", "providers", "routes", "models", "projects", "api-keys", "usage", "settings"],
   team_leader: ["overview", "projects", "api-keys", "usage", "billing", "gateway"],
   user: ["overview", "gateway", "playground", "models", "api-keys", "usage"],
-  guest: ["overview", "gateway", "models", "playground", "api-keys", "usage", "billing"],
+  consumer: ["overview", "gateway", "models", "playground", "api-keys", "usage", "billing"],
 };
 
 export function topSearchItemsForUser(user: AdminUser, data: AppData): TopSearchItem[] {
@@ -440,7 +441,7 @@ export function topQuickActionsForUser(user: AdminUser): NavLeafItem[] {
       { view: "playground", label: "模型演练场", icon: Send },
       { view: "api-keys", label: "Key 管理", icon: KeyRound },
     ],
-    guest: [
+    consumer: [
       { view: "gateway", label: "接口文档", icon: Sparkles },
       { view: "balance-recharge", label: "余额充值", icon: CreditCard },
       { view: "api-keys", label: "Key 管理", icon: KeyRound },
@@ -455,7 +456,7 @@ export function roleScopeDescription(user: AdminUser) {
       return "全局平台范围";
     case "team_leader":
       return "团队和项目范围";
-    case "guest":
+    case "consumer":
       return "个人账户范围";
     default:
       return "个人可见范围";

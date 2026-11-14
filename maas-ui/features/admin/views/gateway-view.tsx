@@ -33,7 +33,7 @@ export function GatewayView({
   onManageKeys: () => void;
 }) {
   const role = appRole(user.role);
-  if (role === "user" || role === "guest" || role === "team_leader") {
+  if (role === "user" || role === "consumer" || role === "team_leader") {
     return (
       <QuickAccessView
         api={api}
@@ -356,7 +356,7 @@ export function gatewayDocBundle({
     "model": "${sampleModel}",
     "messages": [
       {"role": "system", "content": "You are an internal enterprise AI assistant."},
-      {"role": "user", "content": "Introduce TokenHub in two concise sentences."}
+      {"role": "user", "content": "Introduce TokenStation in two concise sentences."}
     ],
     "temperature": 0.7,
     "stream": false
@@ -378,7 +378,7 @@ export function gatewayDocBundle({
     requestLogCount,
     visibleModelCount,
   });
-  if (role === "user" || role === "guest" || role === "team_leader") {
+  if (role === "user" || role === "consumer" || role === "team_leader") {
     return gatewayLLMUsageDocs({
       language,
       role,

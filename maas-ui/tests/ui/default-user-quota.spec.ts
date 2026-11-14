@@ -72,20 +72,23 @@ const teamMember: AdminUser = {
 test.describe("quota default-user permissions", () => {
   test.use({ sessionUser: teamLeader });
 
-  test("quota default-user-team-leader-target", async ({ page, api }, testInfo) => {
+  test("quota default-user-team-leader-cannot-access-policies", async ({ page, api }, testInfo) => {
     api.respond("GET", "/api/admin/api-keys", { data: [] });
     api.respond("GET", "/api/admin/users", { data: [teamLeader, teamMember] });
     api.respond("GET", "/api/admin/resources/teams", { data: [{ id: "team_ui", name: "UI Review Team", status: "active" }] });
-    api.respond("GET", "/api/admin/resources/quota-policies", { data: [] });
+    const wallet = { id: "wallet_ui_team", scope_type: "team", scope_id: "team_ui", balance_micro: 0, credit_limit_micro: 0, reserved_micro: 0, available_micro: 0, settled_usage_micro: 0, currency: "CNY", status: "active", created_at: "2026-06-20T00:00:00Z", updated_at: "2026-06-20T00:00:00Z" };
+    api.respond("GET", "/api/admin/teams/team_ui/wallet", { data: wallet });
+    api.define("GET", "/api/admin/audit/requests", () => ({ json: { data: [] } }), query => {
+      expect(Object.fromEntries(query)).toEqual({ page: "1", page_size: "100", q: "", status: "all" });
+    });
+    api.respond("GET", "/api/admin/usage/timeseries", { data: [] });
+    api.respond("GET", "/api/admin/resources/announcements", { data: [] });
 
     await page.goto("/quota-policies");
-    await page.getByRole("button", { name: "新增额度策略", exact: true }).first().click();
-    await page.getByRole("combobox", { name: "作用域", exact: true }).selectOption("user");
-
-    const target = page.getByRole("combobox", { name: /^作用域对象/ });
-    await expect(target.locator('option[value="all_users"]')).toHaveCount(0);
-    await expect(target.locator('option[value="usr_ui_team_leader"]')).toHaveCount(1);
-    await expect(target.locator('option[value="usr_ui_team_member"]')).toHaveCount(1);
-    await capture(page, testInfo, target.locator(".."), "default-user-team-leader-target", "团队负责人只能选择团队内的个人额度对象");
+    await expect(page).toHaveURL(/\/overview\/?$/);
+    await expect(page.getByRole("heading", { name: "额度策略", exact: true })).toHaveCount(0);
+    await expect(page.getByRole("link", { name: "额度策略", exact: true })).toHaveCount(0);
+    expect(api.calls.some(call => call.path === "/api/admin/resources/quota-policies")).toBe(false);
+    await capture(page, testInfo, page.locator("main"), "team-leader-policy-access-denied", "团队负责人：额度策略不可访问，重定向至概览");
   });
 });

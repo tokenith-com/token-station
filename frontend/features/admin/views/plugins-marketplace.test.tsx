@@ -31,7 +31,7 @@ describe("PluginsView marketplace view", () => {
           },
           publisher: {
             id: "tokenhub",
-            name: "TokenHub",
+            name: "TokenStation",
             verified: true,
           },
           advisories: [

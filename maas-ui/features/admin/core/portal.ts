@@ -4,7 +4,7 @@ export type Portal = "b" | "c";
 
 export const portalRoles: Record<Portal, AppRole[]> = {
   b: ["admin", "team_leader", "user"],
-  c: ["admin", "guest"],
+  c: ["admin", "consumer"],
 };
 
 // Unknown backend roles must not silently become team members.
@@ -12,7 +12,7 @@ export function portalRole(role: string): AppRole | null {
   const value = String(role || "").trim().toLowerCase();
   if (["admin", "system_admin"].includes(value)) return "admin";
   if (["team_leader", "teamlead", "project_admin"].includes(value)) return "team_leader";
-  if (["guest", "individual", "consumer", "retail_user"].includes(value)) return "guest";
+  if (["guest", "individual", "consumer", "retail_user"].includes(value)) return "consumer";
   if (["user", "member", "viewer", "readonly", "read_only"].includes(value)) return "user";
   return null;
 }

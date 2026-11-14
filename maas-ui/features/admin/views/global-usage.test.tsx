@@ -82,10 +82,13 @@ describe("Global usage ranges", () => {
 
   it("keeps restricted provider attribution out of personal usage details", async () => {
     const payload = report("today", 1);
+    payload.summary.estimated_cost_usd = 12.34;
     payload.breakdown.providers = [{ id: "private-provider", request_count: 1, input_tokens: 10, output_tokens: 5, total_tokens: 15, estimated_cost_usd: 2 }];
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(response(payload)));
     render(<GlobalUsageView api={api} data={emptyData()} user={{ ...admin, role: "user" }} />);
     await waitFor(() => expect(requests()).toHaveTextContent("1"));
+    expect(screen.getByText("本人估算金额").parentElement).toHaveTextContent("12.34");
+    expect(vi.mocked(fetch).mock.calls.map(([url]) => url)).toEqual(["/api/backend/api/admin/usage/report?range=today"]);
     expect(screen.queryByText("private-provider")).not.toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: "供应商用量" })).not.toBeInTheDocument();
   });

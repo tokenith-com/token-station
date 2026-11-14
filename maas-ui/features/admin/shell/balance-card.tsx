@@ -8,24 +8,25 @@ export function formatBalanceCNY(cents: number) {
   return new Intl.NumberFormat(languageLocale(), { style: "currency", currency: "CNY", currencyDisplay: "narrowSymbol", minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(cents / 100);
 }
 
-// Only consumer (guest) accounts own a wallet; the backend rejects other roles.
-export function BalanceCard({ api, activeView, onSelectView }: { api: ApiContext; activeView: ViewKey; onSelectView: (view: ViewKey) => void }) {
+export function BalanceCard({ api, activeView, teamID, onSelectView }: { api: ApiContext; activeView: ViewKey; teamID?: string; onSelectView: (view: ViewKey) => void }) {
   const [balanceCents, setBalanceCents] = useState<number | null>(null);
 
   useEffect(() => {
-    if (!api.adminToken) return;
+    if (!api.adminToken || teamID === "") return;
     let cancelled = false;
-    adminFetch(api, "/api/admin/consumer/wallet")
+    const path = teamID ? `/api/admin/teams/${encodeURIComponent(teamID)}/wallet` : "/api/admin/consumer/wallet";
+    adminFetch(api, path)
       .then(async resp => {
         if (!resp.ok) return;
-        const payload = (await resp.json()) as { balance_cents?: unknown };
-        if (!cancelled && typeof payload.balance_cents === "number") setBalanceCents(payload.balance_cents);
+        const payload = (await resp.json()) as { balance_cents?: unknown; wallet?: { balance_cents?: unknown } };
+        const value = teamID ? payload.wallet?.balance_cents : payload.balance_cents;
+        if (!cancelled && typeof value === "number") setBalanceCents(value);
       })
       .catch(() => undefined);
     return () => {
       cancelled = true;
     };
-  }, [api, activeView]);
+  }, [api, activeView, teamID]);
 
   return (
     <button className="console-topbar-balance" onClick={() => onSelectView("balance-recharge")} title={tx("余额充值")} type="button">

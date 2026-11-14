@@ -1462,6 +1462,8 @@ func createAdminUser(db *gorm.DB, user AdminUser, password string) (AdminUser, e
 	}
 	if user.Role == "" {
 		user.Role = "user"
+	} else if isConsumerRole(user.Role) {
+		user.Role = "consumer"
 	}
 	if user.Status == "" {
 		user.Status = StatusActive

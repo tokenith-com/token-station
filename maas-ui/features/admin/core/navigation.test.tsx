@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { adminNavGroups, canAccessView, isNavParentItem, navGroupsForUser } from "./navigation";
+import { adminNavGroups, appRole, canAccessView, isNavParentItem, navGroupsForUser } from "./navigation";
 import type { AdminUser, AppRole } from "./types";
 
 export const expectedMenus: Record<AppRole, string[]> = {
@@ -12,9 +12,9 @@ export const expectedMenus: Record<AppRole, string[]> = {
     "security-policies", "sqlite-backups", "database-status", "announcements", "plugins",
     "users", "role-configs", "identity-providers", "settings",
   ],
-  team_leader: ["overview", "usage", "models", "api-keys", "gateway", "projects", "users", "audit"],
+  team_leader: ["overview", "usage", "models", "playground", "api-keys", "gateway", "projects", "users", "audit"],
   user: ["overview", "models", "playground", "api-keys", "gateway", "usage", "audit"],
-  guest: ["overview", "models", "playground", "api-keys", "gateway", "usage", "audit", "billing", "balance-recharge"],
+  consumer: ["overview", "models", "playground", "api-keys", "gateway", "usage", "audit", "billing", "balance-recharge"],
 };
 describe("custom role menus retained during upstream merge", () => {
   it.each(Object.keys(expectedMenus) as AppRole[])("preserves the %s menu and access", role => {
@@ -25,6 +25,14 @@ describe("custom role menus retained during upstream merge", () => {
     if (role !== "admin") {
       for (const view of ["providers", "routes", "settings"] as const) expect(canAccessView(user, view)).toBe(false);
     }
+  });
+
+  it.each(["consumer", "guest", " GUEST "])("normalizes consumer role %s", role => {
+    expect(appRole(role)).toBe("consumer");
+    const user = { role } as AdminUser;
+    expect(navGroupsForUser(user)).toEqual(navGroupsForUser({ role: "consumer" } as AdminUser));
+    expect(canAccessView(user, "balance-recharge")).toBe(true);
+    expect(canAccessView(user, "users")).toBe(false);
   });
 
   it("retains the custom provider label in the admin navigation", () => {

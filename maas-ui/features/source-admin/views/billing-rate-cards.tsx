@@ -17,7 +17,7 @@ function RateFields({ rates, update }: { rates: Rates; update: (key: keyof Rates
 }
 
 export function BillingRateCards({ api, data }: { api: ApiContext; data: AppData }) {
-  const [card, setCard] = useState<Card>({ kind: "tenant", target: "", source: "", currency: "CNY", rates: emptyRates(), periods: [] });
+  const [card, setCard] = useState<Card>({ kind: "tenant", target: "", source: "", currency: "USD", rates: emptyRates(), periods: [] });
   const [at, setAt] = useState(() => new Date().toISOString());
   const [usage, setUsage] = useState({ prompt_tokens: "1000000", cached_input_tokens: "800000", completion_tokens: "10000" });
   const [fx, setFX] = useState("");
@@ -61,7 +61,7 @@ export function BillingRateCards({ api, data }: { api: ApiContext; data: AppData
     <p>{tx("影子价目用于核对，不改变当前收费与预算。单价单位为原币/百万 Token；填写 0 表示免费，时段留空表示继承。")}</p>
     <form onSubmit={(event) => { event.preventDefault(); void act("preview"); }} onChange={() => setPreview(null)}>
       <div className="form-grid">
-        <label>{tx("价目用途")}<select value={card.kind} onChange={(event) => setCard({ ...card, kind: event.target.value, target: "", currency: "CNY" })}><option value="tenant">{tx("租户费用")}</option><option value="provider">{tx("上游成本")}</option></select></label>
+        <label>{tx("价目用途")}<select value={card.kind} onChange={(event) => setCard({ ...card, kind: event.target.value, target: "", currency: event.target.value === "tenant" ? "USD" : "CNY" })}><option value="tenant">{tx("租户费用")}</option><option value="provider">{tx("上游成本")}</option></select></label>
         <label>{tx("计价对象")}<select required value={card.target} onChange={(event) => setCard({ ...card, target: event.target.value })}><option value="">{tx("请选择")}</option>{card.kind === "tenant" ? data.models.map((model) => <option key={model.name} value={model.name}>{model.name}</option>) : data.providerModels.map((model) => <option key={model.id} value={`${model.provider_id}:${model.upstream_model}`}>{model.provider_id} / {model.upstream_model}</option>)}</select></label>
         <label>{tx("币种")}<input required pattern="[A-Z]{3}" value={card.currency} readOnly={card.kind === "tenant"} onChange={(event) => setCard({ ...card, currency: event.target.value.toUpperCase() })} /></label>
         <label>{tx("价格依据")}<input required value={card.source} onChange={(event) => setCard({ ...card, source: event.target.value })} /></label>
@@ -87,14 +87,14 @@ export function BillingRateCards({ api, data }: { api: ApiContext; data: AppData
         <label>{tx("总输入 Token")}<input inputMode="numeric" value={usage.prompt_tokens} onChange={(event) => setUsage({ ...usage, prompt_tokens: event.target.value })} /></label>
         <label>{tx("缓存读取 Token")}<input inputMode="numeric" value={usage.cached_input_tokens} onChange={(event) => setUsage({ ...usage, cached_input_tokens: event.target.value })} /></label>
         <label>{tx("输出 Token")}<input inputMode="numeric" value={usage.completion_tokens} onChange={(event) => setUsage({ ...usage, completion_tokens: event.target.value })} /></label>
-        <label>{tx("汇率：1 原币兑 CNY")}<input inputMode="decimal" value={fx} onChange={(event) => setFX(event.target.value)} /></label>
+        <label>{tx("汇率：1 原币兑 USD")}<input inputMode="decimal" value={fx} onChange={(event) => setFX(event.target.value)} /></label>
       </div>
       <div className="rate-card-actions">
         <button className="button" disabled={busy} type="submit">{tx("预览费用")}</button>
         <button className="secondary-button" disabled={busy || !preview || previewCard !== JSON.stringify(card)} type="button" onClick={() => void act("publish")}>{tx("发布影子价目")}</button>
       </div>
     </form>
-    {preview ? <output><p>{formatStatementAmount(preview.charge.amount, preview.charge.currency, languageLocale())}</p><p>{preview.charge.usd ? formatStatementAmount(preview.charge.usd, "CNY", languageLocale()) : tx("CNY 折算待定")}</p><p>{preview.snapshot.period || tx("默认价格")}</p></output> : null}
+    {preview ? <output><p>{formatStatementAmount(preview.charge.amount, preview.charge.currency, languageLocale())}</p><p>{preview.charge.usd ? formatStatementAmount(preview.charge.usd, "USD", languageLocale()) : tx("USD 折算待定")}</p><p>{preview.snapshot.period || tx("默认价格")}</p></output> : null}
     {error ? <p role="alert">{error}</p> : null}{message ? <p role="status">{message}</p> : null}
     <div className="rate-card-actions">
       <button className="secondary-button" type="button" disabled={busy} onClick={() => void act("list")}>{tx("读取已发布版本")}</button>

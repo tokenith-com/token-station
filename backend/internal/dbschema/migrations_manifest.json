@@ -121,6 +121,33 @@
       "checksum": "5f1d88ee1c09d6b16645bbc0e46bf28f371d4e2390e9b8c56cfdec4464c67143",
       "lock_timeout_seconds": 30,
       "statement_budget": 3
+    },
+    {
+      "version": 15,
+      "name": "add-team-wallets",
+      "phase": "expand",
+      "dialect": "",
+      "checksum": "tokenhub-schema-team-wallets-v1",
+      "lock_timeout_seconds": 30,
+      "statement_budget": 4
+    },
+    {
+      "version": 17,
+      "name": "add-team-wallet-exchange-rate",
+      "phase": "expand",
+      "dialect": "",
+      "checksum": "tokenhub-schema-team-wallet-rate-v1",
+      "lock_timeout_seconds": 30,
+      "statement_budget": 3
+    },
+    {
+      "version": 18,
+      "name": "add-team-wallet-credit-metadata",
+      "phase": "expand",
+      "dialect": "",
+      "checksum": "tokenhub-schema-team-wallet-credit-metadata-v1",
+      "lock_timeout_seconds": 30,
+      "statement_budget": 8
     }
   ]
 }

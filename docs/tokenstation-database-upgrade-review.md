@@ -1,18 +1,18 @@
-# TokenStation 数据库升级核对
+# TokenStation database upgrade review
 
-待发布评审。线上基准 `c7288771` 的数据库 schema 目标版本为 9，本地合并版 `678376a8` 的目标版本为 11。合并版首次启动会自动运行待执行的迁移，再对外提供服务。沿用现有部署脚本和数据库连接也会触发迁移。
+Pre-release review. The production baseline `c7288771` targets database schema version 9, while the locally merged release `678376a8` targets version 11. On its first startup, the merged release automatically applies pending migrations before serving requests. Reusing the existing deployment scripts and database connection also triggers these migrations.
 
-| 版本 | 迁移内容 |
+| Version | Migration |
 | --- | --- |
-| 10 | 新建 `subscription_oauth_hosts` 和 `subscription_oauth_registrations`，存储订阅 OAuth 主机与注册信息 |
-| 11 | 新建 `responses_image_store_bindings`，并在该表上新建过期时间索引，用于 Responses API 的图片资源关联 |
+| 10 | Create `subscription_oauth_hosts` and `subscription_oauth_registrations` to store subscription OAuth hosts and registrations |
+| 11 | Create `responses_image_store_bindings` and an expiration index for Responses API image resource associations |
 
-这两次迁移会更新迁移账本。迁移 SQL 没有修改原有业务表的字段或索引，也没有删除原有业务表。原有的启动期数据处理仍会执行。
+Both migrations update the migration ledger. Their SQL does not change columns or indexes on existing business tables, nor does it delete existing business tables. Existing startup data processing still runs.
 
-`c7288771` 只接受 schema 8 至 9。数据库升到 11 后，单独回退程序无法恢复旧版服务。本地已用隔离的 SQLite 和 PostgreSQL 验证 `9 → 11` 以及迁移后的 `db verify`。截至本次核对，合并版尚未部署，线上库未执行这次迁移。
+`c7288771` accepts only schemas 8 through 9. Once the database reaches version 11, rolling back the application alone cannot restore the older service. Isolated local SQLite and PostgreSQL databases have been used to verify `9 → 11` and the subsequent `db verify`. At the time of this review, the merged release has not been deployed and production has not applied these migrations.
 
-## 待核对
+## Pending decisions
 
-- 是否允许线上 schema 升到 11。
-- 若允许升级，确认备份、恢复演练和回滚时对切换后写入数据的处理方式。
-- 若要求保持 schema 9，以 `c7288771` 为基准筛选无需新增表的上游改动，并在 schema 9 的测试库中验证启动和主要接口。
+- Decide whether production may advance to schema 11.
+- If approved, confirm backups, restoration rehearsals, and how writes made after cutover will be handled during rollback.
+- If schema 9 must be retained, use `c7288771` as the baseline to select upstream changes that require no new tables, then verify startup and primary endpoints against a schema 9 test database.

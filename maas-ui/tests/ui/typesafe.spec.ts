@@ -4,6 +4,7 @@ import { model } from "./fixtures/shell";
 test("typesafe decision modality and input-only pricing can be configured", async ({ page, api }, testInfo) => {
   let saved = false;
   api.respond("GET", "/api/admin/routing-rules", { data: [] });
+  for (const path of ["providers", "provider-adapters", "plugins", "plugin-ui-manifest", "plugin-actions"]) api.respond("GET", `/api/admin/${path}`, { data: [] });
   api.respond("GET", "/api/admin/provider-catalog", { data: [{ id: "typesafe", name: "TypeSafe", type: "typesafe", models_count: 3, source: "plugin" }] });
   api.define("PATCH", `/api/admin/models/${model.name}`, input => {
     expect(input.body).toMatchObject({ name: model.name, modality: "decision", capabilities: ["systemone"], input_price_usd_per_1m: 0.042, output_price_usd_per_1m: 0 });
@@ -23,7 +24,7 @@ test("typesafe decision modality and input-only pricing can be configured", asyn
   await dialog.getByLabel("系列", { exact: true }).fill("jev");
   await dialog.getByLabel("能力标签，逗号分隔", { exact: true }).fill("systemone");
   await dialog.getByLabel("显示名称", { exact: true }).fill("Jev Support Decisions");
-  await dialog.getByLabel(/^对外输入价 USD\/1M/).fill("0.042");
+  await dialog.getByLabel(/^对外输入价 ¥\/1M/).fill("0.042");
   await dialog.getByLabel("对外输出价 ¥/1M", { exact: true }).fill("0");
   await expect(dialog.getByLabel("对外输出价 ¥/1M", { exact: true })).toHaveValue("0");
   await capture(page, testInfo, dialog, "typesafe-decision-model", "Jev 决策模型：独立能力与免费输出", "viewport");

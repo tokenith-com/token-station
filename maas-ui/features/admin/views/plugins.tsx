@@ -651,7 +651,7 @@ function pluginListSummary(plugin: PluginDescriptor) {
   const category = pluginExtensionCategory(plugin);
   if (category === "provider") return tx("连接并管理此模型服务。配置在 Provider 页面完成。");
   if (category === "chain") return tx("在请求处理流程中执行此插件提供的操作。");
-  if (category === "ui") return tx("为 TokenHub 管理后台提供界面和布局能力。");
+  if (category === "ui") return tx("为 TokenStation 管理后台提供界面和布局能力。");
   return tx("在后台执行此插件提供的自动化任务。");
 }
 

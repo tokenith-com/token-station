@@ -1,6 +1,5 @@
 import { Activity, BarChart3, Boxes, Check, CircleDollarSign, Code2, Database, FileText, Gauge, KeyRound, LayoutDashboard, Server, ShieldCheck, X } from "lucide-react";
 import { type ReactNode, useEffect, useState } from "react";
-import { SvgIcon } from "@/components/svg-icon";
 import { appRole, canAccessView } from "../core/navigation";
 import { type AdminUser, type ApiContext, type AppData, type AppRole, type RequestLog, type UsageBreakdownRow, type UsagePoint, type ViewKey } from "../core/types";
 import { apiKeyAuditLabel, findProvider, providerResourceAuditLabel } from "../domain/entities";
@@ -28,7 +27,7 @@ export function OverviewView({
     return <PlatformOverviewContent api={api} data={data} />;
   }
 
-  if (role === "team_leader" || role === "user" || role === "guest") {
+  if (role === "team_leader" || role === "user" || role === "consumer") {
     return <RoleOverviewContent data={data} />;
   }
 
@@ -173,11 +172,6 @@ function RoleOverviewContent({ data }: { data: AppData }) {
 
   return (
     <section className="role-overview">
-      <header className="platform-section-title role-overview-title">
-        <SvgIcon name="overview-icon" />
-        <h1 className="dashboard-section-heading">{tx("总览")}</h1>
-      </header>
-
       <div className="role-overview-kpis token-kpis">
         <TokenKpiCard icon={<BarChart3 size={20} strokeWidth={2} />} label="请求量" tone="violet" value={formatNumber(stats.requests)}
           detail={`${formatNumber(stats.failedRequests)} ${tx("失败")}`} />
@@ -507,7 +501,7 @@ export function UsageCostRankPanel({ title, empty, rows }: { title: string; empt
                 <small>{formatNumber(row.request_count)} {tx("次请求")} · {tx("输入")} {compactNumber(row.input_tokens)} · {tx("输出")} {compactNumber(row.output_tokens)}</small>
                 <span className="usage-rank-progress"><span style={{ width: `${width}%` }} /></span>
               </div>
-              <em>${formatMoney(row.cost)}</em>
+              <em>¥{formatMoney(row.cost)}</em>
             </div>
           );
         }) : (

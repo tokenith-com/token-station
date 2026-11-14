@@ -33,7 +33,7 @@ for (const mobile of [false, true]) {
     await expect(page.getByRole("link", { name: "浏览插件市场", exact: true })).toHaveCount(0);
     await capture(page, testInfo, row, `plugins-browse${mobile ? "-mobile" : ""}`, "市场插件分类和操作");
     await row.getByRole("button", { name: "详情", exact: true }).click();
-    await expect(page).toHaveURL(/\/plugins\/tokenhub\.openai-codex$/);
+    await expect(page).toHaveURL(/\/plugins\/?\?plugin=tokenhub\.openai-codex$/);
     await expect(page.getByRole("heading", { name: "Codex Marketplace Provider", exact: true })).toBeVisible();
     await expect(page.getByText("Synthetic marketplace provider for UI acceptance.", { exact: true }).first()).toBeVisible();
     await expect(page.locator(".plugin-overview-facts").getByText("未安装", { exact: true })).toBeVisible();

@@ -38,7 +38,9 @@ for (const state of ["save", "failure", "mobile"] as const) {
       } else expect(policy.semantic_routing?.mode).toBe("off");
       saved.push(policy);
       if (state === "failure") return { status: 500, json: { error: { message: "Synthetic save failure" } } };
-      api.replaceResponse("GET", "/api/admin/overview", { ...overview, providers, models: [{ ...model, metadata: { tokenhub_semantic_routing: JSON.stringify(policy.semantic_routing) } }] });
+      const models = [{ ...model, metadata: { tokenhub_semantic_routing: JSON.stringify(policy.semantic_routing) } }];
+      api.replaceResponse("GET", "/api/admin/overview", { ...overview, providers, models });
+      api.replaceResponse("GET", "/api/admin/models", { data: models });
       const updated = routes.map(route => ({ ...route, strategy: policy.strategy }));
       api.replaceResponse("GET", "/api/admin/routing-rules", { data: updated });
       return { json: { strategy: policy.strategy, data: updated, semantic_routing: policy.semantic_routing } };

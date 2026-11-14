@@ -1207,7 +1207,7 @@ export function ProviderUpsertModal({
                   <h3>{tx(credentialMode === "account_integration" ? "账号授权" : "直接 API Key")}</h3>
                   <p>{tx(
                     credentialMode === "account_integration"
-                      ? "先完成账号授权回填；TokenHub 会把回填的 Token 保存为账号资源。"
+                      ? "先完成账号授权回填；TokenStation 会把回填的 Token 保存为账号资源。"
                       : "把上游 Key 保存到 Provider，适合单账号或兼容 API。",
                   )}</p>
                 </div>
@@ -1249,7 +1249,7 @@ export function ProviderUpsertModal({
                   <div className="provider-account-inline">
                     <div className="provider-account-inline-head">
                       <strong>{tx("账号授权")}</strong>
-                      <span>{tx("使用账号 OAuth 授权；TokenHub 会在后端换取并保存账号 Token。")}</span>
+                      <span>{tx("使用账号 OAuth 授权；TokenStation 会在后端换取并保存账号 Token。")}</span>
                     </div>
                     <div className="provider-account-auth-grid">
                       <label className={`field provider-account-auth-wide provider-account-name-field${accountResourceNameConflict ? " conflict" : ""}`}>

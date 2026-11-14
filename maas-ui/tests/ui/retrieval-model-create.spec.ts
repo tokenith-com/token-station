@@ -5,9 +5,12 @@ for (const modality of ["rerank", "embedding"] as const) {
   test(`models create-${modality}-pricing`, async ({ page, api }, testInfo) => {
     const model = { name: `ui-${modality}`, family: "test", category: "other", modality, status: "active", metadata: { source: "tokenhub-standard-catalog", search_unit_price_usd: "0.003", retrieval_pricing_confirmed: "true" } };
     const overview = shellResponses().get("GET /api/admin/overview") as Record<string, unknown>;
-    api.replaceResponse("GET", "/api/admin/overview", { ...overview, models: [model], providers: [{ id: "p", name: "UI Provider", type: "mock", priority: 1, status: "active" }] });
+    const providers = [{ id: "p", name: "UI Provider", type: "mock", priority: 1, status: "active" }];
+    api.replaceResponse("GET", "/api/admin/overview", { ...overview, models: [model], providers });
+    api.replaceResponse("GET", "/api/admin/models", { data: [model] });
+    api.respond("GET", "/api/admin/providers", { data: providers });
     api.replaceResponse("GET", "/api/admin/provider-models", { data: [{ id: "pm", provider_id: "p", upstream_model: model.name, modality, status: "active", call_supported: true }] });
-    for (const path of ["routing-rules", "provider-catalog"]) api.respond("GET", `/api/admin/${path}`, { data: [] });
+    for (const path of ["routing-rules", "provider-catalog", "provider-adapters", "plugins", "plugin-ui-manifest", "plugin-actions"]) api.respond("GET", `/api/admin/${path}`, { data: [] });
     let saved = false;
     api.define("POST", "/api/admin/models", input => {
       const body = input.body as { metadata: Record<string,string>; routes: unknown[] };

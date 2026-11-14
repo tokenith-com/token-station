@@ -184,7 +184,7 @@ const fallbackVersionInfo: SystemVersionInfo = {
   build_type: "source",
   deployment_type: "source",
   update_supported: false,
-  releases_url: "https://github.com/astaxie/TokenHub/releases",
+  releases_url: "https://github.com/astaxie/TokenStation/releases",
   cached: false,
 };
 
@@ -770,7 +770,7 @@ async function waitForManagedVersion(api: ApiContext, targetVersion: string) {
         if (normalizeVersionInfo(payload).current_version === targetVersion) return;
       }
     } catch {
-      // A temporary connection failure is expected while the service supervisor restarts TokenHub.
+      // A temporary connection failure is expected while the service supervisor restarts TokenStation.
     } finally {
       window.clearTimeout(timeout);
     }

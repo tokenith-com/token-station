@@ -22,14 +22,17 @@ type CompatibilityManifest struct {
 // requires all registered expansions, including version 10's persistent OAuth
 // tables, version 11's Responses image continuations, version 12's consumer
 // email activations, version 13's consumer recharge tables and version 14's
-// encrypted API key column. Startup applies these additive changes before
+// encrypted API key column, plus version 15's team wallets and credit ledger
+// and version 17's wallet reservation exchange rate, plus version 18's wallet
+// credit metadata.
+// Startup applies these additive changes before
 // admitting requests; historical releases keep their existing compatibility
 // declarations.
 func CurrentCompatibilityManifest() CompatibilityManifest {
 	return CompatibilityManifest{
-		TargetVersion: 14,
-		MinCompatible: 14,
-		MaxCompatible: 14,
+		TargetVersion: 18,
+		MinCompatible: 18,
+		MaxCompatible: 18,
 	}
 }
 

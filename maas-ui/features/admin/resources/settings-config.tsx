@@ -199,7 +199,7 @@ export function systemSettingConfig(): ResourceConfig<AdminResource> {
       key: "provider_synthetic_dns_enabled",
       label: "允许 Provider 使用 Synthetic DNS / Fake-IP",
       type: "boolean",
-      help: "仅当 TokenHub 所在主机启用了 Fake-IP 代理，且 Provider 域名因此解析到合成地址时开启。该例外只用于域名解析结果，不允许把字面量 IP 直接配置为 Provider Base URL。",
+      help: "仅当 TokenStation 所在主机启用了 Fake-IP 代理，且 Provider 域名因此解析到合成地址时开启。该例外只用于域名解析结果，不允许把字面量 IP 直接配置为 Provider Base URL。",
     },
     {
       key: "provider_synthetic_dns_allow_private_ranges",
@@ -250,7 +250,7 @@ export function identityProviderConfig(): ResourceConfig<AdminResource> {
     { key: "email_claim", label: "邮箱 Claim" },
     { key: "team_claim", label: "团队 Claim" },
     { key: "subject_claim", label: "用户唯一标识 Claim", help: "平台不返回邮箱时，用该 Claim 生成稳定的内部邮箱。" },
-    { key: "default_role", label: "默认角色", type: "select", options: ["user", "team_leader", "guest"], help: "首次 OAuth 登录创建用户时使用；不会覆盖已存在用户角色。" },
+    { key: "default_role", label: "默认角色", type: "select", options: ["user", "team_leader", "consumer"], help: "首次 OAuth 登录创建用户时使用；不会覆盖已存在用户角色。" },
     { key: "default_team_id", label: "默认团队", type: "select", optionsFromData: teamSelectOptions, help: "团队字段无法映射时使用。" },
     { key: "default_project_id", label: "默认项目", type: "select", optionsFromData: projectMemberProjectSelectOptions, help: "登录后自动加入该项目空间。" },
     { key: "default_project_role", label: "默认项目角色", type: "select", optionsFromData: oauthDefaultProjectRoleOptions, help: "自动加入默认项目时授予的项目权限。" },
@@ -335,7 +335,7 @@ export function sqliteBackupConfig(): ResourceConfig<SQLiteBackup> {
     view: "sqlite-backups",
     title: "数据备份",
     eyebrow: "SQLite 备份",
-    description: "创建、下载和恢复 TokenHub SQLite 数据库快照。",
+    description: "创建、下载和恢复 TokenStation SQLite 数据库快照。",
     createLabel: "创建备份",
     columns: [
       { key: "name", label: "名称" },

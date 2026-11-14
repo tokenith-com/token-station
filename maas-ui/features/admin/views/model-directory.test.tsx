@@ -24,7 +24,7 @@ function directoryProps() {
 }
 
 describe("native model directory", () => {
-  it.each(["team_leader", "user", "guest"] as const)("shows authorized external models and unified prices for %s without admin controls", (role) => {
+  it.each(["team_leader", "user", "consumer"] as const)("shows authorized external models and unified prices for %s without admin controls", (role) => {
     const props = directoryProps();
     props.data.models = [{ id: "authorized", name: "authorized-model", family: "custom", modality: "chat", status: "active", input_price_usd_per_1m: 2, output_price_usd_per_1m: 6 }];
     props.data.providers = [];

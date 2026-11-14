@@ -63,7 +63,7 @@ describe("PluginsView", () => {
     const data = emptyData();
     data.plugins = [plugin("tokenhub.provider.kimi", "Kimi Provider", "provider_integration", ["provider"], ["gateway_chain"], {
       version: "1.2.3",
-      summary: "Connect TokenHub to Kimi.",
+      summary: "Connect TokenStation to Kimi.",
       distribution: {
         marketplace_url: "https://plugins.example/kimi",
         download_url: "https://plugins.example/kimi.zip",
@@ -79,7 +79,7 @@ describe("PluginsView", () => {
     expect(within(row as HTMLElement).getByText("Provider 集成")).toBeInTheDocument();
     expect(within(row as HTMLElement).getByText("内置")).toBeInTheDocument();
     expect(within(row as HTMLElement).getByText("1.2.3")).toBeInTheDocument();
-    expect(within(row as HTMLElement).getByText("Connect TokenHub to Kimi.")).toBeInTheDocument();
+    expect(within(row as HTMLElement).getByText("Connect TokenStation to Kimi.")).toBeInTheDocument();
     expect(row).not.toHaveTextContent("tokenhub.provider.kimi");
     expect(row).not.toHaveTextContent("Apache-2.0");
     expect(row).not.toHaveTextContent("0123456789abcdef");

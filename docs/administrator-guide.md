@@ -16,6 +16,14 @@ This guide is for platform administrators, security operators, and infrastructur
 | Plugin Management | Install and inspect external packages, manage lifecycle state, and operate supported built-in or declarative capabilities |
 | Security and Audit | Review request logs, admin events, key rotation, and policy changes |
 
+## Team Wallet Funding
+
+Team wallets use offline funding only: a platform administrator records an offline receipt or approved credit, the team shares the resulting CNY balance, and paid API calls deduct from that balance automatically. Approved credit adds spendable balance; it does not create an overdraft or debt account. Consumer wallets remain separate.
+
+In **Team Groups**, review the balance and choose **Credit** for the intended team. Check the team, owner and current balance, enter a positive CNY amount with no more than two decimal places, select the funding type, and provide a receipt reference or approval note. Review the projected balance before confirming. Funding records retain the operator, request ID, type, note, time and before/after balances; they cannot be edited or deleted through the wallet interface.
+
+If the response is uncertain, reconcile or retry the same pending operation with its original request ID. Do not create a second credit to retry an uncertain result. **Wallet ledger** shows funding and API-call wallet activity. Team leaders can view only their own team's balance and ledger and cannot post funds. A configured USD-to-CNY rate and sufficient balance are required for paid calls.
+
 ## Production Setup Order
 
 1. Configure at least one identity source and keep a controlled administrator account.

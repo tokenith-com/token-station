@@ -83,10 +83,11 @@ export function APIKeyValue({ apiKey }: { apiKey: APIKey }) {
   async function toggleVisible() {
     if (visible) {
       setVisible(false);
+      setFullKey("");
       return;
     }
-    await resolveFullKey();
-    setVisible(true);
+    const value = await resolveFullKey();
+    if (value) setVisible(true);
   }
 
   async function copyKey() {
@@ -94,6 +95,7 @@ export function APIKeyValue({ apiKey }: { apiKey: APIKey }) {
     if (!value) return;
     if (await writeClipboard(value)) showNotice(true, tx("已复制"));
     else showNotice(false, tx("复制失败"));
+    if (!visible) setFullKey("");
   }
 
   return (

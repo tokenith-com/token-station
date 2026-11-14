@@ -42,6 +42,7 @@ export function CrudView<T>({
   onAction,
   onProjectOpen,
   onToolbarAction,
+  extraToolbarActions = [],
   currentUser = null,
 }: {
   config: ResourceConfig<T>;
@@ -63,6 +64,7 @@ export function CrudView<T>({
   onAction: (action: ResourceAction<T>, item: T) => void;
   onProjectOpen?: (project: Project) => void;
   onToolbarAction: (action: ToolbarAction) => void;
+  extraToolbarActions?: Array<{ label: string; onClick: () => void; disabled?: boolean }>;
   currentUser?: AdminUser | null;
 }) {
   const [selectedTeamID, setSelectedTeamID] = useState("");
@@ -147,6 +149,11 @@ export function CrudView<T>({
           ) : null}
           {(config.toolbarActions ?? []).map((action) => (
             <button className="secondary-button" key={action.label} onClick={() => onToolbarAction(action)} title={tx(action.title ?? action.label)} type="button">
+              {tx(action.label)}
+            </button>
+          ))}
+          {extraToolbarActions.map((action) => (
+            <button className="secondary-button" disabled={action.disabled} key={action.label} onClick={action.onClick} type="button">
               {tx(action.label)}
             </button>
           ))}

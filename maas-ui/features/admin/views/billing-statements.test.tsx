@@ -77,7 +77,7 @@ describe("BillingStatements", () => {
     vi.stubGlobal("fetch", fetchMock);
     render(<BillingStatements api={api} side="provider" />);
     fireEvent.change(screen.getByLabelText("对账单币种"), { target: { value: "JPY" } });
-    fireEvent.change(screen.getByLabelText("手动汇率：1 CNY 兑目标币种"), { target: { value: "7.25" } });
+    fireEvent.change(screen.getByLabelText("手动汇率：1 USD 兑目标币种"), { target: { value: "7.25" } });
     fireEvent.submit(screen.getByRole("button", { name: "预览对账单" }).closest("form")!);
     expect(await screen.findByText("换算金额：JP¥1.8125", { exact: true })).toBeInTheDocument();
     expect(screen.getByText("换算金额：JP¥0.00", { exact: true })).toBeInTheDocument();

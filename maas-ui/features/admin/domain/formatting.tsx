@@ -56,7 +56,7 @@ export function apiExampleScripts(baseURL: string, modelName: string, supportsIm
   const normalizedBaseURL = apiGatewayBaseURL(baseURL);
   const model = modelName || "gpt-4.1-mini";
   const systemPrompt = tx("你是企业内部 AI 助手。");
-  const prompt = tx("请用三句话介绍 TokenHub。");
+  const prompt = tx("请用三句话介绍 TokenStation。");
   const imagePrompt = tx("请描述这张图片。");
   const pythonUserMessage = supportsImages
     ? `{"role": "user", "content": [

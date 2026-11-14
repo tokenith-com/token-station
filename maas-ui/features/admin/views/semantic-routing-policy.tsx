@@ -66,7 +66,7 @@ export function SemanticRoutingFields({ value, routes, data, disabled, onChange 
   return (
     <fieldset className="semantic-routing-fields" disabled={disabled}>
       <legend>{tx("Jev 智能路由设置")}</legend>
-      <p>{tx("根据请求内容选择候选模型，再由 TokenHub 调用目标模型。适用于 Chat Completions 和 Responses，支持流式输出。")}</p>
+      <p>{tx("根据请求内容选择候选模型，再由 TokenStation 调用目标模型。适用于 Chat Completions 和 Responses，支持流式输出。")}</p>
       <label className="field">
         <span>{tx("模型选择指令")}</span>
         <textarea rows={2} value={value.instructions ?? ""} onChange={event => onChange({ ...value, instructions: event.target.value })} />

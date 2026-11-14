@@ -37,7 +37,7 @@ describe("Built-in Admin UI localization", () => {
   });
 
   it("localizes built-in contribution titles in plugin details and honors explicit translations", () => {
-    const plugin = { id: contribution.plugin_id, name: "TokenHub Plugin Ecosystem Dashboard", version: "built-in", source: "built_in", kinds: ["admin_ui"], placements: ["presentation"], capabilities: [] };
+    const plugin = { id: contribution.plugin_id, name: "TokenStation Plugin Ecosystem Dashboard", version: "built-in", source: "built_in", kinds: ["admin_ui"], placements: ["presentation"], capabilities: [] };
     const props = { plugin, contributions: [contribution], actions: [], hooks: [], jobs: [] };
     const view = render(<PluginOverview {...props} />);
     expect(screen.getByText("插件生态", { exact: true })).toBeInTheDocument();

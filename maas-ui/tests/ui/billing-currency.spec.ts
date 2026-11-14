@@ -4,8 +4,8 @@ import { readStatementQuery, statementResponse } from "./fixtures/billing";
 
 const conversions = [
   { currency: "CNY", rate: "7.25", amount: "7.83", formatted: "¥7.83" },
-  { currency: "JPY", rate: "150", amount: "162", formatted: "JP¥162.00" },
-  { currency: "RUB", rate: "90", amount: "97.2", formatted: "RUB 97.20" },
+  { currency: "JPY", rate: "20", amount: "21.6", formatted: "JP¥21.60" },
+  { currency: "RUB", rate: "12", amount: "12.96", formatted: "RUB 12.96" },
 ];
 for (const scenario of conversions) {
   test(`billing currency ${scenario.currency} preview and CSV preserve the conversion snapshot`, async ({ page, api }, testInfo) => {
@@ -29,7 +29,7 @@ for (const scenario of conversions) {
     await form.getByRole("button", { name: "预览对账单", exact: true }).click();
     await expect(form.getByText(`换算金额：${scenario.formatted}`, { exact: true })).toBeVisible();
     await expect(form.getByText("换算金额：未知", { exact: true })).toBeVisible();
-    await expect(form.getByText("US$1.08", { exact: true })).toBeVisible();
+    await expect(form.locator(".statement-amount > span").filter({ hasText: /^US\$1\.08$/ })).toBeVisible();
     await expect(form.getByRole("status")).toContainText("未知金额: 1");
     await form.evaluate(element => element.scrollIntoView({ block: "start" }));
     await capture(page, testInfo, form, `currency-${scenario.currency}-form`, `${scenario.currency}：币种与手动汇率`, "viewport");

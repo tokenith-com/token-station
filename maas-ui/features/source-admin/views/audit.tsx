@@ -302,7 +302,7 @@ export function AuditView({ api, data, user }: { api: ApiContext; data: AppData;
                           <span>{providerAuditLabel(data, log)}</span>
                           <span>{formatTime(log.created_at)}</span>
                           {log.usage_record_count ? <span>{compactNumber(log.total_tokens ?? 0)} Token</span> : null}
-                          {log.usage_record_count ? <span>${formatMoney(log.estimated_cost_usd ?? 0)}</span> : null}
+                          {log.usage_record_count ? <span>¥{formatMoney(log.estimated_cost_usd ?? 0)}</span> : null}
                         </span>
                         <span className="request-row-tail">
                           <StatusPill status={log.status_code >= 400 ? "error" : "ok"} label={String(log.status_code || "-")} />

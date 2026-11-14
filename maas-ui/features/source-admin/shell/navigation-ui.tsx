@@ -38,8 +38,8 @@ export function Sidebar({
   return (
     <aside className={collapsed ? "sidebar collapsed" : "sidebar"}>
       <div className="brand">
-        <img src="/brand/tokenhub-logo.png" alt="TokenHub" className="brand-logo" />
-        <span className="brand-name">TokenHub</span>
+        <img src="/brand/tokenhub-logo.png" alt="TokenStation" className="brand-logo" />
+        <span className="brand-name">TokenStation</span>
         <div className="sidebar-version-status" id="sidebar-version-status" />
         <button
           className="sidebar-toggle"

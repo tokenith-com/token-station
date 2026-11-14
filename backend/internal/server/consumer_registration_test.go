@@ -173,7 +173,7 @@ func TestConsumerRegistrationActivationFlowCreatesGuestUser(t *testing.T) {
 	if err != nil {
 		t.Fatalf("activated user cannot log in: %v", err)
 	}
-	if user.Role != "guest" || user.Status != StatusActive {
+	if user.Role != "consumer" || user.Status != StatusActive {
 		t.Fatalf("activated user role=%q status=%q", user.Role, user.Status)
 	}
 

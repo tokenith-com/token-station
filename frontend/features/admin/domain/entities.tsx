@@ -187,7 +187,8 @@ export function roleSelectOptions(data: AppData) {
   const configured = (data.resources["role-configs"] ?? [])
     .filter((role) => role.status === "active" && roleConfigAssignable(role))
     .map((role) => {
-      const value = stringifyValue(role.fields?.role_key) || role.id;
+      const key = stringifyValue(role.fields?.role_key) || role.id;
+      const value = key === "guest" ? "consumer" : key;
       return {
         value,
         label: roleDisplayName(role) || roleLabel(value),

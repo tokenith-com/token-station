@@ -662,7 +662,7 @@ export function UserImportModal({
           <div className="user-import-example">
             <strong>{tx("字段顺序")}</strong>
             <code>username,name,email,role,team_id,status</code>
-            <span>{tx("role 可填 admin、team_leader、user、guest；status 可填 active 或 disabled。")}</span>
+            <span>{tx("role 可填 admin、team_leader、user、consumer；status 可填 active 或 disabled。")}</span>
           </div>
         </div>
         <div className="modal-actions">

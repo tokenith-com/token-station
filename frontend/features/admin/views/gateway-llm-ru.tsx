@@ -62,7 +62,7 @@ export function gatewayRussianLLMUsageDocs(stats: GatewayDocStats, role: AppRole
             group: "Быстрый старт",
             badge: "GUIDE",
             title: "Первое подключение",
-            description: "Отправьте свой первый OpenAI-совместимый запрос к LLM через TokenHub.",
+            description: "Отправьте свой первый OpenAI-совместимый запрос к LLM через TokenStation.",
             details: [
               { label: "Базовый URL", value: stats.baseURL },
               { label: "Заголовок авторизации", value: "Authorization: Bearer <API Key>" },
@@ -189,7 +189,7 @@ export function gatewayRussianLLMUsageDocs(stats: GatewayDocStats, role: AppRole
                 ["model", "string", "Да", `Идентификатор модели из /v1/models, например ${stats.sampleModel}.`],
                 ["messages", "array", "Да", "Массив сообщений system, user, assistant."],
                 ["max_tokens", "integer", "Нет", "Максимальное количество токенов для генерации."],
-                ["max_completion_tokens", "integer", "Нет", "Совместимый с OpenAI лимит токенов генерации. Если указаны оба поля, TokenHub использует большее значение."],
+                ["max_completion_tokens", "integer", "Нет", "Совместимый с OpenAI лимит токенов генерации. Если указаны оба поля, TokenStation использует большее значение."],
                 ["temperature", "number", "Нет", "Температура сэмплирования."],
                 ["reasoning_effort", "string", "Нет", "Уровень рассуждения; опускается, если текущий маршрут его не поддерживает."],
                 ["stream", "boolean", "Нет", "При значении true возвращает поток SSE, завершающийся событием data: [DONE]."],
@@ -244,7 +244,7 @@ export function gatewayRussianLLMUsageDocs(stats: GatewayDocStats, role: AppRole
               title: "Тело запроса",
               columns: ["Поле", "Тип", "Обязательное", "Описание"],
               rows: [
-                ["model", "string", "Да", "Идентификатор вызываемой модели TokenHub."],
+                ["model", "string", "Да", "Идентификатор вызываемой модели TokenStation."],
                 ["max_tokens", "integer", "Да", "Максимальное количество токенов генерации."],
                 ["messages", "array", "Да", "Сообщения Anthropic, состоящие из блоков user, assistant и структурированного контента."],
                 ["system", "string | array", "Нет", "Системный промпт верхнего уровня Anthropic."],
@@ -328,7 +328,7 @@ export function gatewayRussianLLMUsageDocs(stats: GatewayDocStats, role: AppRole
             group: teamLeader ? "Внедрение в команде" : "Ключи проекта",
             badge: "SDK",
             title: "SDK и Claude Code",
-            description: "OpenAI-совместимые SDK используют Base URL TokenHub, а Claude Code использует Host URL TokenHub.",
+            description: "OpenAI-совместимые SDK используют Base URL TokenStation, а Claude Code использует Host URL TokenStation.",
             examplesTitle: "Примеры клиентов",
             examples: [
               { title: "Node.js", code: gatewayOpenAISDKExample(stats) },

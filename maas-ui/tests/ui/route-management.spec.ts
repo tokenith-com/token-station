@@ -11,6 +11,7 @@ const providerModel: ProviderModel = { id: "pm_ui_route", provider_id: provider.
 function installRouteFixtures(api: MockAPI) {
   const overview = shellResponses().get("GET /api/admin/overview") as Record<string, unknown>;
   api.replaceResponse("GET", "/api/admin/overview", { ...overview, providers: [provider], models: [model, unmapped] });
+  api.replaceResponse("GET", "/api/admin/models", { data: [model, unmapped] });
   api.replaceResponse("GET", "/api/admin/provider-models", { data: [providerModel] });
   api.respond("GET", "/api/admin/providers", { data: [provider] });
   api.respond("GET", "/api/admin/routing-rules", { data: [route] });
@@ -75,7 +76,8 @@ test("route-management opens-unmapped-model-from-directory", async ({ page, api 
   await page.getByRole("button", { name: "草稿/待映射", exact: true }).click();
   const row = page.getByRole("row").filter({ hasText: unmapped.name });
   await row.getByRole("button", { name: `路由策略：${unmapped.name}`, exact: true }).click();
-  await expect(page).toHaveURL(/\/routes$/);
+  await expect(page).toHaveURL(/\/routes\/?$/);
+  await page.getByRole("tab", { name: /全部模型/ }).click();
   await expect(page.getByRole("tab", { name: /全部模型/ })).toHaveAttribute("aria-selected", "true");
   await expect(page.getByRole("row").filter({ hasText: unmapped.name })).toBeVisible();
   await page.getByRole("button", { name: `配置路由：${unmapped.name}`, exact: true }).click();
@@ -97,6 +99,7 @@ test("route-management last-route-deletion", async ({ page, api }, testInfo) => 
   installRouteFixtures(api);
   const overview = shellResponses().get("GET /api/admin/overview") as Record<string, unknown>;
   api.replaceResponse("GET", "/api/admin/overview", { ...overview, providers: [provider], models: [unmapped, model] });
+  api.replaceResponse("GET", "/api/admin/models", { data: [unmapped, model] });
   api.define("DELETE", `/api/admin/routing-rules/${route.id}`, () => {
     api.replaceResponse("GET", "/api/admin/routing-rules", { data: [] });
     return { status: 204, json: null };

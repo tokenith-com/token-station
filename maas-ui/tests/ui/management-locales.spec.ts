@@ -20,6 +20,7 @@ const adapters: AdapterDescriptor[] = [
 function installManagementFixtures(api: MockAPI) {
   const overview = shellResponses().get("GET /api/admin/overview") as Record<string, unknown>;
   api.replaceResponse("GET", "/api/admin/overview", { ...overview, providers: [provider], models: [model] });
+  api.replaceResponse("GET", "/api/admin/models", { data: [model] });
   api.replaceResponse("GET", "/api/admin/provider-models", { data: [inventory] });
   api.respond("GET", "/api/admin/providers", { data: [provider] });
   api.respond("GET", "/api/admin/routing-rules", { data: [route] });

@@ -249,6 +249,43 @@ function playgroundKeyOwnedBy(key: AppData["keys"][number], userID: string) {
   return owner ? owner === userID : key.metadata?.created_by === userID;
 }
 
+// Conversation turns live in component state, so persist them per user to
+// survive navigating away from the playground and reloading the page.
+function playgroundHistoryKey(userID: string) {
+  return `tokenhub.playground.turns.${userID}`;
+}
+
+function loadPlaygroundHistory(userID: string): PlaygroundTurn[] {
+  if (typeof window === "undefined" || !userID) return [];
+  try {
+    const parsed: unknown = JSON.parse(window.localStorage.getItem(playgroundHistoryKey(userID)) ?? "[]");
+    if (!Array.isArray(parsed)) return [];
+    return (parsed as PlaygroundTurn[]).map((turn) => ({
+      ...turn,
+      userImages: turn.userImages ?? [],
+      candidates: (turn.candidates ?? []).map((candidate) => candidate.status === "streaming" ? { ...candidate, status: "cancelled" as const } : candidate),
+    }));
+  } catch {
+    return [];
+  }
+}
+
+function savePlaygroundHistory(userID: string, turns: PlaygroundTurn[]) {
+  if (typeof window === "undefined" || !userID) return;
+  const key = playgroundHistoryKey(userID);
+  try {
+    if (turns.length === 0) window.localStorage.removeItem(key);
+    else window.localStorage.setItem(key, JSON.stringify(turns));
+  } catch {
+    // Quota exceeded (usually large images): keep the text history instead.
+    try {
+      window.localStorage.setItem(key, JSON.stringify(turns.map((turn) => ({ ...turn, userImages: [] }))));
+    } catch {
+      window.localStorage.removeItem(key);
+    }
+  }
+}
+
 export function PlaygroundPage(props: PlaygroundProps) {
   return (
     <section className="playground-page">
@@ -269,7 +306,7 @@ export function PlaygroundPanel({ api, data, canViewRoutes, currentUserID, onCre
   const [modelName, setModelName] = useState(models[0]?.name ?? "");
   const [apiKeyID, setAPIKeyID] = useState(keys[0]?.id ?? "");
   const [pendingModelName, setPendingModelName] = useState("");
-  const [turns, setTurns] = useState<PlaygroundTurn[]>([]);
+  const [turns, setTurns] = useState<PlaygroundTurn[]>(() => loadPlaygroundHistory(currentUserID));
   const [draft, setDraft] = useState("");
   const [sendMode, setSendMode] = usePlaygroundSendMode();
   const [images, commitImages] = useState<PlaygroundImageAttachment[]>([]);
@@ -343,6 +380,10 @@ export function PlaygroundPanel({ api, data, canViewRoutes, currentUserID, onCre
   useEffect(() => {
     if (!keys.some((key) => key.id === apiKeyID)) setAPIKeyID(keys[0]?.id ?? "");
   }, [apiKeyID, keys]);
+
+  useEffect(() => {
+    savePlaygroundHistory(currentUserID, turns);
+  }, [currentUserID, turns]);
 
   useEffect(() => {
     conversationImageBytesRef.current = conversationImageBytes;
@@ -1034,7 +1075,7 @@ export function PlaygroundAPIExamples({ baseURL, modelName, supportsImages = fal
   return (
     <section className="api-example-panel">
       <div className="api-example-header">
-        <div><strong>{tx("API 使用")}</strong><span>{tx("使用以下代码示例集成 TokenHub 模型接口")}</span></div>
+        <div><strong>{tx("API 使用")}</strong><span>{tx("使用以下代码示例集成 TokenStation 模型接口")}</span></div>
         <button className="icon-button subtle" onClick={() => void copyCurrent()} type="button" title={tx("复制代码")}>{copied ? <Check size={15} /> : <Copy size={15} />}</button>
       </div>
       <div className="api-example-tabs" role="tablist" aria-label={tx("API 调用语言")}>

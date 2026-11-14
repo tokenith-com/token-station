@@ -30,6 +30,29 @@ beforeEach(() => {
 });
 
 describe("console session restoration", () => {
+  it.each(["b", "c"] as const)("loads public enterprise login providers only for portal %s", async portal => {
+    const fetcher = vi.fn().mockResolvedValue(Response.json({ data: [{ id: "enterprise", name: "Enterprise SSO", provider_type: "oidc", login_label: "Enterprise SSO" }] }));
+    vi.stubGlobal("fetch", fetcher);
+    render(<AdminConsole defaultBaseURL={baseURL} portal={portal} />);
+    if (portal === "b") {
+      await openLoginForm(userEvent.setup());
+      expect(await screen.findByRole("link", { name: /Enterprise SSO/ })).toHaveAttribute("href", expect.stringContaining("/api/admin/auth/oauth/start?id=enterprise&return_url="));
+      expect(fetcher).toHaveBeenCalledWith(`${baseURL}/api/admin/auth/identity-providers`, expect.objectContaining({ credentials: "omit", headers: { accept: "application/json" } }));
+      expect(fetcher.mock.calls.every(([path]) => path === `${baseURL}/api/admin/auth/identity-providers`)).toBe(true);
+    } else {
+      await screen.findByLabelText("密码");
+      expect(screen.queryByText(/Enterprise SSO/)).not.toBeInTheDocument();
+      expect(fetcher).not.toHaveBeenCalled();
+    }
+  });
+
+  it.each(["http", "network"])("keeps password login available when provider discovery fails with %s errors", async failure => {
+    vi.stubGlobal("fetch", failure === "http" ? vi.fn().mockResolvedValue(new Response(null, { status: 503 })) : vi.fn().mockRejectedValue(new TypeError("offline")));
+    render(<AdminConsole defaultBaseURL={baseURL} />);
+    await openLoginForm(userEvent.setup());
+    expect(screen.getByLabelText("密码")).toBeInTheDocument();
+    expect(screen.queryByText(/Enterprise SSO/)).not.toBeInTheDocument();
+  });
   it.each(["b", "c"] as const)("preserves invalid-credential feedback on portal %s", async portal => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(Response.json({ error: { message: "账号或密码错误" } }, { status: 401 })));
     render(<AdminConsole defaultBaseURL={baseURL} portal={portal} />);
@@ -76,7 +99,7 @@ describe("console session restoration", () => {
     const firstPage = render(<AdminConsole defaultBaseURL={baseURL} />);
     expect(await screen.findByRole("button", { name: "登录" })).toBeInTheDocument();
     expect(readSavedSession()).toBeNull();
-    expect(fetcher).not.toHaveBeenCalled();
+    expect(fetcher.mock.calls.every(([path]) => path === `${baseURL}/api/admin/auth/identity-providers`)).toBe(true);
 
     const browserUser = userEvent.setup();
     const form = await openLoginForm(browserUser);

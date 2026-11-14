@@ -143,7 +143,7 @@ describe("PluginDetailView", () => {
   it("explains provider UI features instead of showing an empty description", async () => {
     const payload = detailPayload(false, []);
     payload.data.plugin.id = "tokenhub.admin.core-provider";
-    payload.data.plugin.name = "TokenHub Core Provider Settings";
+    payload.data.plugin.name = "TokenStation Core Provider Settings";
     payload.data.plugin.kinds = ["admin_ui"];
     payload.data.plugin.placements = ["presentation"];
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify(payload), { status: 200 })));
@@ -157,7 +157,7 @@ describe("PluginDetailView", () => {
       <PluginDetailView api={api} data={data} pluginID="tokenhub.admin.core-provider" section="overview" onBack={vi.fn()} onNavigate={vi.fn()} />,
     );
 
-    expect(await screen.findByRole("heading", { name: "TokenHub Core Provider Settings" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "TokenStation Core Provider Settings" })).toBeInTheDocument();
     expect(screen.getByText("扩展 Provider 的连接设置和账号资源页面，让管理员直接管理插件提供的高级选项。")).toBeVisible();
     expect(screen.getByText("Provider 高级设置")).toBeVisible();
     expect(screen.getByText("账号资源设置")).toBeVisible();
@@ -201,7 +201,7 @@ describe("PluginDetailView", () => {
       <PluginDetailView api={api} data={emptyData()} pluginID="example.detail" section="overview" onBack={vi.fn()} onNavigate={vi.fn()} />,
     );
 
-    expect(await screen.findByText("为 TokenHub 提供此插件声明的扩展功能。")).toBeVisible();
+    expect(await screen.findByText("为 TokenStation 提供此插件声明的扩展功能。")).toBeVisible();
     expect(screen.queryByText("未提供插件说明。")).not.toBeInTheDocument();
   });
 
@@ -265,7 +265,7 @@ describe("PluginDetailView", () => {
         source: "marketplace",
         status: "enabled",
         marketplace: {
-          summary: "Removes sensitive fields before requests leave TokenHub.",
+          summary: "Removes sensitive fields before requests leave TokenStation.",
           publisher: { id: "example", name: "Example Labs", verified: true },
         },
       },
@@ -273,7 +273,7 @@ describe("PluginDetailView", () => {
 
     render(<PluginDetailView api={api} data={data} pluginID="example.detail" section="overview" onBack={vi.fn()} onNavigate={vi.fn()} />);
 
-    expect(await screen.findByText("Removes sensitive fields before requests leave TokenHub.")).toBeVisible();
+    expect(await screen.findByText("Removes sensitive fields before requests leave TokenStation.")).toBeVisible();
     expect(screen.getByText("Example Labs")).toBeVisible();
     expect(screen.getByText("有新版本可用")).toBeVisible();
     expect(screen.getByText("已禁用")).toBeVisible();

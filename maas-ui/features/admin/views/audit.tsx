@@ -31,7 +31,7 @@ export function AuditView({ api, data, user }: { api: ApiContext; data: AppData;
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailError, setDetailError] = useState("");
   const showAdminAudit = canViewAdminAudit(user);
-  const memberRequestLogView = ["team_leader", "user", "guest"].includes(appRole(user.role));
+  const memberRequestLogView = ["team_leader", "user", "consumer"].includes(appRole(user.role));
   const availableModels = useMemo(
     () => [...new Set([...data.models.map((model) => model.name), ...data.logs.map((log) => log.model)].filter(Boolean))].sort((left, right) => left.localeCompare(right)),
     [data.logs, data.models],
@@ -296,7 +296,7 @@ export function AuditView({ api, data, user }: { api: ApiContext; data: AppData;
                           <span>{providerAuditLabel(data, log)}</span>
                           <span>{formatTime(log.created_at)}</span>
                           {log.usage_record_count ? <span>{compactNumber(log.total_tokens ?? 0)} Token</span> : null}
-                          {log.usage_record_count ? <span>${formatMoney(log.estimated_cost_usd ?? 0)}</span> : null}
+                          {log.usage_record_count ? <span>¥{formatMoney(log.estimated_cost_usd ?? 0)}</span> : null}
                         </span>
                         <span className="request-row-tail">
                           <StatusPill status={log.status_code >= 400 ? "error" : "ok"} label={String(log.status_code || "-")} />

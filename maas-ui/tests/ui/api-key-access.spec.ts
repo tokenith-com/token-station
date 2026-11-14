@@ -29,6 +29,8 @@ function setup(api: MockAPI, options: { failRotation?: boolean; loading?: Promis
     ...options.createKey,
   };
   api.define("GET", "/api/admin/api-keys", () => ({ json: { data: structuredClone(keys) } }));
+  api.define("GET", `/api/admin/api-keys/${original.id}/secret`, () => ({ status: 409, json: { error: { message: "Synthetic legacy key has no stored secret" } } }));
+  api.respond("GET", "/api/admin/api-keys/key_ui_created/secret", { api_key: createKey.secret });
   api.respond("GET", "/api/admin/users", { data: [user] });
   api.respond("GET", "/api/admin/resources/teams", { data: [] });
   api.respond("GET", "/api/admin/resources/project-members", { data: [] });
@@ -86,14 +88,14 @@ test("api-key-access existing key shows protocol setup without rotating", async 
   const row = await openKeys(page);
   await row.getByRole("button", { name: "使用", exact: true }).click();
   const dialog = page.getByRole("dialog", { name: "使用 API Key" });
-  await expect(dialog.getByLabel("接入地址（Base URL）")).toHaveValue("http://tokenhub-ui.invalid/v1");
-  await expect(dialog.getByLabel("API Key 占位符")).toHaveValue("YOUR_TOKENHUB_API_KEY");
+  await expect(dialog.getByRole("textbox", { name: "接入地址（Base URL）", exact: true })).toHaveValue("http://tokenhub-ui.invalid/v1");
+  await expect(dialog.getByRole("textbox", { name: "API Key 占位符", exact: true })).toHaveValue("YOUR_TOKENHUB_API_KEY");
   await capture(page, testInfo, dialog, "key-existing-setup", "已有 Key：地址与占位符");
   await dialog.getByLabel("接入协议").selectOption("anthropic");
-  await expect(dialog.getByLabel("接入地址（Base URL）")).toHaveValue("http://tokenhub-ui.invalid");
+  await expect(dialog.getByRole("textbox", { name: "接入地址（Base URL）", exact: true })).toHaveValue("http://tokenhub-ui.invalid");
   await expect(dialog).toContainText("x-api-key");
   await dialog.getByLabel("接入协议").selectOption("gemini");
-  await expect(dialog.getByLabel("接入地址（Base URL）")).toHaveValue("http://tokenhub-ui.invalid");
+  await expect(dialog.getByRole("textbox", { name: "接入地址（Base URL）", exact: true })).toHaveValue("http://tokenhub-ui.invalid");
   await dialog.locator("summary").click();
   await dialog.getByLabel("模型 ID", { exact: true }).fill("ui-review-model");
   await expect(dialog.getByLabel("请求地址", { exact: true })).toHaveValue("http://tokenhub-ui.invalid/v1beta/models/ui-review-model:generateContent");
@@ -115,7 +117,7 @@ test("api-key-access creation opens setup and closing clears the full key", asyn
   for (let step = 0; step < 3; step++) await page.getByRole("button", { name: "下一步" }).click();
   await page.getByRole("button", { name: "生成 Key" }).click();
   const dialog = page.getByRole("dialog", { name: "使用 API Key" });
-  await expect(dialog.getByLabel("完整 Key")).toHaveValue(newSecret);
+  await expect(dialog.getByRole("textbox", { name: "完整 Key", exact: true })).toHaveValue(newSecret);
   await page.context().grantPermissions(["clipboard-read", "clipboard-write"]);
   await dialog.getByRole("button", { name: "复制 Key", exact: true }).click();
   expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(newSecret);
@@ -124,8 +126,9 @@ test("api-key-access creation opens setup and closing clears the full key", asyn
   await capture(page, testInfo, dialog, "key-created-setup", "创建成功：直接复制地址与完整 Key（合成数据）");
   await dialog.getByRole("button", { name: "我已保存，关闭" }).click();
   await page.getByRole("row").filter({ hasText: "UI Created Key" }).getByRole("button", { name: "使用", exact: true }).click();
-  await expect(dialog.getByLabel("API Key 占位符")).toHaveValue("YOUR_TOKENHUB_API_KEY");
-  await expect(dialog.getByLabel("完整 Key")).toHaveCount(0);
+  await expect(dialog.getByRole("textbox", { name: "完整 Key", exact: true })).toHaveCount(0);
+  await expect(dialog.getByRole("textbox", { name: "API Key 占位符", exact: true })).toHaveValue("YOUR_TOKENHUB_API_KEY");
+  expect(api.calls.filter(call => call.path === "/api/admin/api-keys/key_ui_created/secret")).toHaveLength(0);
   expect(await page.evaluate(() => JSON.stringify({ local: { ...localStorage }, session: { ...sessionStorage } }))).not.toContain(newSecret);
 });
 
@@ -147,7 +150,7 @@ test("api-key-access selected model allowlist persists restricted scope", async 
   await page.getByRole("button", { name: "下一步" }).click();
   await page.getByRole("button", { name: "生成 Key" }).click();
   const dialog = page.getByRole("dialog", { name: "使用 API Key" });
-  await expect(dialog.getByLabel("完整 Key")).toHaveValue(restrictedSecret);
+  await expect(dialog.getByRole("textbox", { name: "完整 Key", exact: true })).toHaveValue(restrictedSecret);
   await dialog.getByRole("button", { name: "我已保存，关闭" }).click();
   await expect(page.getByRole("row").filter({ hasText: "UI Restricted Key" })).toContainText(model.name);
 });
@@ -176,7 +179,7 @@ test("api-key-access rotation requires confirmation and cancels without a write"
   await expect(confirmation).toHaveCount(0);
   release();
   const dialog = page.getByRole("dialog", { name: "使用 API Key" });
-  await expect(dialog.getByLabel("完整 Key")).toHaveValue(rotatedSecret);
+  await expect(dialog.getByRole("textbox", { name: "完整 Key", exact: true })).toHaveValue(rotatedSecret);
   await capture(page, testInfo, dialog, "key-rotated-setup", "轮换成功：新 Key 使用窗口（合成数据）");
   expect(api.calls.filter(call => call.path.endsWith("/rotate"))).toHaveLength(1);
 });
@@ -196,15 +199,15 @@ test("api-key-access browser history navigation dismisses rotation confirmation"
   setup(api);
   api.respond("GET", "/api/admin/resources/cost-centers", { data: [] });
   await page.goto("/cost-centers");
-  await expect(page).toHaveURL(/\/cost-centers$/);
+  await expect(page).toHaveURL(/\/cost-centers\/?$/);
   await page.getByRole("complementary").getByRole("button", { name: "Key 管理", exact: true }).click();
-  await expect(page).toHaveURL(/\/api-keys$/);
+  await expect(page).toHaveURL(/\/api-keys\/?$/);
   const row = page.getByRole("row").filter({ hasText: original.name });
   await row.getByRole("button", { name: "轮换", exact: true }).click();
   const confirmation = page.getByRole("dialog", { name: "确认轮换 API Key" });
   await expect(confirmation).toBeVisible();
   await page.goBack();
-  await expect(page).toHaveURL(/\/cost-centers$/);
+  await expect(page).toHaveURL(/\/cost-centers\/?$/);
   await expect(page.getByRole("dialog", { name: "确认轮换 API Key" })).toHaveCount(0);
   expect(api.calls.filter(call => call.method === "POST")).toHaveLength(0);
 });
@@ -219,14 +222,14 @@ test("api-key-access browser history dismisses rotation confirmation within Key 
   await expect(timezoneHint).toBeVisible();
   await capture(page, testInfo, timezoneHint.locator(".."), "key-usage-quota-timezone", "用量统计与配额时区说明");
   await page.getByRole("complementary").getByRole("button", { name: "Key 管理", exact: true }).click();
-  await expect(page).toHaveURL(/\/api-keys$/);
+  await expect(page).toHaveURL(/\/api-keys\/?$/);
   await page.getByRole("row").filter({ hasText: original.name }).getByRole("button", { name: "轮换", exact: true }).click();
   await expect(page.getByRole("dialog", { name: "确认轮换 API Key" })).toBeVisible();
   await page.goBack();
   await expect(page).toHaveURL(new RegExp(`/api-keys/${usageKey.id}/usage$`));
   await expect(page.getByRole("dialog", { name: "确认轮换 API Key" })).toHaveCount(0);
   await page.goForward();
-  await expect(page).toHaveURL(/\/api-keys$/);
+  await expect(page).toHaveURL(/\/api-keys\/?$/);
   await expect(page.getByRole("dialog", { name: "确认轮换 API Key" })).toHaveCount(0);
   expect(api.calls.filter(call => call.method === "POST")).toHaveLength(0);
 });

@@ -31,6 +31,7 @@ async function installLayoutFixtures(page: Page, role: AppRole, signedIn = true)
     },
     timeseries: [], models: [], errors: [],
   });
+  responses.set("GET /api/admin/resources/settings", { data: [{ id: "cfg_gateway", name: "Gateway settings", status: "active", fields: { public_base_url: "http://tokenhub-ui.invalid/v1", default_timeout: "120s", audit_retention: "30d", provider_egress_mode: "direct" } }] });
   responses.set("GET /api/admin/resources/role-configs", { data: [{ id: "layout-role", name: "Team Member", status: "active", description: "Layout review role", fields: { role_key: "user" } }] });
   responses.set("GET /api/admin/resources/teams", { data: [{ id: "layout-team", name: "Layout Team", status: "active", fields: { owner_user_id: user.id } }] });
   responses.set("GET /api/admin/usage/breakdown", breakdown);
@@ -70,9 +71,9 @@ for (const size of [{ width: 1366, height: 598 }, { width: 1920, height: 1080 }]
     const errors: string[] = [];
     page.on("pageerror", error => errors.push(error.message));
     await page.goto("/usage/");
-    await expect(page.locator(".sidebar .nav-item")).toHaveText(["团队总览", "团队报表", "可用模型", "Key 管理", "接口文档", "项目空间", "团队成员", "请求日志"]);
+    await expect(page.locator(".sidebar .nav-item")).toHaveText(["团队总览", "团队报表", "可用模型", "模型演练场", "Key 管理", "接口文档", "项目空间", "团队成员", "请求日志"]);
     await expectPageFits(page);
-    await expect(page.locator(".team-resource-title")).toHaveText("团队报表");
+    await expect(page.getByRole("navigation", { name: "当前位置" })).toContainText("团队报表");
     await page.getByRole("button", { name: "7 天", exact: true }).click();
     await expect(page.getByRole("button", { name: "7 天", exact: true })).toHaveAttribute("aria-pressed", "true");
     await page.screenshot({ path: test.info().outputPath("team-report.png") });
@@ -111,7 +112,7 @@ for (const size of [{ width: 1366, height: 598 }, { width: 1920, height: 1080 }]
   });
 }
 
-for (const role of ["admin", "team_leader", "user", "guest"] as const) {
+for (const role of ["admin", "team_leader", "user", "consumer"] as const) {
   test(`compact menu hover ${role}`, async ({ page }) => {
     await page.setViewportSize({ width: 1366, height: 598 });
     await installLayoutFixtures(page, role);
@@ -124,6 +125,7 @@ for (const role of ["admin", "team_leader", "user", "guest"] as const) {
     for (const item of await items.all()) {
       const label = await item.getAttribute("aria-label");
       expect(await item.getAttribute("title")).toBeNull();
+      await item.scrollIntoViewIfNeeded();
       await item.hover();
       const tooltip = page.getByRole("tooltip");
       await expect(tooltip).toHaveText(label!, { timeout: 1500 });
@@ -140,17 +142,26 @@ for (const role of ["admin", "team_leader", "user", "guest"] as const) {
     await expect(page.getByRole("tooltip")).toHaveCount(0);
     await items.first().focus();
     await page.keyboard.press("Tab");
-    await expect(page.getByRole("tooltip")).toBeVisible({ timeout: 250 });
+    await expect(items.nth(1)).toBeFocused();
+    await expect(page.getByRole("tooltip")).toHaveText((await items.nth(1).getAttribute("aria-label"))!, { timeout: 250 });
     await page.keyboard.press("Escape");
     await expect(page.getByRole("tooltip")).toHaveCount(0);
     await items.nth(1).click();
     await expect(page.getByRole("tooltip")).toHaveCount(0);
+    if (role === "admin") {
+      await page.mouse.move(500, 70);
+      await page.keyboard.press("Tab");
+      await expect(items.nth(2)).toBeFocused();
+      await expect(page.getByRole("tooltip")).toBeVisible();
+      await sidebar.locator(".sidebar-nav-scroll").evaluate(element => { element.scrollTop = element.scrollTop > 0 ? 0 : element.scrollHeight; });
+      await expect(page.getByRole("tooltip")).toHaveCount(0);
+    }
   });
 }
 
 test.describe("touch menu", () => {
   test.use({ hasTouch: true, isMobile: true });
-  for (const role of ["admin", "team_leader", "user", "guest"] as const) {
+  for (const role of ["admin", "team_leader", "user", "consumer"] as const) {
     test(`compact menu single tap ${role}`, async ({ page }) => {
       await page.setViewportSize({ width: 1366, height: 598 });
       await installLayoutFixtures(page, role);
@@ -171,7 +182,7 @@ for (const role of ["admin", "team_leader", "user"] as const) {
     await page.setViewportSize({ width: 1093, height: 500 });
     await installLayoutFixtures(page, role);
     const dialogs = role === "admin"
-      ? [{ view: "users", label: "新增用户" }, { view: "teams", label: "新增团队分组" }, { view: "models", label: "新建对外模型" }, { view: "providers", label: "添加供应商" }, { view: "projects", label: "新建项目并配置团队" }, { view: "settings", label: "编辑" }]
+      ? [{ view: "users", label: "新增用户" }, { view: "teams", label: "新增团队分组" }, { view: "models", label: "新建对外模型" }, { view: "providers", label: "添加供应商" }, { view: "projects", label: "新建项目并配置团队" }]
       : role === "team_leader"
         ? [{ view: "users", label: "新增团队成员" }, { view: "teams", label: "新增团队分组" }, { view: "api-keys", label: "发放 Key" }, { view: "projects", label: "新建项目并配置团队" }]
         : [{ view: "api-keys", label: "创建 Key" }];
@@ -211,10 +222,11 @@ for (const size of [...sizes, { width: 1366, height: 768 }, { width: 1920, heigh
     await page.setViewportSize(size);
     await installLayoutFixtures(page, "user", false);
     await page.goto("/");
-    await expect(page.locator(".login-shell")).toBeVisible();
-    await expect(page.locator(".login-submit")).toBeInViewport();
+    await page.getByRole("button", { name: "登录 / 立即开始", exact: true }).click();
+    await expect(page.locator(".tc-login.embedded")).toBeVisible();
+    await expect(page.locator(".tc-login-submit")).toBeInViewport();
     // Check the actual SVG files load, including Safari's handling of SVG assets.
-    const images = size.width > 760 ? [".login-station-mark", ".login-dashboard-image"] : [".login-station-mark"];
+    const images = [".tc-login-logo img"];
     for (const selector of images) {
       const loaded = await page.locator(selector).evaluate(el => new Promise<boolean>(resolve => {
         if (el instanceof HTMLImageElement) {
@@ -232,26 +244,16 @@ for (const size of [...sizes, { width: 1366, height: 768 }, { width: 1920, heigh
     }
     const fits = await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth);
     expect(fits).toBe(true);
-    if (size.width > 760) {
-      const hero = await page.locator(".login-hero-panel").evaluate(panel => {
-        const cards = panel.querySelector(".login-feature-grid")!.getBoundingClientRect();
-        const image = panel.querySelector("img.login-dashboard-image")!.getBoundingClientRect();
-        return { leftGap: Math.abs(cards.left - image.left), rightGap: Math.abs(cards.right - image.right), verticalGap: Math.abs(cards.bottom - image.top) };
-      });
-      expect(hero.leftGap, "Feature cards and illustration should align").toBeLessThanOrEqual(1);
-      expect(hero.rightGap, "Feature cards and illustration should have the same width").toBeLessThanOrEqual(1);
-      expect(hero.verticalGap, "Illustration should sit directly below the feature cards").toBeLessThanOrEqual(2);
-    }
-    const layout = await page.locator(".login-station-main").evaluate(main => {
-      const stage = main.parentElement!.getBoundingClientRect();
-      const card = main.querySelector(".login-card")!.getBoundingClientRect();
-      const footer = main.querySelector(".login-account-footer")!.getBoundingClientRect();
-      return { center: (card.top + card.bottom) / 2, expectedCenter: (stage.top + stage.bottom) / 2, cardTop: card.top, cardBottom: card.bottom, footerTop: footer.top, footerBottom: footer.bottom, height: innerHeight };
+    const layout = await page.locator(".tc-login.embedded").evaluate(main => {
+      const card = main.querySelector(".tc-login-card")!.getBoundingClientRect();
+      const footer = main.querySelector(".tc-login-copyright")!.getBoundingClientRect();
+      return { cardTop: card.top, cardBottom: card.bottom, footerTop: footer.top, footerBottom: footer.bottom, height: innerHeight };
     });
-    if (size.width > 760) expect(Math.abs(layout.center - layout.expectedCenter), "Login form should be vertically centered beside the illustration").toBeLessThanOrEqual(2);
-    expect(layout.cardTop).toBeGreaterThanOrEqual(64);
+    expect(layout.cardTop).toBeGreaterThanOrEqual(0);
     expect(layout.cardBottom).toBeLessThanOrEqual(layout.footerTop);
-    expect(layout.footerBottom).toBeLessThanOrEqual(layout.height);
+    await page.locator(".tc-login-copyright").scrollIntoViewIfNeeded();
+    await expectUnobscured(page.locator(".tc-login-copyright .login-account-footer a"));
+    await expect(page.locator(".tc-login-copyright")).toBeInViewport();
     await page.screenshot({ path: test.info().outputPath("login-centered.png") });
   });
 }
@@ -345,7 +347,7 @@ async function expectPlaygroundFits(page: Page) {
   for (const button of await page.locator(".playground-actions button").all()) await expectUnobscured(button);
 }
 
-for (const role of ["admin", "team_leader", "user", "guest"] as const) {
+for (const role of ["admin", "team_leader", "user", "consumer"] as const) {
   test(`small screen table scrolling and page actions ${role}`, async ({ page }) => {
     test.setTimeout(180_000);
     await page.setViewportSize({ width: 1093, height: 500 });

@@ -18,7 +18,7 @@ import { ModelDirectoryDetail } from "./model-directory-detail";
 import { ModelDirectoryPrice } from "./model-directory-price";
 
 export function ModelDirectoryView({ role, ...props }: ModelDirectoryProps & { role: AppRole }) {
-  if (role === "team_leader" || role === "user" || role === "guest") {
+  if (role === "team_leader" || role === "user" || role === "consumer") {
     return <div className="team-available-models"><NativeModelDirectoryView {...props} readOnly /></div>;
   }
   return (

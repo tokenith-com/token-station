@@ -22,7 +22,7 @@ import { simRegistryFromPlugins } from "../domain/sim-registry";
 import { type AppLanguage, bulkDeleteConfirmMessage, deleteConfirmMessage, importUsersDoneMessage, importUsersSkippedMessage, isIssuedAPIKey, setActiveLanguage, tx } from "../i18n/runtime";
 import { createKeyWithCapture } from "../resources/generic-config";
 import { downloadReport } from "../resources/governance-config";
-import { adminFetch, adminMutate, importUsersFromCSVContent, isAuthExpiredError, loadRequestLabel, notificationChannelDefaults, permissionPartialLoadMessage, readLoadError, restoreDefaultModelCatalog } from "../resources/payloads";
+import { adminFetch, adminMutate, createCustomerOnboarding, importUsersFromCSVContent, isAuthExpiredError, loadRequestLabel, notificationChannelDefaults, permissionPartialLoadMessage, readLoadError, restoreDefaultModelCatalog } from "../resources/payloads";
 import { projectMemberConfig, projectMemberInitialValues } from "../resources/project-key-config";
 import { resourceConfigFor } from "../resources/settings-config";
 import { usePagination } from "../shared/pagination";
@@ -30,7 +30,7 @@ import { ConfirmDialog, providerTypeOptionsFromData } from "../shared/ui";
 import { APIKeyAccessDialogs } from "../shared/api-key-access";
 import { PageHeader, StatusStack } from "./navigation-ui";
 import { AuditView } from "../views/audit";
-import { CrudView, ReportsView } from "../views/crud-projects";
+import { ReportsView } from "../views/crud-projects"; import { WalletCrudView as CrudView } from "../views/wallet-crud";
 import { DatabaseStatusView } from "../views/database-model-pricing";
 import { GatewayView } from "../views/gateway-view";
 import { ModelDirectoryView } from "../views/model-directory";
@@ -46,6 +46,7 @@ import { ProjectWorkspace, type ProjectWorkspaceDraft, type ProjectWorkspaceMode
 import { RoutingPolicySimulator } from "../views/routing-policy-simulator";
 import { ContentSecurityPolicies, SecurityPolicyTabs } from "../views/security-policies";
 import { APIKeyWizardModal, UserImportModal } from "../views/modals";
+import { CustomerOnboardingDialog } from "../../admin/views/customer-onboarding";
 import { EditModal, SettingsView } from "../views/settings-table";
 import { BillingView, UsageView } from "../views/usage-billing";
 import { APIKeyUsageView } from "../views/api-key-usage";
@@ -89,6 +90,7 @@ export function SourceAdminContent({ baseURL, adminToken, currentUser, language,
   const [apiKeyWizardOpen, setApiKeyWizardOpen] = useState(false);
   const [apiKeyWizardInitialValues, setApiKeyWizardInitialValues] = useState<Record<string, string>>({});
   const [userImportOpen, setUserImportOpen] = useState(false);
+  const [customerOnboardingOpen, setCustomerOnboardingOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState<ConfirmState<any> | null>(null);
   const [confirmRestoreModels, setConfirmRestoreModels] = useState(false);
   const [issuedKey, setIssuedKey] = useState("");
@@ -684,7 +686,7 @@ export function SourceAdminContent({ baseURL, adminToken, currentUser, language,
       style={shellState.shellPresentation.style}
     >
       <div className={activeView === "playground" ? "content-panel playground-content-panel" : "content-panel"}>
-        {activeView === "playground" || activeView === "overview" || apiKeyUsageID ? null : (
+        {activeView === "playground" || apiKeyUsageID ? null : (
           <PageHeader activeView={activeView} data={data} meta={activeMeta} user={currentUser} onSelect={selectView} />
         )}
 
@@ -874,6 +876,7 @@ export function SourceAdminContent({ baseURL, adminToken, currentUser, language,
               onAction={(action, item) => void runResourceAction(action, item, data)}
               onProjectOpen={(project) => setProjectWorkspace({ mode: "view", projectID: project.id })}
               onToolbarAction={(action) => void runToolbarAction(action, filteredItems)}
+              extraToolbarActions={activeView === "users" ? [{ label: "开通客户", onClick: () => setCustomerOnboardingOpen(true), disabled: loading }] : []}
               />
             </>
           ) : null}
@@ -1008,6 +1011,28 @@ export function SourceAdminContent({ baseURL, adminToken, currentUser, language,
           loading={loading}
           onClose={() => setUserImportOpen(false)}
           onImport={(content) => void importUsersFromCSV(content)}
+        />
+      ) : null}
+
+      {customerOnboardingOpen ? (
+        <CustomerOnboardingDialog
+          onClose={() => setCustomerOnboardingOpen(false)}
+          onSubmit={async values => {
+            setLoading(true);
+            setError("");
+            setNotice("");
+            try {
+              await createCustomerOnboarding(api, values);
+              await load("users");
+              setNotice(tx("客户开通成功"));
+              return true;
+            } catch (err) {
+              if (!isAuthExpiredError(err)) setError(err instanceof Error ? err.message : tx("客户开通失败，请检查后重试"));
+              return false;
+            } finally {
+              setLoading(false);
+            }
+          }}
         />
       ) : null}
 

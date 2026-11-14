@@ -4,7 +4,7 @@ import "./globals.css";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "TokenHub Admin",
+  title: "TokenStation Admin",
   description: "Enterprise AI Gateway administration console",
 };
 

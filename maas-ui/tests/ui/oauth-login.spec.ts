@@ -42,9 +42,9 @@ function installOverviewFixtures(api: MockAPI) {
   api.respond("GET", "/api/admin/plugin-background-jobs", { data: [], runs: [] });
   api.respond("GET", "/api/admin/resources/announcements", { data: [] });
   api.define("GET", "/api/admin/audit/requests", () => ({
-    json: { data: [], pagination: { page: 1, page_size: 20, total: 0, total_pages: 0 } },
+    json: { data: [], pagination: { page: 1, page_size: 100, total: 0, total_pages: 0 } },
   }), query => {
-    expect(Object.fromEntries(query)).toEqual({ page: "1", page_size: "20", status: "all", q: "" });
+    expect(Object.fromEntries(query)).toEqual({ page: "1", page_size: "100", status: "all", q: "" });
   });
 }
 
@@ -98,12 +98,12 @@ test("oauth-login successful exchange opens the personal console without a provi
   });
   await page.goto(`/overview#oauth_code=${callbackCode}`);
   await expect(page.locator(".app-shell")).toBeVisible();
-  await expect(page.getByRole("heading", { name: "我的 AI 调用监控" })).toBeVisible();
+  await expect(page.getByText("个人可见范围", { exact: true })).toBeVisible();
   await expectCallbackCleared(page);
   await expect(page.getByRole("dialog")).toHaveCount(0);
   await expect(page.locator(".login-card")).toHaveCount(0);
   expect(api.calls.filter(call => call.path === exchangePath)).toHaveLength(1);
-  expect(await page.evaluate(key => JSON.parse(sessionStorage.getItem(key)!), sessionStorageKey)).toEqual({
+  expect(await page.evaluate(key => JSON.parse(sessionStorage.getItem(key)!), `${sessionStorageKey}.b`)).toEqual({
     baseURL: configuration.apiOrigin, token: "ui-oidc-session", user: oauthUser, expiresAt: "2099-01-01T00:00:00Z",
   });
   await capture(page, info, page.locator(".app-shell"), "oauth-personal-console", "SSO 登录成功：进入个人控制台", "viewport");
@@ -115,7 +115,7 @@ test("oauth-login unexpected callback stays visible and does not exchange a code
   await expect(page.locator(".login-error")).toHaveText("OAuth 登录失败");
   await expectCallbackCleared(page);
   expect(api.calls.filter(call => call.path === exchangePath)).toHaveLength(0);
-  expect(await page.evaluate(key => sessionStorage.getItem(key), sessionStorageKey)).toBeNull();
+  expect(await page.evaluate(key => sessionStorage.getItem(key), `${sessionStorageKey}.b`)).toBeNull();
 });
 
 test("oauth-login rejected exchange displays its error without opening the console", async ({ context, page, api }) => {
@@ -130,5 +130,5 @@ test("oauth-login rejected exchange displays its error without opening the conso
   await expect(page.locator(".app-shell")).toHaveCount(0);
   await expect(page.getByRole("dialog")).toHaveCount(0);
   expect(api.calls.filter(call => call.path === exchangePath)).toHaveLength(1);
-  expect(await page.evaluate(key => sessionStorage.getItem(key), sessionStorageKey)).toBeNull();
+  expect(await page.evaluate(key => sessionStorage.getItem(key), `${sessionStorageKey}.b`)).toBeNull();
 });

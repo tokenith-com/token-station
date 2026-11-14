@@ -5,7 +5,6 @@ import { modelRoutePolicyPayload } from "../views/model-routing-policy";
 import { type ModelRoutePolicy } from "../core/types";
 import { IssuedKeyModal } from "../shared/issued-key-modal";
 import { ModalErrorProvider } from "../shared/modal-error";
-
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { type LoadedData, loadPlanForView, mergeLoadedData } from "../core/data-loading";
@@ -84,6 +83,7 @@ import {
   adminFetch,
   adminMutate,
   createAdminSaveAttempt,
+  createCustomerOnboarding,
   createTeamMember,
   importUsersFromCSVContent,
   isAuthExpiredError,
@@ -112,6 +112,7 @@ import { OverviewView } from "../views/overview";
 import { PersonalAPIKeysView } from "../views/personal-api-keys";
 import { configureAPIKeySecretContext } from "../shared/api-key-value";
 import { APIKeyAccessDialogs } from "../shared/api-key-access";
+import { useLoginIdentityProviders } from "../shared/login-identity-providers";
 import { APIKeyUsageView } from "../views/api-key-usage";
 import { PlaygroundPage } from "../views/playground";
 import { PlatformAccountsView, type PlatformAccountValues } from "../views/platform-accounts";
@@ -132,8 +133,8 @@ import { SourceAdminContent } from "../../source-admin/shell/source-admin-conten
 
 const themeStorageKey = "tokenhub.theme";
 
-// 超管右侧内容区使用 tokenhub 源码前端；Maas-ui 专属页面，以及需与其他角色保持一致的
-// 用量、模型目录、演练场页面仍走 Maas-ui 原实现。
+// Keep account onboarding and role-shared views in the MaaS console;
+// other administrator views reuse the source console.
 const maasOnlyViews = new Set<ViewKey>(["balance-recharge", "usage", "models", "playground"]);
 function usesSourceAdminContent(user: AdminUser, view: ViewKey) {
   if (appRole(user.role) !== "admin") return false;
@@ -170,6 +171,7 @@ function AdminConsoleContent({ defaultBaseURL, portal = "b" }: ConsoleProps) {
   const [pendingLoginOTP, setPendingLoginOTP] = useState<{ identity: string; payload: Awaited<ReturnType<typeof loginWithPassword>> } | null>(null);
   const [oauthReturnURL, setOAuthReturnURL] = useState(() => currentOAuthReturnURL());
   const [bootstrapped, setBootstrapped] = useState(false);
+  const loginIdentityProviders = useLoginIdentityProviders(bootstrapped && !currentUser && portal === "b");
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [openNavGroups, setOpenNavGroups] = useState<Record<string, boolean>>(() => Object.fromEntries(allNavGroupTitles.map(title => [title, true])));
   const [activeView, setActiveView] = useState<ViewKey>(routeView);
@@ -463,6 +465,7 @@ function AdminConsoleContent({ defaultBaseURL, portal = "b" }: ConsoleProps) {
 
   useEffect(() => {
     function onIssuedKey(event: Event) {
+      if (currentUser && usesSourceAdminContent(currentUser, activeView)) return;
       const detail = (event as CustomEvent<string>).detail;
       if (!detail) return;
       if (isIssuedAPIKey(detail)) {
@@ -475,7 +478,7 @@ function AdminConsoleContent({ defaultBaseURL, portal = "b" }: ConsoleProps) {
     }
     window.addEventListener("tokenhub-issued-key", onIssuedKey);
     return () => window.removeEventListener("tokenhub-issued-key", onIssuedKey);
-  }, []);
+  }, [currentUser, activeView]);
 
   useEffect(() => configureAPIKeySecretContext(api), [api]);
 
@@ -789,7 +792,7 @@ function AdminConsoleContent({ defaultBaseURL, portal = "b" }: ConsoleProps) {
     } catch (err) {
       if (isAuthExpiredError(err)) return;
       const message = err instanceof Error ? err.message : tx("保存失败");
-      if (attempt.requested) setModal(null);
+      if (attempt.requested && !(modal.config.view === "models" && !modal.item)) setModal(null);
       else setModalSaveError({ state: modal, message });
       setError(message);
     } finally {
@@ -871,7 +874,7 @@ function AdminConsoleContent({ defaultBaseURL, portal = "b" }: ConsoleProps) {
       return;
     }
     setIssuedKey("");
-    if (currentUser && appRole(currentUser.role) === "guest") {
+    if (currentUser && appRole(currentUser.role) === "consumer") {
       setQuickAPIKeyOpen(true);
     } else {
       setApiKeyWizardInitialValues({});
@@ -955,7 +958,7 @@ function AdminConsoleContent({ defaultBaseURL, portal = "b" }: ConsoleProps) {
         loading={loading}
         error={loginError}
         baseURL={baseURL}
-        identityProviders={[]}
+        identityProviders={loginIdentityProviders}
         oauthReturnURL={oauthReturnURL}
         theme={theme}
         portal={portal}
@@ -1074,13 +1077,13 @@ function AdminConsoleContent({ defaultBaseURL, portal = "b" }: ConsoleProps) {
   const isAccountManagementView = activeView === "users" && ["admin", "team_leader"].includes(accountManagementRole);
   const isTeamGroupsView = activeView === "teams" && accountManagementRole === "team_leader";
   const isRoleManagementView = activeView === "settings" && appRole(currentUser.role) === "admin";
-  const isMemberAuditView = activeView === "audit" && ["team_leader", "user", "guest"].includes(accountManagementRole);
-  const isMemberGatewayView = activeView === "gateway" && ["user", "guest"].includes(accountManagementRole);
-  const isPersonalAPIKeysView = activeView === "api-keys" && accountManagementRole === "guest";
+  const isMemberAuditView = activeView === "audit" && ["team_leader", "user", "consumer"].includes(accountManagementRole);
+  const isMemberGatewayView = activeView === "gateway" && ["user", "consumer"].includes(accountManagementRole);
+  const isPersonalAPIKeysView = activeView === "api-keys" && accountManagementRole === "consumer";
   const isTeamResourceView = accountManagementRole === "team_leader" && ["usage", "gateway", "api-keys", "projects"].includes(activeView);
   const isMemberKeyListView = activeView === "api-keys" && accountManagementRole === "user";
-  const isPersonalUsageView = activeView === "usage" && ["user", "guest"].includes(accountManagementRole);
-  const isGuestCostView = accountManagementRole === "guest" && ["billing", "balance-recharge"].includes(activeView);
+  const isPersonalUsageView = activeView === "usage" && ["user", "consumer"].includes(accountManagementRole);
+  const isGuestCostView = accountManagementRole === "consumer" && ["billing", "balance-recharge"].includes(activeView);
 
   return (
     <ModalErrorProvider
@@ -1138,7 +1141,7 @@ function AdminConsoleContent({ defaultBaseURL, portal = "b" }: ConsoleProps) {
                       ? "content-panel role-management-content-panel"
                       : "content-panel"
             }>
-            {activeView === "playground" || activeView === "overview" ? null : (
+            {activeView === "playground" ? null : (
               <PageHeader activeView={activeView} data={data} meta={activeMeta} user={currentUser} onSelect={selectView} />
             )}
 
@@ -1179,10 +1182,10 @@ function AdminConsoleContent({ defaultBaseURL, portal = "b" }: ConsoleProps) {
               />
             ) : activeView === "usage" ? (
               <UsageView api={api} data={data} user={currentUser} />
-            ) : activeView === "balance-recharge" && accountManagementRole === "guest" ? (
+            ) : activeView === "balance-recharge" && accountManagementRole === "consumer" ? (
               <BalanceRechargeView api={api} />
             ) : activeView === "billing" ? (
-              accountManagementRole === "guest" ? <GuestCostDetailsView api={api} data={data} /> : <BillingView data={data} user={currentUser} />
+              accountManagementRole === "consumer" ? <GuestCostDetailsView api={api} data={data} /> : <BillingView data={data} user={currentUser} />
             ) : activeView === "audit" ? (
               <AuditView api={api} data={data} user={currentUser} />
             ) : activeView === "database-status" ? (
@@ -1283,6 +1286,12 @@ function AdminConsoleContent({ defaultBaseURL, portal = "b" }: ConsoleProps) {
                   : savePlatformAccount(null, values, "用户新增成功")}
                 onDelete={item => setConfirmDelete({ config: activeConfig, item })}
                 onEdit={(item, values) => savePlatformAccount(item, values, "用户信息已更新")}
+                onOnboard={async values => {
+                  setLoading(true); setError(""); setNotice("");
+                  try { await createCustomerOnboarding(api, values); await load("users"); setNotice(tx("客户开通成功")); return true; }
+                  catch (err) { if (!isAuthExpiredError(err)) setError(err instanceof Error ? err.message : tx("客户开通失败，请检查后重试")); return false; }
+                  finally { setLoading(false); }
+                }}
                 onResetPassword={(item, values) => savePlatformAccount(item, values, "密码已重置")}
                 onToggleStatus={async item => {
                   const values = {
@@ -1527,7 +1536,7 @@ function AdminConsoleContent({ defaultBaseURL, portal = "b" }: ConsoleProps) {
           onCancel={() => setPendingAction(null)}
           onConfirm={() => { const pending = pendingAction; setPendingAction(null); void runResourceAction(pending.action, pending.item, data, true); }}
         /> : null}
-        {accountManagementRole === "guest"
+        {usesSourceAdminContent(currentUser, activeView) ? null : accountManagementRole === "consumer"
           ? issuedKey ? <IssuedKeyModal value={issuedKey} onClose={() => setIssuedKey("")} /> : null
           : <APIKeyAccessDialogs key={currentUser.id} baseURL={api.baseURL} issuedKey={issuedKey} onCloseIssuedKey={() => setIssuedKey("")} />}
       </main>
@@ -1536,17 +1545,7 @@ function AdminConsoleContent({ defaultBaseURL, portal = "b" }: ConsoleProps) {
 
 }
 
-// Go 后端空切片会序列化为 null，这里把用量拆分里的各个列表兜底成数组。
 function normalizeUsageBreakdown(raw: Partial<UsageBreakdown> | null | undefined): UsageBreakdown {
   const list = (value: unknown) => (Array.isArray(value) ? value : []);
-  return {
-    ...raw,
-    projects: list(raw?.projects),
-    models: list(raw?.models),
-    members: list(raw?.members),
-    providers: list(raw?.providers),
-    provider_resources: list(raw?.provider_resources),
-    cost_centers: list(raw?.cost_centers),
-    api_keys: list(raw?.api_keys),
-  };
+  return { ...raw, projects: list(raw?.projects), models: list(raw?.models), members: list(raw?.members), providers: list(raw?.providers), provider_resources: list(raw?.provider_resources), cost_centers: list(raw?.cost_centers), api_keys: list(raw?.api_keys) };
 }

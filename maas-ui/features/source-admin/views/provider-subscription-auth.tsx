@@ -216,11 +216,11 @@ export function ProviderSubscriptionAuth({ api, actions, providerType, disabled,
     <button className="button provider-authorization-button" type="button" disabled={disabled || busy || Boolean(session) || (Boolean(methodsAction) && methods.length === 0)} onClick={() => { void start(); }}>{tx(busy ? "授权中" : "打开授权")}</button>
     {session ? <div role="status">
       {session.auth_url ? <p><a href={session.auth_url} target="_blank" rel="noopener noreferrer">{tx("打开授权页面")}</a></p> : null}
-      {session.local_listener ? <p>{tx("此登录页运行在 TokenHub 服务器本机；远程使用时需转发对应端口。")}</p> : null}
+      {session.local_listener ? <p>{tx("此登录页运行在 TokenStation 服务器本机；远程使用时需转发对应端口。")}</p> : null}
       {session.instructions ? <p>{session.instructions}</p> : null}
       {providerType === "openai_codex" ? <p>{tx("授权完成后，即使 localhost 页面显示无法访问，也请复制地址栏中的完整 callback URL 粘贴到这里。")}</p> : null}
       {session.user_code ? <p>{tx("设备授权码")} <strong>{session.user_code}</strong></p> : null}
-      {session.flow === "auto" && session.callback_mode === "none" ? <p>{tx("请在供应商网页完成登录后返回这里。TokenHub 会自动回填账号凭据，无需粘贴授权码。回填后请保存账号资源。")}</p> : ["device_code", "auto"].includes(session.flow ?? "") ? <p>{tx("请在授权页面完成登录，TokenHub 会自动检查结果。")}</p> : null}
+      {session.flow === "auto" && session.callback_mode === "none" ? <p>{tx("请在供应商网页完成登录后返回这里。TokenStation 会自动回填账号凭据，无需粘贴授权码。回填后请保存账号资源。")}</p> : ["device_code", "auto"].includes(session.flow ?? "") ? <p>{tx("请在授权页面完成登录，TokenStation 会自动检查结果。")}</p> : null}
       {session.flow !== "device_code" && session.callback_mode !== "none" ? <label className="field"><span>{tx("回调结果")}</span><textarea value={callback} onChange={(event) => setCallback(event.target.value)} /><button className="secondary-button" type="button" disabled={busy || polling || !callback.trim()} onClick={() => { void exchange(); }}>{tx("完成授权")}</button></label> : null}
       <button className="secondary-button" type="button" onClick={() => cancelSession()}>{tx("取消")}</button>
     </div> : null}

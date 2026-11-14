@@ -388,12 +388,12 @@ func seedDefaultRoleConfigs(store Store) {
 			},
 		},
 		{
-			ID:          "role_guest",
+			ID:          "role_consumer",
 			Name:        "C端普通用户",
 			Description: "Individual consumer account that manages personal API keys, available models, usage, and request logs.",
 			Status:      StatusActive,
 			Fields: map[string]any{
-				"role_key":     "guest",
+				"role_key":     "consumer",
 				"display_name": "C端普通用户",
 				"data_scope":   "self",
 				"assignable":   true,
@@ -425,6 +425,20 @@ func seedDefaultRoleConfigs(store Store) {
 		},
 	}
 	for _, role := range roles {
+		if stringField(role.Fields, "role_key") == "consumer" {
+			for _, existing := range store.ListResources("role-configs") {
+				key := stringField(existing.Fields, "role_key")
+				if key != "guest" && key != "consumer" {
+					continue
+				}
+				if key == "guest" {
+					existing.Fields["role_key"] = "consumer"
+					_, _ = store.UpdateResource("role-configs", existing.ID, existing)
+				}
+				role.ID = existing.ID
+				break
+			}
+		}
 		seedResourceIfMissing(store, "role-configs", role)
 	}
 }

@@ -1,5 +1,8 @@
 export const globalUsageTranslations: Record<"en" | "ja" | "ru", Record<string, string>> = {
   en: {
+    "累计请求": "Cumulative requests",
+    "全部历史（不受趋势时间范围影响）": "All history (independent of the trend range)",
+    "趋势时间范围": "Trend time range",
     "用量统计加载失败": "Failed to load usage statistics",
     "正在加载用量…": "Loading usage…",
     "部门与成员报告": "Department and member report",
@@ -39,6 +42,9 @@ export const globalUsageTranslations: Record<"en" | "ja" | "ru", Record<string, 
     "查看趋势数据": "View trend data",
   },
   ja: {
+    "累计请求": "累計リクエスト",
+    "全部历史（不受趋势时间范围影响）": "全期間（トレンドの期間指定の対象外）",
+    "趋势时间范围": "トレンドの期間",
     "用量统计加载失败": "使用量の統計を読み込めませんでした",
     "正在加载用量…": "使用量を読み込み中…",
     "部门与成员报告": "部門とメンバーのレポート",
@@ -78,6 +84,9 @@ export const globalUsageTranslations: Record<"en" | "ja" | "ru", Record<string, 
     "查看趋势数据": "推移データを表示",
   },
   ru: {
+    "累计请求": "Всего запросов",
+    "全部历史（不受趋势时间范围影响）": "За всё время (независимо от периода графика)",
+    "趋势时间范围": "Период графика",
     "用量统计加载失败": "Не удалось загрузить статистику использования",
     "正在加载用量…": "Загрузка статистики…",
     "部门与成员报告": "Отчёт по отделам и участникам",

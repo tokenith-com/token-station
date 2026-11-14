@@ -1087,11 +1087,11 @@ func (s *Server) handleAdminAPIKeysPost(w http.ResponseWriter, r *http.Request) 
 
 func (s *Server) personalAPIKeyProject(user AdminUser) (Project, error) {
 	role := normalizeAdminRole(user.Role)
-	if role != "user" && role != "guest" {
+	if role != "user" && role != "consumer" {
 		return Project{}, NewHTTPError(400, "project_required", "Project ID is required")
 	}
 	// Consumer (guest) accounts have no project concept; their keys always live in the dedicated consumer project.
-	if role == "guest" {
+	if role == "consumer" {
 		return s.consumerAPIKeyProject()
 	}
 	for _, project := range s.store.ListProjects() {

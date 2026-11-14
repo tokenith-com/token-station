@@ -4,6 +4,7 @@ import { accessProtocols, apiKeyAccessConfig, apiKeyPlaceholder, type AccessProt
 import { copyText } from "../domain/clipboard";
 import { tx } from "../i18n/runtime";
 import { issuedKeyCloseCountdownLabel } from "./ui";
+import { fetchAPIKeySecret } from "./api-key-value";
 import { useModalFocus } from "./modal-focus";
 
 const accessEvent = "tokenhub-use-key";
@@ -31,9 +32,23 @@ export function APIKeyAccessModal({ baseURL, secret = "", apiKey, onClose }: {
 }) {
   const [protocol, setProtocol] = useState<AccessProtocol>("chat");
   const [model, setModel] = useState("");
+  const [resolvedSecret, setResolvedSecret] = useState(secret);
+  const [secretLoading, setSecretLoading] = useState(Boolean(apiKey && !secret));
   const [countdown, setCountdown] = useState(secret ? 3 : 0);
-  const focus = useModalFocus(secret ? undefined : onClose);
-  const config = apiKeyAccessConfig(baseURL, protocol, secret, model);
+  useEffect(() => {
+    if (!apiKey || secret) return;
+    let active = true;
+    void (async () => {
+      const result = await fetchAPIKeySecret(apiKey.id);
+      if (!active) return;
+      if (result.ok) setResolvedSecret(result.value);
+      setSecretLoading(false);
+    })();
+    return () => { active = false; };
+  }, [apiKey, secret]);
+  const focus = useModalFocus(undefined);
+  const displaySecret = resolvedSecret || secret;
+  const config = apiKeyAccessConfig(baseURL, protocol, displaySecret, model);
   const unusable = apiKey && (apiKey.status !== "active" || (apiKey.expires_at && Date.parse(apiKey.expires_at) <= Date.now()));
 
   useEffect(() => {
@@ -46,12 +61,14 @@ export function APIKeyAccessModal({ baseURL, secret = "", apiKey, onClose }: {
     <div className="api-key-access-modal" role="dialog" aria-modal="true" aria-labelledby="key-access-title" {...focus}>
       <header className="api-key-access-header">
         <h2 id="key-access-title">{tx("使用 API Key")}</h2>
-        <p>{secret ? tx("新 Key 已生成。复制接入信息，即可配置客户端。") : apiKey?.name}</p>
+        <p>{displaySecret ? tx("完整 Key 已加载。复制接入信息，即可配置客户端。") : apiKey?.name}</p>
       </header>
       <div className="api-key-access-body">
-        <p className="api-key-access-notice">{secret
-          ? tx("请现在复制并保存完整 Key。关闭此窗口后无法再次查看。")
-          : tx("完整 Key 不再展示。请使用创建时保存的 Key，替换示例中的 YOUR_TOKENHUB_API_KEY。")}</p>
+        <p className="api-key-access-notice">{secretLoading
+          ? tx("正在加载完整 Key…")
+          : displaySecret
+            ? tx("请复制并保存完整 Key。")
+            : tx("无法加载完整 Key，请检查权限或轮换 Key。")}</p>
         {unusable ? <p className="api-key-access-warning" role="status">{tx("此 Key 已停用、吊销或过期，不能用于发起请求。")}</p> : null}
         <label className="field"><span>{tx("接入协议")}</span>
           <select value={protocol} onChange={event => setProtocol(event.target.value as AccessProtocol)}>
@@ -59,7 +76,7 @@ export function APIKeyAccessModal({ baseURL, secret = "", apiKey, onClose }: {
           </select>
         </label>
         <CopyField label={tx("接入地址（Base URL）")} value={config.base} copyLabel={tx("复制地址")} />
-        <CopyField label={secret ? tx("完整 Key") : tx("API Key 占位符")} value={secret || apiKeyPlaceholder} copyLabel={secret ? tx("复制 Key") : tx("复制占位符")} />
+        <CopyField label={displaySecret ? tx("完整 Key") : tx("API Key 占位符")} value={displaySecret || apiKeyPlaceholder} copyLabel={displaySecret ? tx("复制 Key") : tx("复制占位符")} />
         {apiKey ? <p className="api-key-access-hint">{tx("当前 Key 标识")} <code>{apiKey.key_prefix}…{apiKey.key_suffix}</code></p> : null}
         <p className="api-key-access-hint">{tx("认证请求头")} <code>{config.authHeader}{config.authHeader === "Authorization" ? ": Bearer <API_KEY>" : ": <API_KEY>"}</code></p>
         <details open className="api-key-access-example">

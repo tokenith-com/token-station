@@ -12,8 +12,8 @@ describe("provider header validation", () => {
   test("keeps core reserved headers blocked independently of provider plugins", () => {
     const entries = [{ name: "Authorization", value: "Bearer user-key", sensitive: false }];
 
-    assert.deepEqual(providerHeaderEntryErrors(entries), ["该请求头由 TokenHub 管理，不能覆盖。"]);
-    assert.equal(providerHeaderFormError(JSON.stringify(entries)), "该请求头由 TokenHub 管理，不能覆盖。");
+    assert.deepEqual(providerHeaderEntryErrors(entries), ["该请求头由 TokenStation 管理，不能覆盖。"]);
+    assert.equal(providerHeaderFormError(JSON.stringify(entries)), "该请求头由 TokenStation 管理，不能覆盖。");
   });
 
   test("allows provider-owned headers unless a provider plugin manages them", () => {

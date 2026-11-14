@@ -360,7 +360,7 @@ func TestBootstrapBaseDataSeedsGovernanceResources(t *testing.T) {
 			t.Fatalf("unexpected role config: %+v", role)
 		}
 	}
-	for _, key := range []string{"user", "guest", "team_leader", "admin"} {
+	for _, key := range []string{"user", "consumer", "team_leader", "admin"} {
 		if !roleKeys[key] {
 			t.Fatalf("expected seeded role key %s, got %+v", key, roleKeys)
 		}
@@ -372,6 +372,34 @@ func TestBootstrapBaseDataSeedsGovernanceResources(t *testing.T) {
 	}
 	if stringField(identityProviders[0].Fields, "provider_type") != "oidc" || stringField(identityProviders[0].Fields, "client_id") == "" {
 		t.Fatalf("unexpected identity provider fields: %+v", identityProviders[0].Fields)
+	}
+}
+
+func TestSeedRoleConfigsCanonicalizesLegacyConsumer(t *testing.T) {
+	store := NewMemoryStore()
+	store.CreateResource("role-configs", AdminResource{
+		ID: "role_guest", Name: "C端普通用户", Description: "Custom consumer configuration", Status: "disabled",
+		Fields: map[string]any{"role_key": "guest", "display_name": "C端普通用户", "assignable": false},
+	})
+	seedDefaultRoleConfigs(store)
+	seedDefaultRoleConfigs(store)
+	roles := store.ListResources("role-configs")
+	if len(roles) != 4 {
+		t.Fatalf("expected four role configs after repeated seeding, got %d", len(roles))
+	}
+	for _, role := range roles {
+		if role.ID == "role_consumer" || stringField(role.Fields, "role_key") == "guest" {
+			t.Fatalf("unexpected duplicate or legacy role: %+v", role)
+		}
+		if role.ID == "role_guest" {
+			if stringField(role.Fields, "role_key") != "consumer" || role.Name != "C端普通用户" || role.Status != "disabled" || role.Description != "Custom consumer configuration" || role.Fields["assignable"] != false {
+				t.Fatalf("legacy consumer configuration was not preserved: %+v", role)
+			}
+		}
+	}
+	resp := doJSON(t, New(store).Handler(), http.MethodGet, "/api/admin/resources/role-configs", nil, "")
+	if resp.Code != http.StatusOK || strings.Contains(resp.Body, `"role_key":"guest"`) || !strings.Contains(resp.Body, `"role_key":"consumer"`) {
+		t.Fatalf("expected canonical consumer config from resource API, got %d: %s", resp.Code, resp.Body)
 	}
 }
 

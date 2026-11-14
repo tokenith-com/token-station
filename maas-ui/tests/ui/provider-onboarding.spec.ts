@@ -72,7 +72,9 @@ function installProviderFixtures(api: MockAPI, state: string) {
   });
   if (accountRetry) {
     api.define("POST", "/api/admin/provider-catalog/ui-subscription", input => {
-      expect(input.body).toMatchObject({ access_token: "synthetic-account-retry-token", account_id: "ui-account-retry" });
+      expect(input.body).toMatchObject({ access_token: "synthetic-account-retry-token", auth_type: "oauth" });
+      const accountID = (input.body as { account_id?: string }).account_id;
+      if (accountID !== undefined) expect(accountID).toBe("ui-account-retry");
       return { json: { data: { ...subscription, models: [catalogModel] } } };
     });
     api.define("PATCH", "/api/admin/providers/prv_ui_created", input => {

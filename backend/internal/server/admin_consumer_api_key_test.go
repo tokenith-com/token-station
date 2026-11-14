@@ -7,13 +7,32 @@ import (
 	"time"
 )
 
+func TestConsumerRoleCompatibility(t *testing.T) {
+	for _, role := range []string{"consumer", "guest", " GUEST "} {
+		t.Run(role, func(t *testing.T) {
+			if normalizeAdminRole(role) != "consumer" || !isConsumerRole(role) {
+				t.Fatalf("role %q must normalize to consumer", role)
+			}
+			if !canAdmin(role, "api_key", http.MethodPost) || canAdmin(role, "identity", http.MethodPost) {
+				t.Fatalf("unexpected consumer permissions for %q", role)
+			}
+			if !adminRoleMatches(role, "consumer") || !adminRoleMatches("consumer", role) {
+				t.Fatalf("consumer role aliases must match %q", role)
+			}
+			if user := publicAdminUser(AdminUser{Role: role}); user.Role != "consumer" {
+				t.Fatalf("public role = %q, want consumer", user.Role)
+			}
+		})
+	}
+}
+
 func TestConsumerCreatesPersonalAPIKeyWithoutProject(t *testing.T) {
 	store := NewMemoryStore()
 	guest, err := store.CreateAdminUser(AdminUser{
 		Username: "consumer-key-guest",
 		Name:     "Consumer Key Guest",
 		Email:    "consumer-key-guest@tokenhub.local",
-		Role:     "guest",
+		Role:     "consumer",
 		Status:   StatusActive,
 	}, "guest123456")
 	if err != nil {

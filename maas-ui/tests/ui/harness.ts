@@ -23,7 +23,8 @@ export const test = base.extend<{ api: MockAPI; sessionUser: AdminUser | null; s
       if (session.user) window.sessionStorage.setItem(sessionKey, JSON.stringify(session));
       else window.sessionStorage.removeItem(sessionKey);
       window.localStorage.setItem(languageKey, language);
-    }, { sessionKey: sessionStorageKey, languageKey: languageStorageKey, language: sessionLanguage, origin: frontendOrigin, session: { baseURL: apiOrigin, token: "ui-fixture-session", user: sessionUser, expiresAt: "2099-01-01T00:00:00Z" } });
+      window.localStorage.setItem(`${languageKey}.default-version`, "zh-CN-v1");
+    }, { sessionKey: `${sessionStorageKey}.b`, languageKey: languageStorageKey, language: sessionLanguage, origin: frontendOrigin, session: { baseURL: apiOrigin, token: "ui-fixture-session", user: sessionUser, expiresAt: "2099-01-01T00:00:00Z" } });
     const pageErrors: string[] = [];
     context.on("page", opened => opened.on("pageerror", error => pageErrors.push(error.message)));
     page.on("pageerror", error => pageErrors.push(error.message));

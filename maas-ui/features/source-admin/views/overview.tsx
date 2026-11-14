@@ -32,7 +32,7 @@ export function OverviewView({
   const topModels = overviewTopModelRows(data);
   const cards = [
     {
-      label: "总请求",
+      label: "累计请求",
       value: formatNumber(data.summary.request_count),
       icon: BarChart3,
       delta: overviewDeltaLabel(requestValues),
@@ -88,7 +88,7 @@ export function OverviewView({
           <p className="eyebrow">{tx("企业级 AI 网关")}</p>
           <h1>{tx("网关概览")}</h1>
         </div>
-        <div className="overview-range-tabs" role="tablist" aria-label={tx("报表时间范围")}>
+        <div className="overview-range-tabs" role="tablist" aria-label={tx("趋势时间范围")}>
           {overviewRangeTabs.map((item) => (
             <button
               className={range === item.key ? "active" : ""}
@@ -110,7 +110,7 @@ export function OverviewView({
           return (
             <OverviewMetricCard
               badge={"badge" in card ? card.badge : card.delta}
-              caption={"caption" in card ? card.caption : undefined}
+              caption={"caption" in card ? card.caption : tx("全部历史（不受趋势时间范围影响）")}
               icon={Icon}
               key={card.label}
               label={card.label}
@@ -405,7 +405,7 @@ export function UsageCostRankPanel({ title, empty, rows }: { title: string; empt
                 <small>{formatNumber(row.request_count)} {tx("次请求")} · {tx("输入")} {compactNumber(row.input_tokens)} · {tx("输出")} {compactNumber(row.output_tokens)}</small>
                 <span className="usage-rank-progress"><span style={{ width: `${width}%` }} /></span>
               </div>
-              <em>${formatMoney(row.cost)}</em>
+              <em>¥{formatMoney(row.cost)}</em>
             </div>
           );
         }) : (

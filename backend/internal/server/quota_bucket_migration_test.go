@@ -88,6 +88,12 @@ PRIMARY KEY (key_id, scope, bucket)
 	if err := store.db.Exec("INSERT INTO quota_buckets (key_id, scope, bucket, total_tokens) VALUES (?, ?, ?, ?)", "key_legacy", "day", "2026-08-20", 12).Error; err != nil {
 		t.Fatal(err)
 	}
+	// Historical databases predate the wallet tables added by migrations 15, 17, and 18.
+	for _, table := range []string{"team_wallet_calls", "team_wallet_entries", "team_wallets"} {
+		if err := store.db.Exec("DROP TABLE " + table).Error; err != nil {
+			t.Fatal(err)
+		}
+	}
 	if err := store.db.Exec("DROP TABLE schema_migrations").Error; err != nil {
 		t.Fatal(err)
 	}

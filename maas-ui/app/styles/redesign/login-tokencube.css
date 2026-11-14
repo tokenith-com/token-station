@@ -2,7 +2,7 @@
 .tc-login {
   position: relative;
   min-height: 100vh;
-  overflow: hidden;
+  overflow-x: hidden;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -545,6 +545,15 @@
 
 .tc-login-copyright .login-account-footer a:hover {
   color: #7449ad;
+}
+
+@media (max-height: 800px) {
+  .tc-login-brand { margin-bottom: 16px; }
+  .tc-login-logo { width: 48px; height: 48px; margin-bottom: 8px; }
+  .tc-login-card { padding: 20px; }
+  .tc-login-head { margin-bottom: 16px; }
+  .tc-login-form { gap: 12px; }
+  .tc-login-copyright { margin-top: 16px; }
 }
 
 .tc-login[data-theme="dark"] {

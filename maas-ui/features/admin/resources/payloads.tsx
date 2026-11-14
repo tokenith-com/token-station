@@ -737,6 +737,12 @@ export function userPayload(values: Record<string, string>, includePassword: boo
   return payload;
 }
 
+export async function createCustomerOnboarding(ctx: ApiContext, values: Record<string, string>) {
+  const payload = Object.fromEntries(["cost_center_code", "cost_center_name", "team_name", "project_name", "leader_username", "leader_email", "idempotency_key"].map(key => [key, values[key]?.trim()]));
+  const resp = await adminFetch(ctx, "/api/admin/customer-onboarding", { method: "POST", body: JSON.stringify({ ...payload, leader_password: values.leader_password }) });
+  if (!resp.ok) throw new Error(await readAdminError(resp, tx("客户开通失败，请检查后重试")));
+}
+
 export function teamMemberCreatePayload(values: Record<string, string>) {
   return {
     username: values.username.trim(),

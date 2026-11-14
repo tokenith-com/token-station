@@ -23,6 +23,32 @@ it("fetches the full key from the secret endpoint before revealing it", async ()
   expect(new Headers(init.headers).get("authorization")).toBe("Bearer session-token");
 });
 
+it("renders list actions without fetching secrets and copies on demand without revealing", async () => {
+  const fetchMock = vi.fn(async () => new Response(JSON.stringify({ api_key: "synthetic-full-key" }), { status: 200 }));
+  const writeText = vi.fn().mockResolvedValue(undefined);
+  vi.stubGlobal("fetch", fetchMock);
+  vi.stubGlobal("isSecureContext", true);
+  Object.defineProperty(navigator, "clipboard", { configurable: true, value: { writeText } });
+  configureAPIKeySecretContext({ baseURL: "", adminToken: "session-token" });
+  render(<APIKeyValue apiKey={apiKey} />);
+  expect(fetchMock).not.toHaveBeenCalled();
+  expect(screen.getByText("********")).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "显示 Key" })).toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "复制 Key" }));
+  await waitFor(() => expect(writeText).toHaveBeenCalledWith("synthetic-full-key"));
+  expect(screen.queryByText("synthetic-full-key")).not.toBeInTheDocument();
+});
+
+it("does not reveal a masked value when permission is denied", async () => {
+  vi.stubGlobal("fetch", vi.fn(async () => new Response("{}", { status: 403 })));
+  configureAPIKeySecretContext({ baseURL: "", adminToken: "session-token" });
+  render(<APIKeyValue apiKey={apiKey} />);
+  fireEvent.click(screen.getByRole("button", { name: "显示 Key" }));
+  expect(await screen.findByRole("status")).toHaveTextContent("获取完整 Key 失败");
+  expect(screen.getByRole("button", { name: "显示 Key" })).toBeInTheDocument();
+  expect(screen.getByText("********")).toBeInTheDocument();
+});
+
 it("explains that legacy keys must be rotated when no secret is stored", async () => {
   vi.stubGlobal("fetch", vi.fn(async () => new Response("{}", { status: 409 })));
   configureAPIKeySecretContext({ baseURL: "", adminToken: "session-token" });

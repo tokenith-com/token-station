@@ -5,6 +5,7 @@ import { firstActiveTeam, roleDisplayLabel, roleSelectOptions, userTeamIDs, user
 import { tx } from "../i18n/runtime";
 import { usePagination } from "./settings-table";
 import { usePortal } from "../core/portal-context";
+import { CustomerOnboardingDialog } from "./customer-onboarding";
 
 export type PlatformAccountValues = Record<string, string>;
 
@@ -23,6 +24,7 @@ export function PlatformAccountsView({
   onResetPassword,
   onToggleStatus,
   onDelete,
+  onOnboard,
 }: {
   variant: "platform" | "team";
   data: AppData;
@@ -33,8 +35,11 @@ export function PlatformAccountsView({
   onResetPassword: (user: AdminUser, values: PlatformAccountValues) => Promise<boolean>;
   onToggleStatus: (user: AdminUser) => Promise<void>;
   onDelete: (user: AdminUser) => void;
+  onOnboard?: (values: PlatformAccountValues) => Promise<boolean>;
 }) {
   const isTeamView = variant === "team";
+  const canOnboard = !isTeamView && ["admin", "system_admin"].includes(currentUser.role) && Boolean(onOnboard);
+  const [onboardingOpen, setOnboardingOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [scopeFilter, setScopeFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState(() => isTeamView ? "active" : "all");
@@ -57,10 +62,13 @@ export function PlatformAccountsView({
   return (
     <section className={`platform-accounts-view${isTeamView ? " team-accounts-view" : ""}`} aria-label={tx(isTeamView ? "团队用户列表" : "平台账户")}>
       <div className="platform-accounts-toolbar">
-        <button className="platform-account-create" onClick={() => setDialog({ mode: "create" })} type="button">
-          <Plus size={14} />
-          {tx(isTeamView ? "新增团队成员" : "新增用户")}
-        </button>
+        <div className="platform-account-filters">
+          <button className="platform-account-create" onClick={() => setDialog({ mode: "create" })} type="button">
+            <Plus size={14} />
+            {tx(isTeamView ? "新增团队成员" : "新增用户")}
+          </button>
+          {canOnboard ? <button className="platform-account-create" disabled={loading} onClick={() => setOnboardingOpen(true)} type="button"><Plus size={14} />{tx("开通客户")}</button> : null}
+        </div>
 
         <div className="platform-account-filters">
           <label className="platform-account-search">
@@ -148,6 +156,7 @@ export function PlatformAccountsView({
       </div>
       <AccountPagination pagination={pagination} totalItems={filteredUsers.length} />
 
+      {onboardingOpen && canOnboard && onOnboard ? <CustomerOnboardingDialog onClose={() => setOnboardingOpen(false)} onSubmit={onOnboard} /> : null}
       {dialog ? (
         <PlatformAccountDialog
           data={data}
@@ -270,7 +279,7 @@ function PlatformAccountDialog({
       return;
     }
     // Consumer accounts never belong to a team.
-    if (values.role === "guest") {
+    if (["consumer", "guest"].includes(values.role)) {
       await onSubmit({ ...values, team_id: "", team_ids: "" });
       return;
     }

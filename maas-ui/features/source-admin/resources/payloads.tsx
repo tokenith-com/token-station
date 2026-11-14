@@ -747,6 +747,12 @@ export function userPayload(values: Record<string, string>, includePassword: boo
   return payload;
 }
 
+export async function createCustomerOnboarding(ctx: ApiContext, values: Record<string, string>) {
+  const payload = Object.fromEntries(["cost_center_code", "cost_center_name", "team_name", "project_name", "leader_username", "leader_email", "idempotency_key"].map(key => [key, values[key]?.trim()]));
+  const resp = await adminFetch(ctx, "/api/admin/customer-onboarding", { method: "POST", body: JSON.stringify({ ...payload, leader_password: values.leader_password }) });
+  if (!resp.ok) throw new Error(await readAdminError(resp, tx("客户开通失败，请检查后重试")));
+}
+
 export function numberPayload(values: Record<string, string>, keys: string[]) {
   const payload: Record<string, unknown> = { ...values };
   for (const key of keys) payload[key] = numberOr(values[key], 0);
@@ -810,7 +816,7 @@ function localizedAdminErrorCode(code?: string) {
     case "grok_api_scope_missing":
       return tx("Grok 授权缺少模型调用所需的 api:access 权限。请编辑此账号，重新授权并同意所需权限，然后保存账号。");
     case "google_subscription_location_unsupported":
-      return tx("Google 订阅服务不支持当前请求所在地区。请检查账号的地区资格以及 TokenHub 服务器的网络出口地区。");
+      return tx("Google 订阅服务不支持当前请求所在地区。请检查账号的地区资格以及 TokenStation 服务器的网络出口地区。");
     case "provider_model_retired":
       return tx("请选择未停用的上游模型后再发布新线路。");
     case "provider_model_price_required":

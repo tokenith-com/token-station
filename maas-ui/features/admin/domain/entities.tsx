@@ -190,7 +190,8 @@ export function roleSelectOptions(data: AppData, portal?: Portal) {
   const configured = (data.resources["role-configs"] ?? [])
     .filter((role) => role.status === "active" && roleConfigAssignable(role))
     .map((role) => {
-      const value = stringifyValue(role.fields?.role_key) || role.id;
+      const key = stringifyValue(role.fields?.role_key) || role.id;
+      const value = key === "guest" ? "consumer" : key;
       return {
         value,
         label: roleDisplayName(role) || roleLabel(value),
@@ -200,7 +201,7 @@ export function roleSelectOptions(data: AppData, portal?: Portal) {
   if (configured.length > 0) {
     return portal ? configured.filter(option => portalAllowsRole(portal, option.value)) : configured;
   }
-  return ["user", "team_leader", "admin", "guest"]
+  return ["user", "team_leader", "admin", "consumer"]
     .filter(role => !portal || portalAllowsRole(portal, role))
     .map((role) => ({ value: role, label: roleLabel(role) }));
 }

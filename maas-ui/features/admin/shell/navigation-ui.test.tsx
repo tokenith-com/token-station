@@ -1,4 +1,5 @@
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, act } from "@testing-library/react";
+import { SidebarNavItem } from "./sidebar-nav-item";
 import { describe, expect, it, vi } from "vitest";
 import { pageHeaderChips, Sidebar } from "./navigation-ui";
 import { expectedMenus } from "../core/navigation.test";
@@ -6,6 +7,31 @@ import { navGroupsForUser, isNavParentItem } from "../core/navigation";
 import type { AdminUser, AppRole } from "../core/types";
 import { emptyData } from "../domain/catalog";
 describe("current sidebar after 0.9 merge", () => {
+  it.each([false, true])("handles focus scrolling and pending Escape cancellation: %s", escape => {
+    let frame: FrameRequestCallback | undefined;
+    const request = vi.spyOn(window, "requestAnimationFrame").mockImplementation(callback => { frame = callback; return 42; });
+    const cancel = vi.spyOn(window, "cancelAnimationFrame").mockImplementation(() => { frame = undefined; });
+    const { unmount } = render(<SidebarNavItem active={false} collapsed label="Overview" onSelect={vi.fn()}>Icon</SidebarNavItem>);
+    const button = screen.getByRole("button", { name: "Overview" });
+    const matches = vi.spyOn(button, "matches").mockReturnValue(true);
+    act(() => button.focus());
+    fireEvent.scroll(window);
+    expect(screen.queryByRole("tooltip")).not.toBeInTheDocument();
+    if (escape) {
+      fireEvent.keyDown(button, { key: "Escape" });
+      expect(cancel).toHaveBeenCalledWith(42);
+      expect(frame).toBeUndefined();
+    } else {
+      act(() => frame!(0));
+      expect(screen.getByRole("tooltip")).toHaveTextContent("Overview");
+      fireEvent.scroll(window);
+      expect(screen.queryByRole("tooltip")).not.toBeInTheDocument();
+    }
+    unmount();
+    matches.mockRestore();
+    request.mockRestore();
+    cancel.mockRestore();
+  });
   it.each(Object.keys(expectedMenus) as AppRole[])("renders the retained %s menu and selects pages", role => {
     const fetch = vi.fn();
     vi.stubGlobal("fetch", fetch);

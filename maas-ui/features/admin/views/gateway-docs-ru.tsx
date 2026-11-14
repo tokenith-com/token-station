@@ -28,9 +28,9 @@ export function gatewayRussianDocs(stats: GatewayDocBundle): GatewayDocBundle {
       searchPlaceholder: "Поиск по руководствам, API и кодам ошибок",
       noResults: "Совпадающих документов не найдено",
     },
-    eyebrow: "TokenHub Docs",
+    eyebrow: "TokenStation Docs",
     title: "Руководство по шлюзу для трех ролей",
-    description: "Документация TokenHub разделена по корпоративным ролям: пользователи вызывают одобренные модели, тимлиды управляют проектами и участниками, а администраторы настраивают провайдеров, маршрутизацию, источники удостоверений, аудит и затраты.",
+    description: "Документация TokenStation разделена по корпоративным ролям: пользователи вызывают одобренные модели, тимлиды управляют проектами и участниками, а администраторы настраивают провайдеров, маршрутизацию, источники удостоверений, аудит и затраты.",
     languageLabel: "Язык документации",
     quickInfoLabel: "Базовая информация API",
     quickCards: {
@@ -62,7 +62,7 @@ export function gatewayRussianDocs(stats: GatewayDocBundle): GatewayDocBundle {
             ...stats.groups[0].items[0],
             group: "Начало работы",
             title: "Обзор платформы",
-            description: "Узнайте, как TokenHub объединяет модели, проекты, ключи, маршрутизацию, аудит и распределение затрат в единый контур управления.",
+            description: "Узнайте, как TokenStation объединяет модели, проекты, ключи, маршрутизацию, аудит и распределение затрат в единый контур управления.",
             details: [
               { label: "Основные разделы", value: "Model Playground / Key Management / Usage Analytics" },
               { label: "Интерфейсы сервисов", value: "/v1/*" },
@@ -281,7 +281,7 @@ export function gatewayRussianDocs(stats: GatewayDocBundle): GatewayDocBundle {
               title: "Частые ошибки",
               columns: ["Статус", "Код ошибки", "Решение"],
               rows: [
-                ["401", "invalid_api_key", "Убедитесь, что в заголовке Authorization передан верный API-ключ TokenHub."],
+                ["401", "invalid_api_key", "Убедитесь, что в заголовке Authorization передан верный API-ключ TokenStation."],
                 ["403", "project_forbidden / model_not_allowed", "Проверьте членство в проекте и доступность модели для данного проекта."],
                 ["404/503", "provider_unavailable", "Настройте активный маршрут для модели или проверьте статус вышестоящего провайдера."],
                 ["429", "quota_exceeded", "Проверьте квоты проекта, лимиты параллельных запросов и ограничения провайдера."],

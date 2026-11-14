@@ -336,11 +336,10 @@
 }
 
 .console-topbar-account-trigger {
-  min-width: calc(148 * var(--content-font-unit, 1px));
   height: calc(42 * var(--content-font-unit, 1px));
   padding: 0 4px;
-  display: grid;
-  grid-template-columns: calc(30 * var(--content-font-unit, 1px)) minmax(0, 1fr) 16px;
+  display: inline-grid;
+  grid-template-columns: auto minmax(0, auto) 16px;
   align-items: center;
   gap: 8px;
   background: transparent;
@@ -368,6 +367,7 @@
 
 .console-topbar-identity {
   min-width: 0;
+  max-width: calc(160 * var(--content-font-unit, 1px));
   display: grid;
   gap: 1px;
 }
@@ -404,7 +404,9 @@
   z-index: 80;
   top: calc(100% + 6px);
   right: 0;
-  width: 220px;
+  width: max-content;
+  min-width: 100%;
+  max-width: 280px;
   padding: 5px;
   border: 1px solid #e2e6ed;
   border-radius: 6px;

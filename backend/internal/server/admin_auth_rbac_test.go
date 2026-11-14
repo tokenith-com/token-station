@@ -951,7 +951,7 @@ func TestAdminUserAPIStoresPrimaryAndAdditionalTeams(t *testing.T) {
 	if err := json.Unmarshal([]byte(guestCreated.Body), &guest); err != nil {
 		t.Fatal(err)
 	}
-	if guest.TeamID != "" || len(guest.TeamIDs) != 0 {
+	if guest.Role != "consumer" || guest.TeamID != "" || len(guest.TeamIDs) != 0 {
 		t.Fatalf("consumer user must not belong to a team: primary=%s teams=%v", guest.TeamID, guest.TeamIDs)
 	}
 	guestPatched := doJSON(t, app, http.MethodPatch, "/api/admin/users/"+guest.ID, map[string]any{
@@ -964,7 +964,7 @@ func TestAdminUserAPIStoresPrimaryAndAdditionalTeams(t *testing.T) {
 	if err := json.Unmarshal([]byte(guestPatched.Body), &guest); err != nil {
 		t.Fatal(err)
 	}
-	if guest.TeamID != "" || len(guest.TeamIDs) != 0 {
+	if guest.Role != "consumer" || guest.TeamID != "" || len(guest.TeamIDs) != 0 {
 		t.Fatalf("consumer user patch must not assign a team: primary=%s teams=%v", guest.TeamID, guest.TeamIDs)
 	}
 }

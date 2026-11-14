@@ -2,7 +2,7 @@ export const loginHomeTranslations: Record<"en" | "ja" | "ru", Record<string, st
   en: {
     "OAuth 登录失败（{code}），请重试或联系管理员。": "OAuth sign-in failed ({code}). Try again or contact your administrator.",
     "欢迎回来": "Welcome back",
-    "登录 TokenHub 控制台": "Sign in to the TokenHub console",
+    "登录 TokenStation 控制台": "Sign in to the TokenStation console",
     "统一管理企业 {ai} Token": "Enterprise {ai} Token Control Platform",
     "更可控": "More controllable",
     "更节省": "More efficient",
@@ -34,7 +34,7 @@ export const loginHomeTranslations: Record<"en" | "ja" | "ru", Record<string, st
   ja: {
     "OAuth 登录失败（{code}），请重试或联系管理员。": "OAuth ログインに失敗しました（{code}）。再試行するか、管理者にお問い合わせください。",
     "欢迎回来": "おかえりなさい",
-    "登录 TokenHub 控制台": "TokenHub コンソールにログイン",
+    "登录 TokenStation 控制台": "TokenStation コンソールにログイン",
     "统一管理企业 {ai} Token": "企業の {ai} Token 管理",
     "更可控": "より制御しやすく",
     "更节省": "より節約",
@@ -66,7 +66,7 @@ export const loginHomeTranslations: Record<"en" | "ja" | "ru", Record<string, st
   ru: {
     "OAuth 登录失败（{code}），请重试或联系管理员。": "Ошибка входа через OAuth ({code}). Повторите попытку или обратитесь к администратору.",
     "欢迎回来": "С возвращением",
-    "登录 TokenHub 控制台": "Вход в консоль TokenHub",
+    "登录 TokenStation 控制台": "Вход в консоль TokenStation",
     "统一管理企业 {ai} Token": "Единое управление корпоративными {ai} токенами",
     "更可控": "Больше контроля",
     "更节省": "Больше экономии",

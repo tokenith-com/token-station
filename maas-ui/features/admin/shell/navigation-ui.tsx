@@ -219,7 +219,7 @@ export function pageHeaderFallbackGroup(view: ViewKey, user: AdminUser) {
   if (view === "gateway") {
     const role = appRole(user.role);
     if (role === "team_leader") return "团队管理";
-    if (role === "user" || role === "guest") return "开始使用";
+    if (role === "user" || role === "consumer") return "开始使用";
     return "接入参考";
   }
   return "";
@@ -249,7 +249,7 @@ export function pageHeaderChips(view: ViewKey, data: AppData, user: AdminUser) {
         { label: role === "team_leader" ? "团队成员" : "用户", value: formatNumber(data.users.length) },
       ];
     case "api-keys":
-      if (role === "user" || role === "guest") {
+      if (role === "user" || role === "consumer") {
         return [
           { label: "Key", value: formatNumber(data.keys.length) },
           { label: "可用模型", value: formatNumber(playgroundModels(data).length) },
@@ -260,7 +260,7 @@ export function pageHeaderChips(view: ViewKey, data: AppData, user: AdminUser) {
         { label: "项目", value: formatNumber(data.projects.length) },
       ];
     case "gateway":
-      if (role === "user" || role === "guest" || role === "team_leader") {
+      if (role === "user" || role === "consumer" || role === "team_leader") {
         return [
           { label: "API Key", value: formatNumber(data.keys.length) },
           { label: "可用模型", value: formatNumber(playgroundModels(data).length) },
@@ -318,7 +318,7 @@ export function TopNav(props: TopNavProps) {
 
 function ConsoleTopNav({ activeView, api, user, theme, language, sidebarCollapsed, onLanguageChange, onSelectView, onThemeToggle, onToggleSidebar, onLogout }: TopNavProps) {
   const [accountOpen, setAccountOpen] = useState(false);
-  const isGuest = appRole(user.role) === "guest";
+  const isGuest = appRole(user.role) === "consumer";
   const accountRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -357,7 +357,7 @@ function ConsoleTopNav({ activeView, api, user, theme, language, sidebarCollapse
         type="button">
         {theme === "dark" ? <Sun size={17} /> : <Moon size={17} />}
       </button>
-      {isGuest ? <BalanceCard activeView={activeView} api={api} onSelectView={onSelectView} /> : null}
+      {isGuest || appRole(user.role) === "team_leader" ? <BalanceCard activeView={activeView} api={api} teamID={appRole(user.role) === "team_leader" ? user.team_id : undefined} onSelectView={onSelectView} /> : null}
       <div className="console-topbar-account" ref={accountRef}>
         <button aria-expanded={accountOpen} aria-haspopup="menu" aria-label={tx("个人中心")} className="console-topbar-account-trigger" onClick={() => setAccountOpen(value => !value)} type="button">
           <span className="console-topbar-avatar">{userInitial(user)}</span>

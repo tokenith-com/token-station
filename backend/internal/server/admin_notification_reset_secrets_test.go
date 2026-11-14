@@ -3,6 +3,7 @@ package server
 import (
 	"encoding/json"
 	"net/http"
+	"net/textproto"
 	"strings"
 	"testing"
 )
@@ -82,7 +83,7 @@ func TestPasswordResetSMTPFailuresRedactSavedCredentials(t *testing.T) {
 
 func assertRedactedSMTPRejection(t *testing.T, message, prefix string) {
 	t.Helper()
-	want := prefix + `535 "Rejected password ` + providerHeaderMask + `"`
+	want := prefix + (&textproto.Error{Code: 535, Msg: "Rejected password " + providerHeaderMask}).Error()
 	if message != want {
 		t.Errorf("SMTP rejection must contain only its status, safe text, and a credential mask: got %q", message)
 	}

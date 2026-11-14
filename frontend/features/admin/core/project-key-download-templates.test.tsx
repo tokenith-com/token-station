@@ -8,7 +8,7 @@ describe("projectKeyDownloadTemplates", () => {
     expect(projectKeyDownloadTemplates[0]).toMatchObject({
       id: "codex_cli_config",
       menuLabel: "Codex CLI 配置",
-      menuSubtitle: "config.toml · 连接 TokenHub Responses",
+      menuSubtitle: "config.toml · 连接 TokenStation Responses",
       filenameSuffix: "-codex-config.toml",
     });
     expect(projectKeyDownloadTemplates[1]).toMatchObject({

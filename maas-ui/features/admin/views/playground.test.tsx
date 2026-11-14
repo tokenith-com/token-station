@@ -52,7 +52,10 @@ function reply() {
   });
 }
 
-beforeEach(() => { vi.mocked(streamPlaygroundChat).mockReset(); });
+beforeEach(() => {
+  window.localStorage.clear();
+  vi.mocked(streamPlaygroundChat).mockReset();
+});
 
 it("sends the draft with Enter and clears the composer", async () => {
   reply();

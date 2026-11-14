@@ -254,7 +254,7 @@ describe("PageHeader breadcrumbs", () => {
     expect(screen.queryByText("健康 Provider")).not.toBeInTheDocument();
   });
 
-  it("marks the billing page as the current location and returns home from TokenHub", async () => {
+  it("marks the billing page as the current location and returns home from TokenStation", async () => {
     const onSelect = vi.fn();
     render(
       <PageHeader
@@ -267,12 +267,12 @@ describe("PageHeader breadcrumbs", () => {
     );
 
     expect(pageHeaderCrumbs(admin, "billing", { title: "成本账单" })).toEqual([
-      { label: "TokenHub", view: "overview" },
+      { label: "TokenStation", view: "overview" },
       { label: "成本治理" },
       { label: "成本账单" },
     ]);
     expect(screen.getByText("成本账单")).toHaveAttribute("aria-current", "page");
-    await screen.getByRole("button", { name: "TokenHub" }).click();
+    await screen.getByRole("button", { name: "TokenStation" }).click();
     expect(onSelect).toHaveBeenCalledWith("overview");
   });
 });

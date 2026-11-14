@@ -187,7 +187,7 @@ test("admin can inspect plugin details and files without fake settings", async (
   await page.getByText("开发者信息", { exact: true }).click();
   await expect(page.getByText("trace_export", { exact: true })).toBeVisible();
   await expect(page.getByText("export", { exact: true })).not.toBeVisible();
-  await expect(page.getByText("告诉 TokenHub 这个插件提供的一项扩展功能。", { exact: true })).toBeVisible();
+  await expect(page.getByText("告诉 TokenStation 这个插件提供的一项扩展功能。", { exact: true })).toBeVisible();
   await page.setViewportSize({ width: 390, height: 844 });
   await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
   const overflowingTechnicalElements = await page.locator(".plugin-technical-details").evaluate((details) => [details, ...details.querySelectorAll<HTMLElement>("*")]

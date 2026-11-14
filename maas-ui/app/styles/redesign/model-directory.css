@@ -279,6 +279,10 @@
   table-layout: fixed;
 }
 
+.view-models .model-management-table {
+  min-width: 800px;
+}
+
 .view-models .model-directory-table th {
   height: calc(30 * var(--content-font-unit, 1px));
   padding: 5px 8px;
@@ -293,22 +297,19 @@
   width: 18%;
 }
 .view-models .model-directory-table th:nth-child(2) {
-  width: 15%;
+  width: 10%;
 }
 .view-models .model-directory-table th:nth-child(3) {
-  width: 21%;
+  width: 15%;
 }
 .view-models .model-directory-table th:nth-child(4) {
-  width: 7%;
+  width: 13%;
 }
 .view-models .model-directory-table th:nth-child(5) {
-  width: 7%;
+  width: 14%;
 }
 .view-models .model-directory-table th:nth-child(6) {
-  width: 12%;
-}
-.view-models .model-directory-table th:nth-child(7) {
-  width: 20%;
+  width: 30%;
 }
 
 .view-models .directory-model-name {

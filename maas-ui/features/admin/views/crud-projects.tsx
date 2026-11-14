@@ -68,7 +68,7 @@ export function CrudView<T>({
   const [selectedTeamID, setSelectedTeamID] = useState("");
   const isTeamView = config.view === "teams";
   const isProjectView = config.view === "projects";
-  const isPersonalKeyView = config.view === "api-keys" && Boolean(user && ["user", "guest"].includes(appRole(user.role)));
+  const isPersonalKeyView = config.view === "api-keys" && Boolean(user && appRole(user.role) === "user");
   const tableConfig = isPersonalKeyView
     ? { ...config, columns: config.columns.filter((column) => !["project_id", "project_owner", "project_team"].includes(String(column.key))) }
     : config;

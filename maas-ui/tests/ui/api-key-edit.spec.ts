@@ -57,7 +57,7 @@ test("api-key-edit updates allowlist and quota in place and reloads saved values
   await modal.getByRole("button", { name: "保存", exact: true }).click();
   await expect(modal).toHaveCount(0);
   await expect(row).toContainText("ui-review-model, replacement-model");
-  await expect(row).toContainText("sk_ui...3456");
+  await expect(row).toContainText("********");
   await row.getByRole("button", { name: "编辑", exact: true }).click();
   await expect(allowed).toHaveValue("ui-review-model, replacement-model");
   await expect(modal.getByRole("spinbutton", { name: "日 Token", exact: true })).toHaveValue("2000");

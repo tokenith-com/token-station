@@ -184,7 +184,7 @@ func (s *GormStore) CompleteConsumerActivation(token, password string) (AdminUse
 			Username: record.Email,
 			Email:    record.Email,
 			Name:     record.Email[:strings.Index(record.Email, "@")],
-			Role:     "guest",
+			Role:     "consumer",
 			Status:   StatusActive,
 		}, password)
 		if err != nil {

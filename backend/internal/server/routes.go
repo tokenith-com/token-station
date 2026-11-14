@@ -115,6 +115,8 @@ func (s *Server) routes() {
 	s.registerSingleMethodRoute(http.MethodPost, "/api/admin/users/{user_id}/reset-password-email", s.handleAdminUserResetPasswordEmailPost, s.adminUserMethodNotAllowed(http.MethodPost))
 	s.mux.HandleFunc("/api/admin/users/", s.handleAdminUserItem)
 	s.registerTeamMemberRoutes()
+	s.registerSingleMethodRoute(http.MethodPost, "/api/admin/customer-onboarding", s.handleCustomerOnboarding, s.adminMethodNotAllowed("customer_onboarding", http.MethodPost))
+	s.registerTeamWalletRoutes()
 	s.registerSingleMethodRoute(http.MethodGet, "/api/admin/provider-catalog", s.handleAdminProviderCatalogGet, s.adminMethodNotAllowed("provider", http.MethodGet))
 	s.registerSingleMethodRoute(http.MethodPost, "/api/admin/provider-egress/test", s.handleAdminProviderEgressTestPost, s.adminMethodNotAllowed("provider", http.MethodPost))
 	// Catalog discovery has a few IDs with a second, credential-backed POST

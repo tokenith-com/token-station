@@ -73,7 +73,7 @@ export function QuickAccessView({
     <div className="quick-access">
       <header className="quick-access-intro">
         <p className="eyebrow">{tx("接口文档")}</p>
-        <h1>{tx("通过 API 或 AI 工具调用 TokenHub 模型")}</h1>
+        <h1>{tx("通过 API 或 AI 工具调用 TokenStation 模型")}</h1>
         <p>{tx("完成以下配置后，即可使用项目 API Key 调用已授权的模型服务。")}</p>
       </header>
 
@@ -146,7 +146,7 @@ export function QuickAPIKeyModal({
   onClose: () => void;
   onCreate: (values: Record<string, string>) => void;
 }) {
-  const personalKey = ["user", "guest"].includes(appRole(user.role));
+  const personalKey = ["user", "consumer"].includes(appRole(user.role));
   const projectOptions = useMemo(() => projectSelectOptions(data, user), [data, user]);
   const [values, setValues] = useState<Record<string, string>>(() => {
     const defaults = defaultFormValues(apiKeyConfig(), data, user);
@@ -375,7 +375,7 @@ function KeyStep({
           <div className="quick-access-key-empty">
             <span className="quick-access-key-empty-icon" aria-hidden="true"><KeyRound size={25} /></span>
             <strong>{keys.length ? tx("未找到匹配的 API Key") : tx("你还没有创建任何 API Key")}</strong>
-            <p>{keys.length ? tx("请尝试其他名称或清空搜索条件。") : tx("创建后即可通过 API Key 调用 TokenHub 提供的模型和推理服务。")}</p>
+            <p>{keys.length ? tx("请尝试其他名称或清空搜索条件。") : tx("创建后即可通过 API Key 调用 TokenStation 提供的模型和推理服务。")}</p>
             {!keys.length ? (
               <button className="quick-access-text-button create" onClick={onCreateKey} type="button">
                 <Plus size={15} />{tx("创建 API Key")}
@@ -588,39 +588,39 @@ function apiExamples(baseURL: string, model: string, style: APIStyle): Record<Co
   const body = style === "chat" ? `{
     "model": "${model}",
     "messages": [
-      {"role": "user", "content": "Hello, TokenHub"}
+      {"role": "user", "content": "Hello, TokenStation"}
     ]
   }` : style === "responses" ? `{
     "model": "${model}",
-    "input": "Hello, TokenHub"
+    "input": "Hello, TokenStation"
   }` : `{
     "model": "${model}",
     "max_tokens": 1024,
     "messages": [
-      {"role": "user", "content": "Hello, TokenHub"}
+      {"role": "user", "content": "Hello, TokenStation"}
     ]
   }`;
   const pythonCall = style === "chat" ? `client.chat.completions.create(
     model="${model}",
-    messages=[{"role": "user", "content": "Hello, TokenHub"}],
+    messages=[{"role": "user", "content": "Hello, TokenStation"}],
 )` : style === "responses" ? `client.responses.create(
     model="${model}",
-    input="Hello, TokenHub",
+    input="Hello, TokenStation",
 )` : `client.messages.create(
     model="${model}",
     max_tokens=1024,
-    messages=[{"role": "user", "content": "Hello, TokenHub"}],
+    messages=[{"role": "user", "content": "Hello, TokenStation"}],
 )`;
   const nodeCall = style === "chat" ? `client.chat.completions.create({
   model: "${model}",
-  messages: [{ role: "user", content: "Hello, TokenHub" }],
+  messages: [{ role: "user", content: "Hello, TokenStation" }],
 })` : style === "responses" ? `client.responses.create({
   model: "${model}",
-  input: "Hello, TokenHub",
+  input: "Hello, TokenStation",
 })` : `client.messages.create({
   model: "${model}",
   max_tokens: 1024,
-  messages: [{ role: "user", content: "Hello, TokenHub" }],
+  messages: [{ role: "user", content: "Hello, TokenStation" }],
 })`;
   const anthropicHostURL = baseURL.replace(/\/v1\/?$/, "");
   return {
