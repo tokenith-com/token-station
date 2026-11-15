@@ -167,18 +167,20 @@ func SchemaMigrationRegistry() []dbschema.Migration {
 }
 
 func addTeamWalletExchangeRate(ctx context.Context, db dbschema.MigrationExecer) error {
-	exists, err := sqliteColumnExists(ctx, db, "team_wallet_calls", "exchange_rate")
-	if err == nil {
-		if exists {
-			return nil
-		}
-		if _, err := db.ExecContext(ctx, `ALTER TABLE team_wallet_calls ADD COLUMN exchange_rate text NOT NULL DEFAULT ''`); err != nil {
-			return fmt.Errorf("add sqlite column team_wallet_calls.exchange_rate: %w", err)
+	// Probe PostgreSQL first because a SQLite PRAGMA would abort its transaction.
+	var schema string
+	if err := db.QueryRowContext(ctx, `SELECT current_schema()`).Scan(&schema); err == nil {
+		if _, err := db.ExecContext(ctx, `ALTER TABLE team_wallet_calls ADD COLUMN IF NOT EXISTS exchange_rate text NOT NULL DEFAULT ''`); err != nil {
+			return fmt.Errorf("add postgres column team_wallet_calls.exchange_rate: %w", err)
 		}
 		return nil
 	}
-	if _, err := db.ExecContext(ctx, `ALTER TABLE team_wallet_calls ADD COLUMN IF NOT EXISTS exchange_rate text NOT NULL DEFAULT ''`); err != nil {
-		return fmt.Errorf("add postgres column team_wallet_calls.exchange_rate: %w", err)
+	exists, err := sqliteColumnExists(ctx, db, "team_wallet_calls", "exchange_rate")
+	if err != nil || exists {
+		return err
+	}
+	if _, err := db.ExecContext(ctx, `ALTER TABLE team_wallet_calls ADD COLUMN exchange_rate text NOT NULL DEFAULT ''`); err != nil {
+		return fmt.Errorf("add sqlite column team_wallet_calls.exchange_rate: %w", err)
 	}
 	return nil
 }

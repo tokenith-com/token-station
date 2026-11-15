@@ -14,16 +14,23 @@ import (
 )
 
 func TestTeamWalletExchangeRateMigration(t *testing.T) {
-	url := "sqlite://" + filepath.Join(t.TempDir(), "wallet.db")
-	store, err := NewSQLiteStore(url)
+	testTeamWalletExchangeRateMigration(t, "sqlite://"+filepath.Join(t.TempDir(), "wallet.db"))
+}
+
+func testTeamWalletExchangeRateMigration(t *testing.T, url string) {
+	t.Helper()
+	store, err := NewStoreWithDialect(url, Config{})
 	if err != nil {
 		t.Fatal(err)
 	}
 	if !store.db.Migrator().HasColumn(&teamWalletCall{}, "exchange_rate") {
 		t.Fatal("fresh schema is missing exchange_rate")
 	}
-	// Recreate the version 15 schema and ledger state of an existing deployment.
+	// Recreate the schema immediately before the exchange-rate migration.
 	if err := store.db.Exec("ALTER TABLE team_wallet_calls DROP COLUMN exchange_rate").Error; err != nil {
+		t.Fatal(err)
+	}
+	if err := store.db.Exec("INSERT INTO team_wallet_calls (request_id, team_id, reserved_cents, status, created_at) VALUES (?, ?, ?, ?, ?)", "existing", "team", 1, teamWalletCallReserved, time.Now().UTC()).Error; err != nil {
 		t.Fatal(err)
 	}
 	if err := store.db.Exec("DELETE FROM schema_migrations WHERE version = 19").Error; err != nil {
@@ -36,13 +43,20 @@ func TestTeamWalletExchangeRateMigration(t *testing.T) {
 	if err := sqlDB.Close(); err != nil {
 		t.Fatal(err)
 	}
-	store, err = NewSQLiteStore(url)
+	store, err = NewStoreWithDialect(url, Config{})
 	if err != nil {
 		t.Fatalf("upgrade existing wallet schema: %v", err)
 	}
 	t.Cleanup(func() { db, _ := store.db.DB(); _ = db.Close() })
 	if !store.db.Migrator().HasColumn(&teamWalletCall{}, "exchange_rate") {
 		t.Fatal("upgraded schema is missing exchange_rate")
+	}
+	var existing teamWalletCall
+	if err := store.db.First(&existing, "request_id = ?", "existing").Error; err != nil {
+		t.Fatal(err)
+	}
+	if existing.ExchangeRate != "" {
+		t.Fatalf("existing call exchange rate = %q, want an empty default", existing.ExchangeRate)
 	}
 	if err := store.db.Create(&teamWalletCall{RequestID: "migrated", TeamID: "team", ReservedCents: 1, ExchangeRate: "7.2", Status: teamWalletCallReserved, CreatedAt: time.Now().UTC()}).Error; err != nil {
 		t.Fatalf("insert exchange rate after upgrade: %v", err)
