@@ -187,6 +187,7 @@ test("oauth-login unknown provider error uses a safe fallback without reflecting
 test("oauth-login successful exchange opens the personal console without a provider dialog", async ({ context, page, api }, info) => {
   await seedPendingLogin(context);
   installOverviewFixtures(api);
+  api.define("GET", "/api/admin/api-keys", () => ({ json: { data: [] } }), query => { expect(Object.fromEntries(query)).toEqual({ page: "1", page_size: "1000", limit: "1000" }); });
   api.define("POST", exchangePath, request => {
     expect(request.body).toEqual({ code: callbackCode, code_verifier: verifier });
     return { json: { token: "ui-oidc-session", user: oauthUser, expires_at: "2099-01-01T00:00:00Z" } };

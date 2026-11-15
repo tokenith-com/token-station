@@ -148,3 +148,24 @@ test("consumer-login dark theme retains the shared branding", async ({ context, 
   await expectBrand(page);
   await capture(page, info, page.locator(".tc-login"), "consumer-login-dark", "C 端登录：深色主题品牌", "viewport");
 });
+
+
+test("consumer-login handles email activation inside the shared portal", async ({ page, api }) => {
+  api.define("GET", "/api/admin/auth/activation/verify", () => ({ json: { email: account, expires_at: "2099-01-01T00:00:00Z" } }), query => {
+    expect(Object.fromEntries(query)).toEqual({ token: "synthetic-activation" });
+  });
+  api.define("POST", "/api/admin/auth/activation/complete", ({ body }) => {
+    expect(body).toEqual({ token: "synthetic-activation", password, confirm_password: password });
+    return { json: { user: { email: account } } };
+  });
+  await page.goto("/#activation_token=synthetic-activation");
+  await expect(page.locator(".tc-login-preview")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "激活账号", exact: true })).toBeVisible();
+  await expect(page.getByLabel("邮箱", { exact: true })).toHaveValue(account);
+  await page.getByLabel("设置密码", { exact: true }).fill(password);
+  await page.getByLabel("确认密码", { exact: true }).fill(password);
+  await page.getByRole("button", { name: "激活账号", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "欢迎回来", exact: true })).toBeVisible();
+  await expect(page.getByRole("textbox", { name: "账号", exact: true })).toHaveValue(account);
+  expect(new URL(page.url()).hash).toBe("");
+});

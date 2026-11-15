@@ -18,13 +18,13 @@ export const test = base.extend<{ api: MockAPI; sessionUser: AdminUser | null; s
     await api.install(context);
     await page.clock.setFixedTime(new Date(fixedTime));
     await page.emulateMedia({ reducedMotion: "reduce" });
-    await context.addInitScript(({ sessionKey, languageKey, session, language, origin }) => {
+    await context.addInitScript(({ sessionKey, languageKey, session, language, origin, portal }) => {
       if (window.location.origin !== origin) return;
-      if (session.user) window.sessionStorage.setItem(`${sessionKey}.b`, JSON.stringify(session));
-      else window.sessionStorage.removeItem(`${sessionKey}.b`);
+      if (session.user) window.sessionStorage.setItem(`${sessionKey}.${portal}`, JSON.stringify(session));
+      else window.sessionStorage.removeItem(`${sessionKey}.${portal}`);
       window.localStorage.setItem(languageKey, language);
       window.localStorage.setItem(`${languageKey}.default-version`, "zh-CN-v1");
-    }, { sessionKey: sessionStorageKey, languageKey: languageStorageKey, language: sessionLanguage, origin: frontendOrigin, session: { baseURL: apiOrigin, token: "ui-fixture-session", user: sessionUser, expiresAt: "2099-01-01T00:00:00Z" } });
+    }, { portal: process.env.NEXT_PUBLIC_TOKENHUB_PORTAL === "c" ? "c" : "b", sessionKey: sessionStorageKey, languageKey: languageStorageKey, language: sessionLanguage, origin: frontendOrigin, session: { baseURL: apiOrigin, token: "ui-fixture-session", user: sessionUser, expiresAt: "2099-01-01T00:00:00Z" } });
     const pageErrors: string[] = [];
     context.on("page", opened => opened.on("pageerror", error => pageErrors.push(error.message)));
     page.on("pageerror", error => pageErrors.push(error.message));

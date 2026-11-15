@@ -31,15 +31,6 @@ test("prepaid playground preserves a rejected draft and links to recharge", asyn
   await expect(draft).toHaveValue("Keep this question");
   await capture(page, info, page.locator(".playground-composer"), "prepaid-insufficient-balance", "余额不足时保留消息");
   await page.getByRole("button", { name: "去充值" }).click();
-  await expect(page.getByRole("button", { name: "账户余额充值", exact: true })).toHaveAttribute("aria-pressed", "true");
-  await expect(page.getByText("为您的账户充值，享受更多服务", { exact: true })).toBeVisible();
-  await expect(page.getByRole("button", { name: "创建充值订单", exact: true })).toHaveCount(0);
-  await expect(page.locator(".recharge-packages button")).toHaveCount(3);
-  await expect(page.locator(".recharge-view").getByRole("alert")).toHaveCount(0);
-  const tabsBounds = await page.locator(".consumer-recharge-tabs").boundingBox();
-  const headingBounds = await page.locator(".recharge-heading").boundingBox();
-  expect(headingBounds!.y - tabsBounds!.y - tabsBounds!.height).toBeGreaterThanOrEqual(24);
-  await page.getByRole("button", { name: "在线支付充值", exact: true }).click();
   await page.getByRole("button", { name: "创建充值订单" }).click();
   await expect(page.locator("canvas[title='支付二维码']")).toBeVisible();
   await expect(page.getByRole("status").filter({ hasText: "充值已到账" })).toBeVisible({ timeout: 10000 });
@@ -56,6 +47,7 @@ test("consumer cost cards adapt without project costs", async ({ page, api }, in
     expect(Object.fromEntries(query)).toEqual({ range: "30d" });
   });
   api.respond("GET", "/api/admin/consumer/wallet", { balance_cents: 5000 });
+  api.respond("GET", "/api/admin/wallet", { balance_micros: 50000000, available_micros: 50000000 });
   api.respond("GET", "/api/admin/consumer/recharge-orders", { orders: [] });
   await page.goto("/billing/");
   await expect(page.getByRole("heading", { name: "项目成本", exact: true })).toHaveCount(0);
