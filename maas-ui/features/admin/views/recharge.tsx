@@ -62,6 +62,9 @@ export function RechargeView({ api }: { api: ApiContext }) {
   }, [baseURL, adminToken]);
 
   async function createOrder() {
+    // Reserve a tab during the click so async checkout is not popup-blocked.
+    const checkoutTab = channel === "alipay" ? window.open("about:blank", "_blank") : null;
+    if (checkoutTab) checkoutTab.opener = null;
     const current = attempt ?? { plan_id: plan, channel, key: uniqueUIID("recharge") };
     setAttempt(current);
     setBusy(true);
@@ -71,9 +74,15 @@ export function RechargeView({ api }: { api: ApiContext }) {
         method: "POST", headers: { "Idempotency-Key": current.key },
         body: JSON.stringify({ plan_id: current.plan_id, channel: current.channel }),
       });
+      const url = checkoutURL(next.pay_url);
+      if (checkoutTab) {
+        if (url && next.status === "pending") checkoutTab.location.replace(url);
+        else checkoutTab.close();
+      }
       setOrder(next);
       setOrders((current) => [next, ...current.filter((item) => item.order_no !== next.order_no)]);
     } catch (err) {
+      checkoutTab?.close();
       setError(err instanceof Error ? err.message : tx("请求失败"));
     } finally {
       setBusy(false);
