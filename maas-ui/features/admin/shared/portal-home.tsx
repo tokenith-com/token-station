@@ -1,3 +1,4 @@
+import { deploymentPath } from "@/lib/deployment-path";
 import { ArrowLeftRight, ArrowRight, Check, ChartColumn, CreditCard, Moon, Server, ShieldCheck, Sun, Users, X } from "lucide-react";
 import { type ReactNode, useEffect, useState } from "react";
 import { LanguageSelect } from "../i18n/language-switcher";
@@ -81,7 +82,7 @@ export function PortalHome({ theme, language, onThemeToggle, onLanguageChange, f
           <nav className="tc-home-nav">
             <div className="tc-home-brand">
               <span className="tc-home-brand-logo">
-                <img alt="Logo" src="/brand/tokencube-logo.svg" />
+                <img alt="Logo" src={deploymentPath("/brand/tokencube-logo.svg")} />
               </span>
               <span className="tc-home-brand-text">
                 <strong>TokenStation</strong>

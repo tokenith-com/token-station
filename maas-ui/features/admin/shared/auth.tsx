@@ -1,3 +1,4 @@
+import { deploymentPath } from "@/lib/deployment-path";
 import { SvgIcon } from "@/components/svg-icon";
 import { Eye, EyeOff, Fingerprint, KeyRound, Lock, LockKeyhole, LogIn, Mail, Moon, ShieldCheck, Sun, UserRoundCheck, Users } from "lucide-react";
 import { type FormEvent, useEffect, useState } from "react";
@@ -381,8 +382,8 @@ export function identityProviderLoginURL(baseURL: string, provider: LoginIdentit
 }
 
 export function currentOAuthReturnURL() {
-  if (typeof window === "undefined") return viewRoutes.overview;
-  return `${window.location.origin}${viewRoutes.overview}`;
+  const path = deploymentPath(viewRoutes.overview);
+  return typeof window === "undefined" ? path : `${window.location.origin}${path}`;
 }
 
 export function loginIdentityProviderDisplayName(provider: LoginIdentityProvider) {
@@ -710,7 +711,7 @@ export function LoginUtilityActions({
       {showBrand ? (
         <div className="login-brand-lockup">
           <span className="login-brand-mark" aria-hidden="true">
-            <img src="/brand/tokenstation-logo.png" alt="" />
+            <img src={deploymentPath("/brand/tokenstation-logo.png")} alt="" />
           </span>
           <span className="login-brand-copy">
             <strong>
@@ -879,7 +880,7 @@ export function LoginView({
         <div className="tc-login-container">
           <div className="tc-login-brand">
             <span className="tc-login-logo">
-              <img alt="Logo" src="/brand/tokencube-logo.svg" />
+              <img alt="Logo" src={deploymentPath("/brand/tokencube-logo.svg")} />
             </span>
             <h1 className="tc-login-title">TokenStation</h1>
             <p>MaaS Platform</p>

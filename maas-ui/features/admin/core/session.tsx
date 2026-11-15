@@ -1,3 +1,4 @@
+import { deploymentStorageKey } from "@/lib/deployment-path";
 import { type AdminUser, oauthBaseURLStorageKey, sessionStorageKey } from "./types";
 import { clearTransientAdminSession, readTransientAdminSession, saveTransientAdminSession, type StoredAdminSession } from "../domain/admin-session";
 import {
@@ -315,31 +316,31 @@ export function forwardOAuthAuthorizationResponse(baseURL: string) {
 
 export function readPendingOAuthLogin(): PendingOAuthLogin | null {
   if (typeof window === "undefined") return null;
-  return readPendingOAuthLoginState(oauthBaseURLStorageKey, window.sessionStorage);
+  return readPendingOAuthLoginState(deploymentStorageKey(oauthBaseURLStorageKey), window.sessionStorage);
 }
 
 export function savePendingOAuthLogin(baseURL: string, codeVerifier: string) {
   if (typeof window === "undefined") return;
-  savePendingOAuthLoginState(oauthBaseURLStorageKey, { baseURL, codeVerifier }, window.sessionStorage);
+  savePendingOAuthLoginState(deploymentStorageKey(oauthBaseURLStorageKey), { baseURL, codeVerifier }, window.sessionStorage);
 }
 
 export function clearPendingOAuthLogin() {
   if (typeof window === "undefined") return;
-  window.sessionStorage.removeItem(oauthBaseURLStorageKey);
+  window.sessionStorage.removeItem(deploymentStorageKey(oauthBaseURLStorageKey));
 }
 
 export function readSavedSession(portal: Portal = "b"): SavedSession | null {
   if (typeof window === "undefined") return null;
-  clearTransientAdminSession(sessionStorageKey, window.sessionStorage, window.localStorage);
-  return readTransientAdminSession<AdminUser>(`${sessionStorageKey}.${portal}`, window.sessionStorage, window.localStorage);
+  clearTransientAdminSession(deploymentStorageKey(sessionStorageKey), window.sessionStorage, window.localStorage);
+  return readTransientAdminSession<AdminUser>(deploymentStorageKey(`${sessionStorageKey}.${portal}`), window.sessionStorage, window.localStorage);
 }
 
 export function saveSession(session: SavedSession, portal: Portal = "b") {
   if (typeof window === "undefined") return;
-  saveTransientAdminSession(`${sessionStorageKey}.${portal}`, session, window.sessionStorage, window.localStorage);
+  saveTransientAdminSession(deploymentStorageKey(`${sessionStorageKey}.${portal}`), session, window.sessionStorage, window.localStorage);
 }
 
 export function clearSavedSession(portal: Portal = "b") {
   if (typeof window === "undefined") return;
-  clearTransientAdminSession(`${sessionStorageKey}.${portal}`, window.sessionStorage, window.localStorage);
+  clearTransientAdminSession(deploymentStorageKey(`${sessionStorageKey}.${portal}`), window.sessionStorage, window.localStorage);
 }

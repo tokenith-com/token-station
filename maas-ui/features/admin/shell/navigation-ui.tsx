@@ -1,3 +1,4 @@
+import { deploymentPath } from "@/lib/deployment-path";
 import { AlertCircle, Check, ChevronDown, ChevronRight, LogOut, Moon, Search, Sun, Wallet, X } from "lucide-react";
 import { Fragment, useEffect, useRef, useState } from "react";
 import { SvgIcon } from "@/components/svg-icon";
@@ -47,7 +48,7 @@ export function Sidebar({
   return (
     <aside className={collapsed ? "sidebar collapsed" : "sidebar"}>
       <div className="brand">
-        <img alt="" className="brand-logo" src="/brand/tokencube-logo.svg" />
+        <img alt="" className="brand-logo" src={deploymentPath("/brand/tokencube-logo.svg")} />
         <span className="brand-name">TokenStation</span>
         <button className="sidebar-toggle" aria-label={collapsed ? tx("展开菜单") : tx("折叠菜单")} onClick={onToggleCollapse} title={collapsed ? tx("展开菜单") : tx("折叠菜单")} type="button">
           <SvgIcon name="ApplicationMenuOutlined" size={16} />

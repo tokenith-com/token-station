@@ -324,7 +324,7 @@ function AdminConsoleContent({ defaultBaseURL, portal = "b" }: ConsoleProps) {
         setBaseURL(sessionBaseURL);
         setLoading(true);
         try {
-          const exchange = await exchangeOAuthLoginCode(sessionBaseURL, oauth.code, oauthCallback.codeVerifier, (input, init) => backendRequest(new URL(String(input)).pathname, init));
+          const exchange = await exchangeOAuthLoginCode(sessionBaseURL, oauth.code, oauthCallback.codeVerifier, (input, init) => backendRequest(String(input).slice(sessionBaseURL.length), init));
           if (!exchange.ok) throw new Error(await readAdminError(new Response(exchange.body, { status: exchange.status }), tx("登录失败")));
           const payload = JSON.parse(exchange.body) as { token?: string; user?: AdminUser; expires_at?: string };
           if (!payload.token || !payload.user || !payload.expires_at) throw new Error(tx("登录失败"));

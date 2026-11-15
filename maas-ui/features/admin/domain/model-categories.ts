@@ -1,3 +1,4 @@
+import { deploymentPath } from "@/lib/deployment-path";
 import type { AdapterDescriptor, AdapterModelCategory, PluginDescriptor } from "../core/types";
 
 export type ModelCategoryDefinition = {
@@ -178,6 +179,6 @@ function safeIconSource(value: unknown) {
   if (typeof value !== "string") return "";
   const source = value.trim();
   if (!source) return "";
-  if (source.startsWith("/model-icons/") && source.endsWith(".svg")) return source;
+  if (source.startsWith("/model-icons/") && source.endsWith(".svg")) return deploymentPath(source);
   return "";
 }

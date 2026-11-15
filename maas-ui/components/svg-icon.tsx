@@ -1,3 +1,4 @@
+import { deploymentPath } from "@/lib/deployment-path";
 import type { CSSProperties, SVGProps } from "react";
 
 export type SvgIconName = string;
@@ -43,7 +44,7 @@ export function SvgIcon({
       xmlns="http://www.w3.org/2000/svg"
     >
       {title ? <title>{title}</title> : null}
-      <use href={`/icons/sprite.svg#icon-${iconName}`} />
+      <use href={deploymentPath(`/icons/sprite.svg#icon-${iconName}`)} />
     </svg>
   );
 }
