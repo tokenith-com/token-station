@@ -1,348 +1,170 @@
 <p align="center">
-  <img src="frontend/public/brand/tokenstation-logo.png" alt="TokenStation" width="96" />
+  <img src="maas-ui/public/brand/tokenstation-logo.png" alt="TokenStation" width="96" />
 </p>
 
 <h1 align="center">TokenStation</h1>
 
 <p align="center">
-  TokenStation is enterprise Token Governance infrastructure for AI: model routing, access control, token cost optimization, provider reconciliation, and governed access to every upstream model provider.
-</p>
-
-<p align="center">
-  <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache--2.0-blue.svg" alt="License" /></a>
-  <img src="https://img.shields.io/badge/Go-1.26-00ADD8?logo=go&logoColor=white" alt="Go 1.26" />
-  <img src="https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white" alt="Docker Compose" />
-  <img src="https://img.shields.io/badge/OpenAI-Compatible-10A37F" alt="OpenAI Compatible" />
+  A model-as-a-service platform for enterprise teams and individual developers.<br />
+  Unified model access, API keys, usage billing, and enterprise Token governance.
 </p>
 
 <p align="center">
   English | <a href="README.zh-CN.md">简体中文</a> | <a href="README.ja.md">日本語</a>
 </p>
 
-## ❤️ Sponsors
+## Product Overview
 
-> [Want to appear here?](mailto:xiemengjun@gmail.com)
+TokenStation brings model discovery, the Playground, API access, and cost visibility into one platform. Enterprise teams can distribute model access through projects and shared wallets, while individual developers can manage personal keys, recharge balances, and review their consumption. Platform operators manage upstream providers, routing, permissions, billing, and audit centrally without distributing provider credentials to users.
 
-<table>
-  <tr>
-    <td width="180"><a href="https://aicoding.inc/i/tokhub"><img src="docs/assets/sponsors/aicoding.svg" alt="AICoding" width="150" /></a></td>
-    <td>Thanks to AICoding for sponsoring this project! <a href="https://aicoding.inc/i/tokhub">AICoding</a> — Global AI Model API Relay Service at Unbeatable Prices! Claude Code at 19% of original price, GPT at just 1%! Trusted by hundreds of enterprises for cost-effective AI services. Supports Claude Code, GPT, Gemini and major domestic models, with enterprise-grade high concurrency, fast invoicing, and 24/7 dedicated technical support. TokenStation users who register via <a href="https://aicoding.inc/i/tokhub">this link</a> get 10% off their first top-up!</td>
-  </tr>
-  <tr>
-    <td width="180"><a href="https://subsub.cn/i/tokhub"><img src="docs/assets/sponsors/subsub.svg" alt="SubSub" width="150" /></a></td>
-    <td><a href="https://subsub.cn/i/tokhub">SubSub</a> offers subscription upgrades and renewals across ChatGPT plans, with order status tracking. <a href="https://subsub.cn/i/tokhub">Register here</a> to get started!</td>
-  </tr>
-</table>
+The product consists of a Go API backend and a MaaS console with two separately built portals:
 
-## Enterprise Token Governance
+- **Enterprise portal (B):** organization and project collaboration, team governance, and platform administration.
+- **Individual portal (C):** self-service registration, model access, personal API keys, usage details, and recharge.
 
-TokenStation gives enterprises a governance layer for the AI model lifecycle, from provider access and project keys to routing policy, usage attribution, budget control, and bill reconciliation.
+The repository also retains the original admin console. It shares the backend but has a different frontend build and deployment path from the MaaS console.
 
-The core problem is what happens after every team, application, and workflow starts consuming more models and more tokens. TokenStation puts governance controls in front of every model call:
+## Portals and Roles
 
-- Model routing: choose the right model by scenario, cost, performance, health, and fallback policy.
-- Permission management: allocate and control token access across people, teams, projects, and applications.
-- Token savings: reduce AI spend through caching, model selection, quotas, and call strategy.
-- Provider reconciliation: compare internal usage with provider bills so finance, platform, and business teams can explain actual AI cost.
-
-## Why TokenStation
-
-Many open source AI gateways focus on provider fan-out: one endpoint that can call many upstreams. That helps developers connect models, but it does not solve the enterprise operating problem by itself. TokenStation is built around the missing governance layer:
-
-- Token distribution is managed by project and team instead of by copying raw provider keys into every application.
-- Model access, routing, and fallback are policy decisions that administrators can change without rewriting client code.
-- Bills and request history can be compared against internal ownership so finance, platform, and business teams can explain AI spend.
-- User, team leader, and administrator workspaces keep daily usage, approval, cost attribution, and platform operations separated by responsibility.
-
-## Screenshots
-
-<p align="center">
-  <img src="docs/assets/screenshots/tokenstation-tour.webp" alt="TokenStation product tour: login, overview, API documentation, provider channels, model catalog, routing policies, usage analytics, and system settings" width="100%">
-</p>
-
-## Designed Around Three Roles
-
-TokenStation separates everyday model usage, team governance, and platform administration so enterprise users see the workflows that match their responsibility.
-
-| Role | Workspace Focus | Guide |
+| Role | Portal | Main workflows |
 | --- | --- | --- |
-| User | Find available models, create project-scoped API keys, call the model API, and review personal usage | [User Guide](docs/user-guide.md) |
-| Team Leader | Manage project spaces, project members, project keys, team reports, and project cost attribution | [Team Leader Guide](docs/team-leader-guide.md) |
-| Administrator | Configure providers, model catalog, routing policies, identity sources, RBAC, audit, and cost controls | [Administrator Guide](docs/administrator-guide.md) |
+| Platform administrator | Enterprise; administrative access to individual portal | Configure providers, models, routes, identities, access policies, wallets, and platform operations |
+| Team manager | Enterprise | Manage team projects, members, API keys, usage reports, and shared wallet visibility |
+| Team member | Enterprise | Discover available models, use the Playground, manage permitted keys, and inspect personal usage |
+| Individual developer | Individual | Register and sign in, create personal keys, call models, recharge, and review cost details |
 
-## Platform Capabilities
+Menus and API authorization follow the user's role and resource scope. A portal's build configuration does not replace backend access controls.
 
-- Project-scoped key management with team ownership, member permissions, quotas, and concurrency controls.
-- Model catalog and routing policies with priority, weight, failover order, scenario-aware selection, and route health diagnostics.
-- Usage analytics and request logs attributed to user, project, team, model, and cost center.
-- Cost controls for token budgets, provider spend comparison, model choice, and future caching-driven savings.
-- Identity source configuration for OAuth/OIDC enterprise sign-in, plus RBAC and audit trails.
-- OpenAI-compatible model APIs: `/v1/chat/completions`, `/v1/responses`, `/v1/embeddings`; Anthropic Messages APIs: `/v1/messages`, `/v1/messages/count_tokens`.
-- Text retrieval: [dense embeddings](docs/embeddings.md) through `/v1/embeddings` and [document reranking](docs/rerank.md) through `/v1/rerank`, with provider-specific protocol configuration.
-- OpenAI-compatible image generation and reference-image editing through `/v1/images/generations` and `/v1/images/edits`, with asynchronous jobs and server-side image retention.
-- Clean console with compact role-aware navigation, global search, light/dark mode, and split-view API documentation.
-- SQLite-first private deployment with native systemd and Docker Compose options.
-- PostgreSQL supports multi-instance deployments: share state through remote PostgreSQL, scale frontend and backend replicas horizontally, and configure connection pools. See the [deployment guide](docs/deployment.md) and [PostgreSQL setup guide](docs/postgresql-setup.md).
-- Console language switching for English, Chinese, Japanese, and Russian.
+## Core Capabilities
 
-## Provider Ecosystem
+### Model services
 
-Provider support is TokenStation's integration boundary. Hosted APIs, subscription channels, local models, and custom upstreams connect through the Provider abstraction so the same enterprise policies can govern every model path.
+- Discover available models and inspect their capabilities and prices.
+- Try models in the Playground using an authorized API key, with conversation history and usage feedback.
+- Integrate applications through OpenAI-compatible and Anthropic-compatible APIs.
+- Connect hosted providers, local models, subscription channels, and custom upstreams through provider adapters.
+- Configure model routing, priorities, weights, failover, and health diagnostics centrally.
 
-Once routing, permissions, token savings, attribution, audit, and reconciliation controls are in place, TokenStation can connect those governed workflows to OpenAI, Azure OpenAI, Anthropic, Gemini, DeepSeek, Qwen, Codex subscriptions, local models, and custom OpenAI-compatible upstreams.
+### Enterprise governance
 
-TokenStation includes native Provider adapters for OpenAI, Azure OpenAI, Anthropic, Gemini, DeepSeek, Qwen, Codex subscriptions, and local models, plus a catalog of 150+ provider templates. Popular integrations include:
+- Organize access by team, project, member, and project-scoped API key.
+- Apply model permissions, quotas, rate limits, and concurrency controls.
+- Attribute consumption to users, projects, teams, models, and cost centers.
+- Review request logs, usage analytics, provider costs, and reconciliation workflows.
+- Configure enterprise OAuth/OIDC sign-in, role-based access control, and audit records.
 
-<p align="center">
-  <img src="docs/assets/provider-showcase.svg" alt="Popular TokenStation provider integrations across commercial, subscription, local, and custom upstreams." width="100%">
-</p>
+### Wallets and billing
 
-Provider templates use the matching native adapter when available; otherwise they connect through an OpenAI-compatible endpoint. Models and capabilities vary by upstream service and account, while enterprise policy stays centralized in TokenStation.
+- **Team wallets:** shared CNY balances, administrator-recorded credits, usage settlement, and wallet ledgers. Team managers can inspect their team's balance and transactions; they cannot credit wallets themselves.
+- **Individual online payments:** recharge orders through configured WeChat Pay and Alipay integrations, payment callbacks, personal wallet records, refunds, and reconciliation.
+- **Account-balance recharge:** a separate consumer recharge workflow is also retained in the individual portal. Its ledger and the online-payment wallet are independent; balances are not automatically pooled or transferred.
+- A configured team wallet takes precedence over a personal prepaid wallet for calls billed to that team, rather than charging both.
 
-## Quick Start
+Payment collection requires operator configuration and provider credentials; it is not enabled merely by starting the console. Team billing also requires valid pricing and exchange-rate settings. See the [administrator guide](docs/administrator-guide.md) and [billing guide](docs/billing-pricing.md).
 
-Native Release on a Linux systemd host:
+## Model APIs
+
+| API family | Endpoints |
+| --- | --- |
+| Chat and responses | `/v1/chat/completions`, `/v1/responses` |
+| Anthropic Messages | `/v1/messages`, `/v1/messages/count_tokens` |
+| Retrieval | `/v1/embeddings`, `/v1/rerank` |
+| Images | `/v1/images/generations`, `/v1/images/edits` |
+
+Availability depends on the configured model, upstream provider, and user permissions. Image workflows support asynchronous jobs and server-side retention. Provider-specific protocol support is described in the [documentation](docs/README.md).
+
+## Repository Layout
+
+| Directory | Purpose |
+| --- | --- |
+| `backend/` | Go API, authentication, routing, persistence, billing, and payment services |
+| `maas-ui/` | MaaS enterprise and individual portals; Next.js static export |
+| `frontend/` | Original Next.js admin console used by the current default stack |
+| `data/model-catalog.yaml` | Tracked model catalog |
+| `deploy/` | Container and native deployment configuration |
+| `sdk/` | API integration smoke tests |
+| `docs/` | Product, administration, development, and deployment guides |
+
+## Local Development
+
+Use the Node version in `.nvmrc` and the Go toolchain declared by the backend. Configure secrets locally; never commit real credentials or runtime databases.
+
+### Start the backend and original console
+
+From the repository root:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/astaxie/TokenHub/main/deploy/native/install.sh \
-  -o /tmp/tokenstation-install.sh
-sudo bash /tmp/tokenstation-install.sh install
+./start.sh
 ```
 
-Docker Compose from a repository checkout:
+Default addresses:
 
-```bash
-cp deploy/.env.example deploy/.env
-# Replace every change-me value in deploy/.env with a strong secret.
-./deploy/install.sh
-```
-
-Open:
-
-- Admin console: `http://localhost:3000`
+- Original admin console: `http://localhost:3000`
 - Backend API: `http://localhost:8080`
 - Health check: `http://localhost:8080/healthz`
 
-Initial admin login:
+This script starts `frontend/`, **not** the MaaS console.
 
-- Username: `admin`
-- Native install password: printed once by the installer
-- Docker password: the value of `TOKENHUB_BOOTSTRAP_ADMIN_PASSWORD`
+### Start the MaaS console
 
-The native installer verifies Release checksums, installs a systemd service, and enables direct update, rollback, and restart controls in the version panel. The default Docker deployment runs the backend and console in one managed container and provides the same direct controls without mounting the Docker socket. Release bundles are stored in the `tokenhub-releases` volume so ordinary container restarts and recreations preserve a panel-applied update. Multi-instance Docker deployments keep operator-managed Compose updates so every replica changes version together. See the [deployment guide](docs/deployment.md) for both modes.
+With the backend running, open another terminal:
+
+```bash
+cd maas-ui
+npm ci
+NEXT_PUBLIC_TOKENHUB_API_BASE_URL=http://localhost:8080 npm run dev -- --port 3001
+```
+
+The default is the enterprise portal. To run the individual portal, set `NEXT_PUBLIC_TOKENHUB_PORTAL=c` before starting Next.js. Configure backend CORS to allow the console origin.
+
+Existing `TOKENHUB_*` and `NEXT_PUBLIC_TOKENHUB_*` environment names remain compatibility contracts; use the names in the environment templates rather than renaming them to match the product brand.
+
+## Deployment
+
+### MaaS static portals
+
+Build from `maas-ui/`, replacing the example API address with your backend URL:
+
+```bash
+# Enterprise portal
+NEXT_PUBLIC_TOKENHUB_API_BASE_URL=https://api.example.com npm run build
+
+# Individual portal: build separately and publish its output separately
+NEXT_PUBLIC_TOKENHUB_API_BASE_URL=https://api.example.com \
+  NEXT_PUBLIC_TOKENHUB_PORTAL=c npm run build
+```
+
+Each build produces `out/` and replaces the previous output. Publish the two portal builds to separate hosting locations. API URL and portal selection are fixed at build time. Configure HTTPS, static-route handling, and backend CORS for the deployed origins. See the [MaaS static deployment guide](maas-ui/docs/static-deploy.md).
+
+### Existing managed stack
+
+The current native and Docker deployment paths package the original console, not the MaaS static portals. For the existing Docker stack, from the repository root:
+
+```bash
+cp deploy/.env.example deploy/.env
+# Configure the image/version and replace all change-me secrets before starting.
+./deploy/install.sh
+```
+
+Review image and release sources before deployment: existing defaults may still reference upstream distribution channels rather than a separately published TokenStation MaaS release. Do not assume those defaults contain this branch's changes.
+
+SQLite is suitable for a single-instance installation. PostgreSQL supports shared persistence for multi-instance deployments; replica coordination and connection pools must be configured explicitly. Follow the [deployment guide](docs/deployment.md) and [PostgreSQL guide](docs/postgresql-setup.md).
+
+Before upgrading an existing database, back it up and verify its migration history against the target version. Databases that have applied conflicting migrations from divergent development branches require migration-history reconciliation before upgrade; do not bypass checksum checks or overwrite migration records.
 
 ## Documentation
 
 - [Documentation home](docs/README.md)
+- [User guide](docs/user-guide.md)
+- [Team leader guide](docs/team-leader-guide.md)
+- [Administrator guide](docs/administrator-guide.md)
 - [Architecture](docs/architecture.md)
-- [User Guide](docs/user-guide.md)
-- [Team Leader Guide](docs/team-leader-guide.md)
-- [Administrator Guide](docs/administrator-guide.md)
-- [Contributing Guide](CONTRIBUTING.md)
-
-## Contributors
-
-TokenStation grows through product feedback, gateway integrations, documentation, tests, and the steady care of people who run it in real enterprise environments.
-
-<!-- readme: contributors -start -->
-
-<table>
-  <tr>
-    <td align="center" valign="top" width="12.5%">
-      <a href="https://github.com/astaxie">
-        <img src="https://avatars.githubusercontent.com/u/233907?v=4" width="80px" alt="astaxie" />
-        <br /><sub><b>astaxie</b></sub>
-      </a>
-    </td>
-    <td align="center" valign="top" width="12.5%">
-      <a href="https://github.com/deepjerry-ai">
-        <img src="https://avatars.githubusercontent.com/u/262369278?v=4" width="80px" alt="deepjerry-ai" />
-        <br /><sub><b>deepjerry-ai</b></sub>
-      </a>
-    </td>
-    <td align="center" valign="top" width="12.5%">
-      <a href="https://github.com/legendtkl">
-        <img src="https://avatars.githubusercontent.com/u/2370761?v=4" width="80px" alt="legendtkl" />
-        <br /><sub><b>legendtkl</b></sub>
-      </a>
-    </td>
-    <td align="center" valign="top" width="12.5%">
-      <a href="https://github.com/Mr0bean">
-        <img src="https://avatars.githubusercontent.com/u/19573968?v=4" width="80px" alt="Mr0bean" />
-        <br /><sub><b>Mr0bean</b></sub>
-      </a>
-    </td>
-    <td align="center" valign="top" width="12.5%">
-      <a href="https://github.com/bailu-ZZ">
-        <img src="https://avatars.githubusercontent.com/u/311096537?v=4" width="80px" alt="bailu-ZZ" />
-        <br /><sub><b>bailu-ZZ</b></sub>
-      </a>
-    </td>
-    <td align="center" valign="top" width="12.5%">
-      <a href="https://github.com/cngump">
-        <img src="https://avatars.githubusercontent.com/u/108251?v=4" width="80px" alt="cngump" />
-        <br /><sub><b>cngump</b></sub>
-      </a>
-    </td>
-    <td align="center" valign="top" width="12.5%">
-      <a href="https://github.com/coldbrewtea">
-        <img src="https://avatars.githubusercontent.com/u/6879314?v=4" width="80px" alt="coldbrewtea" />
-        <br /><sub><b>coldbrewtea</b></sub>
-      </a>
-    </td>
-    <td align="center" valign="top" width="12.5%">
-      <a href="https://github.com/excniesNIED">
-        <img src="https://avatars.githubusercontent.com/u/61446002?v=4" width="80px" alt="excniesNIED" />
-        <br /><sub><b>excniesNIED</b></sub>
-      </a>
-    </td>
-  </tr>
-  <tr>
-    <td align="center" valign="top" width="12.5%">
-      <a href="https://github.com/imaben">
-        <img src="https://avatars.githubusercontent.com/u/3390195?v=4" width="80px" alt="imaben" />
-        <br /><sub><b>imaben</b></sub>
-      </a>
-    </td>
-    <td align="center" valign="top" width="12.5%">
-      <a href="https://github.com/samz406">
-        <img src="https://avatars.githubusercontent.com/u/3055810?v=4" width="80px" alt="samz406" />
-        <br /><sub><b>samz406</b></sub>
-      </a>
-    </td>
-    <td align="center" valign="top" width="12.5%">
-      <a href="https://github.com/FaustMont">
-        <img src="https://avatars.githubusercontent.com/u/9304306?v=4" width="80px" alt="FaustMont" />
-        <br /><sub><b>FaustMont</b></sub>
-      </a>
-    </td>
-    <td align="center" valign="top" width="12.5%">
-      <a href="https://github.com/wangle201210">
-        <img src="https://avatars.githubusercontent.com/u/19949348?v=4" width="80px" alt="wangle201210" />
-        <br /><sub><b>wangle201210</b></sub>
-      </a>
-    </td>
-    <td align="center" valign="top" width="12.5%">
-      <a href="https://github.com/jackiesre721">
-        <img src="https://avatars.githubusercontent.com/u/8868514?v=4" width="80px" alt="jackiesre721" />
-        <br /><sub><b>jackiesre721</b></sub>
-      </a>
-    </td>
-    <td align="center" valign="top" width="12.5%">
-      <a href="https://github.com/CLukeLi">
-        <img src="https://avatars.githubusercontent.com/u/252523101?v=4" width="80px" alt="CLukeLi" />
-        <br /><sub><b>CLukeLi</b></sub>
-      </a>
-    </td>
-    <td align="center" valign="top" width="12.5%">
-      <a href="https://github.com/myssl">
-        <img src="https://avatars.githubusercontent.com/u/27838738?v=4" width="80px" alt="myssl" />
-        <br /><sub><b>myssl</b></sub>
-      </a>
-    </td>
-    <td align="center" valign="top" width="12.5%">
-      <a href="https://github.com/exgliuzhi">
-        <img src="https://avatars.githubusercontent.com/u/6261701?v=4" width="80px" alt="exgliuzhi" />
-        <br /><sub><b>exgliuzhi</b></sub>
-      </a>
-    </td>
-  </tr>
-  <tr>
-    <td align="center" valign="top" width="12.5%">
-      <a href="https://github.com/ACwisdom">
-        <img src="https://avatars.githubusercontent.com/u/212327199?v=4" width="80px" alt="ACwisdom" />
-        <br /><sub><b>ACwisdom</b></sub>
-      </a>
-    </td>
-    <td align="center" valign="top" width="12.5%">
-      <a href="https://github.com/hoorayman">
-        <img src="https://avatars.githubusercontent.com/u/73151874?v=4" width="80px" alt="hoorayman" />
-        <br /><sub><b>hoorayman</b></sub>
-      </a>
-    </td>
-    <td align="center" valign="top" width="12.5%">
-      <a href="https://github.com/debin-ge">
-        <img src="https://avatars.githubusercontent.com/u/21329997?v=4" width="80px" alt="debin-ge" />
-        <br /><sub><b>debin-ge</b></sub>
-      </a>
-    </td>
-    <td align="center" valign="top" width="12.5%">
-      <a href="https://github.com/ocass-chen">
-        <img src="https://avatars.githubusercontent.com/u/172055494?v=4" width="80px" alt="ocass-chen" />
-        <br /><sub><b>ocass-chen</b></sub>
-      </a>
-    </td>
-    <td align="center" valign="top" width="12.5%">
-      <a href="https://github.com/AnxForever">
-        <img src="https://avatars.githubusercontent.com/u/130662349?v=4" width="80px" alt="AnxForever" />
-        <br /><sub><b>AnxForever</b></sub>
-      </a>
-    </td>
-    <td align="center" valign="top" width="12.5%">
-      <a href="https://github.com/codex">
-        <img src="https://avatars.githubusercontent.com/u/267193182?v=4" width="80px" alt="codex" />
-        <br /><sub><b>codex</b></sub>
-      </a>
-    </td>
-    <td align="center" valign="top" width="12.5%">
-      <a href="https://github.com/DeanHH">
-        <img src="https://avatars.githubusercontent.com/u/1842770?v=4" width="80px" alt="DeanHH" />
-        <br /><sub><b>DeanHH</b></sub>
-      </a>
-    </td>
-    <td align="center" valign="top" width="12.5%">
-      <a href="https://github.com/yujiewanwan">
-        <img src="https://avatars.githubusercontent.com/u/268286250?v=4" width="80px" alt="yujiewanwan" />
-        <br /><sub><b>yujiewanwan</b></sub>
-      </a>
-    </td>
-  </tr>
-  <tr>
-    <td align="center" valign="top" width="12.5%">
-      <a href="https://github.com/longzhang83">
-        <img src="https://avatars.githubusercontent.com/u/38556219?v=4" width="80px" alt="longzhang83" />
-        <br /><sub><b>longzhang83</b></sub>
-      </a>
-    </td>
-    <td align="center" valign="top" width="12.5%">
-      <a href="https://github.com/lxm">
-        <img src="https://avatars.githubusercontent.com/u/1918195?v=4" width="80px" alt="lxm" />
-        <br /><sub><b>lxm</b></sub>
-      </a>
-    </td>
-    <td align="center" valign="top" width="12.5%">
-      <a href="https://github.com/susunola">
-        <img src="https://avatars.githubusercontent.com/u/38539169?v=4" width="80px" alt="susunola" />
-        <br /><sub><b>susunola</b></sub>
-      </a>
-    </td>
-    <td align="center" valign="top" width="12.5%">
-      <a href="https://github.com/desertsurge">
-        <img src="https://avatars.githubusercontent.com/u/1735018?v=4" width="80px" alt="desertsurge" />
-        <br /><sub><b>desertsurge</b></sub>
-      </a>
-    </td>
-  </tr>
-</table>
-
-<!-- readme: contributors -end -->
-
-<p align="center">
-  <a href="https://github.com/astaxie/TokenHub/graphs/contributors">View all contributors</a>
-  ·
-  <a href="CONTRIBUTING.md">Start contributing</a>
-</p>
-
-## Star History
-
-<a href="https://www.star-history.com/?repos=astaxie%2Ftokenhub&type=date&legend=top-left">
- <picture>
-   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=astaxie/tokenhub&type=date&theme=dark&legend=top-left&sealed_token=hWH3kDnssTf49CCLxzq3NVqEp0WTL-HFhsdpQJJz1DUuZt0D-nu1jgXLnhCxrUrMYujv6IJJk12B1wCp5qiU2bU_J03ECSYvb3Y9Pv-gqX7RuwS4SehRrQ" />
-   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=astaxie/tokenhub&type=date&legend=top-left&sealed_token=hWH3kDnssTf49CCLxzq3NVqEp0WTL-HFhsdpQJJz1DUuZt0D-nu1jgXLnhCxrUrMYujv6IJJk12B1wCp5qiU2bU_J03ECSYvb3Y9Pv-gqX7RuwS4SehRrQ" />
-   <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=astaxie/tokenhub&type=date&legend=top-left&sealed_token=hWH3kDnssTf49CCLxzq3NVqEp0WTL-HFhsdpQJJz1DUuZt0D-nu1jgXLnhCxrUrMYujv6IJJk12B1wCp5qiU2bU_J03ECSYvb3Y9Pv-gqX7RuwS4SehRrQ" />
- </picture>
-</a>
+- [Billing and pricing](docs/billing-pricing.md)
+- [MaaS static deployment](maas-ui/docs/static-deploy.md)
+- [Development and contribution guide](CONTRIBUTING.md)
 
 ## License
 
-TokenStation is licensed under the [Apache License 2.0](LICENSE).
+This repository includes work derived from [TokenHub](https://github.com/astaxie/TokenHub). Preserve applicable upstream copyright and attribution notices when redistributing it.
+
+TokenStation is distributed under the [Apache License 2.0](LICENSE).
