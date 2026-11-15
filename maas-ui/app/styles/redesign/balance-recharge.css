@@ -275,3 +275,25 @@
   .recharge-methods { grid-template-columns: minmax(0, 1fr); }
   .recharge-summary { flex-direction: column; align-items: stretch; }
 }
+
+/* Live checkout shares the console's typography, controls, and accent. */
+.payment-workspace { max-width: 1040px; display: grid; gap: 24px; padding-top: 16px; }
+.payment-heading h1 { margin: 0; font-size: 24px; font-weight: 600; }
+.payment-workspace > p { margin: 0; font-size: 20px; font-variant-numeric: tabular-nums; }
+.payment-workspace .section { border: 0; border-radius: 0; box-shadow: none; background: transparent; padding: 24px 0; border-top: 1px solid var(--border, #e4e4ed); }
+.payment-form { display: grid; grid-template-columns: minmax(180px, 1fr) minmax(180px, 1fr) auto; align-items: end; gap: 24px; max-width: 800px; }
+.payment-form label { display: grid; gap: 10px; font-size: 13px; font-weight: 500; }
+.payment-form select { width: 100%; min-height: 44px; border: 1px solid var(--border, #e4e4ed); border-radius: 8px; padding: 0 12px; background: var(--surface, #fff); color: inherit; font: inherit; }
+.payment-form .button { min-height: 44px; padding: 0 24px; border-radius: 8px; }
+.payment-form select:focus-visible { outline: 2px solid #9160c9; outline-offset: 2px; }
+.payment-workspace .section > div { display: grid; justify-items: start; gap: 14px; margin: 24px 0; }
+.payment-workspace .section > div p { margin: 0; overflow-wrap: anywhere; }
+.payment-workspace .section h2 { font-size: 16px; margin: 0 0 16px; }
+.payment-workspace .section ul { padding: 0; margin: 0; list-style: none; }
+.payment-workspace .section li { padding: 14px 0; border-bottom: 1px solid var(--border, #e4e4ed); overflow-wrap: anywhere; }
+.payment-workspace .muted { color: #858395; padding: 28px 0; }
+@media (max-width: 700px) {
+  .payment-form { grid-template-columns: 1fr; gap: 18px; }
+  .payment-workspace { gap: 18px; }
+  .payment-form .button { width: 100%; }
+}

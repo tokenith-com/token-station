@@ -9,24 +9,30 @@ export function formatBalanceCNY(cents: number) {
 }
 
 export function BalanceCard({ api, activeView, teamID, onSelectView }: { api: ApiContext; activeView: ViewKey; teamID?: string; onSelectView: (view: ViewKey) => void }) {
+  const [revision, setRevision] = useState(0);
+  useEffect(() => {
+    const refresh = () => setRevision(value => value + 1);
+    window.addEventListener("tokenstation-wallet-updated", refresh);
+    return () => window.removeEventListener("tokenstation-wallet-updated", refresh);
+  }, []);
   const [balanceCents, setBalanceCents] = useState<number | null>(null);
 
   useEffect(() => {
     if (!api.adminToken || teamID === "") return;
     let cancelled = false;
-    const path = teamID ? `/api/admin/teams/${encodeURIComponent(teamID)}/wallet` : "/api/admin/consumer/wallet";
+    const path = teamID ? `/api/admin/teams/${encodeURIComponent(teamID)}/wallet` : "/api/admin/wallet";
     adminFetch(api, path)
       .then(async resp => {
         if (!resp.ok) return;
-        const payload = (await resp.json()) as { balance_cents?: unknown; wallet?: { balance_cents?: unknown } };
-        const value = teamID ? payload.wallet?.balance_cents : payload.balance_cents;
+        const payload = (await resp.json()) as { available_micros?: number; balance_cents?: unknown; wallet?: { balance_cents?: unknown } };
+        const value = teamID ? payload.wallet?.balance_cents : typeof payload.available_micros === "number" ? payload.available_micros / 10_000 : undefined;
         if (!cancelled && typeof value === "number") setBalanceCents(value);
       })
       .catch(() => undefined);
     return () => {
       cancelled = true;
     };
-  }, [api, activeView, teamID]);
+  }, [api, activeView, teamID, revision]);
 
   return (
     <button className="console-topbar-balance" onClick={() => onSelectView("balance-recharge")} title={tx("余额充值")} type="button">

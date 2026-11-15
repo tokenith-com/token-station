@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { QRCodeCanvas } from "qrcode.react";
-import { BalanceRechargeView } from "./balance-recharge";
+
 import type { ApiContext } from "../core/types";
 import { uniqueUIID } from "../domain/formatting";
 import { tx } from "../i18n/runtime";
@@ -22,14 +23,7 @@ function checkoutURL(value: string | undefined) {
 }
 
 export function ConsumerRechargeView({ api }: { api: ApiContext }) {
-  const [mode, setMode] = useState<"payment" | "consumer">("payment");
-  return <>
-    <div role="group" aria-label={tx("充值方式")}>
-      <button type="button" aria-pressed={mode === "payment"} onClick={() => setMode("payment")}>{tx("在线支付充值")}</button>
-      <button type="button" aria-pressed={mode === "consumer"} onClick={() => setMode("consumer")}>{tx("账户余额充值")}</button>
-    </div>
-    {mode === "payment" ? <RechargeView api={api} /> : <BalanceRechargeView api={api} />}
-  </>;
+  return <RechargeView api={api} />;
 }
 
 export function RechargeView({ api }: { api: ApiContext }) {
@@ -94,12 +88,32 @@ export function RechargeView({ api }: { api: ApiContext }) {
       setOrder(next);
       setOrders((current) => current.map((item) => item.order_no === next.order_no ? next : item));
       setWallet(await walletRequest<Wallet>(api, "/api/admin/wallet"));
+      window.dispatchEvent(new Event("tokenstation-wallet-updated"));
     } catch (err) {
       setError(err instanceof Error ? err.message : tx("请求失败"));
     } finally {
       setBusy(false);
     }
   }
+
+  useEffect(() => {
+    if (!order || order.status !== "pending") return;
+    const controller = new AbortController();
+    const timer = window.setTimeout(async () => {
+      try {
+        const next = await walletRequest<Order>(api, `/api/admin/recharge/orders/${encodeURIComponent(order.order_no)}`, { signal: controller.signal });
+        setOrder(next);
+        setOrders(current => current.map(item => item.order_no === next.order_no ? next : item));
+        if (next.status !== "pending") {
+          setWallet(await walletRequest<Wallet>(api, "/api/admin/wallet", { signal: controller.signal }));
+          window.dispatchEvent(new Event("tokenstation-wallet-updated"));
+        }
+      } catch (err) {
+        if (!controller.signal.aborted) setError(err instanceof Error ? err.message : tx("请求失败"));
+      }
+    }, 3000);
+    return () => { window.clearTimeout(timer); controller.abort(); };
+  }, [api, order]);
 
   const payURL = checkoutURL(order?.pay_url);
   const statusLabel = (status: string) => {
@@ -113,15 +127,15 @@ export function RechargeView({ api }: { api: ApiContext }) {
     }
   };
   return (
-    <section className="guest-cost-view">
-      <header className="guest-cost-heading"><h1>{tx("余额充值")}</h1></header>
+    <section className="guest-cost-view payment-workspace">
+      <header className="guest-cost-heading payment-heading"><h1>{tx("余额充值")}</h1></header>
       {wallet && <p>{tx("可用余额")} {formatWalletMicros(wallet.available_micros)}
         {wallet.balance_micros > wallet.available_micros && <> · {tx("冻结金额")} {formatWalletMicros(wallet.balance_micros - wallet.available_micros)}</>}
       </p>}
       {error && <p role="alert">{error}</p>}
       {plans && (
         <section className="section">
-          <form className="toolbar" onSubmit={(event) => { event.preventDefault(); void createOrder(); }}>
+          <form className="payment-form" onSubmit={(event) => { event.preventDefault(); void createOrder(); }}>
             <label>{tx("充值金额")} <select value={plan} disabled={busy || Boolean(attempt) || Boolean(order)} onChange={(event) => setPlan(event.target.value)}>
               {plans.data.map((item) => <option key={item.id} value={item.id}>{formatWalletMicros(item.amount_fen * 10_000)}</option>)}
             </select></label>
@@ -135,13 +149,15 @@ export function RechargeView({ api }: { api: ApiContext }) {
             {order.status === "pending" && order.qr_code && <QRCodeCanvas value={order.qr_code} size={200} marginSize={4} title={tx("支付二维码")} />}
             {order.status === "pending" && payURL && <a href={payURL} target="_blank" rel="noopener noreferrer">{tx("打开支付宝收银台")}</a>}
             <p role="status">{statusLabel(order.status)}</p>
+            {order.status === "succeeded" && <Link className="button" href="/playground">{tx("模型演练场")}</Link>}
             <button type="button" className="secondary-button" disabled={busy} onClick={() => void refreshOrder(order)}>{tx("刷新订单状态")}</button>
           </div>}
           {(attempt || order) && !busy && <button type="button" className="secondary-button" onClick={() => { setAttempt(undefined); setOrder(undefined); setError(""); }}>{tx("新建充值订单")}</button>}
         </section>
       )}
-      {orders.length > 0 && <section className="section">
+      {<section className="section payment-history">
         <h2>{tx("充值订单")}</h2>
+        {orders.length === 0 && <p className="muted">{tx("暂无数据")}</p>}
         <ul>{orders.map((item) => <li key={item.order_no}>
           <button type="button" className="text-button" disabled={busy} onClick={() => void refreshOrder(item)}>{item.order_no}</button> · {statusLabel(item.status)}
         </li>)}</ul>

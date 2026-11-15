@@ -32,13 +32,10 @@ test("prepaid playground preserves a rejected draft and links to recharge", asyn
   await page.getByRole("button", { name: "去充值" }).click();
   await page.getByRole("button", { name: "创建充值订单" }).click();
   await expect(page.locator("canvas[title='支付二维码']")).toBeVisible();
-  await page.getByRole("button", { name: "刷新订单状态" }).click();
-  await expect(page.getByRole("status").filter({ hasText: "充值已到账" })).toBeVisible();
-  await page.getByRole("button", { name: "账户余额充值", exact: true }).click();
-  await expect(page.getByText("为您的账户充值，享受更多服务", { exact: true })).toBeVisible();
-  await expect(page.getByRole("button", { name: "账户余额充值", exact: true })).toHaveAttribute("aria-pressed", "true");
-  await capture(page, info, page.locator(".recharge-view"), "consumer-balance-recharge", "Consumer balance recharge", "viewport");
-  await page.getByRole("button", { name: "在线支付充值", exact: true }).click();
+  await expect(page.getByRole("status").filter({ hasText: "充值已到账" })).toBeVisible({ timeout: 10000 });
+  await expect(page.getByRole("button", { name: "账户余额充值", exact: true })).toHaveCount(0);
+  await capture(page, info, page.locator(".payment-workspace"), "consumer-balance-recharge", "Consumer balance recharge", "viewport");
+  await page.getByRole("button", { name: "新建充值订单", exact: true }).click();
   await expect(page.getByRole("button", { name: "创建充值订单", exact: true })).toBeVisible();
 });
 
