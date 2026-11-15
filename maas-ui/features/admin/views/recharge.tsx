@@ -150,10 +150,13 @@ export function RechargeView({ api }: { api: ApiContext }) {
       {plans && (
         <section className="section">
           <form className="payment-form" onSubmit={(event) => { event.preventDefault(); void createOrder(); }}>
-            <label>{tx("充值金额")} <select value={plan} disabled={busy || Boolean(attempt) || Boolean(order)} onChange={(event) => setPlan(event.target.value)}>
-              {plans.custom_enabled && <option value="">{tx("自定义金额")}</option>}
-              {plans.data.map((item) => <option key={item.id} value={item.id}>{formatWalletMicros(item.amount_fen * 10_000)}</option>)}
-            </select></label>
+            <fieldset className="payment-amounts" disabled={busy || Boolean(attempt) || Boolean(order)}>
+              <legend>{tx("充值金额")}</legend>
+              <div className="payment-amount-options">
+                {plans.data.map((item) => <button key={item.id} type="button" className="payment-amount-option" aria-pressed={plan === item.id} onClick={() => setPlan(item.id)}>{formatWalletMicros(item.amount_fen * 10_000)}</button>)}
+                {plans.custom_enabled && <button type="button" className="payment-amount-option" aria-pressed={!plan} onClick={() => setPlan("")}>{tx("自定义金额")}</button>}
+              </div>
+            </fieldset>
             {!plan && plans.custom_enabled && <label>{tx("自定义金额")}<input aria-label={tx("自定义金额")} type="number" required min={(plans.min_fen ?? 1) / 100} max={(plans.max_fen ?? 0) / 100} step="0.01" value={custom} disabled={busy || Boolean(attempt) || Boolean(order)} onChange={event => setCustom(event.target.value)} /><small>{formatWalletMicros((plans.min_fen ?? 1) * 10000)} – {formatWalletMicros((plans.max_fen ?? 0) * 10000)}</small></label>}
             <label>{tx("支付方式")} <select value={channel} disabled={busy || Boolean(attempt) || Boolean(order)} onChange={(event) => setChannel(event.target.value)}>
               {plans.channels.map((item) => <option key={item} value={item}>{item === "wechat" ? tx("微信支付") : tx("支付宝")}</option>)}

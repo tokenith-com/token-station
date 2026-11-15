@@ -317,3 +317,13 @@
 @media (max-width: 700px) {
   .payment-form label:has(small) { margin-bottom: 16px; }
 }
+.payment-amounts { grid-column: 1 / -1; min-width: 0; padding: 0; margin: 0; border: 0; }
+.payment-amounts legend { margin-bottom: 12px; padding: 0; font-size: 13px; font-weight: 500; }
+.payment-amount-options { display: flex; flex-wrap: wrap; gap: 12px; }
+.payment-amount-option { min-width: 112px; min-height: 52px; padding: 12px 20px; border: 1px solid var(--border, #e4e4ed); border-radius: 8px; background: var(--surface, #fff); color: inherit; font: inherit; font-weight: 500; cursor: pointer; transition: border-color 150ms, background-color 150ms; }
+.payment-amount-option[aria-pressed=true] { border-color: #9160c9; background: #9160c914; color: #8550be; box-shadow: inset 0 0 0 1px #9160c9; }
+.payment-amount-option:hover:not(:disabled) { border-color: #9160c9; }
+.payment-amount-option:focus-visible { outline: 2px solid #9160c9; outline-offset: 3px; }
+.payment-amount-option:disabled { cursor: default; opacity: .6; }
+@media (max-width: 700px) { .payment-amount-option { flex: 1 0 calc(50% - 12px); min-width: 0; } }
+@media (prefers-reduced-motion: reduce) { .payment-amount-option { transition: none; } }
