@@ -84,14 +84,14 @@ TOKENHUB_PAYMENT_CONFIG_FILE="${TOKENHUB_PAYMENT_CONFIG_FILE:-}"
 TOKENHUB_API_BASE_URL="${TOKENHUB_API_BASE_URL:-${NEXT_PUBLIC_API_BASE_URL:-$TOKENHUB_PUBLIC_BASE_URL}}"
 FRONTEND_PORT="${FRONTEND_PORT:-3000}"
 FRONTEND_HOST="${FRONTEND_HOST:-0.0.0.0}"
-BACKEND_BIN="$ROOT_DIR/.tmp/tokenhub-backend"
+BACKEND_BIN="$ROOT_DIR/.tmp/tokenstation-backend"
 NEXT_BIN="$FRONTEND_DIR/node_modules/.bin/next"
 
 BACKEND_PID=""
 FRONTEND_PID=""
 
 log() {
-  printf '[TokenHub] %s\n' "$*"
+  printf '[TokenStation] %s\n' "$*"
 }
 
 find_go() {
@@ -169,7 +169,7 @@ fi
 mkdir -p "$(dirname "$BACKEND_BIN")"
 
 log "Building backend binary"
-(cd "$BACKEND_DIR" && "$GO_CMD" build -o "$BACKEND_BIN" ./cmd/tokenhub)
+(cd "$BACKEND_DIR" && "$GO_CMD" build -o "$BACKEND_BIN" ./cmd/tokenstation)
 
 log "Starting backend: $TOKENHUB_HTTP_ADDR"
 (
@@ -202,7 +202,7 @@ FRONTEND_PID=$!
 
 cat <<EOF
 
-TokenHub started:
+TokenStation started:
   Backend API:  $TOKENHUB_PUBLIC_BASE_URL
   Frontend:     http://localhost:$FRONTEND_PORT
   Release repo: $TOKENHUB_RELEASE_REPOSITORY

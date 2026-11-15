@@ -55,7 +55,7 @@ func TestOpenAPIEndpointsServeRuntimeServerAndSelfHostedDocs(t *testing.T) {
 		}
 	}
 	for _, want := range []string{
-		"TokenHub API Reference",
+		"TokenStation API Reference",
 		"/base/openapi.json",
 		"/base/docs/swagger-ui.css",
 		"/base/docs/swagger-ui-bundle.js",

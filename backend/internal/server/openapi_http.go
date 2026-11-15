@@ -131,7 +131,7 @@ func gatewayOpenAPIDocument(serverURL, appVersion string) (map[string]any, error
 	}
 	document["servers"] = []any{map[string]any{
 		"url":         strings.TrimRight(serverURL, "/"),
-		"description": "TokenHub gateway origin for this deployment.",
+		"description": "TokenStation gateway origin for this deployment.",
 	}}
 	if info, ok := document["info"].(map[string]any); ok {
 		if version := strings.TrimSpace(appVersion); version != "" {
@@ -229,7 +229,7 @@ const gatewayDocsHTML = `<!doctype html>
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>TokenHub API Reference</title>
+  <title>TokenStation API Reference</title>
   <link rel="stylesheet" href="{{.SwaggerCSSURL}}">
   <style>
     body { margin: 0; background: #f7f8fa; }
@@ -242,10 +242,10 @@ const gatewayDocsHTML = `<!doctype html>
 </head>
 <body>
   <header class="tokenhub-docs-banner">
-    <h1>TokenHub API Reference</h1>
+    <h1>TokenStation API Reference</h1>
     <p>Self-hosted Swagger UI for the public gateway OpenAPI 3.1 contract. Project API keys entered through Authorize are kept in memory only; persistence is disabled. Browser execution is blocked for multipart, binary, and unsafe operations. <a href="{{.OpenAPIURL}}" target="_blank" rel="noreferrer">Open JSON</a>.</p>
   </header>
-  <main id="swagger-ui" aria-label="TokenHub Swagger UI"></main>
+  <main id="swagger-ui" aria-label="TokenStation Swagger UI"></main>
   <script src="{{.SwaggerBundleURL}}"></script>
   <script>
     const openAPIURL = {{.OpenAPIURLJSON}};
@@ -280,11 +280,11 @@ const gatewayDocsHTML = `<!doctype html>
       const documented = normalizedURL(tokenhubSpec?.servers?.[0]?.url || configuredServerURL);
       const documentedURL = new URL(documented);
       if (target.origin !== documentedURL.origin) {
-        throw new Error("Try it requests are limited to the documented TokenHub origin.");
+        throw new Error("Try it requests are limited to the documented TokenStation origin.");
       }
       const operation = tokenHubOperationForRequest(request);
       if (operation?.["x-tokenhub-interactive"] === false) {
-        throw new Error("Browser execution is disabled for this operation by the TokenHub OpenAPI contract.");
+        throw new Error("Browser execution is disabled for this operation by the TokenStation OpenAPI contract.");
       }
       request.credentials = "omit";
       return request;

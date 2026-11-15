@@ -187,7 +187,8 @@ export function roleSelectOptions(data: AppData) {
   const configured = (data.resources["role-configs"] ?? [])
     .filter((role) => role.status === "active" && roleConfigAssignable(role))
     .map((role) => {
-      const value = stringifyValue(role.fields?.role_key) || role.id;
+      const key = stringifyValue(role.fields?.role_key) || role.id;
+      const value = key === "guest" ? "consumer" : key;
       return {
         value,
         label: roleDisplayName(role) || roleLabel(value),
@@ -734,12 +735,12 @@ export function modelCapabilitySummary(model: Model) {
 export function modelPriceSummary(model: Model) {
   const embedding = model.embedding_price_usd_per_1m || 0;
   if (model.modality === "embedding" || embedding > 0) {
-    return `$${formatMoney(embedding)}/1M`;
+    return `¥${formatMoney(embedding)}/1M`;
   }
   const input = model.input_price_usd_per_1m || 0;
   const output = model.output_price_usd_per_1m || 0;
-  if (!input && !output) return "$-";
-  return `$${formatMoney(input)} / $${formatMoney(output)}`;
+  if (!input && !output) return "¥-";
+  return `¥${formatMoney(input)} / ¥${formatMoney(output)}`;
 }
 
 export function fieldSummary(fields?: Record<string, unknown>) {

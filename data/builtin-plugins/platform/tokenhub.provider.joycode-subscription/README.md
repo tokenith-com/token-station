@@ -1,6 +1,6 @@
 # JoyCode
 
-Connect an explicitly authorized JoyCode account to TokenHub.
+Connect an explicitly authorized JoyCode account to TokenStation.
 
 - Plugin ID: `tokenhub.provider.joycode-subscription`
 - Configuration: Provider management, with a separate account resource

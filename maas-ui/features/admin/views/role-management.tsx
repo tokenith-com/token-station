@@ -1,6 +1,5 @@
 import { ChevronLeft, ChevronRight, Search, X } from "lucide-react";
 import { type FormEvent, useEffect, useMemo, useRef, useState } from "react";
-import { SvgIcon } from "../../../components/svg-icon";
 import { type AdminResource, type AppData, type ModalState, type ResourceConfig } from "../core/types";
 import { stringifyValue } from "../domain/entities";
 import { tx } from "../i18n/runtime";
@@ -45,11 +44,6 @@ export function RoleManagementView({
 
   return (
     <section className="role-management-view">
-      <header className="role-management-title">
-        <SvgIcon name="overview-icon" size={16} />
-        <h1>{tx("角色")}</h1>
-      </header>
-
       <label className="role-management-search">
         <Search aria-hidden="true" size={15} />
         <input

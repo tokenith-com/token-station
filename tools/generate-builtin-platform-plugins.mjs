@@ -11,12 +11,12 @@ const plugins = [
   provider("tokenhub.provider.mock", "Mock Provider", "mock", "Test gateway behavior without a remote model service."),
   provider("tokenhub.provider.openai-compatible", "OpenAI-Compatible", "openai_compatible", "Connect any service that implements the OpenAI-compatible API."),
   provider("tokenhub.provider.openai-codex", "OpenAI Codex Subscription", "openai_codex", "Connect an OpenAI Codex subscription account."),
-  provider("tokenhub.provider.azure-openai", "Azure OpenAI", "azure_openai", "Connect TokenHub to an Azure OpenAI deployment."),
-  provider("tokenhub.provider.qwen", "Qwen", "qwen", "Connect TokenHub to Qwen model services."),
-  provider("tokenhub.provider.local", "Local Model Service", "local", "Connect TokenHub to a model service on the local network."),
-  ui("tokenhub.admin.plugin-ecosystem", "TokenHub Plugin Ecosystem Dashboard", "Expose plugin operations and status in the admin console."),
-  ui("tokenhub.admin.core-provider", "TokenHub Core Provider Settings", "Add host-managed Provider settings to the admin console."),
-  template("tokenhub.sim.default", "TokenHub Default Interface Template", "Provide the default TokenHub admin console theme and layout."),
+  provider("tokenhub.provider.azure-openai", "Azure OpenAI", "azure_openai", "Connect TokenStation to an Azure OpenAI deployment."),
+  provider("tokenhub.provider.qwen", "Qwen", "qwen", "Connect TokenStation to Qwen model services."),
+  provider("tokenhub.provider.local", "Local Model Service", "local", "Connect TokenStation to a model service on the local network."),
+  ui("tokenhub.admin.plugin-ecosystem", "TokenStation Plugin Ecosystem Dashboard", "Expose plugin operations and status in the admin console."),
+  ui("tokenhub.admin.core-provider", "TokenStation Core Provider Settings", "Add host-managed Provider settings to the admin console."),
+  template("tokenhub.sim.default", "TokenStation Default Interface Template", "Provide the default TokenStation admin console theme and layout."),
   template("tokenhub.sim.antd", "Ant Design Style Interface Template", "Provide an Ant Design style admin console theme and layout."),
   template("tokenhub.sim.knowledge-sidebar", "Knowledge Sidebar Interface Template", "Provide a knowledge-management style sidebar theme and layout."),
 ];
@@ -74,10 +74,10 @@ permissions:
 function readme(plugin) {
   return `# ${plugin.name}
 
-Built-in ${plugin.category.replaceAll("_", " ")} plugin for TokenHub.
+Built-in ${plugin.category.replaceAll("_", " ")} plugin for TokenStation.
 
 - Plugin ID: \`${plugin.id}\`
-- Configuration: ${plugin.category === "provider_integration" ? "Provider management" : "TokenHub admin console"}
+- Configuration: ${plugin.category === "provider_integration" ? "Provider management" : "TokenStation admin console"}
 - Lifecycle: installed, enabled, configured, and used independently
 `;
 }

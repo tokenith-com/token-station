@@ -27,6 +27,7 @@ it("uses the all-time usage report for ranking metrics and shares instead of ove
     { id: "support", kind: "teams", name: "支持部", status: "active" },
   ];
   data.summary.total_tokens = 1;
+  data.summary.estimated_cost_usd = 3.25;
   const allData = emptyData();
   allData.summary.total_tokens = 4000;
   allData.breakdown.members = [{ id: member.id, request_count: 12, input_tokens: 1000, cached_input_tokens: 250, output_tokens: 200, total_tokens: 1200, estimated_cost_usd: 2.5, used_key_count: 2, owned_key_count: 5 }];
@@ -35,6 +36,10 @@ it("uses the all-time usage report for ranking metrics and shares instead of ove
   render(<PlatformOverviewContent api={api} data={data} />);
 
   const table = await screen.findByRole("table");
+  expect(screen.getByText("总成本").closest("article")).toHaveTextContent("$3.25");
+  await userEvent.setup().click(screen.getByRole("tab", { name: /^成本$/ }));
+  expect(screen.getByRole("img")).toHaveTextContent("$");
+  expect(screen.getByRole("img")).not.toHaveTextContent("¥");
   expect(fetcher).toHaveBeenCalledWith(expect.stringMatching(/\/api\/admin\/usage\/report\?range=all$/), expect.anything());
   expect(within(table).getAllByRole("columnheader").map(cell => cell.textContent)).toEqual([
     "排名", "成员", "部门", "Key（已用/归属）", "请求", "输入 token", "缓存读", "缓存命中率", "输出 token", "总 token", "占比", "成本",

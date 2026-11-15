@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { QRCodeCanvas } from "qrcode.react";
+import { BalanceRechargeView } from "./balance-recharge";
 import type { ApiContext } from "../core/types";
 import { uniqueUIID } from "../domain/formatting";
 import { tx } from "../i18n/runtime";
@@ -18,6 +19,17 @@ function checkoutURL(value: string | undefined) {
   } catch {
     return "";
   }
+}
+
+export function ConsumerRechargeView({ api }: { api: ApiContext }) {
+  const [mode, setMode] = useState<"payment" | "consumer">("payment");
+  return <>
+    <div role="group" aria-label={tx("充值方式")}>
+      <button type="button" aria-pressed={mode === "payment"} onClick={() => setMode("payment")}>{tx("在线支付充值")}</button>
+      <button type="button" aria-pressed={mode === "consumer"} onClick={() => setMode("consumer")}>{tx("账户余额充值")}</button>
+    </div>
+    {mode === "payment" ? <RechargeView api={api} /> : <BalanceRechargeView api={api} />}
+  </>;
 }
 
 export function RechargeView({ api }: { api: ApiContext }) {

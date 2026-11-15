@@ -153,7 +153,7 @@ export function ModelCreateModal({
         if (target.closest(".model-create-advanced-fields")) setAdvancedOpen(true);
         requestAnimationFrame(() => target.focus());
       }}>
-        {error ? <div className="status-line error" role="alert">{error}</div> : null}
+        {error && error !== submitError ? <div className="status-line error" role="alert">{error}</div> : null}
         <div className="modal-header">
           <div>
             <p className="eyebrow">{tx("新建对外模型")}</p>

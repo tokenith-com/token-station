@@ -38,7 +38,7 @@ for (const [catalogID, value] of entries) {
   const defaultBaseURL = concreteHTTPURL(baseURL);
   const docURL = String(value.doc_url || value.doc || "").trim();
   const categories = Array.isArray(value.categories) ? value.categories.filter((item) => typeof item === "string" && item.trim()) : [];
-  const summary = `Connect TokenHub to ${name}.`;
+  const summary = `Connect TokenStation to ${name}.`;
   const description = `${summary} Connection behavior is provided by the host-managed ${adapter} adapter.`;
   const directory = path.join(outputRoot, catalogID);
   await mkdir(directory, { recursive: true });
@@ -119,10 +119,10 @@ Built-in Provider Integration for \`${catalogID}\`.
 
 - Plugin ID: \`${pluginID}\`
 - Host Adapter: \`${adapter}\`
-- Configuration: TokenHub Provider management
+- Configuration: TokenStation Provider management
 - Lifecycle: installed, enabled, configured, and used independently
 
-This package contains declarative provider metadata. Executable protocol handling remains inside the trusted TokenHub Host Adapter.
+This package contains declarative provider metadata. Executable protocol handling remains inside the trusted TokenStation Host Adapter.
 `;
 }
 

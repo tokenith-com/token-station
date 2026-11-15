@@ -2,7 +2,7 @@ import { fireEvent, render, screen, waitFor, within } from "@testing-library/rea
 import { describe, expect, it, vi } from "vitest";
 import type { AdminResource, AdminUser } from "../core/types";
 import { emptyData } from "../domain/catalog";
-import { createTeamMember, teamMemberCreatePayload, userPayload } from "../resources/payloads";
+import { createCustomerOnboarding, createTeamMember, teamMemberCreatePayload, userPayload } from "../resources/payloads";
 import { adminUserConfig } from "../resources/governance-config";
 import { PlatformAccountsView } from "./platform-accounts";
 
@@ -18,8 +18,9 @@ function renderAccounts(variant: "team" | "platform" = "team", currentUser = lea
   const onCreate = vi.fn().mockResolvedValue(true);
   const onEdit = vi.fn().mockResolvedValue(true);
   const onResetPassword = vi.fn().mockResolvedValue(true);
-  const rendered = render(<PlatformAccountsView variant={variant} data={data} currentUser={currentUser} loading={false} onCreate={onCreate} onEdit={onEdit} onResetPassword={onResetPassword} onToggleStatus={vi.fn()} onDelete={vi.fn()} />);
-  return { onCreate, onEdit, onResetPassword, data, ...rendered };
+  const onOnboard = vi.fn().mockResolvedValue(true);
+  const rendered = render(<PlatformAccountsView onOnboard={onOnboard} variant={variant} data={data} currentUser={currentUser} loading={false} onCreate={onCreate} onEdit={onEdit} onResetPassword={onResetPassword} onToggleStatus={vi.fn()} onDelete={vi.fn()} />);
+  return { onCreate, onEdit, onResetPassword, onOnboard, data, ...rendered };
 }
 
 function fill(label: RegExp, value: string) {
@@ -33,6 +34,60 @@ function fillNewMember() {
   fill(/^\*密码$/, "new-test-password");
   fill(/确认密码/, "new-test-password");
 }
+
+describe("customer onboarding", () => {
+  it.each(["admin", "system_admin", "team_leader", "user", "guest"])("restricts onboarding to platform administrators (%s)", role => {
+    renderAccounts("platform", { ...leader, role });
+    expect(Boolean(screen.queryByRole("button", { name: "开通客户" }))).toBe(["admin", "system_admin"].includes(role));
+  });
+
+  it("does not expose onboarding in the team view", () => {
+    renderAccounts("team", { ...leader, role: "admin" });
+    expect(screen.queryByRole("button", { name: "开通客户" })).not.toBeInTheDocument();
+  });
+
+  it("submits only the final step and retains values and the retry key on failure", async () => {
+    const { onOnboard } = renderAccounts("platform", { ...leader, role: "admin" });
+    onOnboard.mockResolvedValueOnce(false).mockResolvedValueOnce(true);
+    fireEvent.click(screen.getByRole("button", { name: "开通客户" }));
+    fireEvent.submit(screen.getByRole("dialog"));
+    expect(screen.getByRole("alert")).toHaveTextContent("请填写所有必填项");
+    fill(/成本中心编码/, "customer-test"); fill(/成本中心名称/, "Test Customer");
+    fireEvent.submit(screen.getByRole("dialog"));
+    fill(/团队名称/, "Test Team"); fill(/项目名称/, "Test Project");
+    fireEvent.submit(screen.getByRole("dialog"));
+    fill(/负责人用户名/, "customer-leader"); fill(/负责人邮箱/, "leader@example.test");
+    fill(/^\*密码$/, "test-password"); fill(/确认密码/, "different");
+    fireEvent.submit(screen.getByRole("dialog"));
+    expect(screen.getByRole("alert")).toHaveTextContent("两次输入的密码不一致");
+    fill(/确认密码/, "test-password");
+    fireEvent.submit(screen.getByRole("dialog"));
+    expect(onOnboard).not.toHaveBeenCalled();
+    expect(screen.queryByText("test-password")).not.toBeInTheDocument();
+    fireEvent.submit(screen.getByRole("dialog"));
+    await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent("客户开通失败"));
+    fireEvent.click(screen.getByRole("button", { name: "上一步" }));
+    expect(screen.getByLabelText(/负责人用户名/)).toHaveValue("customer-leader");
+    expect(screen.getByLabelText(/^\*密码$/)).toHaveValue("test-password");
+    fireEvent.submit(screen.getByRole("dialog"));
+    fireEvent.submit(screen.getByRole("dialog"));
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+    expect(onOnboard).toHaveBeenCalledTimes(2);
+    expect(onOnboard.mock.calls[1][0].idempotency_key).toBe(onOnboard.mock.calls[0][0].idempotency_key);
+  });
+
+  it("sends a single authenticated request with only onboarding fields", async () => {
+    const fetch = vi.fn().mockResolvedValue(new Response("{}", { status: 201 }));
+    vi.stubGlobal("fetch", fetch);
+    await createCustomerOnboarding({ baseURL: "", adminToken: "test-admin" }, { cost_center_code: " test ", cost_center_name: "Customer", team_name: "Team", project_name: "Project", leader_username: "leader", leader_email: "leader@example.test", leader_password: " test-password ", idempotency_key: "test-key", confirmPassword: " test-password " });
+    expect(fetch).toHaveBeenCalledTimes(1);
+    const [path, request] = fetch.mock.calls[0];
+    expect(path).toBe("/api/backend/api/admin/customer-onboarding");
+    expect(request.method).toBe("POST");
+    expect(request.headers.get("authorization")).toBe("Bearer test-admin");
+    expect(JSON.parse(request.body)).toEqual({ cost_center_code: "test", cost_center_name: "Customer", team_name: "Team", project_name: "Project", leader_username: "leader", leader_email: "leader@example.test", leader_password: " test-password ", idempotency_key: "test-key" });
+  });
+});
 
 describe("team member account forms", () => {
   it("shows the designed columns and supports email search without group controls", () => {

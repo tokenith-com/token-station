@@ -116,7 +116,7 @@ func generate(root string, check bool) error {
 	if err != nil {
 		return err
 	}
-	path := filepath.Join(root, "plugin-devkit/cmd/tokenhub-plugin-test/manifest_generated.go")
+	path := filepath.Join(root, "plugin-devkit/cmd/tokenstation-plugin-test/manifest_generated.go")
 	if check {
 		existing, err := os.ReadFile(path)
 		if err != nil {

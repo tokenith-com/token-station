@@ -461,8 +461,8 @@ export function projectQuotaSummary(data: AppData, project: Project) {
     quotaSummaryPart(quota, "monthly_requests", "月请求"),
     quotaSummaryPart(quota, "daily_tokens", "日 Token"),
     quotaSummaryPart(quota, "monthly_tokens", "月 Token"),
-    quotaSummaryPart(quota, "daily_cost_usd", "日成本", "$"),
-    quotaSummaryPart(quota, "monthly_cost_usd", "月成本", "$"),
+    quotaSummaryPart(quota, "daily_cost_usd", "日成本", "¥"),
+    quotaSummaryPart(quota, "monthly_cost_usd", "月成本", "¥"),
     quotaSummaryPart(quota, "max_concurrency", "并发"),
   ].filter(Boolean);
   return parts.slice(0, 2).join(" · ") || "不限额";
@@ -747,6 +747,12 @@ export function userPayload(values: Record<string, string>, includePassword: boo
   return payload;
 }
 
+export async function createCustomerOnboarding(ctx: ApiContext, values: Record<string, string>) {
+  const payload = Object.fromEntries(["cost_center_code", "cost_center_name", "team_name", "project_name", "leader_username", "leader_email", "idempotency_key"].map(key => [key, values[key]?.trim()]));
+  const resp = await adminFetch(ctx, "/api/admin/customer-onboarding", { method: "POST", body: JSON.stringify({ ...payload, leader_password: values.leader_password }) });
+  if (!resp.ok) throw new Error(await readAdminError(resp, tx("客户开通失败，请检查后重试")));
+}
+
 export function numberPayload(values: Record<string, string>, keys: string[]) {
   const payload: Record<string, unknown> = { ...values };
   for (const key of keys) payload[key] = numberOr(values[key], 0);
@@ -810,7 +816,7 @@ function localizedAdminErrorCode(code?: string) {
     case "grok_api_scope_missing":
       return tx("Grok 授权缺少模型调用所需的 api:access 权限。请编辑此账号，重新授权并同意所需权限，然后保存账号。");
     case "google_subscription_location_unsupported":
-      return tx("Google 订阅服务不支持当前请求所在地区。请检查账号的地区资格以及 TokenHub 服务器的网络出口地区。");
+      return tx("Google 订阅服务不支持当前请求所在地区。请检查账号的地区资格以及 TokenStation 服务器的网络出口地区。");
     case "provider_model_retired":
       return tx("请选择未停用的上游模型后再发布新线路。");
     case "provider_model_price_required":
@@ -913,7 +919,7 @@ export function loadRequestLabel(name: string) {
   if (name.startsWith("resource:")) return resourceKindLabel(name.slice("resource:".length));
   const labels: Record<string, string> = {
     overview: "总览数据",
-    providers: "Provider 渠道",
+    providers: "供应商",
     "provider-resources": "Provider 账号资源",
     "api-keys": "Key 管理",
     routes: "路由策略",
@@ -935,7 +941,7 @@ export function resourceLabelFromPath(path: string) {
   if (path.includes("/api/admin/projects/") && path.endsWith("/keys")) return "项目 Key 发放";
   if (path.includes("/api/admin/api-keys")) return "Key 管理";
   if (path.includes("/api/admin/routing-rules")) return "路由策略";
-  if (path.includes("/api/admin/providers")) return "Provider 渠道";
+  if (path.includes("/api/admin/providers")) return "供应商";
   if (path.includes("/api/admin/users")) return "用户管理";
   if (path.includes("/api/admin/approvals")) return "审批记录";
   if (path.includes("/api/admin/sqlite/backups")) return "数据备份";

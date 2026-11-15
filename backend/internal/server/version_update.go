@@ -170,21 +170,9 @@ func (s *versionService) acquireNativeOperation() (func(), error) {
 }
 
 func (s *versionService) hasNativeReleaseAssets(release githubRelease, version string) bool {
-	archiveName, err := s.nativeArchiveName(version)
-	if err != nil {
-		return false
-	}
-	hasArchive := false
-	hasChecksums := false
-	for _, asset := range release.Assets {
-		switch asset.Name {
-		case archiveName:
-			hasArchive = asset.BrowserDownloadURL != "" && asset.Size <= maxNativeArchiveBytes
-		case "checksums.txt":
-			hasChecksums = asset.BrowserDownloadURL != "" && asset.Size <= maxNativeChecksumBytes
-		}
-	}
-	return hasArchive && hasChecksums
+	archive, checksums, err := s.nativeReleaseAssets(release, version)
+	return err == nil && archive.BrowserDownloadURL != "" && checksums.BrowserDownloadURL != "" &&
+		archive.Size <= maxNativeArchiveBytes && checksums.Size <= maxNativeChecksumBytes
 }
 
 func (s *versionService) nativeArchiveName(version string) (string, error) {
@@ -193,27 +181,18 @@ func (s *versionService) nativeArchiveName(version string) (string, error) {
 	}
 	switch s.runtimeArch {
 	case "amd64", "arm64":
-		return fmt.Sprintf("tokenhub_%s_linux_%s.tar.gz", version, s.runtimeArch), nil
+		return fmt.Sprintf("tokenstation_%s_linux_%s.tar.gz", version, s.runtimeArch), nil
 	default:
 		return "", fmt.Errorf("native release updates are not available for %s/%s", s.runtimeOS, s.runtimeArch)
 	}
 }
 
 func (s *versionService) applyNativeRelease(ctx context.Context, release githubRelease, version string) error {
-	archiveName, err := s.nativeArchiveName(version)
+	archiveAsset, checksumAsset, err := s.nativeReleaseAssets(release, version)
 	if err != nil {
 		return err
 	}
-	var archiveAsset githubAsset
-	var checksumAsset githubAsset
-	for _, asset := range release.Assets {
-		switch asset.Name {
-		case archiveName:
-			archiveAsset = asset
-		case "checksums.txt":
-			checksumAsset = asset
-		}
-	}
+	archiveName := archiveAsset.Name
 	if archiveAsset.BrowserDownloadURL == "" || checksumAsset.BrowserDownloadURL == "" {
 		return fmt.Errorf("GitHub Release v%s does not contain the native archive and checksums.txt", version)
 	}
@@ -269,7 +248,11 @@ func (s *versionService) applyNativeRelease(ctx context.Context, release githubR
 	// cannot serve is never
 	// activated. The managed upgrade never runs contracts; the upgrade state
 	// records that so the post-restart auto-rollback gate stays closed.
-	targetBinary := filepath.Join(root, "releases", version, "bin", "tokenhub")
+	layout, err := resolveNativeLayout(filepath.Join(root, "releases", version))
+	if err != nil {
+		return err
+	}
+	targetBinary := filepath.Join(root, "releases", version, layout.binary)
 	if err := s.runTargetDatabasePreflight(ctx, targetBinary, version); err != nil {
 		return err
 	}
@@ -297,7 +280,7 @@ func (s *versionService) runTargetDatabasePreflight(ctx context.Context, binary,
 		command.Env = append(os.Environ(), "TOKENHUB_DATABASE_URL="+s.databaseURL)
 		output, err := command.CombinedOutput()
 		if err != nil {
-			return fmt.Errorf("target v%s preflight `tokenhub %s` failed: %w\n%s", version, strings.Join(args, " "), err, output)
+			return fmt.Errorf("target v%s preflight `%s %s` failed: %w\n%s", version, filepath.Base(binary), strings.Join(args, " "), err, output)
 		}
 	}
 	return nil
@@ -408,7 +391,7 @@ func (s *versionService) activeNativeVersion() (string, bool) {
 		return "", false
 	}
 	version, _, ok := parseSemanticVersion(strings.TrimSpace(string(versionData)))
-	return version, ok
+	return version, ok && validateNativeBundle(activePath, version) == nil
 }
 
 // startupGuardNewService is a seam for tests to inject a versionService whose
@@ -540,7 +523,7 @@ func (s *versionService) downloadNativeAsset(ctx context.Context, rawURL string,
 	if err != nil {
 		return err
 	}
-	request.Header.Set("User-Agent", "TokenHub/"+s.currentVersion)
+	request.Header.Set("User-Agent", "TokenStation/"+s.currentVersion)
 	response, err := s.downloadClient.Do(request)
 	if err != nil {
 		return err
@@ -576,7 +559,7 @@ func (s *versionService) downloadNativeBytes(ctx context.Context, rawURL string,
 	if err != nil {
 		return nil, err
 	}
-	request.Header.Set("User-Agent", "TokenHub/"+s.currentVersion)
+	request.Header.Set("User-Agent", "TokenStation/"+s.currentVersion)
 	response, err := s.downloadClient.Do(request)
 	if err != nil {
 		return nil, err
@@ -724,22 +707,26 @@ func extractNativeArchive(archivePath string, destination string) error {
 }
 
 func validateNativeBundle(bundleRoot string, version string) error {
+	layout, err := resolveNativeLayout(bundleRoot)
+	if err != nil {
+		return err
+	}
 	required := []struct {
 		path       string
 		executable bool
 	}{
-		{path: "bin/tokenhub", executable: true},
+		{path: layout.binary, executable: true},
 		{path: "bin/node", executable: true},
-		{path: "bin/tokenhub-run", executable: true},
+		{path: layout.runner, executable: true},
 		{path: "frontend/server.js"},
 		{path: "catalog/model-catalog.yaml"},
 		{path: "catalog/provider-catalog.json"},
-		{path: "deploy/tokenhub.service"},
+		{path: layout.service},
 		{path: "VERSION"},
 	}
 	for _, item := range required {
 		path := filepath.Join(bundleRoot, item.path)
-		info, err := os.Stat(path)
+		info, err := os.Lstat(path)
 		if err != nil {
 			return fmt.Errorf("native release is missing %s: %w", item.path, err)
 		}
@@ -799,6 +786,9 @@ func (s *versionService) activateNativeRelease(version string) error {
 	}
 	target := filepath.Join(root, "releases", version)
 	if err := validateNativeBundle(target, version); err != nil {
+		return err
+	}
+	if err := ensureNativeRunnerCompatibility(target); err != nil {
 		return err
 	}
 	current := filepath.Join(root, "current")
@@ -885,12 +875,12 @@ func nativeOperationHTTPError(err error, action string) error {
 	case errors.Is(err, errNativeOperationInProgress):
 		return NewHTTPError(http.StatusConflict, "system_operation_in_progress", "Another update, rollback, or restart operation is already running")
 	case errors.Is(err, errNativeAlreadyUpToDate):
-		return NewHTTPError(http.StatusConflict, "already_up_to_date", "TokenHub is already up to date")
+		return NewHTTPError(http.StatusConflict, "already_up_to_date", "TokenStation is already up to date")
 	case errors.Is(err, errNativeRollbackNotAllowed):
 		return NewHTTPError(http.StatusBadRequest, "rollback_version_not_available", "The selected rollback version is not available for this installation")
 	default:
 		log.Printf("[tokenhub] managed %s failed: %v", action, err)
-		return NewHTTPError(http.StatusBadGateway, "managed_"+action+"_failed", "Unable to "+action+" the managed TokenHub installation")
+		return NewHTTPError(http.StatusBadGateway, "managed_"+action+"_failed", "Unable to "+action+" the managed TokenStation installation")
 	}
 }
 
@@ -937,7 +927,7 @@ func (s *Server) handleAdminSystemUpdate(w http.ResponseWriter, r *http.Request)
 	s.recordSystemVersionAudit(r, actor, "update", version, "success", "")
 	log.Printf("[tokenhub] managed update to v%s applied by admin %s", version, actor.ID)
 	writeJSON(w, http.StatusOK, map[string]any{
-		"message":        "Update applied. Restart TokenHub to use the new version.",
+		"message":        "Update applied. Restart TokenStation to use the new version.",
 		"need_restart":   true,
 		"target_version": version,
 	})
@@ -986,7 +976,7 @@ func (s *Server) handleAdminSystemRollback(w http.ResponseWriter, r *http.Reques
 	s.recordSystemVersionAudit(r, actor, "rollback", version, "success", "")
 	log.Printf("[tokenhub] managed rollback to v%s applied by admin %s", version, actor.ID)
 	writeJSON(w, http.StatusOK, map[string]any{
-		"message":        "Rollback applied. Restart TokenHub to use the selected version.",
+		"message":        "Rollback applied. Restart TokenStation to use the selected version.",
 		"need_restart":   true,
 		"target_version": version,
 	})
@@ -1016,7 +1006,7 @@ func (s *Server) handleAdminSystemRestart(w http.ResponseWriter, r *http.Request
 	}
 	auditRequest := r.Clone(context.Background())
 	log.Printf("[tokenhub] managed restart requested by admin %s", actor.ID)
-	writeJSON(w, http.StatusOK, map[string]any{"message": "TokenHub restart initiated"})
+	writeJSON(w, http.StatusOK, map[string]any{"message": "TokenStation restart initiated"})
 	time.AfterFunc(500*time.Millisecond, func() {
 		if err := s.versions.restartProcess(); err != nil {
 			<-s.versions.operation

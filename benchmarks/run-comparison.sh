@@ -25,7 +25,7 @@ run_target() {
 
   (
     cd "$ROOT_DIR/backend"
-    env "$key_variable=${!key_variable}" go run ./cmd/tokenhub-benchmark run \
+    env "$key_variable=${!key_variable}" go run ./cmd/tokenstation-benchmark run \
       --label "$label" \
       --base-url "$base_url" \
       --api-key-env "$key_variable" \

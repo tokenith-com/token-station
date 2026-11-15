@@ -225,11 +225,12 @@ func TestGuardrailsBlockAdminPlaygroundBeforeRouting(t *testing.T) {
 		t.Fatal(err)
 	}
 	app := newManagedTestServer(t, store).Handler()
+	keyID := createPlaygroundTestKey(t, store, "prj_demo", "")
 	expectedRequestIDs := map[string]bool{}
 	for _, path := range []string{"/api/admin/playground/chat", "/api/admin/playground/chat/stream"} {
 		t.Run(path, func(t *testing.T) {
 			response := doGuardrailProtocolRequest(t, app, path, map[string]any{
-				"project_id": "prj_demo",
+				"api_key_id": keyID,
 				"model":      "gpt-4.1-mini",
 				"messages":   []any{map[string]any{"role": "user", "content": "call 13312341234"}},
 			}, "dev_admin_token")
@@ -266,7 +267,7 @@ func TestGuardrailsBlockAdminPlaygroundBeforeRouting(t *testing.T) {
 	}
 }
 
-func TestAdminPlaygroundRejectsUnauthorizedGuardrailProjectContext(t *testing.T) {
+func TestAdminPlaygroundRejectsAPIKeyOwnedByAnotherUser(t *testing.T) {
 	store := newTestMemoryStore(t)
 	if err := SeedDemoData(store); err != nil {
 		t.Fatal(err)
@@ -282,22 +283,23 @@ func TestAdminPlaygroundRejectsUnauthorizedGuardrailProjectContext(t *testing.T)
 	if err != nil {
 		t.Fatal(err)
 	}
+	otherKeyID := createPlaygroundTestKey(t, store, "prj_demo", playgroundTestAdminID(store))
 	app := newManagedTestServer(t, store).Handler()
 	for _, path := range []string{"/api/admin/playground/chat", "/api/admin/playground/chat/stream"} {
 		t.Run(path, func(t *testing.T) {
 			response := doGuardrailProtocolRequest(t, app, path, map[string]any{
-				"project_id": "prj_demo",
+				"api_key_id": otherKeyID,
 				"model":      "gpt-4.1-mini",
 				"messages":   []any{map[string]any{"role": "user", "content": "inspect me"}},
 			}, session.Token)
-			if response.Code != http.StatusForbidden || !strings.Contains(response.Body.String(), `"code":"project_forbidden"`) {
-				t.Fatalf("expected project access failure, got %d: %s", response.Code, response.Body.String())
+			if response.Code != http.StatusNotFound || !strings.Contains(response.Body.String(), `"code":"api_key_not_found"`) {
+				t.Fatalf("expected foreign API key to be rejected, got %d: %s", response.Code, response.Body.String())
 			}
 		})
 	}
 }
 
-func TestAdminPlaygroundRequiresGuardrailProjectContext(t *testing.T) {
+func TestAdminPlaygroundRequiresAPIKey(t *testing.T) {
 	store := newTestMemoryStore(t)
 	if err := SeedDemoData(store); err != nil {
 		t.Fatal(err)
@@ -306,10 +308,11 @@ func TestAdminPlaygroundRequiresGuardrailProjectContext(t *testing.T) {
 	for _, path := range []string{"/api/admin/playground/chat", "/api/admin/playground/chat/stream"} {
 		t.Run(path, func(t *testing.T) {
 			response := doGuardrailProtocolRequest(t, app, path, map[string]any{
-				"model": "gpt-4.1-mini", "messages": []any{map[string]any{"role": "user", "content": "inspect me"}},
+				"project_id": "prj_demo",
+				"model":      "gpt-4.1-mini", "messages": []any{map[string]any{"role": "user", "content": "inspect me"}},
 			}, "dev_admin_token")
-			if response.Code != http.StatusBadRequest || !strings.Contains(response.Body.String(), `"code":"missing_project"`) {
-				t.Fatalf("expected missing project failure, got %d: %s", response.Code, response.Body.String())
+			if response.Code != http.StatusBadRequest || !strings.Contains(response.Body.String(), `"code":"missing_api_key"`) {
+				t.Fatalf("expected missing API key failure, got %d: %s", response.Code, response.Body.String())
 			}
 		})
 	}
@@ -412,10 +415,11 @@ func TestGuardrailsMaskAdminPlaygroundBeforeRouting(t *testing.T) {
 		t.Fatal(err)
 	}
 	app := newManagedTestServer(t, store).Handler()
+	keyID := createPlaygroundTestKey(t, store, "prj_demo", "")
 	for _, path := range []string{"/api/admin/playground/chat", "/api/admin/playground/chat/stream"} {
 		t.Run(path, func(t *testing.T) {
 			response := doJSON(t, app, http.MethodPost, path, map[string]any{
-				"project_id": "prj_demo",
+				"api_key_id": keyID,
 				"model":      "gpt-4.1-mini",
 				"messages":   []any{map[string]any{"role": "user", "content": "contact demo@example.com"}},
 			}, "")

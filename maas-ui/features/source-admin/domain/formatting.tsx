@@ -52,7 +52,7 @@ export function apiExampleScripts(baseURL: string, modelName: string, supportsIm
   const normalizedBaseURL = apiGatewayBaseURL(baseURL);
   const model = modelName || "gpt-4.1-mini";
   const systemPrompt = tx("你是企业内部 AI 助手。");
-  const prompt = tx("请用三句话介绍 TokenHub。");
+  const prompt = tx("请用三句话介绍 TokenStation。");
   const imagePrompt = tx("请描述这张图片。");
   const pythonUserMessage = supportsImages
     ? `{"role": "user", "content": [
@@ -106,7 +106,7 @@ import com.openai.client.okhttp.OpenAIOkHttpClient;
 import com.openai.models.ChatModel;
 import com.openai.models.chat.completions.ChatCompletionCreateParams;
 
-public class TokenHubExample {
+public class TokenStationExample {
   public static void main(String[] args) {
     OpenAIClient client = OpenAIOkHttpClient.builder()
         .apiKey(System.getenv().getOrDefault("TOKENHUB_API_KEY", "YOUR_TOKENHUB_API_KEY"))
@@ -402,8 +402,8 @@ export function modelCapabilities(model: ProviderCatalogModel) {
 export function formatModelPrice(model: ProviderCatalogModel) {
   const input = model.input_price_usd_per_1m ?? 0;
   const output = model.output_price_usd_per_1m ?? 0;
-  if (!input && !output) return "$-";
-  return `$${formatMoney(input)}/$${formatMoney(output)}`;
+  if (!input && !output) return "¥-";
+  return `¥${formatMoney(input)}/¥${formatMoney(output)}`;
 }
 
 export function modelToForm(item: Model) {

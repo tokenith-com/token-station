@@ -1,7 +1,7 @@
 export const modelCreateTranslations: Record<"en" | "ja", Record<string, string>> = {
   "en": {
     "可用 Provider 模型": "Available Provider Models",
-    "暂无可用 Provider 模型，请先到 Provider 渠道引入。": "No Provider models are available. Import models under Provider Channels first.",
+    "暂无可用 Provider 模型，请先到供应商引入。": "No Provider models are available. Import models under Providers first.",
     "选择已引入的上游模型，保存时同步创建路由。": "Choose imported upstream models and create their routes when saving.",
     "从模型目录选择": "Choose from Model Catalog",
     "配置 Provider 映射与对外价格": "Configure Provider Mapping and External Pricing",
@@ -31,7 +31,7 @@ export const modelCreateTranslations: Record<"en" | "ja", Record<string, string>
   },
   "ja": {
     "可用 Provider 模型": "利用可能な Provider モデル",
-    "暂无可用 Provider 模型，请先到 Provider 渠道引入。": "利用可能な Provider モデルがありません。先に Provider Channels でモデルを取り込んでください。",
+    "暂无可用 Provider 模型，请先到供应商引入。": "利用可能な Provider モデルがありません。先に Providers でモデルを取り込んでください。",
     "选择已引入的上游模型，保存时同步创建路由。": "取り込み済みの上流モデルを選択し、保存時にルートも同時に作成します。",
     "从模型目录选择": "モデルカタログから選択",
     "配置 Provider 映射与对外价格": "Provider マッピングと外部価格を設定",

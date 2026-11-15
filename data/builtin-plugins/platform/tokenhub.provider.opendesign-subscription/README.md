@@ -1,6 +1,6 @@
 # OpenDesign
 
-Connect an explicitly authorized OpenDesign account to TokenHub.
+Connect an explicitly authorized OpenDesign account to TokenStation.
 
 - Plugin ID: `tokenhub.provider.opendesign-subscription`
 - Configuration: Provider management, with a separate account resource

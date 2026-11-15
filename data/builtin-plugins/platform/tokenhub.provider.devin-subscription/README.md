@@ -1,6 +1,6 @@
 # Devin
 
-Connect an explicitly authorized Devin account to TokenHub.
+Connect an explicitly authorized Devin account to TokenStation.
 
 - Plugin ID: `tokenhub.provider.devin-subscription`
 - Configuration: Provider management, with a separate account resource

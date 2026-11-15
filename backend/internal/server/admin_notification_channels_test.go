@@ -113,7 +113,7 @@ func TestNotificationChannelTestEmailUsesSavedRecipients(t *testing.T) {
 	}
 	select {
 	case message := <-messages:
-		for _, marker := range []string{"ops@example.test", "admin@example.test", "notification_channel_test", "This is a TokenHub test notification"} {
+		for _, marker := range []string{"ops@example.test", "admin@example.test", "notification_channel_test", "This is a TokenStation test notification"} {
 			if !strings.Contains(message, marker) {
 				t.Errorf("email missing %q: %s", marker, message)
 			}

@@ -52,7 +52,7 @@ func (s *Server) paymentUser(w http.ResponseWriter, r *http.Request, operator bo
 		return AdminUser{}, false
 	}
 	role := normalizeAdminRole(user.Role)
-	allowed := role == "guest"
+	allowed := role == "consumer"
 	if operator {
 		allowed = role == "admin" || role == "system_admin"
 	}

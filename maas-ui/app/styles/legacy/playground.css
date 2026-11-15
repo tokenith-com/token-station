@@ -57,6 +57,27 @@
   gap: 7px;
 }
 
+.playground-key-hint,
+.playground-key-empty p {
+  margin: 0;
+  color: #6b6c72;
+  font-size: calc(12 * var(--content-font-unit, 1px));
+  line-height: 1.5;
+}
+
+.playground-key-empty {
+  display: grid;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px dashed #d6d7dc;
+  border-radius: 8px;
+  background: #fafafb;
+}
+
+.playground-key-empty button {
+  justify-self: start;
+}
+
 .playground-field span,
 .playground-slider span {
   color: #55565b;

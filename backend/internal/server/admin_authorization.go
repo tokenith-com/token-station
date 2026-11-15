@@ -70,7 +70,7 @@ func canAdmin(role string, resource string, method string) bool {
 			return resource == "api_key" || resource == "playground"
 		}
 		return resource == "overview" || resource == "project" || resource == "api_key" || resource == "usage" || resource == "audit" || resource == "model" || resource == "playground"
-	case "guest":
+	case "consumer":
 		if write {
 			return resource == "api_key" || resource == "playground"
 		}
@@ -92,6 +92,8 @@ func adminRoleMatches(actual string, required string) bool {
 func normalizeAdminRole(role string) string {
 	role = strings.ToLower(strings.TrimSpace(role))
 	switch role {
+	case "guest":
+		return "consumer"
 	case "security":
 		return "security_admin"
 	case "project_admin", "teamlead":
@@ -101,6 +103,12 @@ func normalizeAdminRole(role string) string {
 	default:
 		return role
 	}
+}
+
+// isConsumerRole reports whether the role is an individual consumer account,
+// which never belongs to a team.
+func isConsumerRole(role string) bool {
+	return normalizeAdminRole(role) == "consumer"
 }
 
 func isPlatformAdminRole(role string) bool {
@@ -162,6 +170,11 @@ func projectAccessRole(user AdminUser, project Project, memberships []AdminResou
 			continue
 		}
 		role = higherProjectAccessRole(role, normalizeProjectAccessRole(memberRole(member)))
+	}
+	// The consumer project holds individual sign-up users' keys and usage; a team
+	// link must never expose it to that team's members or leaders.
+	if project.ID == consumerProjectID {
+		return role
 	}
 	for _, link := range project.Teams {
 		if !activeTeams[link.TeamID] || !userHasTeam(user, link.TeamID) {
@@ -463,6 +476,10 @@ func (s *Server) visibleAPIKeyIDSet(user AdminUser) map[string]bool {
 	for _, key := range s.filterAPIKeysForUser(user, s.store.ListAPIKeys()) {
 		out[key.ID] = true
 	}
+	// Playground calls are recorded with the caller's user ID as the API key ID.
+	if user.ID != "" {
+		out[user.ID] = true
+	}
 	return out
 }
 
@@ -741,6 +758,11 @@ func (s *Server) filterAdminUsersForUser(user AdminUser, users []AdminUser) []Ad
 	}
 	out := make([]AdminUser, 0, len(users))
 	for _, item := range users {
+		// Platform administrators may hold team memberships, but their accounts
+		// must never be exposed to lower-privileged team views.
+		if isPlatformAdminRole(item.Role) {
+			continue
+		}
 		if userHasTeam(item, user.TeamID) {
 			out = append(out, item)
 		}
@@ -771,7 +793,7 @@ func (s *Server) filterApprovalRequestsForUser(user AdminUser, approvals []Appro
 	for _, item := range approvals {
 		if projectID := approvalProjectID(item); projectID != "" {
 			project, ok := projects[projectID]
-			if activeTeam && ok && strings.TrimSpace(user.TeamID) != "" && user.TeamID == project.TeamID {
+			if activeTeam && ok && projectID != consumerProjectID && strings.TrimSpace(user.TeamID) != "" && user.TeamID == project.TeamID {
 				out = append(out, item)
 			}
 			continue

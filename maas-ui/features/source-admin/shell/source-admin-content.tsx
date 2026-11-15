@@ -6,7 +6,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { type LoadedData, loadPlanForView, mergeLoadedData } from "../core/data-loading";
 import { canAccessView, defaultViewForRole, rememberRecentView, standaloneViewMeta } from "../core/navigation";
 import { clearProviderAccountOAuthResultFromLocation, hasPendingProviderAccountOAuthResult, isOAuthAuthorizationResponse, readOAuthLoginResult, readProviderAccountOAuthResultFromLocation, savePendingProviderAccountOAuthResult } from "../core/session";
-import { notificationChannelDefaultType, notificationChannelTypes, type AdapterDescriptor, type AdminResource, type AdminUIContribution, type AdminUser, type AlertDelivery, type AlertEvent, type APIKey, type AppData, type ApprovalRequest, type AuditEvent, type BillingConnector, type BillingRecord, type BillingSyncRun, type ConfirmState, type GatewayChainPlan, languageStorageKey, type ModalState, type Model, type ModelRoute, type ModelRoutePolicy, type PluginActionDescriptor, type PluginBackgroundJobDescriptor, type PluginBackgroundJobRunRecord, type PluginDescriptor, type PluginMarketplacePlugin, type Project, type Provider, type ProviderCatalogEntry, type ProviderModel, type ProviderMonitoringSnapshot, type ProviderResource, type ReconciliationRule, type ReconciliationRun, type ReportExportHistoryItem, type RequestLog, type ResourceAction, type ResourceConfig, type SettingsTabKey, type SQLiteBackup, type ToolbarAction, type UsageBreakdown, type UsageDaily, type UsagePoint, type ViewKey, viewRoutes } from "../core/types";
+import { notificationChannelDefaultType, notificationChannelTypes, type AdapterDescriptor, type AdminResource, type AdminUIContribution, type AdminUser, type AlertDelivery, type AlertEvent, type APIKey, type AppData, type ApprovalRequest, type AuditEvent, type BillingConnector, type BillingRecord, type BillingSyncRun, type ConfirmState, type GatewayChainPlan, languageStorageKey, type ModalState, type Model, type ModelRoute, type ModelRoutePolicy, type PluginActionDescriptor, type PluginBackgroundJobDescriptor, type PluginBackgroundJobRunRecord, type PluginDescriptor, type PluginMarketplacePlugin, type Project, type Provider, type ProviderCatalogEntry, type ProviderModel, type ProviderMonitoringSnapshot, type ProviderResource, type ReconciliationRule, type ReconciliationRun, type ReportExportHistoryItem, type RequestLog, type ResourceAction, type ResourceConfig, type SQLiteBackup, type ToolbarAction, type UsageBreakdown, type UsageDaily, type UsagePoint, type ViewKey, viewRoutes } from "../core/types";
 import { emptyData, emptySummary, filterByModelCategory, filterRows } from "../domain/catalog";
 import { filterAPIKeys } from "../domain/api-key-filter";
 import { auditRequestPagePath } from "../domain/audit-request-page";
@@ -23,7 +23,7 @@ import { simRegistryFromPlugins } from "../domain/sim-registry";
 import { type AppLanguage, bulkDeleteConfirmMessage, deleteConfirmMessage, importUsersDoneMessage, importUsersSkippedMessage, isIssuedAPIKey, setActiveLanguage, tx } from "../i18n/runtime";
 import { createKeyWithCapture } from "../resources/generic-config";
 import { downloadReport } from "../resources/governance-config";
-import { adminFetch, adminMutate, importUsersFromCSVContent, isAuthExpiredError, loadRequestLabel, notificationChannelDefaults, permissionPartialLoadMessage, readLoadError, restoreDefaultModelCatalog } from "../resources/payloads";
+import { adminFetch, adminMutate, createCustomerOnboarding, importUsersFromCSVContent, isAuthExpiredError, loadRequestLabel, notificationChannelDefaults, permissionPartialLoadMessage, readLoadError, restoreDefaultModelCatalog } from "../resources/payloads";
 import { projectMemberConfig, projectMemberInitialValues } from "../resources/project-key-config";
 import { resourceConfigFor } from "../resources/settings-config";
 import { usePagination } from "../shared/pagination";
@@ -31,7 +31,7 @@ import { ConfirmDialog, providerTypeOptionsFromData } from "../shared/ui";
 import { APIKeyAccessDialogs } from "../shared/api-key-access";
 import { PageHeader, StatusStack } from "./navigation-ui";
 import { AuditView } from "../views/audit";
-import { CrudView, ReportsView } from "../views/crud-projects";
+import { ReportsView } from "../views/crud-projects"; import { WalletCrudView as CrudView } from "../views/wallet-crud";
 import { DatabaseStatusView } from "../views/database-model-pricing";
 import { GatewayView } from "../views/gateway-view";
 import { ModelDirectoryView } from "../views/model-directory";
@@ -47,6 +47,7 @@ import { ProjectWorkspace, type ProjectWorkspaceDraft, type ProjectWorkspaceMode
 import { RoutingPolicySimulator } from "../views/routing-policy-simulator";
 import { ContentSecurityPolicies, SecurityPolicyTabs } from "../views/security-policies";
 import { APIKeyWizardModal, UserImportModal } from "../views/modals";
+import { CustomerOnboardingDialog } from "../../admin/views/customer-onboarding";
 import { EditModal, SettingsView } from "../views/settings-table";
 import { BillingView, UsageView } from "../views/usage-billing";
 import { APIKeyUsageView } from "../views/api-key-usage";
@@ -80,8 +81,8 @@ export function SourceAdminContent({ baseURL, adminToken, currentUser, language,
   const [loading, setLoading] = useState(false);
   const [query, setQuery] = useState("");
   const [modelCategoryFilter, setModelCategoryFilter] = useState("all");
-  const routeModelQuery = searchParams?.get("model") ?? "";
-  const [settingsTab, setSettingsTab] = useState<SettingsTabKey>("settings");
+  const [routeModelQuery, setRouteModelQuery] = useState(searchParams?.get("model") ?? "");
+  useEffect(() => { setRouteModelQuery(searchParams?.get("model") ?? ""); }, [searchParams]);
   const [securityPolicyTab, setSecurityPolicyTab] = useState<"access" | "content">("access");
   const [modal, setModal] = useState<ModalState<any> | null>(null);
   const [modalSaveError, setModalSaveError] = useState<{ source: typeof modal; message: string } | null>(null);
@@ -91,6 +92,7 @@ export function SourceAdminContent({ baseURL, adminToken, currentUser, language,
   const [apiKeyWizardOpen, setApiKeyWizardOpen] = useState(false);
   const [apiKeyWizardInitialValues, setApiKeyWizardInitialValues] = useState<Record<string, string>>({});
   const [userImportOpen, setUserImportOpen] = useState(false);
+  const [customerOnboardingOpen, setCustomerOnboardingOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState<ConfirmState<any> | null>(null);
   const [confirmRestoreModels, setConfirmRestoreModels] = useState(false);
   const [issuedKey, setIssuedKey] = useState("");
@@ -580,7 +582,7 @@ export function SourceAdminContent({ baseURL, adminToken, currentUser, language,
     }
     if (data.providers.length === 0) {
       setNotice("");
-      setError(tx("请先新增 Provider 渠道，再配置路由策略。"));
+      setError(tx("请先新增供应商，再配置路由策略。"));
       selectView("providers");
       return;
     }
@@ -685,7 +687,7 @@ export function SourceAdminContent({ baseURL, adminToken, currentUser, language,
       style={shellState.shellPresentation.style}
     >
       <div className={activeView === "playground" ? "content-panel playground-content-panel" : "content-panel"}>
-        {activeView === "playground" || activeView === "overview" || apiKeyUsageID ? null : (
+        {activeView === "playground" || apiKeyUsageID ? null : (
           <PageHeader activeView={activeView} data={data} meta={activeMeta} user={currentUser} onSelect={selectView} />
         )}
 
@@ -759,13 +761,12 @@ export function SourceAdminContent({ baseURL, adminToken, currentUser, language,
             )
           ) : activeView === "plugin-pages" ? (
             <PluginPageView activePageKey={activePluginPageKey} api={api} data={data} onSelectPage={selectPluginPage} />
-          ) : activeView === "settings" ? (
+          ) : activeView === "settings" || activeView === "role-configs" || activeView === "identity-providers" ? (
             <SettingsView
               api={api}
               data={data}
-              activeTab={settingsTab}
+              activeTab={activeView}
               language={language}
-              onTabChange={setSettingsTab}
               onLanguageChange={onLanguageChange}
               onRestoreModelCatalog={() => setConfirmRestoreModels(true)}
               onCreate={(config) => setModal({ config })}
@@ -879,6 +880,7 @@ export function SourceAdminContent({ baseURL, adminToken, currentUser, language,
               onAction={(action, item) => void runResourceAction(action, item, data)}
               onProjectOpen={(project) => setProjectWorkspace({ mode: "view", projectID: project.id })}
               onToolbarAction={(action) => void runToolbarAction(action, filteredItems)}
+              extraToolbarActions={activeView === "users" ? [{ label: "开通客户", onClick: () => setCustomerOnboardingOpen(true), disabled: loading }] : []}
               />
             </>
           ) : null}
@@ -1013,6 +1015,28 @@ export function SourceAdminContent({ baseURL, adminToken, currentUser, language,
           loading={loading}
           onClose={() => setUserImportOpen(false)}
           onImport={(content) => void importUsersFromCSV(content)}
+        />
+      ) : null}
+
+      {customerOnboardingOpen ? (
+        <CustomerOnboardingDialog
+          onClose={() => setCustomerOnboardingOpen(false)}
+          onSubmit={async values => {
+            setLoading(true);
+            setError("");
+            setNotice("");
+            try {
+              await createCustomerOnboarding(api, values);
+              await load("users");
+              setNotice(tx("客户开通成功"));
+              return true;
+            } catch (err) {
+              if (!isAuthExpiredError(err)) setError(err instanceof Error ? err.message : tx("客户开通失败，请检查后重试"));
+              return false;
+            } finally {
+              setLoading(false);
+            }
+          }}
         />
       ) : null}
 

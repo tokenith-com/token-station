@@ -9,7 +9,7 @@ func (s *Server) usageBreakdownForUser(ctx context.Context, user AdminUser) (map
 	ctx, cancel := context.WithTimeout(ctx, maximumUsageQueryDuration)
 	defer cancel()
 	s = s.usageQueryServer(ctx)
-	return s.usageBreakdownForScope(ctx, user, s.usageSummaryQueryForUser(user).UsageRecords, false, false)
+	return s.usageBreakdownForScope(ctx, user, s.usageSummaryQueryForUser(user).UsageRecords, true, false)
 }
 
 func (s *Server) usageBreakdownForScope(ctx context.Context, user AdminUser, scope UsageSummaryScope, includeAPIKeys, redactProviders bool) (map[string]any, error) {

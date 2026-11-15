@@ -31,7 +31,7 @@ func prepaidAPIPayer(tx *gorm.DB, key APIKey, project Project) (string, error) {
 		return "", err
 	}
 	for _, owner := range owners {
-		if normalizeAdminRole(owner.Role) != "guest" {
+		if normalizeAdminRole(owner.Role) != "consumer" {
 			continue
 		}
 		if ownerID == "" || owner.Status != StatusActive {
@@ -40,20 +40,6 @@ func prepaidAPIPayer(tx *gorm.DB, key APIKey, project Project) (string, error) {
 		return owner.ID, nil
 	}
 	return "", nil
-}
-
-func (s *Server) setPlaygroundWalletPayer(call *CallContext, user AdminUser, projectID string) error {
-	if s.payments == nil || !s.payments.config.PrepaidUsage || normalizeAdminRole(user.Role) != "guest" {
-		return nil
-	}
-	project, ok := s.store.GetProject(projectID)
-	if !ok || !modelAllowedByScopes(project, APIKey{}, call.Model.Name) {
-		return ErrModelNotAllowed
-	}
-	call.Project = project
-	call.walletPayer = user.ID
-	call.AttributedUserID = user.ID
-	return nil
 }
 
 func (s *Server) reserveChatWallet(ctx context.Context, call CallContext, request *ChatCompletionRequest) error {
@@ -184,32 +170,4 @@ func (s *Server) playgroundWalletReceipt(call CallContext) *walletUsageReceipt {
 		return &walletUsageReceipt{Status: "pending_review"}
 	}
 	return &walletUsageReceipt{Status: entry.Status, ChargedMicros: entry.ChargedMicros}
-}
-
-func (s *GormStore) finishPlaygroundWallet(completion GatewayCallCompletion) {
-	call := completion.Call
-	if call.walletPayer == "" {
-		return
-	}
-	now := time.Now().UTC()
-	if err := s.db.Transaction(func(tx *gorm.DB) error {
-		if err := s.lockScopeForUpdate(tx, "request_settlement", call.RequestID); err != nil {
-			return err
-		}
-		if err := finishWalletUsage(tx, call.RequestID, completion.Usage, now.Unix()); err != nil {
-			return err
-		}
-		if completion.Usage.TotalTokens > 0 || completion.Usage.CostUSD > 0 {
-			var count int64
-			if err := tx.Model(&UsageRecord{}).Where("request_id = ?", call.RequestID).Count(&count).Error; err != nil {
-				return err
-			}
-			if count == 0 {
-				return tx.Create(newUsageRecord(call, completion.Route, completion.Usage, now)).Error
-			}
-		}
-		return nil
-	}); err != nil {
-		log.Printf("wallet playground settlement failed request_id=%s: %v", call.RequestID, err)
-	}
 }

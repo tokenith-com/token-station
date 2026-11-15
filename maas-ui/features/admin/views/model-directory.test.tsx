@@ -24,7 +24,7 @@ function directoryProps() {
 }
 
 describe("native model directory", () => {
-  it.each(["team_leader", "user", "guest"] as const)("shows authorized external models and unified prices for %s without admin controls", (role) => {
+  it.each(["team_leader", "user", "consumer"] as const)("shows authorized external models and unified prices for %s without admin controls", (role) => {
     const props = directoryProps();
     props.data.models = [{ id: "authorized", name: "authorized-model", family: "custom", modality: "chat", status: "active", input_price_usd_per_1m: 2, output_price_usd_per_1m: 6 }];
     props.data.providers = [];
@@ -35,8 +35,8 @@ describe("native model directory", () => {
     ]);
     const row = screen.getByRole("row", { name: /authorized-model/ });
     expect(row).toHaveTextContent("当前账号可用");
-    expect(row).toHaveTextContent("$2");
-    expect(row).toHaveTextContent("$6");
+    expect(row).toHaveTextContent("¥2");
+    expect(row).toHaveTextContent("¥6");
     expect(screen.queryByText("官方价")).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "新建对外模型" })).not.toBeInTheDocument();
     expect(screen.queryByRole("group", { name: "发布状态" })).not.toBeInTheDocument();
@@ -74,7 +74,7 @@ describe("native model directory", () => {
     props.data.models = [props.data.models[3]];
     props.data.routes = [];
     render(<ModelDirectoryView {...props} />);
-    fireEvent.click(screen.getByRole("button", { name: "前往 Provider 渠道" }));
+    fireEvent.click(screen.getByRole("button", { name: "前往供应商" }));
     expect(props.onOpenProviders).toHaveBeenCalledOnce();
     expect(screen.queryByRole("table")).not.toBeInTheDocument();
   });

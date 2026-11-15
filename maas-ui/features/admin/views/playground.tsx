@@ -145,7 +145,7 @@ function formatPlaygroundUSD(value?: number) {
     ? "-"
     : playgroundNumberFormatter(playgroundUSDFormatters, {
       style: "currency",
-      currency: "USD",
+      currency: "CNY",
       currencyDisplay: "narrowSymbol",
       minimumFractionDigits: 6,
       maximumFractionDigits: 6,
@@ -235,7 +235,60 @@ function routeHasDetails(payload?: PlaygroundChatPayload) {
   return Boolean(route?.route_id || route?.provider_id || route?.resource_id || route?.provider_model);
 }
 
-type PlaygroundProps = { api: ApiContext; data: AppData; canViewRoutes: boolean; personal?: boolean; onRecharge?: () => void };
+type PlaygroundProps = {
+  personal?: boolean;
+  onRecharge?: () => void;
+  api: ApiContext;
+  data: AppData;
+  canViewRoutes: boolean;
+  currentUserID: string;
+  onCreateKey?: () => void;
+};
+
+// Playground traffic is billed to one of the caller's own keys, mirroring the
+// backend ownership rule so the selector never offers a key the server rejects.
+function playgroundKeyOwnedBy(key: AppData["keys"][number], userID: string) {
+  const owner = key.owner_user_id?.trim();
+  return owner ? owner === userID : key.metadata?.created_by === userID;
+}
+
+// Conversation turns live in component state, so persist them per user to
+// survive navigating away from the playground and reloading the page.
+function playgroundHistoryKey(userID: string) {
+  return `tokenhub.playground.turns.${userID}`;
+}
+
+function loadPlaygroundHistory(userID: string): PlaygroundTurn[] {
+  if (typeof window === "undefined" || !userID) return [];
+  try {
+    const parsed: unknown = JSON.parse(window.localStorage.getItem(playgroundHistoryKey(userID)) ?? "[]");
+    if (!Array.isArray(parsed)) return [];
+    return (parsed as PlaygroundTurn[]).map((turn) => ({
+      ...turn,
+      userImages: turn.userImages ?? [],
+      candidates: (turn.candidates ?? []).map((candidate) => candidate.status === "streaming" ? { ...candidate, status: "cancelled" as const } : candidate),
+    }));
+  } catch {
+    return [];
+  }
+}
+
+function savePlaygroundHistory(userID: string, turns: PlaygroundTurn[]) {
+  if (typeof window === "undefined" || !userID) return;
+  const key = playgroundHistoryKey(userID);
+  try {
+    if (turns.length === 0) window.localStorage.removeItem(key);
+    else window.localStorage.setItem(key, JSON.stringify(turns));
+  } catch {
+    // Quota exceeded (usually large images): keep the text history instead.
+    try {
+      window.localStorage.setItem(key, JSON.stringify(turns.map((turn) => ({ ...turn, userImages: [] }))));
+    } catch {
+      window.localStorage.removeItem(key);
+    }
+  }
+}
+
 
 export function PlaygroundPage(props: PlaygroundProps) {
   return (
@@ -245,7 +298,7 @@ export function PlaygroundPage(props: PlaygroundProps) {
   );
 }
 
-export function PlaygroundPanel({ api, data, canViewRoutes, personal, onRecharge }: PlaygroundProps) {
+export function PlaygroundPanel({ api, data, canViewRoutes, currentUserID, onCreateKey, personal, onRecharge }: PlaygroundProps) {
   const [wallet, setWallet] = useState<Wallet | null>();
   const [walletError, setWalletError] = useState(false);
   const [walletRejected, setWalletRejected] = useState(false);
@@ -269,15 +322,19 @@ export function PlaygroundPanel({ api, data, canViewRoutes, personal, onRecharge
   }, [refreshWallet]);
   const prepaid = personal && wallet?.prepaid_usage;
   const walletBlocked = Boolean(personal && (wallet === undefined || walletError || prepaid && wallet.available_micros <= 0));
+
   const models = useMemo(() => {
     const candidates = playgroundModels(data, canViewRoutes);
     return canViewRoutes ? candidates.filter((model) => activeRouteCount(model.name, data) > 0) : candidates;
   }, [data, canViewRoutes]);
-  const projects = useMemo(() => data.projects.filter((project) => !project.status || project.status === "active"), [data.projects]);
+  const keys = useMemo(
+    () => (data.keys ?? []).filter((key) => key.status === "active" && playgroundKeyOwnedBy(key, currentUserID)),
+    [data.keys, currentUserID],
+  );
   const [modelName, setModelName] = useState(models[0]?.name ?? "");
-  const [projectID, setProjectID] = useState(projects[0]?.id ?? "");
+  const [apiKeyID, setAPIKeyID] = useState(keys[0]?.id ?? "");
   const [pendingModelName, setPendingModelName] = useState("");
-  const [turns, setTurns] = useState<PlaygroundTurn[]>([]);
+  const [turns, setTurns] = useState<PlaygroundTurn[]>(() => loadPlaygroundHistory(currentUserID));
   const [draft, setDraft] = useState("");
   const [sendMode, setSendMode] = usePlaygroundSendMode();
   const [images, commitImages] = useState<PlaygroundImageAttachment[]>([]);
@@ -349,9 +406,12 @@ export function PlaygroundPanel({ api, data, canViewRoutes, personal, onRecharge
   }, [changeModelName, modelName, models]);
 
   useEffect(() => {
-    if (!projectID && projects[0]?.id) setProjectID(projects[0].id);
-    if (projectID && !projects.some((project) => project.id === projectID)) setProjectID(projects[0]?.id ?? "");
-  }, [projectID, projects]);
+    if (!keys.some((key) => key.id === apiKeyID)) setAPIKeyID(keys[0]?.id ?? "");
+  }, [apiKeyID, keys]);
+
+  useEffect(() => {
+    savePlaygroundHistory(currentUserID, turns);
+  }, [currentUserID, turns]);
 
   useEffect(() => {
     conversationImageBytesRef.current = conversationImageBytes;
@@ -409,7 +469,7 @@ export function PlaygroundPanel({ api, data, canViewRoutes, personal, onRecharge
 
   function buildPayload(messages: PlaygroundRequestMessage[], requestModel: string) {
     const payload: Record<string, unknown> = {
-      project_id: projectID,
+      api_key_id: apiKeyID,
       model: requestModel,
       messages,
       max_tokens: clampPlaygroundMaxTokens(numericParameter(maxTokens), maxTokenLimit),
@@ -511,7 +571,7 @@ export function PlaygroundPanel({ api, data, canViewRoutes, personal, onRecharge
   function sendMessage(event?: FormEvent<HTMLFormElement>) {
     event?.preventDefault();
     const content = draft.trim();
-    if ((!content && images.length === 0) || !modelName || !projectID || loading || walletBlocked || imageUploadPendingRef.current) return;
+    if ((!content && images.length === 0) || !modelName || !apiKeyID || loading || walletBlocked || imageUploadPendingRef.current) return;
     if (hasConversationImages && !supportsImages) {
       setError(tx("当前模型未声明图片输入能力。"));
       return;
@@ -538,7 +598,7 @@ export function PlaygroundPanel({ api, data, canViewRoutes, personal, onRecharge
   }
 
   function rerunTurn(turnID: string) {
-    if (loading || !projectID || walletBlocked) return;
+    if (loading || !apiKeyID || walletBlocked) return;
     const turnIndex = turns.findIndex((turn) => turn.id === turnID);
     if (turnIndex < 0) return;
     const candidate = createCandidate(modelName);
@@ -650,7 +710,7 @@ export function PlaygroundPanel({ api, data, canViewRoutes, personal, onRecharge
     const url = URL.createObjectURL(new Blob([prettyJSON(payload)], { type: "application/json" }));
     const anchor = document.createElement("a");
     anchor.href = url;
-    anchor.download = `tokenhub-playground-${new Date().toISOString().replaceAll(":", "-")}.json`;
+    anchor.download = `tokenstation-playground-${new Date().toISOString().replaceAll(":", "-")}.json`;
     anchor.click();
     URL.revokeObjectURL(url);
   }
@@ -691,12 +751,20 @@ export function PlaygroundPanel({ api, data, canViewRoutes, personal, onRecharge
         <div className="playground-config-body">
           <h2>{tx("模型配置")}</h2>
           <label className="playground-field">
-            <span>{tx("选择项目")}</span>
-            <select value={projectID} onChange={(event) => setProjectID(event.target.value)} disabled={projects.length === 0 || loading}>
-              {projects.length === 0 ? <option value="">{tx("暂无可选项目")}</option> : null}
-              {projects.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}
+            <span>{tx("选择 API Key")}</span>
+            <select value={apiKeyID} onChange={(event) => setAPIKeyID(event.target.value)} disabled={keys.length === 0 || loading}>
+              {keys.length === 0 ? <option value="">{tx("暂无可用 API Key")}</option> : null}
+              {keys.map((key) => <option key={key.id} value={key.id}>{`${key.name} · ${key.key_prefix}…${key.key_suffix}`}</option>)}
             </select>
           </label>
+          {keys.length === 0 ? (
+            <div className="playground-key-empty" role="note">
+              <p>{tx("请先创建 API Key 才能使用模型演练场，演练产生的用量将计入所选 Key。")}</p>
+              {onCreateKey ? <button type="button" className="secondary" onClick={onCreateKey}>{tx("去创建 API Key")}</button> : null}
+            </div>
+          ) : (
+            <p className="playground-key-hint">{tx("演练产生的用量和费用将计入所选 API Key。")}</p>
+          )}
           <label className="playground-field">
             <span>{tx("系统提示")}</span>
             <textarea value={systemPrompt} onChange={(event) => setSystemPrompt(event.target.value)} disabled={loading} />
@@ -826,7 +894,7 @@ export function PlaygroundPanel({ api, data, canViewRoutes, personal, onRecharge
                         {formatPlaygroundInteger(index + 1)}
                       </button>
                     )) : null}
-                    <button type="button" onClick={() => rerunTurn(turn.id)} disabled={loading || !projectID || walletBlocked} title={tx("从这一轮重新生成，并移除后续分支")}>
+                    <button type="button" onClick={() => rerunTurn(turn.id)} disabled={loading || !apiKeyID || walletBlocked} title={tx("从这一轮重新生成，并移除后续分支")}>
                       <RotateCcw size={13} />{tx("重跑")}
                     </button>
                   </div>
@@ -864,7 +932,7 @@ export function PlaygroundPanel({ api, data, canViewRoutes, personal, onRecharge
               if (!event.repeat) sendMessage();
             }}
             placeholder={tx("输入用于诊断模型的消息...")}
-            disabled={loading || models.length === 0 || projects.length === 0}
+            disabled={loading || models.length === 0 || keys.length === 0}
           />
           {personal && <div className="playground-wallet" aria-live="polite">
             {walletError ? <><span>{tx("暂时无法读取余额")}</span><button type="button" className="secondary-button compact" onClick={() => void refreshWallet()}>{tx("重试")}</button></> : null}
@@ -903,7 +971,7 @@ export function PlaygroundPanel({ api, data, canViewRoutes, personal, onRecharge
             {loading ? (
               <button className="playground-stop-button" type="button" onClick={() => activeRequestRef.current?.abort()} title={tx("停止生成")}><Square size={16} /></button>
             ) : (
-              <button className="playground-send-button" disabled={walletBlocked || imageUploadPending || (!draft.trim() && images.length === 0) || models.length === 0 || projects.length === 0} type="submit" title={tx("发送")}><Send size={18} /></button>
+              <button className="playground-send-button" disabled={walletBlocked || imageUploadPending || (!draft.trim() && images.length === 0) || models.length === 0 || !apiKeyID} type="submit" title={tx("发送")}><Send size={18} /></button>
             )}
           </div>
         </form>
@@ -1055,7 +1123,7 @@ export function PlaygroundAPIExamples({ baseURL, modelName, supportsImages = fal
   return (
     <section className="api-example-panel">
       <div className="api-example-header">
-        <div><strong>{tx("API 使用")}</strong><span>{tx("使用以下代码示例集成 TokenHub 模型接口")}</span></div>
+        <div><strong>{tx("API 使用")}</strong><span>{tx("使用以下代码示例集成 TokenStation 模型接口")}</span></div>
         <button className="icon-button subtle" onClick={() => void copyCurrent()} type="button" title={tx("复制代码")}>{copied ? <Check size={15} /> : <Copy size={15} />}</button>
       </div>
       <div className="api-example-tabs" role="tablist" aria-label={tx("API 调用语言")}>

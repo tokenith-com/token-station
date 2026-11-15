@@ -1,6 +1,5 @@
 import { Plus, Search, X } from "lucide-react";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
-import { SvgIcon } from "../../../components/svg-icon";
 import { type AdminResource, type AppData } from "../core/types";
 import { tx } from "../i18n/runtime";
 import {
@@ -59,12 +58,7 @@ export function TeamGroupsView({
   const visibleGroups = filteredGroups.slice(pagination.startIndex, pagination.endIndex);
 
   return (
-    <section aria-labelledby="team-groups-title" className="platform-accounts-view team-groups-view">
-      <div className="platform-accounts-title">
-        <SvgIcon name="overview-icon" size={16} />
-        <h1 id="team-groups-title">{tx("团队分组列表")}</h1>
-      </div>
-
+    <section aria-label={tx("团队分组列表")} className="platform-accounts-view team-groups-view">
       <div className="platform-accounts-toolbar">
         <button className="platform-account-create" onClick={() => setDialog({ mode: "create" })} type="button">
           <Plus size={14} />

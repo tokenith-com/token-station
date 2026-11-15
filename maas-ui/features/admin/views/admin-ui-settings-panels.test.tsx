@@ -10,7 +10,7 @@ describe("AdminUISettingsPanels", () => {
     const data = emptyData();
     data.plugins = [{
       id: "tokenhub.admin.plugin-ecosystem",
-      name: "TokenHub Plugin Ecosystem Dashboard",
+      name: "TokenStation Plugin Ecosystem Dashboard",
       version: "built-in",
       source: "built_in",
       kinds: ["admin_ui"],
@@ -89,7 +89,7 @@ describe("AdminUISettingsPanels", () => {
 
     expect(fields).toHaveLength(3);
     expect(settingsPanelFieldValue(data, fields[0])).toBe("active");
-    expect(settingsPanelFieldValue(data, fields[1])).toBe("US$3.13");
+    expect(settingsPanelFieldValue(data, fields[1])).toBe("¥3.13");
     expect(settingsPanelFieldValue(data, fields[2])).toContain("cfg_gateway");
   });
 });

@@ -397,6 +397,9 @@ func updateAdminUser(db *gorm.DB, id string, patch AdminUser, password string) (
 	if patch.Role != "" {
 		user.Role = patch.Role
 	}
+	if isConsumerRole(user.Role) {
+		user.Role = "consumer"
+	}
 	user.TeamID = patch.TeamID
 	user.TeamIDs = normalizedTeamIDs(patch.TeamID, patch.TeamIDs)
 	if patch.Status != "" {

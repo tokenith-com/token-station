@@ -1,8 +1,8 @@
-# Contributing to TokenHub
+# Contributing to TokenStation
 
 English | [简体中文](CONTRIBUTING.zh-CN.md) | [日本語](CONTRIBUTING.ja.md)
 
-TokenHub includes a Go backend, a Next.js admin console, Node.js SDK smoke tests, a YAML model catalog, and Docker Compose deployment files. This guide covers local development, validation, optional AI agent workflows, and pull request preparation.
+TokenStation includes a Go backend, a Next.js admin console, Node.js SDK smoke tests, a YAML model catalog, and Docker Compose deployment files. This guide covers local development, validation, optional AI agent workflows, and pull request preparation.
 
 ## Repository Layout
 
@@ -28,7 +28,7 @@ Start the full local development stack from the repository root:
 To run components separately, start the backend from `backend/`:
 
 ```bash
-TOKENHUB_CORS_ALLOWED_ORIGINS=http://localhost:3000 go run ./cmd/tokenhub
+TOKENHUB_CORS_ALLOWED_ORIGINS=http://localhost:3000 go run ./cmd/tokenstation
 ```
 
 Start the admin console from `frontend/`:
@@ -81,7 +81,7 @@ npx playwright install chromium
 npm run test:e2e
 ```
 
-The browser smoke suite starts an isolated Next.js frontend, Go backend, fake provider upstream, and temporary SQLite database. It does not require real credentials or an already-running TokenHub stack.
+The browser smoke suite starts an isolated Next.js frontend, Go backend, fake provider upstream, and temporary SQLite database. It does not require real credentials or an already-running TokenStation stack.
 
 For Docker or deployment changes, render the Compose configuration when Docker is available:
 
@@ -94,7 +94,7 @@ Run `git diff --check` for every change. Report any check that could not run and
 
 ## Optional AI Agent Development Workflows
 
-TokenHub provides two opt-in workflows for AI-assisted changes:
+TokenStation provides two opt-in workflows for AI-assisted changes:
 
 | Workflow | Choose it for |
 | --- | --- |

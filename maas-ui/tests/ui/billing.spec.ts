@@ -15,6 +15,8 @@ for (const scenario of statements) {
     await openBilling(page);
     const form = section(page, "费用对账单");
     await form.getByLabel("对账单类型").selectOption(scenario.side);
+    await expect(form.getByLabel("对账单币种")).toHaveValue("USD");
+    await expect(form.getByLabel("手动汇率：1 USD 兑目标币种")).toHaveCount(0);
     if (scenario.side !== "provider") await customer(form);
     await form.getByRole("button", { name: "预览对账单", exact: true }).click();
     await expect(form.getByRole("button", { name: "导出当前预览 CSV", exact: true })).toBeVisible();
@@ -29,7 +31,9 @@ for (const scenario of statements) {
     if (scenario.state === "audio") {
       await expect(form.getByRole("cell", { name: "音频秒数: 12.5", exact: true })).toBeVisible();
       await expect(form.getByRole("cell", { name: "音频秒数: 0", exact: true })).toBeVisible();
-      for (const summary of await form.locator("details summary").all()) await summary.click();
+      for (const details of await form.locator("details").all()) {
+        if (await details.getAttribute("open") === null) await details.locator("summary").click();
+      }
       await expect(form.getByText("音频秒数: 12.5 × US$0.02 = US$0.25", { exact: true })).toBeVisible();
       await expect(form.getByText("音频秒数: 0 × US$0.02 = US$0.00", { exact: true })).toBeVisible();
       await expect(form.getByText(/\/ 1M =/)).toHaveCount(0);

@@ -47,6 +47,8 @@ export const apiKeyUsageTranslations = {
     "Key RPM / TPM": "Key RPM / TPM",
     "不额外限制": "No additional key limit",
     "查看这个 Key 的用量详情": "View usage details for this API key",
+    "API Key 成本排行": "API Key Cost Ranking",
+    "暂无 API Key 成本数据": "No API key cost data",
   },
   ja: {
     "Key 用量加载失败": "API Key の利用量を読み込めませんでした",
@@ -96,5 +98,7 @@ export const apiKeyUsageTranslations = {
     "Key RPM / TPM": "Key RPM / TPM",
     "不额外限制": "Key 固有の追加制限なし",
     "查看这个 Key 的用量详情": "この API Key の利用量詳細を表示",
+    "API Key 成本排行": "API Key コストランキング",
+    "暂无 API Key 成本数据": "API Key のコストデータがありません",
   },
 };

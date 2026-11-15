@@ -48,6 +48,7 @@ export function usageReport(range: UsageRange, empty = false): UsageReport {
 
 type UsageHandler = (range: UsageRange) => MockResponse | Promise<MockResponse>;
 export function installUsageFixtures(api: MockAPI, handler: UsageHandler = range => ({ json: usageReport(range) })) {
+  api.respond("GET", "/api/admin/team-wallet/exchange-rate", { configured: false, usd_to_cny: "", paid_calls_enabled: false });
   api.define("GET", "/api/admin/api-keys", () => ({ json: { data: [] } }), query => {
     expect(Object.fromEntries(query)).toEqual({ page: "1", page_size: "1000", limit: "1000" });
   });

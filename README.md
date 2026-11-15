@@ -1,11 +1,11 @@
 <p align="center">
-  <img src="frontend/public/brand/tokenhub-logo.png" alt="TokenHub" width="96" />
+  <img src="frontend/public/brand/tokenstation-logo.png" alt="TokenStation" width="96" />
 </p>
 
-<h1 align="center">TokenHub</h1>
+<h1 align="center">TokenStation</h1>
 
 <p align="center">
-  TokenHub is enterprise Token Governance infrastructure for AI: model routing, access control, token cost optimization, provider reconciliation, and governed access to every upstream model provider.
+  TokenStation is enterprise Token Governance infrastructure for AI: model routing, access control, token cost optimization, provider reconciliation, and governed access to every upstream model provider.
 </p>
 
 <p align="center">
@@ -26,7 +26,7 @@
 <table>
   <tr>
     <td width="180"><a href="https://aicoding.inc/i/tokhub"><img src="docs/assets/sponsors/aicoding.svg" alt="AICoding" width="150" /></a></td>
-    <td>Thanks to AICoding for sponsoring this project! <a href="https://aicoding.inc/i/tokhub">AICoding</a> — Global AI Model API Relay Service at Unbeatable Prices! Claude Code at 19% of original price, GPT at just 1%! Trusted by hundreds of enterprises for cost-effective AI services. Supports Claude Code, GPT, Gemini and major domestic models, with enterprise-grade high concurrency, fast invoicing, and 24/7 dedicated technical support. TokenHub users who register via <a href="https://aicoding.inc/i/tokhub">this link</a> get 10% off their first top-up!</td>
+    <td>Thanks to AICoding for sponsoring this project! <a href="https://aicoding.inc/i/tokhub">AICoding</a> — Global AI Model API Relay Service at Unbeatable Prices! Claude Code at 19% of original price, GPT at just 1%! Trusted by hundreds of enterprises for cost-effective AI services. Supports Claude Code, GPT, Gemini and major domestic models, with enterprise-grade high concurrency, fast invoicing, and 24/7 dedicated technical support. TokenStation users who register via <a href="https://aicoding.inc/i/tokhub">this link</a> get 10% off their first top-up!</td>
   </tr>
   <tr>
     <td width="180"><a href="https://subsub.cn/i/tokhub"><img src="docs/assets/sponsors/subsub.svg" alt="SubSub" width="150" /></a></td>
@@ -36,18 +36,18 @@
 
 ## Enterprise Token Governance
 
-TokenHub gives enterprises a governance layer for the AI model lifecycle, from provider access and project keys to routing policy, usage attribution, budget control, and bill reconciliation.
+TokenStation gives enterprises a governance layer for the AI model lifecycle, from provider access and project keys to routing policy, usage attribution, budget control, and bill reconciliation.
 
-The core problem is what happens after every team, application, and workflow starts consuming more models and more tokens. TokenHub puts governance controls in front of every model call:
+The core problem is what happens after every team, application, and workflow starts consuming more models and more tokens. TokenStation puts governance controls in front of every model call:
 
 - Model routing: choose the right model by scenario, cost, performance, health, and fallback policy.
 - Permission management: allocate and control token access across people, teams, projects, and applications.
 - Token savings: reduce AI spend through caching, model selection, quotas, and call strategy.
 - Provider reconciliation: compare internal usage with provider bills so finance, platform, and business teams can explain actual AI cost.
 
-## Why TokenHub
+## Why TokenStation
 
-Many open source AI gateways focus on provider fan-out: one endpoint that can call many upstreams. That helps developers connect models, but it does not solve the enterprise operating problem by itself. TokenHub is built around the missing governance layer:
+Many open source AI gateways focus on provider fan-out: one endpoint that can call many upstreams. That helps developers connect models, but it does not solve the enterprise operating problem by itself. TokenStation is built around the missing governance layer:
 
 - Token distribution is managed by project and team instead of by copying raw provider keys into every application.
 - Model access, routing, and fallback are policy decisions that administrators can change without rewriting client code.
@@ -57,12 +57,12 @@ Many open source AI gateways focus on provider fan-out: one endpoint that can ca
 ## Screenshots
 
 <p align="center">
-  <img src="docs/assets/screenshots/tokenhub-tour.webp" alt="TokenHub product tour: login, overview, API documentation, provider channels, model catalog, routing policies, usage analytics, and system settings" width="100%">
+  <img src="docs/assets/screenshots/tokenstation-tour.webp" alt="TokenStation product tour: login, overview, API documentation, provider channels, model catalog, routing policies, usage analytics, and system settings" width="100%">
 </p>
 
 ## Designed Around Three Roles
 
-TokenHub separates everyday model usage, team governance, and platform administration so enterprise users see the workflows that match their responsibility.
+TokenStation separates everyday model usage, team governance, and platform administration so enterprise users see the workflows that match their responsibility.
 
 | Role | Workspace Focus | Guide |
 | --- | --- | --- |
@@ -87,17 +87,17 @@ TokenHub separates everyday model usage, team governance, and platform administr
 
 ## Provider Ecosystem
 
-Provider support is TokenHub's integration boundary. Hosted APIs, subscription channels, local models, and custom upstreams connect through the Provider abstraction so the same enterprise policies can govern every model path.
+Provider support is TokenStation's integration boundary. Hosted APIs, subscription channels, local models, and custom upstreams connect through the Provider abstraction so the same enterprise policies can govern every model path.
 
-Once routing, permissions, token savings, attribution, audit, and reconciliation controls are in place, TokenHub can connect those governed workflows to OpenAI, Azure OpenAI, Anthropic, Gemini, DeepSeek, Qwen, Codex subscriptions, local models, and custom OpenAI-compatible upstreams.
+Once routing, permissions, token savings, attribution, audit, and reconciliation controls are in place, TokenStation can connect those governed workflows to OpenAI, Azure OpenAI, Anthropic, Gemini, DeepSeek, Qwen, Codex subscriptions, local models, and custom OpenAI-compatible upstreams.
 
-TokenHub includes native Provider adapters for OpenAI, Azure OpenAI, Anthropic, Gemini, DeepSeek, Qwen, Codex subscriptions, and local models, plus a catalog of 150+ provider templates. Popular integrations include:
+TokenStation includes native Provider adapters for OpenAI, Azure OpenAI, Anthropic, Gemini, DeepSeek, Qwen, Codex subscriptions, and local models, plus a catalog of 150+ provider templates. Popular integrations include:
 
 <p align="center">
-  <img src="docs/assets/provider-showcase.svg" alt="Popular TokenHub provider integrations across commercial, subscription, local, and custom upstreams." width="100%">
+  <img src="docs/assets/provider-showcase.svg" alt="Popular TokenStation provider integrations across commercial, subscription, local, and custom upstreams." width="100%">
 </p>
 
-Provider templates use the matching native adapter when available; otherwise they connect through an OpenAI-compatible endpoint. Models and capabilities vary by upstream service and account, while enterprise policy stays centralized in TokenHub.
+Provider templates use the matching native adapter when available; otherwise they connect through an OpenAI-compatible endpoint. Models and capabilities vary by upstream service and account, while enterprise policy stays centralized in TokenStation.
 
 ## Quick Start
 
@@ -105,8 +105,8 @@ Native Release on a Linux systemd host:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/astaxie/TokenHub/main/deploy/native/install.sh \
-  -o /tmp/tokenhub-install.sh
-sudo bash /tmp/tokenhub-install.sh install
+  -o /tmp/tokenstation-install.sh
+sudo bash /tmp/tokenstation-install.sh install
 ```
 
 Docker Compose from a repository checkout:
@@ -142,7 +142,7 @@ The native installer verifies Release checksums, installs a systemd service, and
 
 ## Contributors
 
-TokenHub grows through product feedback, gateway integrations, documentation, tests, and the steady care of people who run it in real enterprise environments.
+TokenStation grows through product feedback, gateway integrations, documentation, tests, and the steady care of people who run it in real enterprise environments.
 
 <!-- readme: contributors -start -->
 
@@ -345,4 +345,4 @@ TokenHub grows through product feedback, gateway integrations, documentation, te
 
 ## License
 
-TokenHub is licensed under the [Apache License 2.0](LICENSE).
+TokenStation is licensed under the [Apache License 2.0](LICENSE).

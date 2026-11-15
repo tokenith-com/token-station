@@ -88,6 +88,13 @@ func TestCompatibilityManifestTargetsLatestRegisteredMigration(t *testing.T) {
 	}
 }
 
+func TestCompatibilityManifestRequiresWalletCreditMetadata(t *testing.T) {
+	manifest := CurrentCompatibilityManifest()
+	if manifest.MinCompatible < 20 {
+		t.Fatalf("minimum compatible schema = %d, want at least 20 for wallet credit metadata", manifest.MinCompatible)
+	}
+}
+
 func TestCompatibilityManifestRequiresSubscriptionOAuthTables(t *testing.T) {
 	manifest := CurrentCompatibilityManifest()
 	if manifest.MinCompatible < 10 {

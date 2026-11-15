@@ -66,7 +66,7 @@ case "$*" in
   *" build")
     exit "${FAKE_BUILD_STATUS:-0}"
     ;;
-  *" ps -a -q tokenhub-backend")
+  *" ps -a -q tokenstation-backend")
     if [ "$up_has_run" = true ]; then
       printf '%s\n' "${FAKE_BACKEND_ID_AFTER:-}"
     else
@@ -74,7 +74,7 @@ case "$*" in
     fi
     ;;
   *" up -d --remove-orphans --no-build --pull never --wait --wait-timeout 180")
-    printf 'Container tokenhub-backend Error\n' >&2
+    printf 'Container tokenstation-backend Error\n' >&2
     exit "${FAKE_UP_STATUS:-0}"
     ;;
   "inspect --format "*)
@@ -87,11 +87,11 @@ case "$*" in
       printf '%s\n' "${FAKE_BACKEND_STARTED_AT:-2026-07-22T00:00:00Z}"
     fi
     ;;
-  *" logs --no-color --tail=100 --since "*" tokenhub-backend")
+  *" logs --no-color --tail=100 --since "*" tokenstation-backend")
     printf '%s\n' "${FAKE_BACKEND_LOG:-backend log unavailable}"
     ;;
   *" ps")
-    printf 'tokenhub-backend running\n'
+    printf 'tokenstation-backend running\n'
     ;;
   *)
     printf 'unexpected fake Docker invocation: %s\n' "$*" >&2
@@ -341,7 +341,7 @@ assert_contains "$output" "model catalog file not found"
 FAKE_COMPOSE_ENVIRONMENT="$strong_environment"
 FAKE_PULL_STATUS=23
 output="$(run_install 2>&1)"
-assert_contains "$output" "failed to pull published TokenHub images"
+assert_contains "$output" "failed to pull published TokenStation images"
 assert_contains "$output" "falling back to a local source build"
 assert_contains "$(<"$CALL_LOG")" " build"
 assert_contains "$(<"$CALL_LOG")" "up -d --remove-orphans --no-build --pull never --wait --wait-timeout 180"
@@ -376,7 +376,7 @@ if [ "$status" -ne 24 ]; then
   printf 'expected build failure to exit 24, got %d\n' "$status" >&2
   exit 1
 fi
-assert_contains "$output" "failed to build TokenHub images"
+assert_contains "$output" "failed to build TokenStation images"
 assert_not_contains "$(<"$CALL_LOG")" " pull"
 assert_not_contains "$(<"$CALL_LOG")" "up -d --remove-orphans --no-build --pull never --wait --wait-timeout 180"
 FAKE_BUILD_STATUS=0
@@ -393,8 +393,8 @@ if [ "$status" -ne 25 ]; then
   printf 'expected pull fallback build failure to exit 25, got %d\n' "$status" >&2
   exit 1
 fi
-assert_contains "$output" "failed to pull published TokenHub images"
-assert_contains "$output" "also failed to build TokenHub images locally"
+assert_contains "$output" "failed to pull published TokenStation images"
+assert_contains "$output" "also failed to build TokenStation images locally"
 assert_not_contains "$(<"$CALL_LOG")" "up -d --remove-orphans --no-build --pull never --wait --wait-timeout 180"
 FAKE_PULL_STATUS=0
 FAKE_BUILD_STATUS=0
@@ -416,10 +416,10 @@ if [ "$status" -ne 17 ]; then
   printf 'expected Compose failure status 17, got %d\n' "$status" >&2
   exit 1
 fi
-assert_contains "$output" "tokenhub-backend logs from this startup attempt"
+assert_contains "$output" "tokenstation-backend logs from this startup attempt"
 assert_contains "$output" "$FAKE_BACKEND_LOG"
 assert_contains "$(<"$CALL_LOG")" "logs --no-color --tail=100 --since"
-assert_contains "$(<"$CALL_LOG")" "tokenhub-backend"
+assert_contains "$(<"$CALL_LOG")" "tokenstation-backend"
 
 : >"$CALL_LOG"
 FAKE_COMPOSE_ENVIRONMENT="$strong_environment"
@@ -438,7 +438,7 @@ if [ "$status" -ne 124 ]; then
   printf 'expected readiness timeout status 124, got %d\n' "$status" >&2
   exit 1
 fi
-assert_contains "$output" "tokenhub-backend logs from this startup attempt"
+assert_contains "$output" "tokenstation-backend logs from this startup attempt"
 assert_contains "$output" "$FAKE_BACKEND_LOG"
 assert_contains "$(<"$CALL_LOG")" "logs --no-color --tail=100 --since"
 
@@ -472,7 +472,7 @@ FAKE_BACKEND_STATE="running"
 FAKE_BACKEND_HEALTH="healthy"
 FAKE_BACKEND_STARTED_AT="2026-07-21T00:00:00Z"
 output="$(run_install 2>&1)"
-assert_contains "$output" "TokenHub started successfully"
+assert_contains "$output" "TokenStation started successfully"
 assert_contains "$(<"$CALL_LOG")" " pull"
 assert_not_contains "$(<"$CALL_LOG")" " build"
 assert_contains "$(<"$CALL_LOG")" "up -d --remove-orphans --no-build --pull never --wait --wait-timeout 180"
@@ -481,7 +481,7 @@ assert_contains "$(<"$CALL_LOG")" "ps"
 : >"$CALL_LOG"
 FAKE_COMPOSE_ENVIRONMENT="$strong_environment"
 output="$(run_install --build 2>&1)"
-assert_contains "$output" "building TokenHub images from the local checkout"
+assert_contains "$output" "building TokenStation images from the local checkout"
 assert_not_contains "$(<"$CALL_LOG")" " pull"
 assert_contains "$(<"$CALL_LOG")" " build"
 assert_contains "$(<"$CALL_LOG")" "up -d --remove-orphans --no-build --pull never --wait --wait-timeout 180"

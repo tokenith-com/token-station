@@ -26,7 +26,7 @@ func TestPrepaidRechargeChatPlaygroundAndRefund(t *testing.T) {
 		t.Fatal(err)
 	}
 	project := store.CreateProject(Project{Name: "Personal", OwnerUserID: user.ID, Status: StatusActive})
-	_, secret, err := store.CreateAPIKey(project.ID, APIKey{Name: "Personal key", OwnerUserID: user.ID, Status: StatusActive}, "")
+	key, secret, err := store.CreateAPIKey(project.ID, APIKey{Name: "Personal key", OwnerUserID: user.ID, Status: StatusActive}, "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -57,7 +57,7 @@ func TestPrepaidRechargeChatPlaygroundAndRefund(t *testing.T) {
 		return result
 	}
 	chat := `{"model":"wallet-chat","max_tokens":50,"messages":[{"role":"user","content":"Hello"}]}`
-	playground := strings.TrimSuffix(chat, "}") + `,"project_id":"` + project.ID + `"}`
+	playground := strings.TrimSuffix(chat, "}") + `,"api_key_id":"` + key.ID + `"}`
 	request(http.MethodPost, "/v1/chat/completions", secret, chat, 402)
 	request(http.MethodPost, "/api/admin/playground/chat/stream", session.Token, playground, 402)
 	created := request(http.MethodPost, "/api/admin/recharge/orders", session.Token, `{"plan_id":"small","channel":"wechat"}`, 201)
@@ -112,6 +112,48 @@ func TestPrepaidRechargeChatPlaygroundAndRefund(t *testing.T) {
 		t.Fatalf("full refund should respect sub-fen spending: %v", err)
 	}
 	request(http.MethodPost, "/v1/embeddings", secret, `{"model":"wallet-chat","input":"hello"}`, 400)
+}
+
+func TestPrepaidTeamWalletUsesSinglePayer(t *testing.T) {
+	store := newTestMemoryStore(t)
+	user, err := store.CreateAdminUser(AdminUser{Username: "team-wallet-buyer", Email: "team-wallet@example.test", Role: "consumer", Status: StatusActive}, "test-password-123")
+	if err != nil {
+		t.Fatal(err)
+	}
+	store.CreateResource("teams", AdminResource{ID: "wallet-team", Name: "Wallet team", Status: StatusActive})
+	project := store.CreateProject(Project{Name: "Team wallet project", TeamID: "wallet-team", Status: StatusActive})
+	key, _, err := store.CreateAPIKey(project.ID, APIKey{Name: "Personal key", OwnerUserID: user.ID, Status: StatusActive}, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	store.AddModel(Model{Name: "team-wallet-chat", Modality: "chat", Status: StatusActive, ContextWindow: 1000, InputPriceUSDPer1M: 1, OutputPriceUSDPer1M: 1})
+	if err := store.db.Create(&teamWallet{TeamID: project.TeamID, BalanceCents: 100, UpdatedAt: time.Now().UTC()}).Error; err != nil {
+		t.Fatal(err)
+	}
+	store.CreateResource("settings", AdminResource{ID: teamWalletRateID, Status: StatusActive, Fields: map[string]any{"usd_to_cny": "7.2"}})
+	store.prepaidUsage = true
+	var call CallContext
+	if err := store.db.Transaction(func(tx *gorm.DB) error {
+		admission, err := store.admitCallTransaction(t.Context(), tx, key, "team-wallet-chat", 100, "single-payer")
+		call = admission.call
+		return err
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if !call.TeamWalletEnabled || call.walletPayer != "" {
+		t.Fatalf("expected only team wallet payer, got %+v", call)
+	}
+	for range 2 {
+		store.FinishCall(call, RouteSelection{}, Usage{CostUSD: 0.0001, TotalTokens: 100}, http.StatusOK, "", "", "")
+	}
+	wallet, err := store.TeamWallet(project.TeamID)
+	if err != nil || wallet.BalanceCents != 99 {
+		t.Fatalf("expected one team wallet charge: %+v, %v", wallet, err)
+	}
+	var count int64
+	if err := store.db.Model(&walletUsage{}).Where("request_id = ?", call.RequestID).Count(&count).Error; err != nil || count != 0 {
+		t.Fatalf("unexpected personal wallet charge: count=%d, err=%v", count, err)
+	}
 }
 
 func TestPrepaidReservationsProtectRefundAndRecover(t *testing.T) {

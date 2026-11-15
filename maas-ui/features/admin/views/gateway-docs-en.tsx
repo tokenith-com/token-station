@@ -9,9 +9,9 @@ export function gatewayEnglishDocs(stats: GatewayDocStats): GatewayDocBundle {
       searchPlaceholder: "Search guides, APIs, or error codes",
       noResults: "No matching documents",
     },
-    eyebrow: "TokenHub Docs",
+    eyebrow: "TokenStation Docs",
     title: "Role-Based Gateway Guides",
-    description: "TokenHub is documented around three enterprise roles: users call approved models, team leaders manage projects and members, and administrators govern providers, routing, identity, audit, and cost.",
+    description: "TokenStation is documented around three enterprise roles: users call approved models, team leaders manage projects and members, and administrators govern providers, routing, identity, audit, and cost.",
     languageLabel: "Documentation language",
     quickInfoLabel: "API basics",
     quickCards: {
@@ -31,7 +31,7 @@ export function gatewayEnglishDocs(stats: GatewayDocStats): GatewayDocBundle {
             group: "Introduction",
             badge: "DOC",
             title: "Platform Overview",
-            description: "Understand how TokenHub connects models, projects, keys, routing, audit, and cost attribution into one governed AI access path.",
+            description: "Understand how TokenStation connects models, projects, keys, routing, audit, and cost attribution into one governed AI access path.",
             details: [
               { label: "Primary entry points", value: "Model Playground / Key Management / Usage Analytics" },
               { label: "Application API", value: "/v1/*" },
@@ -143,7 +143,7 @@ export function gatewayEnglishDocs(stats: GatewayDocStats): GatewayDocBundle {
             ],
             notesTitle: "Production setup order",
             notes: [
-              "Configure upstream Base URLs, credentials, resource groups, and health checks in Provider Channels.",
+              "Configure upstream Base URLs, credentials, resource groups, and health checks in Providers.",
               "Maintain standard public model names, capability tags, context windows, and price units in Model Catalog.",
               "Create at least one enabled routing rule for every model that should be visible and callable.",
               "Configure identity providers, role permissions, default policies, audit retention, and enterprise integrations in System Settings.",
@@ -210,7 +210,7 @@ export function gatewayEnglishDocs(stats: GatewayDocStats): GatewayDocBundle {
               title: "Common errors",
               columns: ["Status", "Code", "Fix"],
               rows: [
-                ["401", "invalid_api_key", "Check that Authorization uses a TokenHub API key."],
+                ["401", "invalid_api_key", "Check that Authorization uses a TokenStation API key."],
                 ["403", "project_forbidden / model_not_allowed", "Check project membership and whether the model is open to the project."],
                 ["404/503", "provider_unavailable", "Enable a route for the model or check upstream provider health."],
                 ["429", "quota_exceeded", "Check project quota, concurrency limits, and provider resource limits."],

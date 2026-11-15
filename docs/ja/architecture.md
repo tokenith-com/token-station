@@ -1,8 +1,8 @@
-# TokenHub 全体アーキテクチャ
+# TokenStation 全体アーキテクチャ
 
 Language: [English](../architecture.md) | [简体中文](../zh-CN/architecture.md) | 日本語
 
-このドキュメントは、開発、運用、セキュリティ担当者向けに、リポジトリで実装されている TokenHub のデプロイ形態、リクエスト経路、データ境界を説明します。TokenHub は SQLite による単一インスタンスを既定とし、PostgreSQL による単一インスタンスおよびリモート PostgreSQL を使うマルチインスタンスもサポートします。
+このドキュメントは、開発、運用、セキュリティ担当者向けに、リポジトリで実装されている TokenStation のデプロイ形態、リクエスト経路、データ境界を説明します。TokenStation は SQLite による単一インスタンスを既定とし、PostgreSQL による単一インスタンスおよびリモート PostgreSQL を使うマルチインスタンスもサポートします。
 
 ## 概要
 
@@ -16,7 +16,7 @@ flowchart TB
     app["業務アプリケーション / SDK"]
     ingress["直接ポートまたは HTTPS リバースプロキシ"]
     frontend["Next.js 管理コンソール"]
-    backend["TokenHub Go バックエンド"]
+    backend["TokenStation Go バックエンド"]
 
     subgraph backendProcess["バックエンドプロセス"]
         adminApi["管理 API\n/api/admin/*"]
@@ -129,7 +129,7 @@ flowchart LR
 | バックグラウンドジョブと管理操作 | `backend/internal/plugin/background_scheduler.go`、`background_job.go`、`action_broker.go` | プロセス内ジョブの実行と管理操作を仲介。永続化されたバックグラウンド Responses ジョブとは別の仕組み |
 | 画面 | `backend/internal/plugin/admin_ui.go`、`sim.go` | 宣言的なパネル、設定、テーマ、レイアウトをコンソールが描画。任意のプラグイン React や JavaScript は実行しない |
 
-パッケージは `plugin.yaml` で manifest schema `2` と Plugin API `v2` を宣言します。schema `1` と API `v1` は互換アダプターを通じて引き続きサポートします。権限は将来の呼び出しに投影できる Core データと、Core が受け入れられる構造化変更を制限します。これは OS サンドボックスではありません。コマンドポリシーではネットワークとリソースの強制隔離は現在 `unsupported` です。そのため、ホストがプロセス、ネットワーク、リソースの隔離を強制できるようになるまで、TokenHub はフェイルクローズし、ランタイムから読み込まれた外部 Action、バックグラウンドジョブ、Provider コマンド、ゲートウェイコマンドをすべて起動前に拒否します。実行可能バックエンドエントリを持つ有効なパッケージは `failed_startup` として永続化され、インストール済みで検査可能なまま、ランタイム機能を一切公開しません。宣言的な画面だけを持つパッケージとプロセス内の組み込みプラグインには影響しません。汎用コマンドの制限は将来の実行契約として維持され、既定値は 30 秒、入力 4 MiB、出力 1 MiB です。各能力面には、ゲートウェイ Hook の既定 5 秒など、独自の制限もあります。外部コマンドが無効な間は、外部 Provider のストリーミングも利用できません。現在のプロトコル形態はイベント配列を記述するもので、子プロセス出力のライブ中継ではありません。
+パッケージは `plugin.yaml` で manifest schema `2` と Plugin API `v2` を宣言します。schema `1` と API `v1` は互換アダプターを通じて引き続きサポートします。権限は将来の呼び出しに投影できる Core データと、Core が受け入れられる構造化変更を制限します。これは OS サンドボックスではありません。コマンドポリシーではネットワークとリソースの強制隔離は現在 `unsupported` です。そのため、ホストがプロセス、ネットワーク、リソースの隔離を強制できるようになるまで、TokenStation はフェイルクローズし、ランタイムから読み込まれた外部 Action、バックグラウンドジョブ、Provider コマンド、ゲートウェイコマンドをすべて起動前に拒否します。実行可能バックエンドエントリを持つ有効なパッケージは `failed_startup` として永続化され、インストール済みで検査可能なまま、ランタイム機能を一切公開しません。宣言的な画面だけを持つパッケージとプロセス内の組み込みプラグインには影響しません。汎用コマンドの制限は将来の実行契約として維持され、既定値は 30 秒、入力 4 MiB、出力 1 MiB です。各能力面には、ゲートウェイ Hook の既定 5 秒など、独自の制限もあります。外部コマンドが無効な間は、外部 Provider のストリーミングも利用できません。現在のプロトコル形態はイベント配列を記述するもので、子プロセス出力のライブ中継ではありません。
 
 3 種類の Compose はいずれも `tokenhub-plugins` を `/app/plugins` にマウントし、`TOKENHUB_PLUGIN_DIR` と `TOKENHUB_PLUGIN_MARKETPLACE_URL` を提供します。ファイルとライフサイクル状態はファイルシステムに保存され、レジストリと実行器はプロセスごとに保持されます。プラグインのライフサイクル操作はリクエストを処理したサーバープロセスのランタイムをホットリロードするため、パッケージ検証、宣言的貢献の変更、ライフサイクル失敗の表示にサービス再起動は不要です。リロードは外部コマンドパッケージを評価しますが、実行可能にはしません。PostgreSQL はプラグインバイナリの配布や全レプリカのレジストリ更新を行わないため、複数インスタンス構成ではパッケージバージョンを揃え、各レプリカをリロードする必要があります。
 
@@ -149,7 +149,7 @@ flowchart LR
 | Provider アダプター | `builtin_provider_plugins.go`、`provider_plugin_adapter.go`、`provider_account_codex.go` | プロトコル変換、Codex Subscription の OAuth、更新、セッションアフィニティ |
 | server に残る Store | `backend/internal/server/store.go` | データベース初期化と残りのドメインのデータアクセス、クォータ、認証情報暗号化、SQLite バックアップ、PostgreSQL リース、クラスタロック。照合操作はモジュールのアダプターが担当する |
 
-以下は現在動作する内蔵 Provider 登録です。実際の能力は有効な内蔵プラグインとアダプターの記述、Provider ポリシー、モデルとリソースの対応状況で決まります。外部 manifest はパッケージ検査と Devkit 契約テスト用に追加の Provider 型を記述できますが、現行 TokenHub リリースはコマンド型アダプターを有効化しません。
+以下は現在動作する内蔵 Provider 登録です。実際の能力は有効な内蔵プラグインとアダプターの記述、Provider ポリシー、モデルとリソースの対応状況で決まります。外部 manifest はパッケージ検査と Devkit 契約テスト用に追加の Provider 型を記述できますが、現行 TokenStation リリースはコマンド型アダプターを有効化しません。
 
 | Provider 型 | アダプターと能力 |
 | --- | --- |
@@ -171,7 +171,7 @@ flowchart LR
 ```mermaid
 sequenceDiagram
     participant C as 業務アプリケーション
-    participant G as TokenHub /v1
+    participant G as TokenStation /v1
     participant S as Store とデータベース
     participant H as ゲートウェイフック
     participant A as Provider Adapter
@@ -210,7 +210,7 @@ Project と API Key のモデルアクセスはルート選択前の明示的な
 ## セキュリティ、ヘルス、データ境界
 
 - Project API Key はハッシュ、状態、Project 状態、有効期限、モデル範囲、IP 許可リスト、クォータ、並行数で検証されます。
-- 管理 API はログインセッション Token または任意の `TOKENHUB_ADMIN_TOKEN` を使用します。`TOKENHUB_BOOTSTRAP_ADMIN_PASSWORD` が設定されている場合は初期 `admin` アカウントに使用し、未設定の場合は TokenHub がパスワードを生成します。取得可能な暗号化コピーは、初回ログイン成功後またはリセット後に削除されます。
+- 管理 API はログインセッション Token または任意の `TOKENHUB_ADMIN_TOKEN` を使用します。`TOKENHUB_BOOTSTRAP_ADMIN_PASSWORD` が設定されている場合は初期 `admin` アカウントに使用し、未設定の場合は TokenStation がパスワードを生成します。取得可能な暗号化コピーは、初回ログイン成功後またはリセット後に削除されます。
 - 開発以外の環境では、任意のブートストラップ認証情報にある既知のプレースホルダーを無効化し、それ以外の空でない弱い値を拒否します。`TOKENHUB_SECRET_KEY` は引き続き必須ですが、新規のファイル型 SQLite データベースに限り、データベースの隣に永続キーファイルを生成できます。既存データベースに代替キーを自動生成することはありません。
 - `TOKENHUB_TRUSTED_PROXY_CIDRS` は `X-Forwarded-For`、`X-Forwarded-Host`、`X-Forwarded-Proto` を提供できるプロキシを限定し、信頼済みプロキシはこれらのヘッダーを上書きする必要があります。`TOKENHUB_CORS_ALLOWED_ORIGINS` は資格情報を伴うブラウザ Origin を制御します。
 - `/livez` はプロセス生存確認用です。`/readyz` と互換用の `/healthz` はデータベース可用性とデータベース進化状態を確認し、データベースが利用できない場合、マイグレーションが不完全な場合、台帳検証が失敗した場合、ブロッキングデータバックフィルが未完了の場合に `503` を返します。保留中のオンラインバックフィルは準備状態を維持します。起動構成が安全でない場合も `/livez` だけが正常となり、構成を修正して再起動するまで readiness とアプリケーションルートは `503` を返します。

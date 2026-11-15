@@ -57,11 +57,12 @@ test("OIDC users can sign in again after signing out", async ({ page, request })
       await page.getByRole("link", { name: "使用 E2E Repeat Login 登录" }).click();
       expect((await exchange).ok()).toBe(true);
       await expect(page.locator(".app-shell")).toBeVisible();
-      await expect(page).toHaveURL(/\/overview\/$/);
+      await expect(page).toHaveURL(/\/overview\/?$/);
       const session = await page.evaluate(() => JSON.parse(window.sessionStorage.getItem("tokenhub.admin.session.b") ?? "null"));
       expect(session?.user.email).toBe("e2e.oidc.user@example.test");
       expect(session?.user.role).toBe("user");
-      await page.getByTitle("退出登录").click();
+      await page.getByRole("button", { name: "个人中心", exact: true }).click();
+      await page.getByRole("menuitem", { name: "退出登录", exact: true }).click();
       await expect(page.getByRole("button", { name: "登录", exact: true })).toBeVisible();
       expect(await page.evaluate(() => window.sessionStorage.getItem("tokenhub.admin.session.b"))).toBeNull();
     }
@@ -77,7 +78,7 @@ test("OIDC provider errors remain visible and users can retry sign-in", async ({
     await openLogin(page);
     await page.getByRole("link", { name: "使用 E2E Retry Login 登录" }).click();
     await expect(page.locator(".login-error")).toHaveText("OAuth 登录失败（provider_error），请重试或联系管理员。");
-    await expect(page).toHaveURL(/\/overview\/$/);
+    await expect(page).toHaveURL(/\/overview\/?$/);
     expect(await page.evaluate(() => window.sessionStorage.getItem("tokenhub.admin.session.b"))).toBeNull();
 
     const updated = await request.patch(`${backendURL}/api/admin/resources/identity-providers/${provider.id}`, {
@@ -87,7 +88,7 @@ test("OIDC provider errors remain visible and users can retry sign-in", async ({
     expect(updated.ok()).toBe(true);
     await page.getByRole("link", { name: "使用 E2E Retry Login 登录" }).click();
     await expect(page.locator(".app-shell")).toBeVisible();
-    await expect(page).toHaveURL(/\/overview\/$/);
+    await expect(page).toHaveURL(/\/overview\/?$/);
   } finally {
     if (!page.isClosed()) await removeIdentityProvider(request, provider, headers);
   }
@@ -104,7 +105,7 @@ for (const scenario of [
     });
     await page.goto(`/overview/${scenario.suffix}`);
     await expect(page.locator(".login-error")).toHaveText("OAuth 登录失败");
-    await expect(page).toHaveURL(/\/overview\/$/);
+    await expect(page).toHaveURL(/\/overview\/?$/);
     expect(await page.evaluate(() => window.sessionStorage.getItem("tokenhub.admin.session.b"))).toBeNull();
     expect(authenticationRequests).toEqual([]);
   });

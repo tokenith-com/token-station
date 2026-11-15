@@ -1,8 +1,8 @@
-# 为 TokenHub 贡献代码
+# 为 TokenStation 贡献代码
 
 [English](CONTRIBUTING.md) | 简体中文 | [日本語](CONTRIBUTING.ja.md)
 
-TokenHub 包含 Go 后端、Next.js 管理后台、Node.js SDK 冒烟测试、YAML 模型目录和 Docker Compose 部署文件。本指南说明本地开发、修改验证、可选的 AI Agent 工作流和 Pull Request 准备要求。
+TokenStation 包含 Go 后端、Next.js 管理后台、Node.js SDK 冒烟测试、YAML 模型目录和 Docker Compose 部署文件。本指南说明本地开发、修改验证、可选的 AI Agent 工作流和 Pull Request 准备要求。
 
 ## 仓库结构
 
@@ -28,7 +28,7 @@ TokenHub 包含 Go 后端、Next.js 管理后台、Node.js SDK 冒烟测试、YA
 需要单独运行组件时，在 `backend/` 目录启动后端：
 
 ```bash
-TOKENHUB_CORS_ALLOWED_ORIGINS=http://localhost:3000 go run ./cmd/tokenhub
+TOKENHUB_CORS_ALLOWED_ORIGINS=http://localhost:3000 go run ./cmd/tokenstation
 ```
 
 在 `frontend/` 目录启动管理后台：
@@ -81,7 +81,7 @@ npx playwright install chromium
 npm run test:e2e
 ```
 
-浏览器冒烟测试会启动相互隔离的 Next.js 前端、Go 后端、模拟 Provider 上游和临时 SQLite 数据库，不需要真实凭据，也不要求预先启动 TokenHub。
+浏览器冒烟测试会启动相互隔离的 Next.js 前端、Go 后端、模拟 Provider 上游和临时 SQLite 数据库，不需要真实凭据，也不要求预先启动 TokenStation。
 
 修改 Docker 或部署配置时，如果本地可以使用 Docker，需要渲染 Compose 配置：
 
@@ -94,7 +94,7 @@ docker compose --env-file deploy/.env.example \
 
 ## 可选的 AI Agent 开发工作流
 
-TokenHub 为 AI Agent 修改仓库提供两套可选工作流：
+TokenStation 为 AI Agent 修改仓库提供两套可选工作流：
 
 | 工作流 | 适用范围 |
 | --- | --- |

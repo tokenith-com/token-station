@@ -34,6 +34,43 @@ describe("BillingRateCards", () => {
     expect(container.querySelectorAll(".rate-card-weekdays input:checked + span")).toHaveLength(5);
   });
 
+  it("keeps tenant shadow prices in USD and provider prices in their original currency", async () => {
+    setActiveLanguage("en");
+    render(<BillingRateCards api={{ baseURL: "http://localhost:8080", adminToken: "admin-token" }} data={emptyData()} />);
+    const currency = screen.getByLabelText("Currency");
+    expect(currency).toHaveValue("USD");
+    expect(currency).toHaveAttribute("readonly");
+    await userEvent.selectOptions(screen.getByLabelText("Price purpose"), "provider");
+    expect(currency).toHaveValue("CNY");
+    expect(currency).not.toHaveAttribute("readonly");
+    await userEvent.clear(currency);
+    await userEvent.type(currency, "EUR");
+    expect(currency).toHaveValue("EUR");
+    await userEvent.selectOptions(screen.getByLabelText("Price purpose"), "tenant");
+    expect(currency).toHaveValue("USD");
+    expect(currency).toHaveAttribute("readonly");
+  });
+
+  it("submits original-currency-to-USD exchange rates without converting them", async () => {
+    setActiveLanguage("en");
+    const fetch = vi.fn<typeof globalThis.fetch>(async () => Response.json({ snapshot: {}, charge: { amount: "7", currency: "CNY", usd: "1" } }));
+    vi.stubGlobal("fetch", fetch);
+    const { container } = render(<BillingRateCards api={{ baseURL: "http://localhost:8080", adminToken: "admin-token" }} data={emptyData()} />);
+    await userEvent.selectOptions(screen.getByLabelText("Price purpose"), "provider");
+    await userEvent.type(screen.getByLabelText("Exchange rate: USD per 1 original currency unit"), "0.142857142857");
+    fireEvent.submit(container.querySelector("form")!);
+    expect(await screen.findByText("$1.00")).toBeInTheDocument();
+    expect(JSON.parse(fetch.mock.calls[0][1]!.body as string)).toMatchObject({ card: { currency: "CNY", kind: "provider" }, exchange_rate: "0.142857142857" });
+  });
+
+  it.each([undefined, "0.000000000000"])("distinguishes missing USD conversions from zero (%s)", async (usd) => {
+    setActiveLanguage("en");
+    vi.stubGlobal("fetch", vi.fn(async () => Response.json({ snapshot: {}, charge: { amount: "0", currency: "CNY", usd } })));
+    const { container } = render(<BillingRateCards api={{ baseURL: "http://localhost:8080", adminToken: "admin-token" }} data={emptyData()} />);
+    fireEvent.submit(container.querySelector("form")!);
+    expect(await screen.findByText(usd === undefined ? "USD conversion pending" : "$0.00")).toBeInTheDocument();
+  });
+
   it("formats exact original and USD preview amounts in Japanese", async () => {
     setActiveLanguage("ja");
     vi.stubGlobal("fetch", vi.fn(async () => Response.json({

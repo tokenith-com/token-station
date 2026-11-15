@@ -1,7 +1,6 @@
 import { ModelRoutingPolicyEditor, modelRoutePolicySignature } from "./model-routing-policy";
 import { AlertCircle, Boxes, ChevronDown, CircleHelp, Gauge, Plus, RefreshCw, Search, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import { SvgIcon } from "../../../components/svg-icon";
 import { type AppData, type Model, type ModelRoute, type ModelRoutePolicy, type ResourceAction, type ResourceConfig, type ViewKey } from "../core/types";
 import { filterModelCatalog, hasThirdPartyRoute, modelCapabilityLabel, modelCatalogCapabilityTabs, modelCatalogCategories, modelCatalogFilterLabel, modelCategory, modelCategoryInitial, modelCategoryLabel, modelCategoryTabs, notificationChannelTabs, priceMetric } from "../domain/catalog";
 import { filterRouteModels, isCodexSubscriptionImageModel, modelIsInDirectory, modelRoutesFor, reorderRoutes, routeModelCategories } from "../domain/entities";
@@ -398,7 +397,7 @@ export function ModelCatalogPriceTable({
                     <span>{row.contextDetail}</span>
                   </div>
                 </td>
-                <td><strong className="model-monthly-cost">{row.monthlyCost > 0 ? `$${modelCatalogMoney(row.monthlyCost)}` : "-"}</strong></td>
+                <td><strong className="model-monthly-cost">{row.monthlyCost > 0 ? `¥${modelCatalogMoney(row.monthlyCost)}` : "-"}</strong></td>
                 <td>
                   <div className="model-price-index">
                     <span>
@@ -442,7 +441,7 @@ export function ModelCatalogPriceTable({
 }
 
 export function RouteStrategyView(props: Parameters<typeof NativeRouteStrategyView>[0]) {
-  return <><div className="provider-channel-title"><SvgIcon name="overview-icon" size={16} /><h1>{tx(props.config.title)}</h1></div><NativeRouteStrategyView {...props} /></>;
+  return <NativeRouteStrategyView {...props} />;
 }
 
 function NativeRouteStrategyView({
@@ -504,11 +503,11 @@ function NativeRouteStrategyView({
         ? "先创建一个对外模型"
         : "还没有路由策略";
     const description = emptyStage === "providers"
-      ? "先在 Provider 渠道添加上游服务并选择要引入的模型；Provider 模型价格用于记录真实成本与审计。"
+      ? "先在供应商添加上游服务并选择要引入的模型；Provider 模型价格用于记录真实成本与审计。"
       : emptyStage === "models"
         ? "从内置模型目录中挑选对外模型，选择已引入的 Provider 模型，并设置统一对外价格。"
         : "为对外模型添加 Provider 线路，并设置优先级、权重与流量策略。路由不会改变统一对外价格。";
-    const actionLabel = emptyStage === "providers" ? "前往 Provider 渠道" : emptyStage === "models" ? "前往模型目录" : "为模型添加路由";
+    const actionLabel = emptyStage === "providers" ? "前往供应商" : emptyStage === "models" ? "前往模型目录" : "为模型添加路由";
     const onAction: () => void = emptyStage === "providers"
       ? onOpenProviders
       : emptyStage === "models"

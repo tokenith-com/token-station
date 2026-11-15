@@ -2,7 +2,7 @@
 
 Language: [English](../../plugin-development/manifest-reference.md) | 简体中文 | [日本語](../../ja/plugin-development/manifest-reference.md)
 
-每个包的根目录有且只有一个 `plugin.yaml`。TokenHub 会在注册或执行任何能力之前验证它。
+每个包的根目录有且只有一个 `plugin.yaml`。TokenStation 会在注册或执行任何能力之前验证它。
 
 | 字段 | 用途 |
 | --- | --- |

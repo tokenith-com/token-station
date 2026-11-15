@@ -93,8 +93,8 @@ export function ModelDirectoryView({
           title={readOnly ? "当前没有可见模型" : hasImportedProviderModels ? "还没有对外模型" : "先引入可用的 Provider 模型"}
           description={readOnly ? "请联系管理员发布模型并授予 API Key 访问范围。" : hasImportedProviderModels
             ? "从已引入的 Provider 模型批量生成同名对外模型，或从内置目录新建自定义映射。"
-            : "先在 Provider 渠道添加上游服务并选择要引入的模型；Provider 模型价格用于记录真实成本与审计。"}
-          actionLabel={!readOnly && !hasImportedProviderModels ? "前往 Provider 渠道" : undefined}
+            : "先在供应商添加上游服务并选择要引入的模型；Provider 模型价格用于记录真实成本与审计。"}
+          actionLabel={!readOnly && !hasImportedProviderModels ? "前往供应商" : undefined}
           onAction={!readOnly && !hasImportedProviderModels ? onOpenProviders : undefined}
           actions={creationActions}
         />

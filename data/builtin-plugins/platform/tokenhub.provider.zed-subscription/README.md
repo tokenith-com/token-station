@@ -1,6 +1,6 @@
 # Zed
 
-Connect an explicitly authorized Zed account to TokenHub.
+Connect an explicitly authorized Zed account to TokenStation.
 
 - Plugin ID: `tokenhub.provider.zed-subscription`
 - Configuration: Provider management, with a separate account resource

@@ -130,6 +130,7 @@ type Store interface {
 	ListProjectKeys(projectID string) []APIKey
 	ListAPIKeys() []APIKey
 	GetAPIKey(id string) (APIKey, bool)
+	RevealAPIKey(id string) (string, error)
 	UpdateAPIKey(id string, patch APIKey) (APIKey, error)
 	RotateAPIKey(id string, graceUntil *time.Time) (APIKey, string, error)
 	DeleteAPIKey(id string) error

@@ -393,7 +393,7 @@ func TestPlaygroundChatStreamTransformHookCanRewriteSSEEventData(t *testing.T) {
 	}
 
 	resp := doJSON(t, server.Handler(), http.MethodPost, "/api/admin/playground/chat/stream", map[string]any{
-		"project_id": defaultProjectID,
+		"api_key_id": createPlaygroundTestKey(t, store, defaultProjectID, ""),
 		"model":      "gpt-4.1-mini",
 		"messages": []map[string]any{
 			{"role": "user", "content": "hello"},

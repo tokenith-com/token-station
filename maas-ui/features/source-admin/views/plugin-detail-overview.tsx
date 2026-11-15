@@ -97,7 +97,7 @@ export function PluginOverview({
         <OverviewFact label={tx("配置")} value={lifecycle.installed ? tx(lifecycle.setupRequired ? "待配置" : lifecycle.configured ? "已配置" : "无需配置") : "-"} tone={lifecycle.setupRequired ? "warn" : "neutral"} />
         <OverviewFact label={tx("使用状态")} value={tx(lifecycle.inUse ? "使用中" : "未使用")} tone={lifecycle.inUse ? "ok" : "neutral"} />
         <OverviewFact label={tx("版本")} value={lifecycle.installedVersion || plugin.version || "-"} />
-        <OverviewFact label={tx("更新")} value={tx(lifecycle.updateAvailable ? "有新版本可用" : plugin.source === "built_in" ? "随 TokenHub 更新" : "暂无可用更新")} tone={lifecycle.updateAvailable ? "warn" : "neutral"} />
+        <OverviewFact label={tx("更新")} value={tx(lifecycle.updateAvailable ? "有新版本可用" : plugin.source === "built_in" ? "随 TokenStation 更新" : "暂无可用更新")} tone={lifecycle.updateAvailable ? "warn" : "neutral"} />
       </section>
 
       <section className="plugin-overview-section" aria-labelledby="plugin-location-title">
@@ -134,7 +134,7 @@ export function PluginOverview({
         </div>
       </section>
 
-      <details className="plugin-technical-details">
+      <details open className="plugin-technical-details">
         <summary>
           <Braces size={17} aria-hidden="true" />
           <span><strong>{tx("开发者信息")}</strong><small>{tx("供插件开发和故障排查使用，普通使用无需展开。")}</small></span>
@@ -149,7 +149,7 @@ export function PluginOverview({
           </dl>
           <TechnicalGroup
             title={tx("功能声明")}
-            description={tx("告诉 TokenHub 这个插件提供哪些可调用或可配置的功能。")}
+            description={tx("告诉 TokenStation 这个插件提供哪些可调用或可配置的功能。")}
             rows={plugin.capabilities.map(capabilityRow)}
           />
           <TechnicalGroup
@@ -168,7 +168,7 @@ export function PluginOverview({
             rows={contributions.map((contribution) => ({
               key: contribution.id,
               title: localizedContributionTitle(localizeBuiltinContribution(contribution), locale) || contribution.id,
-              description: tx("这是插件添加到 TokenHub 管理界面的内容。"),
+              description: tx("这是插件添加到 TokenStation 管理界面的内容。"),
               meta: [contribution.id, contribution.slot, contribution.action].filter(Boolean).join(" · "),
             }))}
           />
@@ -203,8 +203,8 @@ function pluginUsageLocation(plugin: PluginDescriptor, contributions: AdminUICon
   if (plugin.kinds.includes("provider")) return tx("在 Provider 管理中添加账号或连接，然后在模型路由中使用。");
   if (plugin.placements.includes("gateway_chain")) return tx("启用后自动在匹配的模型请求处理阶段运行。");
   if (plugin.kinds.includes("sim") || contributions.length > 0) return tx("在管理后台的相关页面或插件设置中使用。");
-  if (plugin.placements.includes("background")) return tx("启用后由 TokenHub 按计划在后台运行。");
-  return tx("启用后由 TokenHub 在插件声明的位置运行。");
+  if (plugin.placements.includes("background")) return tx("启用后由 TokenStation 按计划在后台运行。");
+  return tx("启用后由 TokenStation 在插件声明的位置运行。");
 }
 
 function permissionSummary(permissions: NonNullable<PluginDescriptor["permissions"]>) {
@@ -260,13 +260,13 @@ function pluginDescription(description: string, name: string, plugin: PluginDesc
   if (contributions.some((item) => item.slot.startsWith("provider."))) {
     return tx("扩展 Provider 的连接设置和账号资源页面，让管理员直接管理插件提供的高级选项。");
   }
-  if (plugin.kinds.includes("provider")) return tx("连接模型服务，并让管理员在 TokenHub 中配置和使用它们。");
-  if (plugin.kinds.includes("sim")) return tx("调整 TokenHub 管理后台的界面外观和布局。");
+  if (plugin.kinds.includes("provider")) return tx("连接模型服务，并让管理员在 TokenStation 中配置和使用它们。");
+  if (plugin.kinds.includes("sim")) return tx("调整 TokenStation 管理后台的界面外观和布局。");
   if (plugin.placements.includes("gateway_chain")) return tx("在模型请求经过网关时执行额外的处理逻辑。");
   if (plugin.placements.includes("background")) return tx("在后台执行自动化维护或同步任务。");
   if (plugin.placements.includes("management_action")) return tx("提供可由管理员按需执行的插件操作。");
-  if (contributions.length > 0) return tx("在 TokenHub 管理后台中增加相关页面、面板或操作入口。");
-  return tx("为 TokenHub 提供此插件声明的扩展功能。");
+  if (contributions.length > 0) return tx("在 TokenStation 管理后台中增加相关页面、面板或操作入口。");
+  return tx("为 TokenStation 提供此插件声明的扩展功能。");
 }
 
 function pluginFeatures(plugin: PluginDescriptor, related: {
@@ -286,7 +286,7 @@ function pluginFeatures(plugin: PluginDescriptor, related: {
     rows.push({ key: "gateway", icon: <RefreshCw size={17} />, title: tx("请求处理"), description: tx("在模型请求通过网关时自动执行这个插件提供的处理逻辑。") });
   }
   if (capabilities.some((item) => item.kind === "sim") || plugin.kinds.includes("sim")) {
-    rows.push({ key: "appearance", icon: <LayoutPanelTop size={17} />, title: tx("界面外观"), description: tx("为 TokenHub 提供界面主题、布局或页面样式。") });
+    rows.push({ key: "appearance", icon: <LayoutPanelTop size={17} />, title: tx("界面外观"), description: tx("为 TokenStation 提供界面主题、布局或页面样式。") });
   }
   const contributionSlots = new Set(related.contributions.map((item) => item.slot));
   if (contributionSlots.has("provider.form.section")) {
@@ -299,7 +299,7 @@ function pluginFeatures(plugin: PluginDescriptor, related: {
     rows.push({ key: "provider-resource", icon: <LayoutPanelTop size={17} />, title: tx("账号资源设置"), description: tx("在 Provider 账号和资源页面增加此插件提供的配置与状态信息。") });
   }
   if (related.contributions.some((item) => !item.slot.startsWith("provider."))) {
-    rows.push({ key: "ui", icon: <LayoutPanelTop size={17} />, title: tx("管理界面"), description: tx("在 TokenHub 管理后台中增加相关页面、面板或操作入口。") });
+    rows.push({ key: "ui", icon: <LayoutPanelTop size={17} />, title: tx("管理界面"), description: tx("在 TokenStation 管理后台中增加相关页面、面板或操作入口。") });
   }
   if (related.actions.length > 0 || plugin.placements.includes("management_action")) {
     rows.push({ key: "actions", icon: <Play size={17} />, title: tx("管理操作"), description: tx("提供可由管理员按需执行的插件操作。") });
@@ -328,7 +328,7 @@ function capabilityDescription(capability: PluginCapabilityDescriptor) {
   if (capability.name === "page_template") return tx("定义特定管理页面的内容布局。");
   if (capability.name === "dashboard_composition") return tx("定义仪表盘中显示的内容及排列方式。");
   if (capability.kind.startsWith("provider")) return tx("声明这个插件支持的模型服务或 Provider 配置。");
-  return tx("告诉 TokenHub 这个插件提供的一项扩展功能。");
+  return tx("告诉 TokenStation 这个插件提供的一项扩展功能。");
 }
 
 function hookDescription(stage: string) {
@@ -354,9 +354,9 @@ function trustDescription(verdict: string) {
 }
 
 function compatibilityDescription(verdict: string) {
-  if (verdict === "compatible") return tx("此版本可在当前 TokenHub 核心版本上运行。");
+  if (verdict === "compatible") return tx("此版本可在当前 TokenStation 核心版本上运行。");
   if (verdict === "needs_review") return tx("此版本需要管理员确认兼容性后再使用。");
-  if (verdict === "incompatible") return tx("此版本与当前 TokenHub 核心版本不兼容。");
+  if (verdict === "incompatible") return tx("此版本与当前 TokenStation 核心版本不兼容。");
   return tx("插件没有提供可确认的兼容性信息。");
 }
 

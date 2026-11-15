@@ -208,13 +208,13 @@ export function ProviderOAuthNoticeModal({
           </div>
         </div>
         <div className="provider-oauth-notice-callout" role="note">
-          <strong>{tx("请不要关闭 TokenHub 的当前页面")}</strong>
+          <strong>{tx("请不要关闭 TokenStation 的当前页面")}</strong>
           <span>{tx("登录和授权完成后，请复制浏览器地址栏中的完整 localhost callback URL，再返回此处粘贴回填。")}</span>
         </div>
         <ol className="provider-oauth-notice-steps">
           <li>{pluginOAuthCopy(oauthMetadata, "notice_login_step", "在即将打开的页面中登录账号并完成授权。")}</li>
           <li>{tx("授权后 localhost 页面可能显示无法访问，这是正常现象。")}</li>
-          <li>{tx("复制地址栏中的完整地址，返回 TokenHub 粘贴并确认回填。")}</li>
+          <li>{tx("复制地址栏中的完整地址，返回 TokenStation 粘贴并确认回填。")}</li>
         </ol>
         {error ? <p className="provider-oauth-notice-error" role="alert">{error}</p> : null}
         <div className="modal-actions">

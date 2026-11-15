@@ -2,9 +2,9 @@
 
 语言：[English](../media-apis.md) | 简体中文 | [日本語](../ja/media-apis.md)
 
-使用同一个 TokenHub 网关和项目 API Key，调用获准使用的文本与多模态模型。本文按任务组织接口选择、请求参数、响应结果和调用示例，并说明 TokenHub 的鉴权、路由、任务隔离和限制。
+使用同一个 TokenStation 网关和项目 API Key，调用获准使用的文本与多模态模型。本文按任务组织接口选择、请求参数、响应结果和调用示例，并说明 TokenStation 的鉴权、路由、任务隔离和限制。
 
-**支持接口不等于模型已经可用。** 管理员需要配置上游凭证、发布公开模型 ID、映射上游模型并授权项目密钥。格式、时长、分辨率、音色、模型版本和素材有效期取决于上游。TokenHub 不内置供应商账户；可用模型与功能取决于已配置的上游和路由能力。
+**支持接口不等于模型已经可用。** 管理员需要配置上游凭证、发布公开模型 ID、映射上游模型并授权项目密钥。格式、时长、分辨率、音色、模型版本和素材有效期取决于上游。TokenStation 不内置供应商账户；可用模型与功能取决于已配置的上游和路由能力。
 
 ## 选择接口
 
@@ -46,7 +46,7 @@ curl --fail-with-body "$TOKENHUB_URL/v1/chat/completions" \
   -d '{"model":"text-model","messages":[{"role":"user","content":"Explain an API gateway in one sentence."}],"stream":false}'
 ```
 
-从 `choices[].message.content` 读取文本，保留请求 ID 以便在**请求日志**中排查。出现在 `/v1/models` 中只表示模型可见且有符合条件的路由，不代表上游所有功能均已实时验证。TokenHub 未提供供应商扩展的 `expand` 模型元数据结构及上游账户余额接口。
+从 `choices[].message.content` 读取文本，保留请求 ID 以便在**请求日志**中排查。出现在 `/v1/models` 中只表示模型可见且有符合条件的路由，不代表上游所有功能均已实时验证。TokenStation 未提供供应商扩展的 `expand` 模型元数据结构及上游账户余额接口。
 
 ## 配置供应商与选择模型
 
@@ -54,7 +54,7 @@ curl --fail-with-body "$TOKENHUB_URL/v1/chat/completions" \
 
 Anthropic、Gemini 原生请求需要路由支持相应原生协议和响应结构；仅设置 OpenAI-compatible 基础地址并不意味着原生协议也兼容。适配器和 SDK 配置见[用户指南](user-guide.md)。供应商文档可能展示带包装层的文本响应，需验证所选路由是否返回客户端要求的协议结构。
 
-公开名称 `gpt-image-2`、Codex 订阅图片模型及配置为托管模式的图片插件采用 TokenHub 托管生图流程。需要完整上游 Images 参数或上游异步生图时，应另外发布 `image-model` 等别名并映射到 `gpt-image-2`。见[托管生图指南](codex-image-generation-api.md)。
+公开名称 `gpt-image-2`、Codex 订阅图片模型及配置为托管模式的图片插件采用 TokenStation 托管生图流程。需要完整上游 Images 参数或上游异步生图时，应另外发布 `image-model` 等别名并映射到 `gpt-image-2`。见[托管生图指南](codex-image-generation-api.md)。
 
 升级时通过正常启动迁移流程应用数据库 v8 迁移 `add-media-task-bindings`。任务绑定在重启后保留；保持服务器密钥不变，以便解密保存的上游任务 ID。无需新增环境变量。
 
@@ -124,7 +124,7 @@ curl --fail-with-body "$TOKENHUB_URL/v1/images/generations" \
 | `image_urls` 等参考字段 | 模型支持时使用的参考图片 |
 | `response_format` | 上游支持的格式，如 `url`、`b64_json` 或 `base64` |
 
-同步响应通常包含 `data[].url` 或 `data[].b64_json`；异步响应包含 `data[].task_id`，或带有 `data.object:"generation.task"` 的对象式回执中的 `data.id`，需使用返回的 TokenHub ID 按下文任务接口逐个查询。供应商结果字段会保留。TokenHub 不自动下载响应 URL，也不延长素材有效期。
+同步响应通常包含 `data[].url` 或 `data[].b64_json`；异步响应包含 `data[].task_id`，或带有 `data.object:"generation.task"` 的对象式回执中的 `data.id`，需使用返回的 TokenStation ID 按下文任务接口逐个查询。供应商结果字段会保留。TokenStation 不自动下载响应 URL，也不延长素材有效期。
 
 ### 编辑图片与使用蒙版
 
@@ -147,7 +147,7 @@ curl --fail-with-body "$TOKENHUB_URL/v1/images/edits" \
 curl --fail-with-body "$TOKENHUB_URL/v1/audio/speech" \
   -H "Authorization: Bearer $TOKENHUB_API_KEY" \
   -H 'Content-Type: application/json' \
-  -d '{"model":"speech-model","input":"Hello from TokenHub.","voice":"alloy","response_format":"opus","speed":1}' \
+  -d '{"model":"speech-model","input":"Hello from TokenStation.","voice":"alloy","response_format":"opus","speed":1}' \
   --output speech.opus
 ```
 
@@ -177,7 +177,7 @@ multipart 转录和翻译必须包含且仅包含一个非空 `file`，最多 25
 
 发布的路由必须由显式支持 `transcription` 的适配器处理，模型端点须包含所请求的操作。OpenAI 及配置的 OpenAI 兼容/本地适配器支持此能力，每次请求还会检查最新导入的端点元数据。JSON 厂商扩展可由匹配的供应商调用钩子处理，multipart 上传必须使用原生适配器。发布、钩子、上传校验和 SDK 冒烟测试详见[转录上传与计量契约](media-api-operations.md#转录上传与计量契约)。
 
-声音克隆与音乐可继续通过已有供应商特定的 Chat/Responses 工作流使用，见[媒体运维说明](media-api-operations.md)。`/v1/music/*`、声音/素材管理、上传及 webhook 管理未作为通用 TokenHub API 接口族实现。
+声音克隆与音乐可继续通过已有供应商特定的 Chat/Responses 工作流使用，见[媒体运维说明](media-api-operations.md)。`/v1/music/*`、声音/素材管理、上传及 webhook 管理未作为通用 TokenStation API 接口族实现。
 
 ## 视频与 Seedance
 
@@ -199,7 +199,7 @@ curl --fail-with-body "$TOKENHUB_URL/v1/videos/generations" \
 | `image_urls`、`video_urls`、`audio_urls` | 模型支持的参考素材，需使用上游可访问的 URL |
 | 其他字段 | 保留供应商扩展，由上游校验 |
 
-首尾帧、多参考素材、时长范围和素材组合限制并非所有模型通用。TokenHub 未实现火山引擎原生 `/content_generation/tasks` 协议。
+首尾帧、多参考素材、时长范围和素材组合限制并非所有模型通用。TokenStation 未实现火山引擎原生 `/content_generation/tasks` 协议。
 
 部分上游也支持通过 `/v1/responses` 调用 Seedance，分别使用生成模型与 `seedance-2-0-get` 等辅助模型。其任务 ID 与查询规则不同于 `/v1/tasks`，见[供应商工作流配置与示例](media-api-operations.md)。
 
@@ -217,9 +217,9 @@ curl --fail-with-body "$TOKENHUB_URL/v1/videos/generations" \
 {"code":202,"data":{"id":"task_example","object":"generation.task","type":"image","status":"pending","progress":0,"poll_url":"/v1/tasks/task_example"}}
 ```
 
-如上游需要指定响应版本，在供应商自定义请求头中配置其文档规定的版本选择请求头和值；TokenHub 不会自动转发客户端请求头。网关保留 HTTP `202` 与回执结构，替换 `data.id`，并将已有的 `poll_url` 改写为对应的 TokenHub 路径。使用网关地址拼接这一相对路径即可查询。普通同步图片的素材 ID 保持不变。
+如上游需要指定响应版本，在供应商自定义请求头中配置其文档规定的版本选择请求头和值；TokenStation 不会自动转发客户端请求头。网关保留 HTTP `202` 与回执结构，替换 `data.id`，并将已有的 `poll_url` 改写为对应的 TokenStation 路径。使用网关地址拼接这一相对路径即可查询。普通同步图片的素材 ID 保持不变。
 
-两种回执都表示上游已接受任务，不表示生成完成。TokenHub 将供应商任务 ID 替换为不透明 ID，持久化保存提交项目、密钥及供应商/资源绑定。使用**提交时的同一项目 API Key**和原样返回的 ID 查询：
+两种回执都表示上游已接受任务，不表示生成完成。TokenStation 将供应商任务 ID 替换为不透明 ID，持久化保存提交项目、密钥及供应商/资源绑定。使用**提交时的同一项目 API Key**和原样返回的 ID 查询：
 
 ```bash
 export TOKENHUB_TASK_ID='TASK_ID_FROM_SUBMISSION'
@@ -231,22 +231,22 @@ curl --fail-with-body "$TOKENHUB_URL/v1/tasks/$TOKENHUB_TASK_ID?language=en" \
 
 | 响应字段 | 说明 |
 | --- | --- |
-| `data.id` | 此查询流程使用的 TokenHub 任务 ID |
+| `data.id` | 此查询流程使用的 TokenStation 任务 ID |
 | `data.status` | 上游任务状态 |
 | `data.progress` | 可选的上游进度，不是网关估算值 |
 | `data.result` | 模型特定结果；上游可返回 `images[]` 或 `videos[]`，其中 `url` 可能是数组 |
 | `data.error` | 存在时表示上游任务失败信息 |
-| `data.cost`、`data.credits_cost` | 上游元数据，不是 TokenHub 账单 |
+| `data.cost`、`data.credits_cost` | 上游元数据，不是 TokenStation 账单 |
 
 对 `pending`/`processing` 设置总超时和查询间隔，例如每 3–5 秒查询并逐步退避。`completed` 表示成功，`failed`、`cancelled` 为终止失败状态；其他非终止状态按上游契约处理。及时保存结果 URL，并遵守 `expires_at`。HTTP 200 也可能包含失败任务，必须同时检查 HTTP 状态和 `data.status`。
 
-查询始终使用原路由/账户，不切换到账户之外的其他路由。密钥必须有效且继续拥有模型权限。即使属于同一项目，另一把密钥也不能查询任务；不能直接传入任意供应商任务 ID。路由或供应商配置变化可能使旧任务不可查询。后台生成由上游执行；TokenHub 不新增任务执行器、取消或完成回调服务。在 TokenHub 外配置的供应商回调使用供应商自己的 ID 和规则。
+查询始终使用原路由/账户，不切换到账户之外的其他路由。密钥必须有效且继续拥有模型权限。即使属于同一项目，另一把密钥也不能查询任务；不能直接传入任意供应商任务 ID。路由或供应商配置变化可能使旧任务不可查询。后台生成由上游执行；TokenStation 不新增任务执行器、取消或完成回调服务。在 TokenStation 外配置的供应商回调使用供应商自己的 ID 和规则。
 
 任务绑定在**提交后 30 天**过期，与上游素材 URL 的有效期分别计算。过期、不存在或无权访问的任务返回 `404 media_task_not_found`；轮换项目密钥不会将旧任务转移给新密钥。更换原供应商凭证、URL、请求头或其他账户配置后，查询返回 `503 media_task_route_unavailable`，即使替换后的账户仍支持同一模型也不例外。绑定保存失败时，提交返回 `503 media_task_binding_unavailable`；上游可能已经接受生成，应先检查日志再决定是否重试。
 
 ### 继续生成或重新生成视频
 
-对于支持引用先前任务的视频模型，在相应顶层字段中传入**来源提交返回的 TokenHub 任务 ID**：
+对于支持引用先前任务的视频模型，在相应顶层字段中传入**来源提交返回的 TokenStation 任务 ID**：
 
 | 字段 | 上游操作示例 |
 | --- | --- |
@@ -257,7 +257,7 @@ curl --fail-with-body "$TOKENHUB_URL/v1/tasks/$TOKENHUB_TASK_ID?language=en" \
 
 这些字段仅在 `POST /v1/videos/generations` 中识别。例如，`{"model":"followup-video","source_task_id":"task_example"}` 使用管理员发布的兼容重新生成模型别名。任务完成状态、有效时长、分辨率和参数限制仍由上游模型验证，并非每个模型都支持所有字段。提示词、素材 URL 和嵌套扩展标识符不会被当成任务引用。
 
-必须使用同一把项目 API 密钥，保留来源和目标模型的权限，并在任务绑定的 30 天有效期内引用。格式错误、不存在、过期、属于其他密钥或直接传入的供应商任务 ID，会在发起生成前返回 `404 media_task_not_found`。TokenHub 将授权通过的任务 ID 转换为供应商 ID，并使用原供应商账户/资源；该账户支持后续操作时，目标别名、路由和上游模型可以不同。TokenHub 不会切换到其他账户。凭证或配置等变化导致账户指纹改变时，返回 `503 media_task_route_unavailable`；原账户不可用时，仍适用普通的路由、策略和容量限制错误。
+必须使用同一把项目 API 密钥，保留来源和目标模型的权限，并在任务绑定的 30 天有效期内引用。格式错误、不存在、过期、属于其他密钥或直接传入的供应商任务 ID，会在发起生成前返回 `404 media_task_not_found`。TokenStation 将授权通过的任务 ID 转换为供应商 ID，并使用原供应商账户/资源；该账户支持后续操作时，目标别名、路由和上游模型可以不同。TokenStation 不会切换到其他账户。凭证或配置等变化导致账户指纹改变时，返回 `503 media_task_route_unavailable`；原账户不可用时，仍适用普通的路由、策略和容量限制错误。
 
 多个引用指向不同账户时，返回 `400 invalid_media_task_reference`。其余有效引用的组合是否受支持由上游判断。每次接受的后续生成都会创建新任务，并可能产生新的上游费用。请求钩子仍使用公开任务 ID，供应商调用钩子收到转换后的供应商 ID。
 
@@ -266,7 +266,7 @@ curl --fail-with-body "$TOKENHUB_URL/v1/tasks/$TOKENHUB_TASK_ID?language=en" \
 | 机制 | ID 与查询方式 |
 | --- | --- |
 | 上游图片/视频任务 | 返回的 `task_id` 或 `data.id`；`GET /v1/tasks/{task_id}` |
-| TokenHub 托管图片任务 | 使用[生图指南](codex-image-generation-api.md)的托管任务契约 |
+| TokenStation 托管图片任务 | 使用[生图指南](codex-image-generation-api.md)的托管任务契约 |
 | Responses 的 `background:true` | 本地 Responses 任务；完成只表示上游 API 调用结束，不表示供应商渲染完成 |
 
 后台媒体 Responses 完成后的查询响应通过 `x-tokenhub-upstream-response-id` 暴露有效的供应商根 ID；应将其交给供应商辅助查询模型，不能用于 `/v1/tasks`。

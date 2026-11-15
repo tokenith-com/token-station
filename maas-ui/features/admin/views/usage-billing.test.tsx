@@ -33,12 +33,12 @@ describe("UsageView project attribution", () => {
       range: "today", timezone: "UTC", window_start: "2026-09-07T00:00:00Z", window_end: "2026-09-07T02:00:00Z",
       granularity: "hour", summary: data.summary, breakdown: data.breakdown, timeseries: [],
     };
-    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify(report))));
+    vi.stubGlobal("fetch", vi.fn(async (input: string) => input.endsWith("/exchange-rate") ? Response.json({ configured: false, usd_to_cny: "", paid_calls_enabled: false }) : Response.json(report)));
     render(<UsageView api={{ baseURL: "http://example.test", adminToken: "synthetic-session" }} data={data} user={user} />);
 
     const projectSection = (await screen.findByRole("heading", { name: "项目归因" })).closest("section")!;
     const projects = within(projectSection);
-    const cost = new Intl.NumberFormat("zh-CN", { style: "currency", currency: "USD" }).format(0.25);
+    const cost = new Intl.NumberFormat("zh-CN", { style: "currency", currency: "CNY", currencyDisplay: "narrowSymbol" }).format(0.25);
     expect(projects.getByRole("row", { name: `Design Platform 2 150 20 ${cost}` })).toBeInTheDocument();
     expect(projects.queryByRole("cell", { name: "prj_design" })).not.toBeInTheDocument();
     expect(projects.getByRole("cell", { name: "prj_archived" })).toBeInTheDocument();
@@ -84,7 +84,7 @@ describe("Usage aligned with the master report page", () => {
       expect(screen.queryByText("222")).not.toBeInTheDocument();
     }
     expect(screen.queryByRole("heading", { name: "当天用量" })).not.toBeInTheDocument();
-    expect(fetch.mock.calls.map(([url]) => url)).toEqual(ranges.map(range => `/api/backend/api/admin/usage/report?range=${range}`));
+    expect(fetch.mock.calls.map(([url]) => url).filter(url => url.includes("/usage/report?"))).toEqual(ranges.map(range => `/api/backend/api/admin/usage/report?range=${range}`));
   });
 
   it.each(["admin", "team_leader", "user", "guest"])("preserves attribution permissions for %s even when the response includes restricted rows", async role => {

@@ -1014,7 +1014,7 @@ export function ProviderUpsertModal({
         method: targetProviderID ? "PATCH" : "POST",
         body: JSON.stringify(mode === "edit" && provider ? preserveRetrievalCatalog(payload, provider) : payload),
       });
-      if (!resp.ok) throw new Error(await readAdminError(resp, `${targetProviderID ? tx("更新") : tx("创建")} ${tx("Provider 渠道")}`));
+      if (!resp.ok) throw new Error(await readAdminError(resp, `${targetProviderID ? tx("更新") : tx("创建")} ${tx("供应商")}`));
       const result = (await resp.json()) as { imported_models?: number; provider?: Provider };
       let accountResourceCreated = false;
       if (mode === "create" && credentialMode === "account_integration") {
@@ -1062,7 +1062,7 @@ export function ProviderUpsertModal({
         <div className="modal-header">
           <div>
             <p className="eyebrow">{tx(mode === "edit" ? "编辑" : "新增")}</p>
-            <h2>{tx(mode === "create" ? createStep === 0 ? "选择供应商" : "添加供应商" : "Provider 渠道")}</h2>
+            <h2>{tx(mode === "create" ? createStep === 0 ? "选择供应商" : "添加供应商" : "供应商")}</h2>
           </div>
           <button className="icon-button" onClick={onClose} type="button" title={tx("关闭")}>×</button>
         </div>
@@ -1161,7 +1161,7 @@ export function ProviderUpsertModal({
                   <h3>{tx(credentialMode === "account_integration" ? "账号授权" : "直接 API Key")}</h3>
                   <p>{tx(
                     credentialMode === "account_integration"
-                      ? "先完成账号授权回填；TokenHub 会把回填的 Token 保存为账号资源。"
+                      ? "先完成账号授权回填；TokenStation 会把回填的 Token 保存为账号资源。"
                       : "把上游 Key 保存到 Provider，适合单账号或兼容 API。",
                   )}</p>
                 </div>
@@ -1203,7 +1203,7 @@ export function ProviderUpsertModal({
                   <div className="provider-account-inline">
                     <div className="provider-account-inline-head">
                       <strong>{tx("账号授权")}</strong>
-                      <span>{tx("使用账号 OAuth 授权；TokenHub 会在后端换取并保存账号 Token。")}</span>
+                      <span>{tx("使用账号 OAuth 授权；TokenStation 会在后端换取并保存账号 Token。")}</span>
                     </div>
                     <div className="provider-account-auth-grid">
                       <label className={`field provider-account-auth-wide provider-account-name-field${accountResourceNameConflict ? " conflict" : ""}`}>

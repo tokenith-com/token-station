@@ -1,5 +1,5 @@
 import { StrictMode } from "react";
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, expect, it, vi } from "vitest";
 import { saveSession } from "../core/session";
@@ -41,10 +41,45 @@ beforeEach(() => {
   });
 });
 
+it.each([
+  ["admin", "/overview"],
+  ["admin", "/models"],
+  ["team_leader", "/overview"],
+  ["user", "/overview"],
+])("mounts one API key dialog for %s on %s", async (role, pathname) => {
+  navigation.pathname = pathname;
+  const user: AdminUser = { id: role, username: role, name: "Dialog User", email: "dialog@example.com", role, status: "active" };
+  saveSession({ baseURL, token: "dialog-token", user, expiresAt: "2099-01-01T00:00:00Z" });
+  vi.stubGlobal("fetch", vi.fn().mockImplementation(async (path: string) => {
+    if (new URL(path).pathname === "/api/admin/overview") return Response.json({ summary, projects: [], providers: [], models: [] });
+    return Response.json({ data: [] });
+  }));
+  const page = render(<StrictMode><AdminConsole defaultBaseURL={baseURL} /></StrictMode>);
+  await screen.findByText(user.name);
+  act(() => window.dispatchEvent(new CustomEvent("tokenhub-use-key", { detail: {
+    id: "key_test", name: "Test key", project_id: "project_test", allowed_models: [], status: "active", key_prefix: "sk_test", key_suffix: "1234",
+  } })));
+  expect(screen.getAllByRole("dialog", { name: "使用 API Key" })).toHaveLength(1);
+  expect(screen.getAllByLabelText("接入地址（Base URL）")).toHaveLength(1);
+  await userEvent.setup().type(screen.getByLabelText("模型 ID"), "test-model");
+  expect(screen.getByLabelText("模型 ID")).toHaveValue("test-model");
+  fireEvent.click(screen.getByRole("button", { name: /^关闭$/ }));
+  expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  act(() => window.dispatchEvent(new CustomEvent("tokenhub-issued-key", { detail: "sk_synthetic_dialog_key_for_regression_only" })));
+  expect(screen.getAllByRole("dialog", { name: "使用 API Key" })).toHaveLength(1);
+  expect(screen.getByLabelText("完整 Key")).toHaveValue("sk_synthetic_dialog_key_for_regression_only");
+  if (role === "admin" && pathname === "/overview") {
+    navigation.pathname = "/models";
+    page.rerender(<StrictMode><AdminConsole defaultBaseURL={baseURL} /></StrictMode>);
+    await waitFor(() => expect(document.querySelector(".source-admin-content")).not.toBeInTheDocument());
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  }
+});
+
 function requestMetric(role: string) {
   if (role === "admin") {
-    // 超管总览已改用源码前端的 overview 实现（.metric-label / .metric-value）。
-    const label = screen.getByText("总请求", { selector: ".metric-label" });
+    // The admin overview uses the source console metric cards.
+    const label = screen.getByText("累计请求", { selector: ".metric-label" });
     return label.closest("article")!.querySelector(".metric-value");
   }
   const label = screen.getByText("请求量", { selector: ".dashboard-kpi-label" });
@@ -90,7 +125,10 @@ it.each(["admin", "team_leader", "user"])("loads %s overview on first mount and 
   }
 
   if (role === "admin") {
-    // 源码总览直接使用 /api/admin/overview 的 summary，不再单独拉 usage/report。
+    expect(screen.getByRole("navigation", { name: "当前位置" })).toHaveTextContent("平台总览");
+    expect(screen.getAllByText("全部历史（不受趋势时间范围影响）")).toHaveLength(3);
+    await userEvent.setup().click(screen.getByRole("button", { name: /^30 天$/ }));
+    expect(requestMetric(role)).toHaveTextContent("134");
     expect(fetcher.mock.calls.some(([path]) => new URL(path).pathname === "/api/admin/overview")).toBe(true);
     return;
   }

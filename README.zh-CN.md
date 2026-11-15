@@ -1,11 +1,11 @@
 <p align="center">
-  <img src="frontend/public/brand/tokenhub-logo.png" alt="TokenHub" width="96" />
+  <img src="frontend/public/brand/tokenstation-logo.png" alt="TokenStation" width="96" />
 </p>
 
-<h1 align="center">TokenHub</h1>
+<h1 align="center">TokenStation</h1>
 
 <p align="center">
-  TokenHub 是面向企业 AI 时代的 Token Governance 基础设施，专注模型路由、权限分配、Token 降本、Provider 对账，以及对所有上游模型服务的统一治理。
+  TokenStation 是面向企业 AI 时代的 Token Governance 基础设施，专注模型路由、权限分配、Token 降本、Provider 对账，以及对所有上游模型服务的统一治理。
 </p>
 
 <p align="center">
@@ -26,7 +26,7 @@
 <table>
   <tr>
     <td width="180"><a href="https://aicoding.inc/i/tokhub"><img src="docs/assets/sponsors/aicoding.svg" alt="AICoding" width="150" /></a></td>
-    <td>感谢 AICoding 赞助了本项目！<a href="https://aicoding.inc/i/tokhub">AICoding</a> —— 全球大模型 API 超值中转服务！Claude Code 1.9 折，GPT 0.1 折，已为数百家企业提供高性价比 AI 服务。支持 Claude Code、GPT、Gemini 及国内主流模型，企业级高并发、极速开票、7×24 专属技术支持，通过<a href="https://aicoding.inc/i/tokhub">此链接</a>注册的 TokenHub 用户，首充可享受九折优惠！</td>
+    <td>感谢 AICoding 赞助了本项目！<a href="https://aicoding.inc/i/tokhub">AICoding</a> —— 全球大模型 API 超值中转服务！Claude Code 1.9 折，GPT 0.1 折，已为数百家企业提供高性价比 AI 服务。支持 Claude Code、GPT、Gemini 及国内主流模型，企业级高并发、极速开票、7×24 专属技术支持，通过<a href="https://aicoding.inc/i/tokhub">此链接</a>注册的 TokenStation 用户，首充可享受九折优惠！</td>
   </tr>
   <tr>
     <td width="180"><a href="https://subsub.cn/i/tokhub"><img src="docs/assets/sponsors/subsub.svg" alt="SubSub" width="150" /></a></td>
@@ -36,18 +36,18 @@
 
 ## 企业级 Token 治理
 
-TokenHub 为企业提供 AI 模型生命周期里的治理层：从 Provider 接入、项目 Key、路由策略，到用量归因、预算控制和账单对账。
+TokenStation 为企业提供 AI 模型生命周期里的治理层：从 Provider 接入、项目 Key、路由策略，到用量归因、预算控制和账单对账。
 
-真正需要解决的是：当企业里的 AI 应用越来越多、模型越来越多之后，Token 到底应该怎么管。TokenHub 将这些治理能力放到每一次模型调用之前：
+真正需要解决的是：当企业里的 AI 应用越来越多、模型越来越多之后，Token 到底应该怎么管。TokenStation 将这些治理能力放到每一次模型调用之前：
 
 - 模型怎么路由：根据场景、成本、性能、健康状态和失败回退策略选择合适模型。
 - 权限怎么管：控制 Token 在不同人、团队、项目和应用之间如何分配和使用。
 - Token 怎么省：通过缓存、模型选择、额度和调用策略降低企业 AI 成本。
 - 怎么和 Provider 对账：把内部真实用量和 Provider 账单对齐，让财务、平台和业务团队都能解释 AI 花费。
 
-## 为什么选择 TokenHub
+## 为什么选择 TokenStation
 
-许多开源 AI 网关主要解决的是 Provider 聚合：用一个接口调用多个上游。这对开发者接入模型很有帮助，但单靠它并不能解决企业运营里的治理问题。TokenHub 关注的正是这层缺失的治理能力：
+许多开源 AI 网关主要解决的是 Provider 聚合：用一个接口调用多个上游。这对开发者接入模型很有帮助，但单靠它并不能解决企业运营里的治理问题。TokenStation 关注的正是这层缺失的治理能力：
 
 - Token 分发按项目和团队管理，不需要把原始 Provider Key 散落到每个应用里。
 - 模型访问、路由和失败回退由管理员通过策略统一调整，不必改客户端代码。
@@ -57,12 +57,12 @@ TokenHub 为企业提供 AI 模型生命周期里的治理层：从 Provider 接
 ## 产品截图
 
 <p align="center">
-  <img src="docs/assets/screenshots/tokenhub-tour.webp" alt="TokenHub 产品导览：登录、概览、接口文档、Provider 渠道、模型目录、路由策略、用量统计和系统设置" width="100%">
+  <img src="docs/assets/screenshots/tokenstation-tour.webp" alt="TokenStation 产品导览：登录、概览、接口文档、Provider 渠道、模型目录、路由策略、用量统计和系统设置" width="100%">
 </p>
 
 ## 围绕三大角色设计
 
-TokenHub 将日常模型使用、团队治理和平台运维拆成清晰的角色入口，让企业用户只看到和自己职责相关的工作流。
+TokenStation 将日常模型使用、团队治理和平台运维拆成清晰的角色入口，让企业用户只看到和自己职责相关的工作流。
 
 | 角色 | 工作台重点 | 指南 |
 | --- | --- | --- |
@@ -87,17 +87,17 @@ TokenHub 将日常模型使用、团队治理和平台运维拆成清晰的角�
 
 ## Provider 生态
 
-Provider 是 TokenHub 的接入边界。托管 API、订阅渠道、本地模型和自定义上游都通过 Provider 抽象接入，让同一套企业策略治理每一条模型调用路径。
+Provider 是 TokenStation 的接入边界。托管 API、订阅渠道、本地模型和自定义上游都通过 Provider 抽象接入，让同一套企业策略治理每一条模型调用路径。
 
-当路由、权限、Token 降本、归因、审计和对账机制就位之后，TokenHub 再把这些受控工作流连接到 OpenAI、Azure OpenAI、Anthropic、Gemini、DeepSeek、Qwen、Codex 订阅、本地模型和自定义 OpenAI-Compatible 上游。
+当路由、权限、Token 降本、归因、审计和对账机制就位之后，TokenStation 再把这些受控工作流连接到 OpenAI、Azure OpenAI、Anthropic、Gemini、DeepSeek、Qwen、Codex 订阅、本地模型和自定义 OpenAI-Compatible 上游。
 
-TokenHub 原生适配 OpenAI、Azure OpenAI、Anthropic、Gemini、DeepSeek、Qwen、Codex 订阅和本地模型，并内置 150+ Provider 模板。常用接入包括：
+TokenStation 原生适配 OpenAI、Azure OpenAI、Anthropic、Gemini、DeepSeek、Qwen、Codex 订阅和本地模型，并内置 150+ Provider 模板。常用接入包括：
 
 <p align="center">
-  <img src="docs/assets/provider-showcase.svg" alt="TokenHub 常用 Provider 接入，覆盖商业模型、订阅模型、本地模型和自定义上游。" width="100%">
+  <img src="docs/assets/provider-showcase.svg" alt="TokenStation 常用 Provider 接入，覆盖商业模型、订阅模型、本地模型和自定义上游。" width="100%">
 </p>
 
-Provider 模板会优先使用对应的原生适配器，其余模板通过 OpenAI-Compatible 接口接入；实际可用模型和能力以对应上游服务及账号权限为准，企业侧策略始终由 TokenHub 统一治理。
+Provider 模板会优先使用对应的原生适配器，其余模板通过 OpenAI-Compatible 接口接入；实际可用模型和能力以对应上游服务及账号权限为准，企业侧策略始终由 TokenStation 统一治理。
 
 ## 快速开始
 
@@ -105,8 +105,8 @@ Linux systemd 主机使用原生 Release：
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/astaxie/TokenHub/main/deploy/native/install.sh \
-  -o /tmp/tokenhub-install.sh
-sudo bash /tmp/tokenhub-install.sh install
+  -o /tmp/tokenstation-install.sh
+sudo bash /tmp/tokenstation-install.sh install
 ```
 
 从仓库检出目录使用 Docker Compose：
@@ -142,7 +142,7 @@ cp deploy/.env.example deploy/.env
 
 ## Contributors
 
-TokenHub 的演进离不开真实企业场景里的使用反馈、网关集成、文档完善、测试补充和持续维护。感谢每一位让项目变得更可靠的人。
+TokenStation 的演进离不开真实企业场景里的使用反馈、网关集成、文档完善、测试补充和持续维护。感谢每一位让项目变得更可靠的人。
 
 <!-- readme: contributors -start -->
 
@@ -345,4 +345,4 @@ TokenHub 的演进离不开真实企业场景里的使用反馈、网关集成�
 
 ## License
 
-TokenHub 采用 [Apache License 2.0](LICENSE) 协议。
+TokenStation 采用 [Apache License 2.0](LICENSE) 协议。

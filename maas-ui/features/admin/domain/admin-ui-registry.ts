@@ -147,7 +147,7 @@ function compactNumber(value: number, locale: string) {
 function formatMoney(value: number, locale: string) {
   return new Intl.NumberFormat(locale, {
     style: "currency",
-    currency: "USD",
+    currency: "CNY", currencyDisplay: "narrowSymbol",
     minimumFractionDigits: value >= 1 ? 2 : 6,
     maximumFractionDigits: value >= 1 ? 2 : 6,
   }).format(value || 0);

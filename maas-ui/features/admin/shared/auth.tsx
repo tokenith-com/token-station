@@ -1,7 +1,8 @@
 import { SvgIcon } from "@/components/svg-icon";
 import { Eye, EyeOff, Fingerprint, KeyRound, Lock, LockKeyhole, LogIn, Mail, Moon, ShieldCheck, Sun, UserRoundCheck, Users } from "lucide-react";
-import { type FormEvent, useState } from "react";
+import { type FormEvent, useEffect, useState } from "react";
 import { type Portal } from "../core/portal";
+import { ConsumerActivation, readActivationToken } from "./consumer-activation";
 import { ConsumerRegistration } from "./consumer-registration";
 import { LoginOTPPreview } from "./login-otp-preview";
 import { savePendingOAuthLogin } from "../core/session";
@@ -709,7 +710,7 @@ export function LoginUtilityActions({
       {showBrand ? (
         <div className="login-brand-lockup">
           <span className="login-brand-mark" aria-hidden="true">
-            <img src="/brand/tokenhub-logo.png" alt="" />
+            <img src="/brand/tokenstation-logo.png" alt="" />
           </span>
           <span className="login-brand-copy">
             <strong>
@@ -737,7 +738,6 @@ export function LoginView({
   oauthReturnURL,
   theme,
   portal = "b",
-  captchaID = "",
   otpLogin,
   embedded = false,
   onLoginModeChange,
@@ -752,7 +752,6 @@ export function LoginView({
   oauthReturnURL: string;
   theme: "light" | "dark";
   portal?: Portal;
-  captchaID?: string;
   // 仅为类型声明；实际显示由父组件传入的 otpLogin 值控制：对象显示验证码页，undefined 显示登录页，当前仅用于开发演示。
   otpLogin?: { identity: string; onVerify: (code: string) => void; onBack: () => void };
   onLoginModeChange?: () => void;
@@ -769,8 +768,28 @@ export function LoginView({
   const [password, setPassword] = useState("");
   const [passwordVisible, setPasswordVisible] = useState(false);
   const [registering, setRegistering] = useState(false);
+  const [activationToken, setActivationToken] = useState("");
+  useEffect(() => {
+    setActivationToken(readActivationToken());
+  }, []);
   const [registrationNotice, setRegistrationNotice] = useState("");
   const [remember, setRemember] = useState(true);
+  function startRegistration() {
+    setRegistering(true);
+    setRegistrationNotice("");
+    onLoginModeChange?.();
+  }
+
+  function finishActivation(email: string, activated: boolean) {
+    if (activated) {
+      setIdentity(email);
+      setRegistrationNotice(tx("账号已激活，请使用邮箱和密码登录"));
+    }
+    setPassword("");
+    setActivationToken("");
+    onLoginModeChange?.();
+  }
+
   function closeOTPLogin() {
     setPassword("");
     otpLogin?.onBack();
@@ -868,6 +887,14 @@ export function LoginView({
           <div className="tc-login-card">
             {otpLogin ? (
               <LoginOTPPreview identity={otpLogin.identity} error={error} onBack={closeOTPLogin} onVerify={otpLogin.onVerify} />
+            ) : activationToken ? (
+              <div className="tc-login-body tc-consumer-body">
+                <ConsumerActivation token={activationToken} onDone={finishActivation} />
+              </div>
+            ) : registering ? (
+              <div className="tc-login-body tc-consumer-body">
+                <ConsumerRegistration onBack={() => setRegistering(false)} />
+              </div>
             ) : (
               <div className="tc-login-body">
                 <div className="tc-login-head">
@@ -901,6 +928,11 @@ export function LoginView({
                       </button>
                     </span>
                   </label>
+                  {registrationNotice ? (
+                    <p className="consumer-form-note" role="status">
+                      {registrationNotice}
+                    </p>
+                  ) : null}
                   {error ? (
                     <div className="login-error" role="alert">
                       {error}
@@ -910,6 +942,13 @@ export function LoginView({
                     {loading ? <span className="tc-login-spinner" aria-hidden="true" /> : <LogIn aria-hidden="true" size={20} />}
                     {loading ? tx("登录中...") : tx("登录")}
                   </button>
+                  <div className="tc-login-register">
+                    <p className="login-divider"><span />{tx("还没有账号？")}<span /></p>
+                    <button className="tc-login-register-button" type="button" disabled={loading} onClick={startRegistration}>
+                      <Mail aria-hidden="true" size={18} />
+                      {tx("邮箱注册")}
+                    </button>
+                  </div>
                   {ssoSection}
                 </form>
               </div>
@@ -931,18 +970,10 @@ export function LoginView({
         <section className="login-account-main">
           {otpLogin ? (
             <LoginOTPPreview identity={otpLogin.identity} error={error} onBack={closeOTPLogin} onVerify={otpLogin.onVerify} />
+          ) : activationToken ? (
+            <ConsumerActivation token={activationToken} onDone={finishActivation} />
           ) : registering ? (
-            <ConsumerRegistration
-              captchaID={captchaID}
-              onBack={() => setRegistering(false)}
-              onRegistered={email => {
-                setIdentity(email);
-                setPassword("");
-                setRegistrationNotice("注册成功，请使用邮箱和密码登录");
-                setRegistering(false);
-                onLoginModeChange?.();
-              }}
-            />
+            <ConsumerRegistration onBack={() => setRegistering(false)} />
           ) : (
             <form className="login-card login-account-card" onSubmit={submit}>
               <label className="login-account-field">
@@ -988,12 +1019,8 @@ export function LoginView({
                   className="consumer-auth-link"
                   type="button"
                   disabled={loading}
-                  onClick={() => {
-                    setRegistering(true);
-                    setRegistrationNotice("");
-                    onLoginModeChange?.();
-                  }}>
-                  短信注册
+                  onClick={startRegistration}>
+                  {tx("邮箱注册")}
                 </button>
               </div>
               {registrationNotice ? (

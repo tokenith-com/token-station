@@ -11,7 +11,7 @@ describe("AdminUIDashboardCards", () => {
     const data = emptyData();
     data.plugins = [{
       id: "tokenhub.admin.plugin-ecosystem",
-      name: "TokenHub Plugin Ecosystem Dashboard",
+      name: "TokenStation Plugin Ecosystem Dashboard",
       version: "built-in",
       source: "built_in",
       kinds: ["admin_ui"],
@@ -155,7 +155,7 @@ describe("AdminUIDashboardCards", () => {
     });
 
     expect(fields).toHaveLength(1);
-    expect(dashboardMetricValue(data, fields[0])).toBe("US$12.35");
+    expect(dashboardMetricValue(data, fields[0])).toBe("¥12.35");
   });
 });
 

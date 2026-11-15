@@ -82,6 +82,7 @@ import {
   adminFetch,
   adminMutate,
   createAdminSaveAttempt,
+  createCustomerOnboarding,
   createTeamMember,
   importUsersFromCSVContent,
   isAuthExpiredError,
@@ -96,6 +97,7 @@ import { resourceConfigFor } from "../resources/settings-config";
 import { APIKeyWizardModal, UserImportModal } from "../views/modals";
 import { ConfirmDialog, providerTypeOptionsFromData } from "../shared/ui";
 import { currentOAuthReturnURL, LoginView, ResetPasswordView } from "../shared/auth";
+import { readActivationToken } from "../shared/consumer-activation";
 import { PortalHome } from "../shared/portal-home";
 import { PageHeader, Sidebar, StatusStack, TopNav } from "./navigation-ui";
 import { AuditView } from "../views/audit";
@@ -107,13 +109,14 @@ import { ModelDirectoryView } from "../views/model-directory";
 import { RouteStrategyView } from "../views/model-catalog";
 import { OverviewView } from "../views/overview";
 import { PersonalAPIKeysView } from "../views/personal-api-keys";
-import { rememberIssuedKey } from "../shared/api-key-value";
+import { configureAPIKeySecretContext } from "../shared/api-key-value";
 import { APIKeyAccessDialogs } from "../shared/api-key-access";
 import { APIKeyUsageView } from "../views/api-key-usage";
 import { PlaygroundPage } from "../views/playground";
 import { PlatformAccountsView, type PlatformAccountValues } from "../views/platform-accounts";
 import { TeamGroupsView, type TeamGroupValues } from "../views/team-groups";
-import { RechargeView, UnavailableAccountService } from "../views/guest-billing";
+import { ConsumerRechargeView } from "../views/recharge";
+import { GuestCostDetailsView } from "../views/guest-cost-details";
 import { ProviderUpsertModal } from "../views/provider-editor";
 import { ProjectWorkspace, type ProjectWorkspaceMode } from "../views/project-workspace";
 import { consoleResourceActions } from "./console-resource-actions";
@@ -128,16 +131,14 @@ import { SourceAdminContent } from "../../source-admin/shell/source-admin-conten
 import { useLoginIdentityProviders } from "./use-login-identity-providers";
 
 const themeStorageKey = "tokenhub.theme";
-// 超管右侧内容区使用 tokenhub 源码前端；Maas-ui 专属页面，以及需与其他角色保持一致的
-// 用量、模型目录、演练场页面仍走 Maas-ui 原实现。
-const maasOnlyViews = new Set<ViewKey>(["balance-recharge", "invoices", "usage", "models", "playground"]);
+// Keep account onboarding and role-shared views here; other admin views reuse the source console.
+const maasOnlyViews = new Set<ViewKey>(["balance-recharge", "usage", "models", "playground"]);
 function usesSourceAdminContent(user: AdminUser, view: ViewKey) {
   if (appRole(user.role) !== "admin") return false;
   return !maasOnlyViews.has(view);
 }
 const apiKeyPageSize = 1000;
-
-type ConsoleProps = { defaultBaseURL: string; portal?: Portal; captchaID?: string };
+type ConsoleProps = { defaultBaseURL: string; portal?: Portal };
 
 export function AdminConsole(props: ConsoleProps) {
   return (
@@ -147,7 +148,7 @@ export function AdminConsole(props: ConsoleProps) {
   );
 }
 
-function AdminConsoleContent({ defaultBaseURL, portal = "b", captchaID = "" }: ConsoleProps) {
+function AdminConsoleContent({ defaultBaseURL, portal = "b" }: ConsoleProps) {
   // 静态部署下浏览器始终直连后端；必须在子组件发出第一个请求之前完成配置（纯赋值、可重复执行）。
   configureBackendBaseURL(defaultBaseURL);
   const pathname = usePathname();
@@ -166,7 +167,7 @@ function AdminConsoleContent({ defaultBaseURL, portal = "b", captchaID = "" }: C
   const [pendingLoginOTP, setPendingLoginOTP] = useState<{ identity: string; payload: Awaited<ReturnType<typeof loginWithPassword>> } | null>(null);
   const [oauthReturnURL, setOAuthReturnURL] = useState(() => currentOAuthReturnURL());
   const [bootstrapped, setBootstrapped] = useState(false);
-  const loginIdentityProviders = useLoginIdentityProviders(bootstrapped && !currentUser, defaultBaseURL);
+  const loginIdentityProviders = useLoginIdentityProviders(bootstrapped && !currentUser && portal === "b", defaultBaseURL);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [openNavGroups, setOpenNavGroups] = useState<Record<string, boolean>>(() => Object.fromEntries(allNavGroupTitles.map(title => [title, true])));
   const [activeView, setActiveView] = useState<ViewKey>(routeView);
@@ -196,6 +197,7 @@ function AdminConsoleContent({ defaultBaseURL, portal = "b", captchaID = "" }: C
 
   const [reportHistory, setReportHistory] = useState<ReportExportHistoryItem[]>([]);
   const [resetToken, setResetToken] = useState("");
+  const [activationLinkOpen, setActivationLinkOpen] = useState(false);
 
   const api = useMemo(() => ({ baseURL, adminToken }), [baseURL, adminToken]);
   const providerTypeOptions = providerTypeOptionsFromData(data);
@@ -279,6 +281,15 @@ function AdminConsoleContent({ defaultBaseURL, portal = "b", captchaID = "" }: C
         clearOAuthAuthorizationResponse();
         clearPendingOAuthLogin();
         setResetToken(passwordResetToken);
+        setBootstrapped(true);
+        return;
+      }
+      if (readActivationToken()) {
+        // An email activation link must reach the activation form even when
+        // another account is signed in on this browser.
+        clearSavedSession(portal);
+        setCurrentUser(null);
+        setActivationLinkOpen(true);
         setBootstrapped(true);
         return;
       }
@@ -452,6 +463,7 @@ function AdminConsoleContent({ defaultBaseURL, portal = "b", captchaID = "" }: C
   useEffect(() => {
     if (currentUser && usesSourceAdminContent(currentUser, activeView)) return;
     function onIssuedKey(event: Event) {
+      if (currentUser && usesSourceAdminContent(currentUser, activeView)) return;
       const detail = (event as CustomEvent<string>).detail;
       if (!detail) return;
       if (isIssuedAPIKey(detail)) {
@@ -466,9 +478,7 @@ function AdminConsoleContent({ defaultBaseURL, portal = "b", captchaID = "" }: C
     return () => window.removeEventListener("tokenhub-issued-key", onIssuedKey);
   }, [currentUser, activeView]);
 
-  useEffect(() => {
-    if (issuedKey && isIssuedAPIKey(issuedKey)) rememberIssuedKey(issuedKey);
-  }, [issuedKey]);
+  useEffect(() => configureAPIKeySecretContext(api), [api]);
 
   async function load(view: ViewKey = activeView) {
     if (!adminToken || !currentUser) return;
@@ -780,7 +790,7 @@ function AdminConsoleContent({ defaultBaseURL, portal = "b", captchaID = "" }: C
     } catch (err) {
       if (isAuthExpiredError(err)) return;
       const message = err instanceof Error ? err.message : tx("保存失败");
-      if (attempt.requested) setModal(null);
+      if (attempt.requested && !(modal.config.view === "models" && !modal.item)) setModal(null);
       else setModalSaveError({ state: modal, message });
       setError(message);
     } finally {
@@ -839,7 +849,7 @@ function AdminConsoleContent({ defaultBaseURL, portal = "b", captchaID = "" }: C
     }
     if (data.providers.length === 0) {
       setNotice("");
-      setError(tx("请先新增 Provider 渠道，再配置路由策略。"));
+      setError(tx("请先新增供应商，再配置路由策略。"));
       selectView("providers");
       return;
     }
@@ -862,7 +872,7 @@ function AdminConsoleContent({ defaultBaseURL, portal = "b", captchaID = "" }: C
       return;
     }
     setIssuedKey("");
-    if (currentUser && appRole(currentUser.role) === "guest") {
+    if (currentUser && appRole(currentUser.role) === "consumer") {
       setQuickAPIKeyOpen(true);
     } else {
       setApiKeyWizardInitialValues({});
@@ -950,7 +960,6 @@ function AdminConsoleContent({ defaultBaseURL, portal = "b", captchaID = "" }: C
         oauthReturnURL={oauthReturnURL}
         theme={theme}
         portal={portal}
-        captchaID={captchaID}
         otpLogin={
           pendingLoginOTP
             ? {
@@ -971,7 +980,7 @@ function AdminConsoleContent({ defaultBaseURL, portal = "b", captchaID = "" }: C
     );
     if (portal !== "b") return loginView;
     return (
-      <PortalHome forceOpen={Boolean(loginError || pendingLoginOTP)} language={language} onLanguageChange={changeLanguage} onThemeToggle={toggleTheme} theme={theme}>
+      <PortalHome forceOpen={Boolean(loginError || pendingLoginOTP || activationLinkOpen)} language={language} onLanguageChange={changeLanguage} onThemeToggle={toggleTheme} theme={theme}>
         {loginView}
       </PortalHome>
     );
@@ -1066,13 +1075,13 @@ function AdminConsoleContent({ defaultBaseURL, portal = "b", captchaID = "" }: C
   const isAccountManagementView = activeView === "users" && ["admin", "team_leader"].includes(accountManagementRole);
   const isTeamGroupsView = activeView === "teams" && accountManagementRole === "team_leader";
   const isRoleManagementView = activeView === "settings" && appRole(currentUser.role) === "admin";
-  const isMemberAuditView = activeView === "audit" && ["team_leader", "user", "guest"].includes(accountManagementRole);
-  const isMemberGatewayView = activeView === "gateway" && ["user", "guest"].includes(accountManagementRole);
-  const isPersonalAPIKeysView = activeView === "api-keys" && accountManagementRole === "guest";
+  const isMemberAuditView = activeView === "audit" && ["team_leader", "user", "consumer"].includes(accountManagementRole);
+  const isMemberGatewayView = activeView === "gateway" && ["user", "consumer"].includes(accountManagementRole);
+  const isPersonalAPIKeysView = activeView === "api-keys" && accountManagementRole === "consumer";
   const isTeamResourceView = accountManagementRole === "team_leader" && ["usage", "gateway", "api-keys", "projects"].includes(activeView);
   const isMemberKeyListView = activeView === "api-keys" && accountManagementRole === "user";
-  const isPersonalUsageView = activeView === "usage" && ["user", "guest"].includes(accountManagementRole);
-  const isGuestCostView = accountManagementRole === "guest" && ["billing", "balance-recharge", "invoices"].includes(activeView);
+  const isPersonalUsageView = activeView === "usage" && ["user", "consumer"].includes(accountManagementRole);
+  const isGuestCostView = accountManagementRole === "consumer" && ["billing", "balance-recharge"].includes(activeView);
 
   return (
     <ModalErrorProvider
@@ -1084,7 +1093,6 @@ function AdminConsoleContent({ defaultBaseURL, portal = "b", captchaID = "" }: C
           activeView={activeView}
           onSelect={selectView}
           user={currentUser}
-          onLogout={() => void logout()}
           collapsed={sidebarCollapsed}
           onToggleCollapse={() => setSidebarCollapsed(value => !value)}
           openGroups={openNavGroups}
@@ -1094,6 +1102,7 @@ function AdminConsoleContent({ defaultBaseURL, portal = "b", captchaID = "" }: C
         <section className="workspace">
           <TopNav
             activeView={activeView}
+            api={api}
             data={data}
             user={currentUser}
             theme={theme}
@@ -1130,20 +1139,8 @@ function AdminConsoleContent({ defaultBaseURL, portal = "b", captchaID = "" }: C
                       ? "content-panel role-management-content-panel"
                       : "content-panel"
             }>
-            {activeView === "playground" ||
-            activeView === "overview" ||
-            activeView === "models" ||
-            activeView === "routes" ||
-            isProviderView ||
-            isAccountManagementView ||
-            isTeamGroupsView ||
-            isRoleManagementView ||
-            isMemberAuditView ||
-            isMemberGatewayView ||
-            isPersonalAPIKeysView ||
-            isPersonalUsageView ||
-            isGuestCostView ? null : (
-              <PageHeader activeView={activeView} data={data} meta={activeMeta} user={currentUser} />
+            {activeView === "playground" ? null : (
+              <PageHeader activeView={activeView} data={data} meta={activeMeta} user={currentUser} onSelect={selectView} />
             )}
 
             <StatusStack error={error} notice={notice} onClearError={() => setError("")} onClearNotice={() => setNotice("")} />
@@ -1163,7 +1160,15 @@ function AdminConsoleContent({ defaultBaseURL, portal = "b", captchaID = "" }: C
             {activeView === "overview" ? (
               <OverviewView api={api} data={data} user={currentUser} onSelectView={selectView} />
             ) : activeView === "playground" ? (
-              <PlaygroundPage api={api} data={data} canViewRoutes={canAccessView(currentUser, "routes")} personal={accountManagementRole === "guest"} onRecharge={() => selectView("balance-recharge")} />
+              <PlaygroundPage
+                api={api}
+                data={data}
+                canViewRoutes={canAccessView(currentUser, "routes")}
+                currentUserID={currentUser.id}
+                onCreateKey={canAccessView(currentUser, "api-keys") ? () => selectView("api-keys") : undefined}
+                personal={accountManagementRole === "consumer"}
+                onRecharge={() => selectView("balance-recharge")}
+              />
             ) : activeView === "gateway" ? (
               <GatewayView
                 api={api}
@@ -1177,12 +1182,10 @@ function AdminConsoleContent({ defaultBaseURL, portal = "b", captchaID = "" }: C
               />
             ) : activeView === "usage" ? (
               <UsageView api={api} data={data} user={currentUser} />
-            ) : activeView === "balance-recharge" && accountManagementRole === "guest" ? (
-              <RechargeView api={api} />
-            ) : activeView === "invoices" && accountManagementRole === "guest" ? (
-              <UnavailableAccountService service="invoices" />
+            ) : activeView === "balance-recharge" && accountManagementRole === "consumer" ? (
+              <ConsumerRechargeView api={api} />
             ) : activeView === "billing" ? (
-              <BillingView data={data} user={currentUser} />
+              accountManagementRole === "consumer" ? <GuestCostDetailsView api={api} data={data} /> : <BillingView data={data} user={currentUser} />
             ) : activeView === "audit" ? (
               <AuditView api={api} data={data} user={currentUser} />
             ) : activeView === "database-status" ? (
@@ -1283,6 +1286,12 @@ function AdminConsoleContent({ defaultBaseURL, portal = "b", captchaID = "" }: C
                   : savePlatformAccount(null, values, "用户新增成功")}
                 onDelete={item => setConfirmDelete({ config: activeConfig, item })}
                 onEdit={(item, values) => savePlatformAccount(item, values, "用户信息已更新")}
+                onOnboard={async values => {
+                  setLoading(true); setError(""); setNotice("");
+                  try { await createCustomerOnboarding(api, values); await load("users"); setNotice(tx("客户开通成功")); return true; }
+                  catch (err) { if (!isAuthExpiredError(err)) setError(err instanceof Error ? err.message : tx("客户开通失败，请检查后重试")); return false; }
+                  finally { setLoading(false); }
+                }}
                 onResetPassword={(item, values) => savePlatformAccount(item, values, "密码已重置")}
                 onToggleStatus={async item => {
                   const values = {
@@ -1527,7 +1536,7 @@ function AdminConsoleContent({ defaultBaseURL, portal = "b", captchaID = "" }: C
           onCancel={() => setPendingAction(null)}
           onConfirm={() => { const pending = pendingAction; setPendingAction(null); void runResourceAction(pending.action, pending.item, data, true); }}
         /> : null}
-        {accountManagementRole === "guest"
+        {usesSourceAdminContent(currentUser, activeView) ? null : accountManagementRole === "consumer"
           ? issuedKey ? <IssuedKeyModal value={issuedKey} onClose={() => setIssuedKey("")} /> : null
           : !usesSourceAdminContent(currentUser, activeView) && <APIKeyAccessDialogs key={currentUser.id} baseURL={api.baseURL} issuedKey={issuedKey} onCloseIssuedKey={() => setIssuedKey("")} />}
       </main>
@@ -1535,17 +1544,7 @@ function AdminConsoleContent({ defaultBaseURL, portal = "b", captchaID = "" }: C
   );
 }
 
-// Go 后端空切片会序列化为 null，这里把用量拆分里的各个列表兜底成数组。
 function normalizeUsageBreakdown(raw: Partial<UsageBreakdown> | null | undefined): UsageBreakdown {
   const list = (value: unknown) => (Array.isArray(value) ? value : []);
-  return {
-    ...raw,
-    projects: list(raw?.projects),
-    models: list(raw?.models),
-    members: list(raw?.members),
-    providers: list(raw?.providers),
-    provider_resources: list(raw?.provider_resources),
-    cost_centers: list(raw?.cost_centers),
-    api_keys: list(raw?.api_keys),
-  };
+  return { ...raw, projects: list(raw?.projects), models: list(raw?.models), members: list(raw?.members), providers: list(raw?.providers), provider_resources: list(raw?.provider_resources), cost_centers: list(raw?.cost_centers), api_keys: list(raw?.api_keys) };
 }

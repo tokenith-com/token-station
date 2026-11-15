@@ -340,7 +340,7 @@ export function modelCachedReadPrice(model: Model) {
 
 export function modelCacheReadPriceHint(info: ModelCacheReadPriceInfo) {
   if (info.source === "configured") {
-    return `${tx("已配置缓存读价")} $${modelCatalogMoney(info.price || 0)}/1M Token；${tx("命中缓存的输入 Token 按此价格估算成本。")}`;
+    return `${tx("已配置缓存读价")} ¥${modelCatalogMoney(info.price || 0)}/1M Token；${tx("命中缓存的输入 Token 按此价格估算成本。")}`;
   }
   if (info.source === "estimated") {
     return `${tx("未配置缓存读价，当前按标准输入价的")} ${cacheReadEstimatePercent(info.ratio || 0)} ${tx("估算；建议按上游实际价格配置。")}`;
@@ -391,7 +391,7 @@ export function modelCatalogSource(model: Model, data: AppData) {
 }
 
 export function modelCatalogPriceValue(value: number | undefined) {
-  return value && value > 0 ? `$${modelCatalogMoney(value)}` : "-";
+  return value && value > 0 ? `¥${modelCatalogMoney(value)}` : "-";
 }
 
 export function modelCatalogMoney(value: number) {

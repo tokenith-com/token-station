@@ -1,57 +1,67 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { ConsumerActivation } from "./consumer-activation";
 import { ConsumerRegistration } from "./consumer-registration";
-import { verifyRegistrationCaptcha } from "./registration-captcha";
 
-vi.mock("./registration-captcha", () => ({ verifyRegistrationCaptcha: vi.fn() }));
-const proof = { lot_number: "lot", captcha_output: "output", pass_token: "token", gen_time: "time" };
+afterEach(() => vi.unstubAllGlobals());
 
-beforeEach(() => { vi.mocked(verifyRegistrationCaptcha).mockReset().mockResolvedValue(proof); });
-
-describe("consumer registration", () => {
-  it("registers with the SMS session and returns to account login", async () => {
+describe("consumer email registration", () => {
+  it("requires agreement consent before sending the activation email", async () => {
     const user = userEvent.setup();
     const fetcher = vi.fn()
-      .mockResolvedValueOnce(Response.json({ code: 200, session_id: "bound-session" }))
-      .mockResolvedValueOnce(Response.json({ code: 200, message: "success" }));
+      .mockResolvedValueOnce(Response.json({ captcha_id: "cap_1", image: "data:image/png;base64,AAA", expires_in_secs: 300 }))
+      .mockResolvedValueOnce(Response.json({ email: "a@example.com", expires_at: "x", resend_after_secs: 60 }));
     vi.stubGlobal("fetch", fetcher);
-    const onRegistered = vi.fn();
-    render(<ConsumerRegistration captchaID="app-id" onBack={vi.fn()} onRegistered={onRegistered} />);
-    fireEvent.change(screen.getByLabelText("邮箱"), { target: { value: "new@example.com" } });
-    fireEvent.change(screen.getByLabelText("设置密码"), { target: { value: "password123" } });
-    fireEvent.change(screen.getByLabelText("确认密码"), { target: { value: "password123" } });
-    fireEvent.change(screen.getByLabelText("手机号"), { target: { value: "13800000000" } });
-    await user.click(screen.getByRole("button", { name: "获取验证码" }));
-    expect(await screen.findByRole("button", { name: /秒后重发/ })).toBeDisabled();
-    fireEvent.change(screen.getByLabelText("短信验证码"), { target: { value: "123456" } });
-    await user.click(screen.getByRole("button", { name: "注册" }));
-    await waitFor(() => expect(onRegistered).toHaveBeenCalledWith("new@example.com"));
-    const [url, init] = fetcher.mock.calls[1];
-    expect(url).toBe("/api/backend/api/admin/auth/register");
-    expect(Object.fromEntries(new URLSearchParams(init.body))).toEqual({ email: "new@example.com", name: "", password: "password123", mobile: "13800000000", code: "123456", session_id: "bound-session" });
+    render(<ConsumerRegistration onBack={vi.fn()} />);
+
+    await user.type(screen.getByLabelText("邮箱"), "a@example.com");
+    await user.click(screen.getByRole("button", { name: "发送激活邮件" }));
+    expect(screen.getByRole("alert")).toHaveTextContent("请先阅读并同意");
+    expect(fetcher).toHaveBeenCalledTimes(1);
+    expect(String(fetcher.mock.calls[0][0])).toMatch(/register\/captcha$/);
+
+    await user.click(screen.getByRole("checkbox"));
+    await user.type(screen.getByLabelText("验证码"), "ABCD");
+    await user.click(screen.getByRole("button", { name: "发送激活邮件" }));
+    expect(await screen.findByRole("heading", { name: "查收激活邮件" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "60 秒后可重新发送" })).toBeDisabled();
   });
 
-  it("invalidates the SMS session when the phone number changes", async () => {
+  it("opens the Chinese agreement documents", async () => {
     const user = userEvent.setup();
-    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(Response.json({ code: 200, session_id: "old-phone" })));
-    render(<ConsumerRegistration captchaID="app-id" onBack={vi.fn()} onRegistered={vi.fn()} />);
-    fireEvent.change(screen.getByLabelText("手机号"), { target: { value: "13800000000" } });
-    await user.click(screen.getByRole("button", { name: "获取验证码" }));
-    await screen.findByText("验证码已发送，请查看手机短信");
-    expect(screen.getByRole("button", { name: "注册" })).toBeEnabled();
-    fireEvent.change(screen.getByLabelText("手机号"), { target: { value: "13900000000" } });
-    expect(screen.getByRole("button", { name: "注册" })).toBeDisabled();
+    render(<ConsumerRegistration onBack={vi.fn()} />);
+    await user.click(screen.getByRole("button", { name: "《支付协议》" }));
+    expect(screen.getByRole("dialog")).toHaveTextContent("第五条（退款）");
+    await user.click(screen.getByRole("button", { name: "我已阅读" }));
+    await user.click(screen.getByRole("button", { name: "《用户服务协议》" }));
+    expect(screen.getByRole("dialog")).toHaveTextContent("第八条（禁止行为）");
   });
 
-  it("allows retry after captcha or SMS errors without starting a cooldown", async () => {
+  it("verifies the activation link and sets the password", async () => {
     const user = userEvent.setup();
-    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(Response.json({ code: 401, message: "InvalidCode" })));
-    render(<ConsumerRegistration captchaID="app-id" onBack={vi.fn()} onRegistered={vi.fn()} />);
-    fireEvent.change(screen.getByLabelText("手机号"), { target: { value: "13800000000" } });
-    await user.click(screen.getByRole("button", { name: "获取验证码" }));
-    expect(await screen.findByRole("alert")).toHaveTextContent("验证码错误");
-    expect(screen.getByRole("button", { name: "获取验证码" })).toBeEnabled();
-    expect(screen.getByRole("button", { name: "注册" })).toBeDisabled();
+    const fetcher = vi.fn()
+      .mockResolvedValueOnce(Response.json({ email: "a@example.com", expires_at: "x" }))
+      .mockResolvedValueOnce(Response.json({ user: {} }));
+    vi.stubGlobal("fetch", fetcher);
+    const onDone = vi.fn();
+    render(<ConsumerActivation token="token" onDone={onDone} />);
+
+    expect(await screen.findByDisplayValue("a@example.com")).toBeInTheDocument();
+    await user.type(screen.getByLabelText("设置密码"), "password1");
+    await user.type(screen.getByLabelText("确认密码"), "password2");
+    await user.click(screen.getByRole("button", { name: "激活账号" }));
+    expect(screen.getByRole("alert")).toHaveTextContent("两次输入的密码不一致");
+
+    await user.clear(screen.getByLabelText("确认密码"));
+    await user.type(screen.getByLabelText("确认密码"), "password1");
+    await user.click(screen.getByRole("button", { name: "激活账号" }));
+    await waitFor(() => expect(onDone).toHaveBeenCalledWith("a@example.com", true));
+  });
+
+  it("reports an expired activation link", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(Response.json({ error: { code: "invalid_activation_token" } }, { status: 400 })));
+    render(<ConsumerActivation token="bad" onDone={vi.fn()} />);
+    expect(await screen.findByRole("alert")).toHaveTextContent("激活链接无效或已过期");
   });
 });

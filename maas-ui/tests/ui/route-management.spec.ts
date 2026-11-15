@@ -99,6 +99,7 @@ test("route-management last-route-deletion", async ({ page, api }, testInfo) => 
   installRouteFixtures(api);
   const overview = shellResponses().get("GET /api/admin/overview") as Record<string, unknown>;
   api.replaceResponse("GET", "/api/admin/overview", { ...overview, providers: [provider], models: [unmapped, model] });
+  api.replaceResponse("GET", "/api/admin/models", { data: [unmapped, model] });
   api.define("DELETE", `/api/admin/routing-rules/${route.id}`, () => {
     api.replaceResponse("GET", "/api/admin/routing-rules", { data: [] });
     return { status: 204, json: null };

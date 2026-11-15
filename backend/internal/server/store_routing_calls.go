@@ -558,13 +558,19 @@ func (s *GormStore) FinishCall(call CallContext, route RouteSelection, usage Usa
 	// and its fallback cleanup. Deferring also means the request is still counted
 	// when persistence fails or panics — losing persistence must not also lose the
 	// observation that the request happened.
-	defer s.observeGatewayCall(call, route, usage, statusCode, errorCode, elapsed)
+	defer func() { s.observeGatewayCall(call, route, usage, statusCode, errorCode, elapsed) }()
 	now := time.Now().UTC()
 	err := s.db.Transaction(func(tx *gorm.DB) error {
 		return s.finishCallTransaction(tx, call, route, usage, statusCode, errorCode, clientIP, userAgent, now, elapsed)
 	})
 	if err != nil {
 		log.Printf("[tokenhub] failed to finish call request=%s: %v", call.RequestID, err)
+		if errors.Is(err, errTeamWalletSettlementExceeded) || errors.Is(err, errTeamWalletSettlementInvalid) {
+			statusCode, errorCode = http.StatusConflict, AsHTTPError(err).Code
+			if failureErr := s.failTeamWalletSettlement(call, route, errorCode, clientIP, userAgent, now, elapsed); failureErr != nil {
+				log.Printf("[tokenhub] failed to record wallet settlement failure request=%s: %v", call.RequestID, failureErr)
+			}
+		}
 		s.rollbackRedisBilling("request", call)
 		if releaseErr := s.deleteRequestConcurrencyLeases(s.db, call.RequestID); releaseErr != nil {
 			log.Printf("[tokenhub] failed to release request concurrency leases request=%s: %v", call.RequestID, releaseErr)
@@ -589,6 +595,9 @@ func (s *GormStore) finishCallTransaction(tx *gorm.DB, call CallContext, route R
 		}
 		if existing > 0 {
 			return s.deleteRequestConcurrencyLeases(tx, call.RequestID)
+		}
+		if err := settleTeamWalletCall(tx, call, usage, statusCode >= 200 && statusCode < 300 && errorCode == "", now); err != nil {
+			return err
 		}
 	}
 	if call.Key.ID != "" {

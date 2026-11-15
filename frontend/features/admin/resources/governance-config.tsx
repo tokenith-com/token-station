@@ -13,7 +13,7 @@ export function adminUserConfig(): ResourceConfig<AdminUser> {
     view: "users",
     title: "用户管理",
     eyebrow: "后台用户列表",
-    description: "管理 TokenHub 后台登录账号、角色权限、归属团队和账号状态。",
+    description: "管理 TokenStation 后台登录账号、角色权限、归属团队和账号状态。",
     createLabel: "新增用户",
     columns: [
       { key: "name", label: "姓名" },
@@ -30,9 +30,10 @@ export function adminUserConfig(): ResourceConfig<AdminUser> {
       { key: "email", label: "邮箱", required: true },
       { key: "password", label: "密码", type: "password", placeholder: "编辑时留空则不修改" },
       { key: "role", label: "角色", type: "select", optionsFromData: roleSelectOptions, required: true },
-      { key: "team_id", label: "主团队", type: "select", optionsFromData: teamSelectOptions, help: "主团队用于默认责任和成本归属。" },
+      { key: "team_id", label: "主团队", type: "select", optionsFromData: teamSelectOptions, visible: (values) => !["consumer", "guest"].includes(values.role), help: "主团队用于默认责任和成本归属。" },
       {
         key: "team_ids",
+        visible: (values) => !["consumer", "guest"].includes(values.role),
         label: "其他团队",
         type: "multi-select",
         optionsFromData: (data, _currentUser, values) => teamSelectOptions(data).filter((option) => option.value !== values?.team_id),
@@ -367,7 +368,7 @@ export function reportExportPath(dataset: string, period?: string) {
 }
 
 export function reportFilename(dataset: string, period?: string) {
-  return `tokenhub-${dataset}${period ? `-${period}` : ""}.csv`;
+  return `tokenstation-${dataset}${period ? `-${period}` : ""}.csv`;
 }
 
 export function currentBillingPeriod() {
@@ -378,7 +379,7 @@ export async function downloadSQLiteBackup(ctx: ApiContext, item: SQLiteBackup) 
   const resp = await adminFetch(ctx, `/api/admin/sqlite/backups/${item.id}/download`);
   if (!resp.ok) throw new Error(`download sqlite backup ${resp.status}`);
   const blob = await resp.blob();
-  downloadBlob(blob, item.file_name || `tokenhub-${item.id}.sqlite3`);
+  downloadBlob(blob, item.file_name || `tokenstation-${item.id}.sqlite3`);
 }
 
 export async function restoreSQLiteBackup(ctx: ApiContext, item: SQLiteBackup) {

@@ -1,6 +1,6 @@
 # Grok
 
-Connect an explicitly authorized Grok account to TokenHub.
+Connect an explicitly authorized Grok account to TokenStation.
 
 - Plugin ID: `tokenhub.provider.grok-subscription`
 - Configuration: Provider management, with a separate account resource

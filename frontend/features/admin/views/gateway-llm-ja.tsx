@@ -48,7 +48,7 @@ export function gatewayJapaneseLLMUsageDocs(stats: GatewayDocStats, role: AppRol
             group: "クイックスタート",
             badge: "GUIDE",
             title: "はじめての接続",
-            description: "TokenHub 経由で最初の OpenAI 互換 LLM リクエストを送信します。",
+            description: "TokenStation 経由で最初の OpenAI 互換 LLM リクエストを送信します。",
             details: [
               { label: "Base URL", value: stats.baseURL },
               { label: "認証 Header", value: "Authorization: Bearer <API Key>" },
@@ -175,7 +175,7 @@ export function gatewayJapaneseLLMUsageDocs(stats: GatewayDocStats, role: AppRol
                 ["model", "string", "はい", `/v1/models のモデル ID。例: ${stats.sampleModel}`],
                 ["messages", "array", "はい", "system、user、assistant のメッセージ配列。"],
                 ["max_tokens", "integer", "いいえ", "最大生成 tokens。"],
-                ["max_completion_tokens", "integer", "いいえ", "OpenAI 互換の最大生成 tokens。両方の出力トークン上限フィールドがある場合、TokenHub は大きい値を使用します。"],
+                ["max_completion_tokens", "integer", "いいえ", "OpenAI 互換の最大生成 tokens。両方の出力トークン上限フィールドがある場合、TokenStation は大きい値を使用します。"],
                 ["temperature", "number", "いいえ", "サンプリング温度。"],
                 ["reasoning_effort", "string", "いいえ", "推論強度。選択されたルートが対応しない場合は省略します。"],
                 ["stream", "boolean", "いいえ", "true の場合は SSE で返し、data: [DONE] で終了します。"],
@@ -230,7 +230,7 @@ export function gatewayJapaneseLLMUsageDocs(stats: GatewayDocStats, role: AppRol
               title: "リクエスト Body",
               columns: ["フィールド", "型", "必須", "説明"],
               rows: [
-                ["model", "string", "はい", "呼び出し可能な TokenHub モデル ID。"],
+                ["model", "string", "はい", "呼び出し可能な TokenStation モデル ID。"],
                 ["max_tokens", "integer", "はい", "最大生成 tokens。"],
                 ["messages", "array", "はい", "user、assistant、構造化 content block からなる Anthropic メッセージ。"],
                 ["system", "string | array", "いいえ", "トップレベルの Anthropic system prompt。"],
@@ -314,7 +314,7 @@ export function gatewayJapaneseLLMUsageDocs(stats: GatewayDocStats, role: AppRol
             group: teamLeader ? "チーム導入" : "Project Key",
             badge: "SDK",
             title: "SDK と Claude Code",
-            description: "OpenAI 互換 SDK は TokenHub Base URL を使い、Claude Code は TokenHub Host URL を使います。",
+            description: "OpenAI 互換 SDK は TokenStation Base URL を使い、Claude Code は TokenStation Host URL を使います。",
             examplesTitle: "クライアント例",
             examples: [
               { title: "Node.js", code: gatewayOpenAISDKExample(stats) },

@@ -15,9 +15,9 @@ test("gateway OpenAPI docs render as self-hosted Swagger UI", async ({ page }) =
 
   await page.goto(`${backendURL}/docs`);
 
-  await expect(page.getByRole("heading", { name: "TokenHub API Reference" })).toBeVisible();
-  await expect(page.getByRole("main", { name: "TokenHub Swagger UI" })).toBeVisible();
-  await expect(page.getByText("TokenHub Public Gateway API")).toBeVisible({ timeout: 10_000 });
+  await expect(page.getByRole("heading", { name: "TokenStation API Reference" })).toBeVisible();
+  await expect(page.getByRole("main", { name: "TokenStation Swagger UI" })).toBeVisible();
+  await expect(page.getByText("TokenStation Public Gateway API")).toBeVisible({ timeout: 10_000 });
   await expect(page.getByText("POST").first()).toBeVisible();
   await expect(page.getByText("/v1/chat/completions")).toBeVisible();
   await expect(page.getByRole("link", { name: "Open JSON" })).toHaveAttribute("href", "/openapi.json");

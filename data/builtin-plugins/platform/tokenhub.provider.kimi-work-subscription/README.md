@@ -1,6 +1,6 @@
 # Kimi Work
 
-Connect an explicitly authorized Kimi Work account to TokenHub.
+Connect an explicitly authorized Kimi Work account to TokenStation.
 
 - Plugin ID: `tokenhub.provider.kimi-work-subscription`
 - Configuration: Provider management, with a separate account resource

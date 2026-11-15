@@ -91,6 +91,9 @@ PRIMARY KEY (key_id, scope, bucket)
 	// The legacy schema predates the ledger and the payment expansions.
 	// Remove dependent tables before their referenced tables.
 	for _, statement := range []string{
+		"DROP TABLE team_wallet_calls",
+		"DROP TABLE team_wallet_entries",
+		"DROP TABLE team_wallets",
 		"DROP TABLE wallet_usage",
 		"DROP TABLE wallet_transactions",
 		"DROP TABLE payment_refunds",
@@ -102,6 +105,7 @@ PRIMARY KEY (key_id, scope, bucket)
 		if err := store.db.Exec(statement).Error; err != nil {
 			t.Fatal(err)
 		}
+
 	}
 	if err := store.Close(); err != nil {
 		t.Fatalf("close seed store: %v", err)

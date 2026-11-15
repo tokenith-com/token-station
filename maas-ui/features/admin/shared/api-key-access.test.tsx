@@ -68,6 +68,8 @@ describe("API key setup", () => {
     expect(screen.getByLabelText("API Key 占位符")).toHaveValue(apiKeyPlaceholder);
     expect(screen.queryByDisplayValue(secret)).not.toBeInTheDocument();
     fireEvent.keyDown(screen.getByRole("dialog"), { key: "Escape" });
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /^关闭$/ }));
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     vi.unstubAllGlobals();
   });

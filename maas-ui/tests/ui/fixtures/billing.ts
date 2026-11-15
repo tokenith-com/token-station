@@ -51,5 +51,6 @@ export function readStatementQuery(body: unknown): StatementQuery {
   if (!Array.isArray(value.project_ids) || value.project_ids.some(id => typeof id !== "string")) throw new Error("Expected project_ids string array");
   if (value.display_currency !== undefined && !["USD", "CNY", "JPY", "RUB"].includes(value.display_currency as string)) throw new Error("Unexpected statement display currency");
   if (value.display_exchange_rate !== undefined && typeof value.display_exchange_rate !== "string") throw new Error("Expected display_exchange_rate string");
+  if (value.display_currency === "USD" && value.display_exchange_rate !== "1") throw new Error("USD statement conversion requires rate one");
   return value as StatementQuery;
 }

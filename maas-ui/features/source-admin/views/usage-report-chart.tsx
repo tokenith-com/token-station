@@ -68,7 +68,7 @@ export function UsageReportChart({ report }: { report: UsageReport }) {
         </div>
       </div>
       <p className="global-usage-chart-selection" aria-live="polite">{activePoint ? pointDescription(activePoint, report) : tx("悬停或聚焦柱形可查看用量明细")}</p>
-      <details className="global-usage-chart-data">
+      <details open className="global-usage-chart-data">
         <summary>{tx("查看趋势数据")}</summary>
         <div className="global-usage-chart-table"><table>
           <caption>{tx("Token 用量趋势")}</caption>

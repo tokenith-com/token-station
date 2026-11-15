@@ -1,6 +1,6 @@
 # QwenWork Enterprise
 
-Connect an explicitly authorized QwenWork Enterprise account to TokenHub.
+Connect an explicitly authorized QwenWork Enterprise account to TokenStation.
 
 - Plugin ID: `tokenhub.provider.qwenwork-enterprise-subscription`
 - Configuration: Provider management, with a separate account resource

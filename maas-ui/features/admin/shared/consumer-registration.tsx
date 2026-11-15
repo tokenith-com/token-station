@@ -1,33 +1,51 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import { registerConsumer, sendRegistrationSMS } from "../core/registration-api";
-import { verifyRegistrationCaptcha } from "./registration-captcha";
+import { requestActivation, requestCaptcha } from "../core/registration-api";
+import { formatTranslationTemplate, tx } from "../i18n/runtime";
+import { type AgreementDocument, paymentAgreement, termsOfService } from "./consumer-agreements";
+import { useModalFocus } from "./modal-focus";
 
-export function ConsumerRegistration({ captchaID, onBack, onRegistered }: {
-  captchaID: string;
-  onBack: () => void;
-  onRegistered: (identity: string) => void;
-}) {
+function AgreementDialog({ document, onClose }: { document: AgreementDocument; onClose: () => void }) {
+  const focus = useModalFocus(onClose);
+  const title = document.key === "terms" ? tx("《用户服务协议》") : tx("《支付协议》");
+  return (
+    <div className="consumer-agreement-backdrop" onClick={onClose}>
+      <div {...focus} className="consumer-agreement-dialog" role="dialog" aria-modal="true" aria-labelledby="consumer-agreement-title" onClick={event => event.stopPropagation()}>
+        <header>
+          <h2 id="consumer-agreement-title">{title}</h2>
+          <p>{formatTranslationTemplate(tx("更新日期：{date}"), { date: document.updatedAt })}</p>
+        </header>
+        <div className="consumer-agreement-body" lang="zh-CN">
+          {document.preface.map(paragraph => <p key={paragraph}>{paragraph}</p>)}
+          {document.sections.map(section => (
+            <section key={section.title}>
+              <h3>{section.title}</h3>
+              <ol>{section.items.map(item => <li key={item}>{item}</li>)}</ol>
+            </section>
+          ))}
+        </div>
+        <footer><button className="button login-submit" type="button" onClick={onClose}>{tx("我已阅读")}</button></footer>
+      </div>
+    </div>
+  );
+}
+
+export function ConsumerRegistration({ onBack }: { onBack: () => void }) {
   const [email, setEmail] = useState("");
-  const [name, setName] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirmation, setConfirmation] = useState("");
-  const [mobile, setMobile] = useState("");
-  const [code, setCode] = useState("");
-  const [smsSession, setSMSSession] = useState<{ mobile: string; id: string } | null>(null);
+  const [agreed, setAgreed] = useState(false);
+  const [opened, setOpened] = useState<AgreementDocument | null>(null);
+  const [sentTo, setSentTo] = useState("");
   const [remaining, setRemaining] = useState(0);
   const [sending, setSending] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
-  const [notice, setNotice] = useState("");
+  const [captcha, setCaptcha] = useState<{ id: string; image: string } | null>(null);
+  const [captchaAnswer, setCaptchaAnswer] = useState("");
+  const [captchaLoading, setCaptchaLoading] = useState(false);
   const active = useRef(true);
-  const controller = useRef<AbortController | null>(null);
   const busy = useRef(false);
-  const registrationBusy = useRef(false);
-  const phoneValid = /^1[3-9]\d{9}$/.test(mobile);
 
   useEffect(() => {
     active.current = true;
-    return () => { active.current = false; controller.current?.abort(); };
+    return () => { active.current = false; };
   }, []);
   useEffect(() => {
     if (remaining <= 0) return;
@@ -35,66 +53,93 @@ export function ConsumerRegistration({ captchaID, onBack, onRegistered }: {
     return () => clearTimeout(timeout);
   }, [remaining]);
 
-  async function sendSMS() {
-    if (busy.current || remaining > 0) return;
-    setError(""); setNotice("");
-    if (!phoneValid) { setError("请输入正确的 11 位手机号"); return; }
+  async function loadCaptcha() {
+    setCaptchaLoading(true);
+    try {
+      const challenge = await requestCaptcha();
+      if (!active.current) return;
+      setCaptcha({ id: challenge.captcha_id, image: challenge.image });
+      setCaptchaAnswer("");
+    } catch {
+      if (active.current) setCaptcha(null);
+    } finally {
+      if (active.current) setCaptchaLoading(false);
+    }
+  }
+  useEffect(() => { void loadCaptcha(); }, []);
+
+  async function send(target: string) {
+    if (busy.current) return;
+    setError("");
+    if (!agreed) { setError(tx("请先阅读并同意《用户服务协议》和《支付协议》")); return; }
+    if (!captcha || !captchaAnswer.trim()) { setError(tx("请输入验证码")); return; }
     busy.current = true;
     setSending(true);
-    controller.current = new AbortController();
-    const selectedMobile = mobile;
     try {
-      const proof = await verifyRegistrationCaptcha(captchaID, controller.current.signal);
-      if (!proof || !active.current) return;
-      const id = await sendRegistrationSMS(selectedMobile, proof);
+      const result = await requestActivation(target, captcha.id, captchaAnswer.trim());
       if (!active.current) return;
-      setSMSSession({ mobile: selectedMobile, id });
-      setRemaining(60);
-      setNotice("验证码已发送，请查看手机短信");
+      setSentTo(result.email || target);
+      setRemaining(Math.max(0, Math.round(result.resend_after_secs || 60)));
     } catch (err) {
-      if (active.current) setError(err instanceof Error ? err.message : "短信发送失败");
+      if (active.current) setError(err instanceof Error ? err.message : tx("激活邮件发送失败，请稍后重试"));
+      void loadCaptcha();
     } finally {
       busy.current = false;
       if (active.current) setSending(false);
     }
   }
 
-  async function submit(event: FormEvent<HTMLFormElement>) {
+  function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (registrationBusy.current) return;
-    setError(""); setNotice("");
-    if (password !== confirmation) { setError("两次输入的密码不一致"); return; }
-    if (!phoneValid || !smsSession || smsSession.mobile !== mobile) { setError("请先为当前手机号获取短信验证码"); return; }
-    registrationBusy.current = true;
-    setSubmitting(true);
-    try {
-      await registerConsumer({ email: email.trim(), name: name.trim(), password, mobile, code: code.trim(), session_id: smsSession.id });
-      if (active.current) onRegistered(email.trim());
-    } catch (err) {
-      if (active.current) setError(err instanceof Error ? err.message : "注册失败，请稍后重试");
-    } finally {
-      registrationBusy.current = false;
-      if (active.current) setSubmitting(false);
-    }
+    void send(email.trim());
+  }
+
+  const dialog = opened ? <AgreementDialog document={opened} onClose={() => setOpened(null)} /> : null;
+
+  if (sentTo) {
+    return (
+      <div className="login-card login-account-card consumer-registration">
+        <div className="consumer-registration-heading">
+          <h1>{tx("查收激活邮件")}</h1>
+          <p>{formatTranslationTemplate(tx("激活邮件已发送至 {email}，请点击邮件中的链接设置密码，完成注册。"), { email: sentTo })}</p>
+        </div>
+        <p className="consumer-form-note">{tx("没有收到？请检查垃圾邮件文件夹，或稍后重新发送。")}</p>
+        {error ? <div className="login-error" role="alert">{error}</div> : null}
+        <button className="button login-submit" type="button" disabled={sending || remaining > 0} onClick={() => void send(sentTo)}>
+          {sending ? tx("发送中…") : remaining > 0 ? formatTranslationTemplate(tx("{seconds} 秒后可重新发送"), { seconds: String(remaining) }) : tx("重新发送激活邮件")}
+        </button>
+        <button className="consumer-auth-link consumer-back" type="button" disabled={sending} onClick={() => { setSentTo(""); setError(""); }}>{tx("更换邮箱")}</button>
+        <button className="consumer-auth-link consumer-back" type="button" disabled={sending} onClick={onBack}>{tx("已有账号？返回登录")}</button>
+      </div>
+    );
   }
 
   return (
-    <form className="login-card login-account-card consumer-registration" onSubmit={submit}>
-      <div className="consumer-registration-heading"><h1>注册账号</h1><p>验证手机号，开通个人账户</p></div>
-      <label className="login-account-field"><span>邮箱</span><input aria-label="邮箱" autoComplete="email" placeholder="邮箱" required type="email" value={email} onChange={event => setEmail(event.target.value)} disabled={submitting} /></label>
-      <label className="login-account-field"><span>昵称（选填）</span><input aria-label="昵称（选填）" autoComplete="nickname" placeholder="昵称（选填）" value={name} onChange={event => setName(event.target.value)} disabled={submitting} /></label>
-      <label className="login-account-field"><span>设置密码</span><input aria-label="设置密码" autoComplete="new-password" placeholder="设置密码（至少 8 位）" required minLength={8} type="password" value={password} onChange={event => setPassword(event.target.value)} disabled={submitting} /></label>
-      <label className="login-account-field"><span>确认密码</span><input aria-label="确认密码" autoComplete="new-password" placeholder="确认密码" required minLength={8} type="password" value={confirmation} onChange={event => setConfirmation(event.target.value)} disabled={submitting} /></label>
-      <label className="login-account-field"><span>手机号</span><input aria-label="手机号" autoComplete="tel-national" inputMode="tel" placeholder="手机号" required maxLength={11} pattern="1[3-9][0-9]{9}" value={mobile} disabled={sending || submitting} onChange={event => { setMobile(event.target.value); setSMSSession(null); setCode(""); setError(""); setNotice(""); }} /></label>
-      <div className="consumer-sms-row">
-        <label className="login-account-field"><span>短信验证码</span><input aria-label="短信验证码" autoComplete="one-time-code" inputMode="numeric" placeholder="短信验证码" required value={code} onChange={event => setCode(event.target.value)} disabled={submitting} /></label>
-        <button type="button" className="consumer-code-button" disabled={sending || submitting || remaining > 0 || !captchaID} onClick={() => void sendSMS()}>{sending ? "验证中…" : remaining > 0 ? `${remaining} 秒后重发` : "获取验证码"}</button>
-      </div>
-      {!captchaID ? <p className="consumer-form-note" role="status">短信注册暂不可用，请联系管理员</p> : null}
-      {error ? <div className="login-error" role="alert">{error}</div> : null}
-      {notice ? <p className="consumer-form-note" role="status">{notice}</p> : null}
-      <button className="button login-submit" type="submit" disabled={submitting || sending || !smsSession}>{submitting ? "注册中…" : "注册"}</button>
-      <button className="consumer-auth-link consumer-back" type="button" disabled={submitting || sending} onClick={onBack}>已有账号？返回登录</button>
-    </form>
+    <>
+      <form className="login-card login-account-card consumer-registration" onSubmit={submit}>
+        <div className="consumer-registration-heading"><h1>{tx("注册账号")}</h1><p>{tx("输入邮箱，我们将发送激活链接")}</p></div>
+        <label className="login-account-field"><span>{tx("邮箱")}</span><input aria-label={tx("邮箱")} autoComplete="email" placeholder={tx("邮箱")} required type="email" value={email} onChange={event => setEmail(event.target.value)} disabled={sending} /></label>
+        <label className="login-account-field">
+          <span>{tx("验证码")}</span>
+          <div className="consumer-captcha-row">
+            <input aria-label={tx("验证码")} autoComplete="off" placeholder={tx("验证码")} value={captchaAnswer} onChange={event => setCaptchaAnswer(event.target.value)} disabled={sending} maxLength={6} />
+            <button type="button" className="consumer-captcha-image" onClick={() => void loadCaptcha()} disabled={sending || captchaLoading} aria-label={tx("刷新验证码")} title={tx("刷新验证码")}>
+              {captcha ? <img src={captcha.image} alt={tx("验证码")} /> : <span>{captchaLoading ? tx("加载中…") : tx("点击刷新")}</span>}
+            </button>
+          </div>
+        </label>
+        <div className="consumer-agreement-consent">
+          <input id="consumer-agreement-check" type="checkbox" checked={agreed} disabled={sending} onChange={event => setAgreed(event.target.checked)} />
+          <label htmlFor="consumer-agreement-check">{tx("我已阅读并同意")}</label>
+          <button type="button" className="consumer-agreement-link" onClick={() => setOpened(termsOfService)}>{tx("《用户服务协议》")}</button>
+          <span>{tx("和")}</span>
+          <button type="button" className="consumer-agreement-link" onClick={() => setOpened(paymentAgreement)}>{tx("《支付协议》")}</button>
+        </div>
+        {error ? <div className="login-error" role="alert">{error}</div> : null}
+        <button className="button login-submit" type="submit" disabled={sending}>{sending ? tx("发送中…") : tx("发送激活邮件")}</button>
+        <button className="consumer-auth-link consumer-back" type="button" disabled={sending} onClick={onBack}>{tx("已有账号？返回登录")}</button>
+      </form>
+      {dialog}
+    </>
   );
 }

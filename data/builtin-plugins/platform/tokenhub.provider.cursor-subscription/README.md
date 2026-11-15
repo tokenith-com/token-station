@@ -1,6 +1,6 @@
 # Cursor
 
-Connect an explicitly authorized Cursor account to TokenHub.
+Connect an explicitly authorized Cursor account to TokenStation.
 
 - Plugin ID: `tokenhub.provider.cursor-subscription`
 - Configuration: Provider management, with a separate account resource

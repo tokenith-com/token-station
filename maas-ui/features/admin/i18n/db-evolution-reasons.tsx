@@ -31,7 +31,7 @@ export function evolutionReasonText(schema: SchemaEvolutionStatus): string {
     case "ledger_verification_failed":
       return tx("迁移账本校验失败");
     case "expand_pending":
-      return tx("存在待执行的 expand 迁移；请运行 tokenhub db migrate 或重启服务器");
+      return tx("存在待执行的 expand 迁移；请运行 tokenstation db migrate 或重启服务器");
     case "backfill_ledger_unreadable":
       return tx("无法读取数据回填账本；请查看服务器日志");
     case "blocking_backfills_pending":

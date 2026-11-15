@@ -2,8 +2,8 @@ schema_version: 2
 id: "tokenhub.provider.qwen"
 name: "Qwen"
 version: 1.0.0
-summary: "Connect TokenHub to Qwen model services."
-description: "Connect TokenHub to Qwen model services."
+summary: "Connect TokenStation to Qwen model services."
+description: "Connect TokenStation to Qwen model services."
 category: provider_integration
 tokenhub:
   plugin_api: v2

@@ -1,6 +1,6 @@
 # Raccoon
 
-Connect an explicitly authorized Raccoon account to TokenHub.
+Connect an explicitly authorized Raccoon account to TokenStation.
 
 - Plugin ID: `tokenhub.provider.raccoon-subscription`
 - Configuration: Provider management, with a separate account resource

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { adminNavGroups, canAccessView, isNavParentItem, navGroupsForUser } from "./navigation";
+import { adminNavGroups, appRole, canAccessView, isNavParentItem, navGroupsForUser } from "./navigation";
 import type { AdminUser, AppRole } from "./types";
 
 export const expectedMenus: Record<AppRole, string[]> = {
@@ -10,11 +10,11 @@ export const expectedMenus: Record<AppRole, string[]> = {
     "billing", "quota-policies", "cost-centers",
     "monitors", "alerts", "alert-events", "notification-channels", "alert-deliveries",
     "security-policies", "sqlite-backups", "database-status", "announcements", "plugins",
-    "users", "settings",
+    "users", "role-configs", "identity-providers", "settings",
   ],
-  team_leader: ["overview", "usage", "models", "api-keys", "gateway", "projects", "users", "audit"],
+  team_leader: ["overview", "usage", "models", "playground", "api-keys", "gateway", "projects", "users", "audit"],
   user: ["overview", "models", "playground", "api-keys", "gateway", "usage", "audit"],
-  guest: ["overview", "models", "playground", "api-keys", "gateway", "usage", "audit", "billing", "balance-recharge", "invoices"],
+  consumer: ["overview", "models", "playground", "api-keys", "gateway", "usage", "audit", "billing", "balance-recharge"],
 };
 describe("custom role menus retained during upstream merge", () => {
   it.each(Object.keys(expectedMenus) as AppRole[])("preserves the %s menu and access", role => {
@@ -27,8 +27,16 @@ describe("custom role menus retained during upstream merge", () => {
     }
   });
 
+  it.each(["consumer", "guest", " GUEST "])("normalizes consumer role %s", role => {
+    expect(appRole(role)).toBe("consumer");
+    const user = { role } as AdminUser;
+    expect(navGroupsForUser(user)).toEqual(navGroupsForUser({ role: "consumer" } as AdminUser));
+    expect(canAccessView(user, "balance-recharge")).toBe(true);
+    expect(canAccessView(user, "users")).toBe(false);
+  });
+
   it("retains the custom provider label in the admin navigation", () => {
     const aiResources = adminNavGroups.find((group) => group.title === "AI资源");
-    expect(aiResources?.items).toEqual(expect.arrayContaining([expect.objectContaining({ view: "providers", label: "Provider 渠道" })]));
+    expect(aiResources?.items).toEqual(expect.arrayContaining([expect.objectContaining({ view: "providers", label: "供应商" })]));
   });
 });

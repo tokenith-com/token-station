@@ -1,6 +1,6 @@
 # Command Code
 
-Connect an explicitly authorized Command Code account to TokenHub.
+Connect an explicitly authorized Command Code account to TokenStation.
 
 - Plugin ID: `tokenhub.provider.commandcode-plan-subscription`
 - Configuration: Provider management, with a separate account resource

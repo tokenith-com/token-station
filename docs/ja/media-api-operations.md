@@ -4,7 +4,7 @@
 
 [テキスト・マルチモーダル API ガイド](media-apis.md)の補足として、プロバイダー固有の処理、フック、計量、検証を説明します。Chat/Responses の補助フローは上流 ID をそのまま渡します。一方、Images/Videos の非同期要求はタスク ID を送信キーと元のアカウントに関連付け、`/v1/tasks/{task_id}` で照会します。
 
-TokenHub は一般的なメディアプロトコルに対応します。プロバイダーを設定し、生成、アップロード、照会、ダウンロードの各モデルを公開してから呼び出してください。対応範囲はプロトコル互換性です。モデルの提供状況とパラメーターの仕様は上流プロバイダーに依存し、認証情報や料金は同梱しません。
+TokenStation は一般的なメディアプロトコルに対応します。プロバイダーを設定し、生成、アップロード、照会、ダウンロードの各モデルを公開してから呼び出してください。対応範囲はプロトコル互換性です。モデルの提供状況とパラメーターの仕様は上流プロバイダーに依存し、認証情報や料金は同梱しません。
 
 ## エンドポイント
 
@@ -33,9 +33,9 @@ Gemini ネイティブメディアでは、公開モデルにメディアモダ�
 
 Gemini ネイティブメディアストリームは、終端エラーのイベント名、`type:"error"` または `*.failed` のペイロード、null 以外のネストされた `response.error` を拒否します。プロバイダーフックの出力にも適用し、候補が終了理由を返した後でも失敗として扱います。既知の Token 使用量と明示的なプラグイン使用量の上書きを保持し、エラー内の認証情報は返しません。ネストされた `response.error:null` は成功イベントとして引き続き許可します。
 
-管理対象の `gpt-image-2`、Codex サブスクリプション、プラグイン画像プロファイルは、従来の検証、単一画像ジョブ、保存アセット、`Prefer: respond-async` を維持します。同名の上流モデルで完全な Images 仕様を使用する場合は、別の公開エイリアス（例：`vendor-gpt-image`）をその上流 ID にマッピングします。通常の画像ルートはプロバイダー結果を保持しますが、認識したタスク ID は関連付け済みの TokenHub ID に置き換えて `/v1/tasks` で照会します。ローカル画像ジョブの実行と TokenHub 署名付き画像 URL は管理対象ジョブ専用です。直接画像要求は Qwen Image の `base64` など、プロバイダー固有の `response_format` 文字列を受け付けます。組み込みの管理対象画像は引き続き `url` または `b64_json` のみを受け付け、管理対象プラグインモデルは設定された形式を検証します。
+管理対象の `gpt-image-2`、Codex サブスクリプション、プラグイン画像プロファイルは、従来の検証、単一画像ジョブ、保存アセット、`Prefer: respond-async` を維持します。同名の上流モデルで完全な Images 仕様を使用する場合は、別の公開エイリアス（例：`vendor-gpt-image`）をその上流 ID にマッピングします。通常の画像ルートはプロバイダー結果を保持しますが、認識したタスク ID は関連付け済みの TokenStation ID に置き換えて `/v1/tasks` で照会します。ローカル画像ジョブの実行と TokenStation 署名付き画像 URL は管理対象ジョブ専用です。直接画像要求は Qwen Image の `base64` など、プロバイダー固有の `response_format` 文字列を受け付けます。組み込みの管理対象画像は引き続き `url` または `b64_json` のみを受け付け、管理対象プラグインモデルは設定された形式を検証します。
 
-`/v1/responses` で `background:true` を指定すると、応答本文の `id` は TokenHub のローカル要求ジョブを識別します。完了したメディアジョブの照会応答では、`x-tokenhub-upstream-response-id` にプロバイダーの元のルート ID を返します。この ID を補助照会モデルに渡してください。ローカルジョブの完了は上流 API 呼び出しの終了を意味し、生成タスクは引き続きポーリングが必要な場合があります。文字列と数値の ID は正確に保持します。非スカラー ID、制御文字や前後の空白を含む値、2048 バイトを超える値ではヘッダーを省略します。
+`/v1/responses` で `background:true` を指定すると、応答本文の `id` は TokenStation のローカル要求ジョブを識別します。完了したメディアジョブの照会応答では、`x-tokenhub-upstream-response-id` にプロバイダーの元のルート ID を返します。この ID を補助照会モデルに渡してください。ローカルジョブの完了は上流 API 呼び出しの終了を意味し、生成タスクは引き続きポーリングが必要な場合があります。文字列と数値の ID は正確に保持します。非スカラー ID、制御文字や前後の空白を含む値、2048 バイトを超える値ではヘッダーを省略します。
 
 ## 呼び出し例
 
@@ -45,7 +45,7 @@ Gemini ネイティブメディアストリームは、終端エラーのイベ�
 curl https://tokenhub.example/v1/audio/speech \
   -H "Authorization: Bearer $TOKENHUB_API_KEY" \
   -H 'Content-Type: application/json' \
-  -d '{"model":"speech-2.6-hd","input":"Hello from TokenHub","voice":"male-qn-qingse","response_format":"mp3"}' \
+  -d '{"model":"speech-2.6-hd","input":"Hello from TokenStation","voice":"male-qn-qingse","response_format":"mp3"}' \
   --output speech.mp3
 
 curl https://tokenhub.example/v1/audio/transcriptions \
@@ -66,7 +66,7 @@ curl https://tokenhub.example/v1/responses \
 
 ## 制限・計量・検証
 
-新しい直接メディアルートには `TOKENHUB_MAX_MULTIMODAL_REQUEST_BYTES`（既定 32 MiB）が適用されます。multipart は最大 128 パート、テキストフィールドは各 1 MiB です。応答は最大 128 MiB までバッファリングしてから返し、上流の Content-Type を保持します。この経路は低遅延のチャンク配信を提供しません。管理対象画像の従来の制限は変更されず、応答内の URL を TokenHub がダウンロードすることもありません。
+新しい直接メディアルートには `TOKENHUB_MAX_MULTIMODAL_REQUEST_BYTES`（既定 32 MiB）が適用されます。multipart は最大 128 パート、テキストフィールドは各 1 MiB です。応答は最大 128 MiB までバッファリングしてから返し、上流の Content-Type を保持します。この経路は低遅延のチャンク配信を提供しません。管理対象画像の従来の制限は変更されず、応答内の URL を TokenStation がダウンロードすることもありません。
 
 multipart の `model` と `stream` は単一のテキストフィールドである必要があります。`/v1/audio/speech` の `stream_format:"sse"` もストリーミングの受付とプロバイダーフックを選択します。`stream_format` は単一の空でないテキスト値とし、要求フックは実効ストリームモードを変更できません。JSON の `stream` は真偽値、multipart の `stream` は真偽値の文字列を指定します。曖昧な制御フィールドはルーティング前に拒否し、要求フックの変更にも同じ検証を適用します。テキストポリシーは、繰り返された multipart フィールドを含め、`input`、`instructions`、`prompt`、`negative_prompt`、`text` のすべての値を検査し、`timestamp_granularities[]` などの繰り返しオプションは保持します。
 

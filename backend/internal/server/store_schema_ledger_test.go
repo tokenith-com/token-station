@@ -2,6 +2,7 @@ package server
 
 import (
 	"errors"
+	"fmt"
 	"path/filepath"
 	"testing"
 
@@ -43,6 +44,35 @@ func TestSchemaLedgerBaselineAdoptedAndVerified(t *testing.T) {
 	var schemaErr *dbschema.Error
 	if !errors.As(err, &schemaErr) || schemaErr.Code != dbschema.ErrCodeChecksumMismatch {
 		t.Fatalf("expected checksum_mismatch refusal, got %v", err)
+	}
+}
+
+func TestSchemaLedgerRejectsConflictingMasterPaymentVersions(t *testing.T) {
+	for _, version := range []int{12, 13, 14} {
+		t.Run(fmt.Sprintf("version_%d", version), func(t *testing.T) {
+			dsn := "sqlite://" + filepath.Join(t.TempDir(), "conflicting-history.db")
+			store, err := NewSQLiteStore(dsn)
+			if err != nil {
+				t.Fatal(err)
+			}
+			masterMigrations := []dbschema.Migration{consumerEmailActivationMigration(), consumerRechargeMigration(), apiKeyCiphertextMigration()}
+			migration := masterMigrations[version-12]
+			if err := store.db.Exec("UPDATE schema_migrations SET name = ?, checksum = ? WHERE version = ?", migration.Name, migration.Checksum(), version).Error; err != nil {
+				t.Fatal(err)
+			}
+			if err := store.Close(); err != nil {
+				t.Fatal(err)
+			}
+			reopened, err := NewSQLiteStore(dsn)
+			if err == nil {
+				_ = reopened.Close()
+				t.Fatal("conflicting master migration history must not be adopted silently")
+			}
+			var schemaErr *dbschema.Error
+			if !errors.As(err, &schemaErr) || schemaErr.Code != dbschema.ErrCodeChecksumMismatch {
+				t.Fatalf("expected checksum_mismatch refusal, got %v", err)
+			}
+		})
 	}
 }
 

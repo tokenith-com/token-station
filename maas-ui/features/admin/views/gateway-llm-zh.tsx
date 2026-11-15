@@ -48,7 +48,7 @@ export function gatewayChineseLLMUsageDocs(stats: GatewayDocStats, role: AppRole
             group: "快速开始",
             badge: "GUIDE",
             title: "快速接入",
-            description: "通过 TokenHub 发起第一笔 OpenAI 兼容的大模型请求。",
+            description: "通过 TokenStation 发起第一笔 OpenAI 兼容的大模型请求。",
             details: [
               { label: "Base URL", value: stats.baseURL },
               { label: "鉴权 Header", value: "Authorization: Bearer <API Key>" },
@@ -175,7 +175,7 @@ export function gatewayChineseLLMUsageDocs(stats: GatewayDocStats, role: AppRole
                 ["model", "string", "是", `来自 /v1/models 的模型 ID，例如 ${stats.sampleModel}。`],
                 ["messages", "array", "是", "由 system、user、assistant 组成的消息数组。"],
                 ["max_tokens", "integer", "否", "最大生成 token 数。"],
-                ["max_completion_tokens", "integer", "否", "OpenAI 兼容的最大生成 token 数；两个输出 Token 上限字段同时存在时，TokenHub 使用较大值。"],
+                ["max_completion_tokens", "integer", "否", "OpenAI 兼容的最大生成 token 数；两个输出 Token 上限字段同时存在时，TokenStation 使用较大值。"],
                 ["temperature", "number", "否", "采样温度。"],
                 ["reasoning_effort", "string", "否", "推理强度；当前路由不支持时省略。"],
                 ["stream", "boolean", "否", "true 时返回 SSE 流，结束标记为 data: [DONE]。"],
@@ -230,7 +230,7 @@ export function gatewayChineseLLMUsageDocs(stats: GatewayDocStats, role: AppRole
               title: "请求体",
               columns: ["字段", "类型", "必填", "说明"],
               rows: [
-                ["model", "string", "是", "可调用的 TokenHub 模型 ID。"],
+                ["model", "string", "是", "可调用的 TokenStation 模型 ID。"],
                 ["max_tokens", "integer", "是", "最大生成 Token 数。"],
                 ["messages", "array", "是", "由 user、assistant 和结构化内容块组成的 Anthropic 消息。"],
                 ["system", "string | array", "否", "顶层 Anthropic system prompt。"],
@@ -314,7 +314,7 @@ export function gatewayChineseLLMUsageDocs(stats: GatewayDocStats, role: AppRole
             group: teamLeader ? "团队接入" : "项目 Key",
             badge: "SDK",
             title: "SDK 与 Claude Code",
-            description: "OpenAI 兼容 SDK 使用 TokenHub Base URL；Claude Code 使用 TokenHub Host URL。",
+            description: "OpenAI 兼容 SDK 使用 TokenStation Base URL；Claude Code 使用 TokenStation Host URL。",
             examplesTitle: "客户端示例",
             examples: [
               { title: "Node.js", code: gatewayOpenAISDKExample(stats) },

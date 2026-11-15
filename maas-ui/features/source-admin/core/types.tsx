@@ -1289,6 +1289,7 @@ export type ViewKey =
   | "sqlite-backups"
   | "database-status"
   | "announcements"
+  | "role-configs"
   | "identity-providers"
   | "settings";
 
@@ -1324,6 +1325,7 @@ export const viewRoutes: Record<ViewKey, string> = {
   "sqlite-backups": "/sqlite-backups",
   "database-status": "/database-status",
   announcements: "/announcements",
+  "role-configs": "/role-configs",
   "identity-providers": "/identity-providers",
   settings: "/settings",
 };

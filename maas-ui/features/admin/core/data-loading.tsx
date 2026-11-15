@@ -105,6 +105,7 @@ export function loadPlanForView(user: AdminUser, view: ViewKey): LoadPlan {
     case "playground":
       plan.overview = true;
       plan.models = true;
+      plan.keys = can("api-keys");
       plan.routes = can("routes");
       break;
     case "gateway":
@@ -113,7 +114,7 @@ export function loadPlanForView(user: AdminUser, view: ViewKey): LoadPlan {
       plan.keys = can("api-keys");
       plan.routes = can("routes");
       plan.logs = can("audit");
-      if (["user", "guest", "team_leader"].includes(appRole(user.role))) {
+      if (["user", "consumer", "team_leader"].includes(appRole(user.role))) {
         addResourceDependency(plan, "project-members");
       }
       break;
@@ -121,7 +122,7 @@ export function loadPlanForView(user: AdminUser, view: ViewKey): LoadPlan {
       plan.overview = true;
       plan.keys = can("api-keys");
       plan.users = can("users") || appRole(user.role) === "team_leader";
-      if (!["user", "guest"].includes(appRole(user.role))) {
+      if (!["user", "consumer"].includes(appRole(user.role))) {
         plan.pluginUI = true;
         plan.pluginActions = true;
         plan.pluginBackgroundJobs = true;
@@ -227,7 +228,7 @@ export function loadPlanForView(user: AdminUser, view: ViewKey): LoadPlan {
       plan.overview = true;
       plan.keys = true;
       plan.users = can("users") || appRole(user.role) === "team_leader";
-      if (!["user", "guest"].includes(appRole(user.role))) {
+      if (!["user", "consumer"].includes(appRole(user.role))) {
         addResourceDependency(plan, "teams");
       }
       addResourceDependency(plan, "project-members");
@@ -273,12 +274,9 @@ export function loadPlanForView(user: AdminUser, view: ViewKey): LoadPlan {
     case "notification-channels":
     case "monitors":
     case "announcements":
+    case "role-configs":
     case "identity-providers":
       addResourceDependency(plan, view);
-      break;
-    case "invoices":
-      // Backend invoices are cost statements, not the guest VAT invoice service.
-      if (appRole(user.role) !== "guest") addResourceDependency(plan, view);
       break;
     case "balance-recharge":
       break;

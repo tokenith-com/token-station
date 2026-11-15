@@ -608,6 +608,32 @@
   min-height: 347px;
 }
 
+.customer-onboarding-steps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 24px;
+  padding-left: 20px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.customer-onboarding-steps [aria-current="step"] {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.customer-onboarding-summary > div {
+  display: grid;
+  grid-template-columns: minmax(100px, 1fr) 2fr;
+  gap: 12px;
+  padding: 8px 0;
+}
+
+.customer-onboarding-summary dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
 @media (max-width: 780px) {
   .platform-accounts-content-panel {
     padding: 16px 12px 28px;

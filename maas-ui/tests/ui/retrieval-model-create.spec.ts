@@ -5,8 +5,9 @@ for (const modality of ["rerank", "embedding"] as const) {
   test(`models create-${modality}-pricing`, async ({ page, api }, testInfo) => {
     const model = { id: `template-${modality}`, name: `ui-${modality}`, family: "test", category: "other", modality, status: "active", metadata: { source: "tokenhub-standard-catalog", search_unit_price_usd: "0.003", retrieval_pricing_confirmed: "true" } };
     const overview = shellResponses().get("GET /api/admin/overview") as Record<string, unknown>;
-    api.replaceResponse("GET", "/api/admin/overview", { ...overview, models: [model], providers: [{ id: "p", name: "UI Provider", type: "mock", priority: 1, status: "active" }] });
-    installModelDirectoryReads(api, [model], [{ id: "p", name: "UI Provider", type: "mock", priority: 1, status: "active" }]);
+    const providers = [{ id: "p", name: "UI Provider", type: "mock", priority: 1, status: "active" }];
+    api.replaceResponse("GET", "/api/admin/overview", { ...overview, models: [model], providers });
+    installModelDirectoryReads(api, [model], providers);
     api.replaceResponse("GET", "/api/admin/provider-models", { data: [{ id: "pm", provider_id: "p", upstream_model: model.name, modality, status: "active", call_supported: true }] });
     for (const path of ["routing-rules", "provider-catalog"]) api.respond("GET", `/api/admin/${path}`, { data: [] });
     let saved = false;
@@ -30,11 +31,11 @@ for (const modality of ["rerank", "embedding"] as const) {
     const confirmation = editor.getByRole("radiogroup", { name: "确认检索模型收费配置（包含免费价格）", exact: true });
     await expect(confirmation).toBeVisible();
     if (modality === "rerank") {
-      const price = editor.getByLabel("搜索单元价格 USD/次", { exact: true });
+      const price = editor.getByLabel("搜索单元价格 ¥/次", { exact: true });
       await expect(price).toHaveValue("0.003");
       await price.fill("0.004");
     } else {
-      await expect(editor.getByLabel("搜索单元价格 USD/次", { exact: true })).toHaveCount(0);
+      await expect(editor.getByLabel("搜索单元价格 ¥/次", { exact: true })).toHaveCount(0);
     }
     await editor.locator(".model-create-pricing-note").scrollIntoViewIfNeeded();
     await capture(page, testInfo, editor, `create-${modality}-pricing`, "检索模型创建定价配置", "viewport");

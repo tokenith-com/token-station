@@ -43,7 +43,7 @@ function start(name, command, args, options) {
 }
 
 async function buildBackend(binary) {
-  const build = start("Go backend build", "go", ["build", "-o", binary, "./cmd/tokenhub"], {
+  const build = start("Go backend build", "go", ["build", "-o", binary, "./cmd/tokenstation"], {
     cwd: backendDirectory,
   });
   const code = await new Promise(resolve => build.once("exit", resolve));
@@ -127,7 +127,7 @@ try {
   await waitForURL("fake upstream", `${upstreamURL}/healthz`);
 
   // Run the standalone binary in the scratch directory so local .env files are outside its search path.
-  const backendBinary = path.join(temporaryDirectory, process.platform === "win32" ? "tokenhub.exe" : "tokenhub");
+  const backendBinary = path.join(temporaryDirectory, process.platform === "win32" ? "tokenstation.exe" : "tokenstation");
   await buildBackend(backendBinary);
   start("Go backend", backendBinary, [], {
     cwd: temporaryDirectory,

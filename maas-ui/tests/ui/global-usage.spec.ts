@@ -4,6 +4,28 @@ import { fixedTime, user } from "./fixtures/shell";
 import { installUsageFixtures, usageCalls, usageCounts, usageReport } from "./fixtures/global-usage";
 import type { MockResponse } from "./network";
 
+test("gateway overview shows breadcrumbs and distinguishes cumulative totals from trends", async ({ page, api }, info) => {
+  for (const path of ["plugins", "plugin-marketplace", "plugin-chain", "plugin-ui-manifest", "plugin-actions", "plugin-background-jobs", "resources/announcements", "usage/timeseries"]) {
+    api.respond("GET", `/api/admin/${path}`, { data: [] });
+  }
+  api.define("GET", "/api/admin/audit/requests", () => ({ json: { data: [] } }), query => {
+    expect(Object.fromEntries(query)).toEqual({ page: "1", page_size: "20", q: "", status: "all" });
+  });
+  await page.route("**/icons/sprite.svg", route => route.continue());
+  await page.context().addInitScript(key => {
+    const session = sessionStorage.getItem(key);
+    if (session) sessionStorage.setItem(`${key}.b`, session);
+  }, sessionStorageKey);
+  await page.goto("/overview");
+  await expect(page.getByRole("navigation", { name: "当前位置" })).toContainText("平台总览");
+  const metric = page.locator(".overview-metrics article").filter({ hasText: "累计请求" });
+  await expect(metric.locator(".metric-value")).toHaveText("3");
+  await expect(metric).toContainText("全部历史（不受趋势时间范围影响）");
+  await page.getByRole("button", { name: "30 天", exact: true }).click();
+  await expect(metric.locator(".metric-value")).toHaveText("3");
+  await capture(page, info, page.locator(".source-admin-content"), "gateway-overview-cumulative", "网关概览：面包屑与累计统计口径", "viewport");
+});
+
 const ranges = [
   { value: "today", label: "今日" }, { value: "7d", label: "7 天" },
   { value: "30d", label: "30 天" }, { value: "all", label: "全部" },
@@ -24,7 +46,7 @@ for (const viewport of ["desktop", "mobile"] as const) {
       await expect(group.getByRole("button", { name: range.label, exact: true })).toHaveAttribute("aria-pressed", "true");
       await expect(usage.locator('.global-usage-stats [aria-label="请求数"]')).toContainText(String(usageCounts[range.value]));
       await expect(usage.getByText(`ui-${range.value}-model-with-a-long-enterprise-deployment-name`, { exact: true })).toBeVisible();
-      await expect(usage.locator(".global-usage-cost")).toContainText(`$${(usageCounts[range.value] * 0.5).toFixed(2)}`);
+      await expect(usage.locator(".global-usage-cost")).toContainText(`¥${(usageCounts[range.value] * 0.5).toFixed(2)}`);
       expect(usageCalls(api).at(-1)?.query.get("range")).toBe(range.value);
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
       await usage.scrollIntoViewIfNeeded();
@@ -58,7 +80,7 @@ test("global-usage loading and late response preserve the selected range", async
     release({ json: usageReport("today") });
     await expect(usage.getByRole("button", { name: "7 天", exact: true })).toHaveAttribute("aria-pressed", "true");
     await expect(usage.getByText("ui-today-model-with-a-long-enterprise-deployment-name", { exact: true })).toHaveCount(0);
-    await expect(usage.locator(".global-usage-cost")).toContainText("$8.50");
+    await expect(usage.locator(".global-usage-cost")).toContainText("¥8.50");
   } finally {
     release({ json: usageReport("today") });
   }

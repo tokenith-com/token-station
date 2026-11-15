@@ -1,10 +1,13 @@
 import { test, expect, capture } from "./harness";
 import { model, user } from "./fixtures/shell";
 
-test.use({ sessionUser: { ...user, role: "guest" } });
+test.use({ sessionUser: { ...user, role: "consumer" } });
 
 test("prepaid playground preserves a rejected draft and links to recharge", async ({ page, api }, info) => {
-  api.respond("GET", "/api/admin/models", { data: [model] });
+  api.define("GET", "/api/admin/api-keys", () => ({ json: { data: [{ id: "key_ui", name: "Prepaid key", project_id: "prj_ui", owner_user_id: user.id, status: "active" }] } }), query => {
+    expect(Object.fromEntries(query)).toEqual({ page: "1", page_size: "1000", limit: "1000" });
+  });
+  api.respond("GET", "/api/admin/consumer/wallet", { balance_fen: 10, held_fen: 0, available_fen: 10, balance_micros: 100000 });
   api.respond("GET", "/api/admin/wallet", { prepaid_usage: true, balance_micros: 100000, available_micros: 100000 });
   api.define("POST", "/api/admin/playground/chat/stream", () => ({
     status: 402, json: { error: { code: "wallet_insufficient_balance", message: "Insufficient wallet balance" } },
@@ -31,6 +34,12 @@ test("prepaid playground preserves a rejected draft and links to recharge", asyn
   await expect(page.locator("canvas[title='支付二维码']")).toBeVisible();
   await page.getByRole("button", { name: "刷新订单状态" }).click();
   await expect(page.getByRole("status").filter({ hasText: "充值已到账" })).toBeVisible();
+  await page.getByRole("button", { name: "账户余额充值", exact: true }).click();
+  await expect(page.getByText("为您的账户充值，享受更多服务", { exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "账户余额充值", exact: true })).toHaveAttribute("aria-pressed", "true");
+  await capture(page, info, page.locator(".recharge-view"), "consumer-balance-recharge", "Consumer balance recharge", "viewport");
+  await page.getByRole("button", { name: "在线支付充值", exact: true }).click();
+  await expect(page.getByRole("button", { name: "创建充值订单", exact: true })).toBeVisible();
 });
 
 test.describe("wallet reconciliation", () => {

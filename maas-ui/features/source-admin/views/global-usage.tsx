@@ -79,7 +79,7 @@ export function GlobalUsageView({ api, data, user, renderReport }: {
         <UsageReportChart report={report} />
         <UsageReportBreakdowns key={range} data={scopedData} user={user} report={report} />
       </div>
-      {renderReport ? <details className="global-usage-details"><summary>{tx("部门与成员报告")}</summary>{renderReport(scopedData, rangeLabel(range))}</details> : null}
+      {renderReport ? <details open className="global-usage-details"><summary>{tx("部门与成员报告")}</summary>{renderReport(scopedData, rangeLabel(range))}</details> : null}
     </> : null}
   </section>;
 }
@@ -92,7 +92,7 @@ function UsageReportBreakdowns({ data, user, report }: { data: AppData; user: Ad
       <UsageTable title={tx("模型用量")} label={tx("模型")} rows={breakdown.models ?? []} paginationKey="usage-models" name={row => row.id} />
       <UsageTable title={tx("项目归因")} label={tx("项目")} rows={breakdown.projects ?? []} paginationKey="usage-projects" name={row => projectName(data, row.id)} />
     </div>
-    <details className="global-usage-details"><summary>{tx("更多用量明细")}</summary><div className="two-column">
+    <details open className="global-usage-details"><summary>{tx("更多用量明细")}</summary><div className="two-column">
       {role === "team_leader" ? <UsageTable title={tx("成员用量")} label={tx("成员")} rows={breakdown.members ?? []} paginationKey="usage-members" name={row => usageMemberLabel(data, row.id)} /> : null}
       <UsageTable title={tx("API Key 用量")} label="API Key" rows={breakdown.api_keys ?? []} paginationKey="usage-api-keys" name={row => apiKeyAuditLabel(data, row.id)} />
       {role === "admin" ? <UsageTable title={tx("供应商用量")} label={tx("供应商")} rows={breakdown.providers ?? []} paginationKey="usage-providers" name={row => findProvider(data, row.id)?.name || row.id} /> : null}
@@ -117,7 +117,7 @@ function UsageTable({ title, label, rows, name, paginationKey }: {
 }
 
 function usageMoney(value: number) {
-  return new Intl.NumberFormat(languageLocale(), { style: "currency", currency: "USD", minimumFractionDigits: 2, maximumFractionDigits: 6 }).format(value);
+  return new Intl.NumberFormat(languageLocale(), { style: "currency", currency: "CNY", currencyDisplay: "narrowSymbol", minimumFractionDigits: 2, maximumFractionDigits: 6 }).format(value);
 }
 
 function usageWindowLabel(report: UsageReport) {

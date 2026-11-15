@@ -3,6 +3,7 @@ package server
 import (
 	"bytes"
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"net/http"
@@ -385,17 +386,29 @@ func TestImagePostUsageAndCacheWriteHooksRunAfterProviderInvoke(t *testing.T) {
 	if !strings.Contains(response.Body, "post-stage revised prompt") || !strings.Contains(response.Body, `"total_tokens":9`) {
 		t.Fatalf("image response was not post-processed: %s", response.Body)
 	}
-	if !strings.Contains(response.Body, encodeBase64(transformedImageBytes)) || strings.Contains(response.Body, encodeBase64(imageBytes)) {
+	var payload struct {
+		JobID string `json:"job_id"`
+		Data  []struct {
+			Base64JSON string `json:"b64_json"`
+		} `json:"data"`
+	}
+	if err := json.Unmarshal([]byte(response.Body), &payload); err != nil {
+		t.Fatal(err)
+	}
+	if len(payload.Data) != 1 {
+		t.Fatalf("image response data count = %d, want 1", len(payload.Data))
+	}
+	responseBytes, err := base64.StdEncoding.DecodeString(payload.Data[0].Base64JSON)
+	if err != nil {
+		t.Fatalf("decode image response bytes: %v", err)
+	}
+	if !bytes.Equal(responseBytes, transformedImageBytes) || bytes.Equal(responseBytes, imageBytes) {
 		t.Fatalf("image response body did not use transformed image bytes: %s", response.Body)
 	}
 	if !sawCacheWrite {
 		t.Fatal("image cache_write hook did not receive transformed request, response, and usage data")
 	}
-	var payload map[string]any
-	if err := json.Unmarshal([]byte(response.Body), &payload); err != nil {
-		t.Fatal(err)
-	}
-	jobID, _ := payload["job_id"].(string)
+	jobID := payload.JobID
 	if jobID == "" {
 		t.Fatalf("image response did not include job id: %s", response.Body)
 	}

@@ -13,6 +13,7 @@ export function shellResponses(): Map<string, unknown> {
   return new Map<string, unknown>([
     ["GET /api/admin/overview", { summary, projects: [project], models: [model], providers: [], provider_resources: [], alerts: [] }],
     ["GET /api/admin/projects", { data: [project] }],
+    ["GET /api/admin/models", { data: [model] }],
     ["GET /api/admin/provider-models", { data: [] }],
     ["GET /api/admin/usage/breakdown", breakdown],
     ["GET /api/admin/billing/connectors", { data: [] }],
@@ -25,7 +26,7 @@ export function shellResponses(): Map<string, unknown> {
 }
 
 export function installModelDirectoryReads(api: MockAPI, models: Array<Omit<Model, "id"> & { id?: string }>, providers: Array<Omit<Provider, "healthy"> & { healthy?: boolean }>, declared: string[] = []) {
-  api.respond("GET", "/api/admin/models", { data: models.map(model => ({ id: model.name, ...model })) });
+  api.replaceResponse("GET", "/api/admin/models", { data: models.map(model => ({ id: model.name, ...model })) });
   if (!declared.includes("providers")) api.respond("GET", "/api/admin/providers", { data: providers.map(provider => ({ healthy: true, ...provider })) });
   for (const path of ["provider-adapters", "plugins", "plugin-ui-manifest", "plugin-actions"]) {
     if (!declared.includes(path)) api.respond("GET", `/api/admin/${path}`, { data: [] });

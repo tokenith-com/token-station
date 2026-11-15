@@ -121,6 +121,60 @@
       "checksum": "68d213593c89475c4e90f0c27fe29a19fde4b32bcb102b6141658267f900cdaa",
       "lock_timeout_seconds": 30,
       "statement_budget": 6
+    },
+    {
+      "version": 15,
+      "name": "add-consumer-email-activations",
+      "phase": "expand",
+      "dialect": "",
+      "checksum": "b6f1434bee010004bd19b58b626fe64abd58bb73836e793e036670844ccf9245",
+      "lock_timeout_seconds": 30,
+      "statement_budget": 3
+    },
+    {
+      "version": 16,
+      "name": "add-consumer-recharge",
+      "phase": "expand",
+      "dialect": "",
+      "checksum": "1d988929f4b9687eebe840833684903bd31620b5f34cf403025b431f08a01fad",
+      "lock_timeout_seconds": 30,
+      "statement_budget": 3
+    },
+    {
+      "version": 17,
+      "name": "add-api-key-ciphertext",
+      "phase": "expand",
+      "dialect": "",
+      "checksum": "5f1d88ee1c09d6b16645bbc0e46bf28f371d4e2390e9b8c56cfdec4464c67143",
+      "lock_timeout_seconds": 30,
+      "statement_budget": 3
+    },
+    {
+      "version": 18,
+      "name": "add-team-wallets",
+      "phase": "expand",
+      "dialect": "",
+      "checksum": "tokenhub-schema-team-wallets-v1",
+      "lock_timeout_seconds": 30,
+      "statement_budget": 4
+    },
+    {
+      "version": 19,
+      "name": "add-team-wallet-exchange-rate",
+      "phase": "expand",
+      "dialect": "",
+      "checksum": "tokenhub-schema-team-wallet-rate-v1",
+      "lock_timeout_seconds": 30,
+      "statement_budget": 3
+    },
+    {
+      "version": 20,
+      "name": "add-team-wallet-credit-metadata",
+      "phase": "expand",
+      "dialect": "",
+      "checksum": "tokenhub-schema-team-wallet-credit-metadata-v1",
+      "lock_timeout_seconds": 30,
+      "statement_budget": 8
     }
   ]
 }

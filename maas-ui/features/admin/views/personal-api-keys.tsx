@@ -1,5 +1,4 @@
 import { Plus } from "lucide-react";
-import { SvgIcon } from "../../../components/svg-icon";
 import type { APIKey } from "../core/types";
 import { tx } from "../i18n/runtime";
 import { APIKeyValue } from "../shared/api-key-value";
@@ -23,12 +22,7 @@ export function PersonalAPIKeysView({
   const visibleKeys = keys.slice(pagination.startIndex, pagination.endIndex);
 
   return (
-    <section className="platform-accounts-view personal-api-keys-view" aria-labelledby="personal-api-keys-title">
-      <div className="platform-accounts-title">
-        <SvgIcon name="overview-icon" size={16} />
-        <h1 id="personal-api-keys-title">{tx("API Key 管理")}</h1>
-      </div>
-
+    <section className="platform-accounts-view personal-api-keys-view" aria-label={tx("API Key 管理")}>
       <div className="personal-api-keys-toolbar">
         <button className="platform-account-create" disabled={loading} onClick={onCreate} type="button">
           <Plus size={14} />

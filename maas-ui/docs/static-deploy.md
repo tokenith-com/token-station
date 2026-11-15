@@ -35,7 +35,7 @@ npm run build
 | 变量 | 位置 | 说明 |
 |---|---|---|
 | `NEXT_PUBLIC_TOKENHUB_API_BASE_URL` | `.env.production` | 后端地址，带 `https://`，不能带路径。**改地址必须重新构建** |
-| `NEXT_PUBLIC_TOKENHUB_CAPTCHA_ID` | `.env.production` | B 端不使用，留空 |
+| `NEXT_PUBLIC_TOKENHUB_PORTAL` | `.env.production` | 门户类型，默认 `b`；设为 `c` 发布 C 端（邮箱激活注册） |
 
 加载优先级（Next.js 规则）：`.env.production.local` > `.env.local` > `.env.production` > `.env`。
 所以**临时构建测试环境不要改 `.env.production`**，用被 git 忽略的 `.env.production.local` 覆盖：

@@ -1,6 +1,6 @@
 # AutoClaw
 
-Connect an explicitly authorized AutoClaw account to TokenHub.
+Connect an explicitly authorized AutoClaw account to TokenStation.
 
 - Plugin ID: `tokenhub.provider.autoclaw-subscription`
 - Configuration: Provider management, with a separate account resource

@@ -108,7 +108,7 @@ func (s *StoreSink) Apply(b *bundle.CanonicalMigrationBundle) (*ApplyResult, err
 	s.newKeys = map[string]string{}
 	s.refIndex = newRefIndex()
 	if len(b.QuotaPolicies) > 0 {
-		return nil, fmt.Errorf("quota_policies are not implemented by the TokenHub sink foundation")
+		return nil, fmt.Errorf("quota_policies are not implemented by the TokenStation sink foundation")
 	}
 	result := &ApplyResult{}
 

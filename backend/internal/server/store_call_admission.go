@@ -2,6 +2,8 @@ package server
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"log"
 	"strings"
 	"time"
@@ -222,26 +224,60 @@ func (s *GormStore) admitCallTransaction(ctx context.Context, tx *gorm.DB, key A
 		if err != nil {
 			return admission, err
 		}
-		if payer != "" && ctx.Value(prepaidChatContextKey{}) != true {
-			return admission, walletUsageError()
+	}
+	teamWalletEnabled := false
+	teamWalletReservedCents := int64(0)
+	// A call has one payer: a configured team wallet takes precedence over a
+	// personal prepaid wallet for calls billed to that team.
+	if strings.TrimSpace(privateProject.TeamID) != "" {
+		var wallet teamWallet
+		if err := tx.First(&wallet, "team_id = ?", privateProject.TeamID).Error; err == nil {
+			teamWalletEnabled = true
+		} else if !errors.Is(err, gorm.ErrRecordNotFound) {
+			return admission, err
+		}
+	}
+	if teamWalletEnabled {
+		payer = ""
+	}
+	if payer != "" && ctx.Value(prepaidChatContextKey{}) != true {
+		return admission, walletUsageError()
+	}
+	if teamWalletEnabled {
+		rate, err := teamWalletRate(tx)
+		if err != nil {
+			return admission, err
+		}
+		if tokenReservation <= 0 {
+			return admission, NewHTTPError(409, "team_wallet_reservation_unavailable", "Call token reservation is not a reliable wallet upper bound")
+		}
+		usdUpper := float64(tokenReservation) * (model.InputPriceUSDPer1M + model.OutputPriceUSDPer1M) / 1000000
+		teamWalletReservedCents, err = ConvertUSDToCNYCents(fmt.Sprintf("%.6f", usdUpper), rate)
+		if err != nil || teamWalletReservedCents <= 0 {
+			return admission, NewHTTPError(409, "team_wallet_reservation_unavailable", "Call token reservation is not a reliable wallet upper bound")
+		}
+		if err := reserveTeamWalletCall(tx, privateProject.TeamID, requestID, rate, teamWalletReservedCents, now); err != nil {
+			return admission, err
 		}
 	}
 	admission.call = CallContext{
-		walletPayer:           payer,
-		RequestID:             requestID,
-		Project:               privateProject,
-		Key:                   publicKey(privateKey),
-		Model:                 model,
-		StartedAt:             now,
-		measuredAt:            measuredAt,
-		requestContext:        ctx,
-		UserQuotaID:           userQuotaID,
-		UserQuotaEnabled:      userPolicy.Enabled(),
-		UserMinuteRequestHeld: userPolicy.Enabled() && userPolicy.Limits.RateLimitRPM > 0,
-		UserQuotaLimits:       userPolicy.Limits,
-		AttributedUserID:      attributedUserID,
-		RedisKeyLeaseHeld:     s.billingRedis != nil && effectiveLimits.MaxConcurrency > 0,
-		RedisUserLeaseHeld:    s.billingRedis != nil && userPolicy.Enabled() && userPolicy.Limits.MaxConcurrency > 0,
+		walletPayer:             payer,
+		RequestID:               requestID,
+		Project:                 privateProject,
+		Key:                     publicKey(privateKey),
+		Model:                   model,
+		TeamWalletEnabled:       teamWalletEnabled,
+		TeamWalletReservedCents: teamWalletReservedCents,
+		StartedAt:               now,
+		measuredAt:              measuredAt,
+		requestContext:          ctx,
+		UserQuotaID:             userQuotaID,
+		UserQuotaEnabled:        userPolicy.Enabled(),
+		UserMinuteRequestHeld:   userPolicy.Enabled() && userPolicy.Limits.RateLimitRPM > 0,
+		UserQuotaLimits:         userPolicy.Limits,
+		AttributedUserID:        attributedUserID,
+		RedisKeyLeaseHeld:       s.billingRedis != nil && effectiveLimits.MaxConcurrency > 0,
+		RedisUserLeaseHeld:      s.billingRedis != nil && userPolicy.Enabled() && userPolicy.Limits.MaxConcurrency > 0,
 	}
 	if effectiveLimits.RateLimitRPM > 0 {
 		admission.call.MinuteRequestHeld = true

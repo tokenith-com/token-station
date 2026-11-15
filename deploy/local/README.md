@@ -1,11 +1,11 @@
 # Local production-build runner (without Docker)
 
-Runs the TokenHub backend and admin console on your own machine from a
+Runs the TokenStation backend and admin console on your own machine from a
 production build, with no Docker, no root and no systemd. The application itself
 is unchanged: the backend is a single Go binary and the console is the Next.js
 standalone server.
 
-This is **not** a deployment path. To install TokenHub on a server, use the
+This is **not** a deployment path. To install TokenStation on a server, use the
 native systemd installer described in
 [docs/deployment.md](../../docs/deployment.md#native-release-with-systemd), or
 Docker Compose.

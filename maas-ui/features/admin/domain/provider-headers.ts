@@ -68,7 +68,7 @@ export function providerHeaderEntryErrors(entries: ProviderHeaderEntry[], manage
     if (!name) errors.push("请求头名称不能为空。");
     else if (seen.has(comparable)) errors.push("请求头名称不能重复（大小写不敏感）。");
     else if (encoder.encode(name).length > 128 || !/^[!#$%&'*+\-.^_`|~0-9A-Za-z]+$/.test(name)) errors.push("请求头名称格式不合法。");
-    else if (coreReservedProviderHeaders.has(comparable)) errors.push("该请求头由 TokenHub 管理，不能覆盖。");
+    else if (coreReservedProviderHeaders.has(comparable)) errors.push("该请求头由 TokenStation 管理，不能覆盖。");
     else if (pluginManagedHeaders.has(comparable)) errors.push("该请求头由 Provider 插件管理，不能覆盖。");
     else seen.add(comparable);
     if ((!entry.value || entry.value === providerHeaderMask) && (!entry.sensitive || !entry.retained)) errors.push("请求头值不能为空。");

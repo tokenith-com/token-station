@@ -2,7 +2,6 @@
 
 import { ChevronLeft, ChevronRight, ListFilter } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { SvgIcon, type SvgIconName } from "@/components/svg-icon";
 import { type ApiContext, type AppData, type UsagePoint } from "../core/types";
 import { compactNumber, formatMoney, formatNumber } from "../domain/formatting";
 import { tx } from "../i18n/runtime";
@@ -49,7 +48,6 @@ export function PlatformOverviewContent({ api, data }: { api: ApiContext; data: 
               ))}
             </div>
           </div>
-        <SectionTitle icon="overview-icon">网关概览</SectionTitle>
         </header>
 
         <div className="platform-overview-kpis">
@@ -81,7 +79,7 @@ export function PlatformOverviewContent({ api, data }: { api: ApiContext; data: 
       </section>
 
       <section className="platform-overview-section platform-overview-users">
-        <SectionTitle icon="overview-icon">全局用户</SectionTitle>
+        <h2 className="dashboard-section-heading">{tx("全局用户")}</h2>
         <article className="overview-member-summary">
           <div>
             <span className="dashboard-kpi-label">{tx("活跃成员")}</span>
@@ -103,15 +101,6 @@ export function PlatformOverviewContent({ api, data }: { api: ApiContext; data: 
           </div> : report ? <MemberRankingTable rows={members} totalTokens={totalTokens} /> : <div className="overview-member-empty" role="status">{tx("加载中...")}</div>}
         </article>
       </section>
-    </div>
-  );
-}
-
-function SectionTitle({ children, icon }: { children: string; icon: SvgIconName }) {
-  return (
-    <div className="platform-section-title">
-      <SvgIcon name={icon} />
-      <h1 className="dashboard-section-heading">{tx(children)}</h1>
     </div>
   );
 }

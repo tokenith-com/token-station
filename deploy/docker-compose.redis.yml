@@ -1,6 +1,6 @@
 services:
-  tokenhub-redis:
-    container_name: tokenhub-redis
+  tokenstation-redis:
+    container_name: tokenstation-redis
     image: redis:7-alpine
     restart: unless-stopped
     command: ["redis-server", "--appendonly", "yes"]
@@ -13,13 +13,13 @@ services:
       retries: 12
       start_period: 5s
     networks:
-      - tokenhub
+      - tokenstation
 
-  tokenhub-backend:
+  tokenstation-backend:
     environment:
-      TOKENHUB_BILLING_REDIS_URL: ${TOKENHUB_BILLING_REDIS_URL:-redis://tokenhub-redis:6379/0}
+      TOKENHUB_BILLING_REDIS_URL: ${TOKENHUB_BILLING_REDIS_URL:-redis://tokenstation-redis:6379/0}
     depends_on:
-      tokenhub-redis:
+      tokenstation-redis:
         condition: service_healthy
 
 volumes:

@@ -1,4 +1,4 @@
-import { AlertCircle, Check, ChevronDown, ChevronRight, LogOut, Moon, Search, Sun, X } from "lucide-react";
+import { AlertCircle, Check, ChevronDown, ChevronRight, LogOut, Moon, Search, Sun, Wallet, X } from "lucide-react";
 import { Fragment, useEffect, useRef, useState } from "react";
 import { SvgIcon } from "@/components/svg-icon";
 import {
@@ -15,19 +15,19 @@ import {
   topSearchItemsForUser,
   topSearchResults,
 } from "../core/navigation";
-import { type AdminUser, type AppData, type NavItem, type ViewKey } from "../core/types";
+import { type AdminUser, type ApiContext, type AppData, type NavItem, type ViewKey } from "../core/types";
 import { formatMoney, formatNumber, playgroundModels } from "../domain/formatting";
-import { roleLabel, userInitial } from "../domain/labels";
+import { userInitial } from "../domain/labels";
 import { LanguageSelect } from "../i18n/language-switcher";
 import { type AppLanguage, displayText, tx } from "../i18n/runtime";
 import { resourceConfigFor } from "../resources/settings-config";
+import { BalanceCard } from "./balance-card";
 import { SidebarNavItem } from "./sidebar-nav-item";
 
 export function Sidebar({
   activeView,
   onSelect,
   user,
-  onLogout,
   collapsed,
   onToggleCollapse,
   openGroups,
@@ -36,7 +36,6 @@ export function Sidebar({
   activeView: ViewKey;
   onSelect: (view: ViewKey) => void;
   user: AdminUser;
-  onLogout: () => void;
   collapsed: boolean;
   onToggleCollapse: () => void;
   openGroups: Record<string, boolean>;
@@ -129,43 +128,37 @@ export function Sidebar({
           );
         })}
       </div>
-      <div className="sidebar-account">
-        <div className="account-avatar">{userInitial(user)}</div>
-        <div className="account-meta">
-          <strong>{displayText(user.name) || user.username}</strong>
-          <span>{roleLabel(user.role)}</span>
-        </div>
-        <button className="account-logout" onClick={onLogout} type="button" title={tx("退出登录")}>
-          <LogOut size={15} />
-        </button>
-      </div>
     </aside>
   );
 }
 
-export function PageHeader({ activeView, data, meta, user }: { activeView: ViewKey; data: AppData; meta: { title: string; description: string; eyebrow?: string }; user: AdminUser }) {
+export function PageHeader({ activeView, data, meta, user, onSelect }: { activeView: ViewKey; data: AppData; meta: { title: string; description: string; eyebrow?: string }; user: AdminUser; onSelect?: (view: ViewKey) => void }) {
   const path = navPathForView(user, activeView);
-  if ((appRole(user.role) === "team_leader" && ["usage", "gateway", "api-keys", "projects"].includes(activeView)) ||
-      (appRole(user.role) === "user" && activeView === "api-keys")) {
-    return <header className="platform-accounts-title team-resource-title">
-      <SvgIcon name="overview-icon" size={16} />
-      <h1>{tx(path.label || meta.title)}</h1>
-    </header>;
-  }
   const chips = pageHeaderChips(activeView, data, user);
   const pathGroup = path.group || pageHeaderFallbackGroup(activeView, user);
-  const pathSegments = ["TokenHub", pathGroup, path.parent, path.label || meta.title].filter(Boolean);
+  const crumbs: { label: string; view?: ViewKey }[] = [{ label: "TokenStation", view: "overview" }];
+  if (pathGroup) crumbs.push({ label: pathGroup });
+  if (path.parent) crumbs.push({ label: path.parent });
+  crumbs.push({ label: path.label || meta.title });
   return (
     <header className="page-header page-context-header">
       <div className="page-context-main">
-        <div className="page-breadcrumb" aria-label={tx("当前位置")}>
-          {pathSegments.map((segment, index) => (
-            <Fragment key={`${segment}-${index}`}>
-              {index > 0 ? <ChevronRight aria-hidden="true" className="page-breadcrumb-separator" size={13} /> : null}
-              <span className={index === pathSegments.length - 1 ? "current" : undefined}>{tx(segment)}</span>
-            </Fragment>
-          ))}
-        </div>
+        <nav className="page-breadcrumb" aria-label={tx("当前位置")}>
+          {crumbs.map((crumb, index) => {
+            const current = index === crumbs.length - 1;
+            const target = crumb.view;
+            return (
+              <Fragment key={`${crumb.label}-${index}`}>
+                {index > 0 ? <ChevronRight aria-hidden="true" className="page-breadcrumb-separator" size={13} /> : null}
+                {target && onSelect && !current ? (
+                  <button type="button" onClick={() => onSelect(target)}>{tx(crumb.label)}</button>
+                ) : (
+                  <span className={current ? "current" : undefined} aria-current={current ? "page" : undefined}>{tx(crumb.label)}</span>
+                )}
+              </Fragment>
+            );
+          })}
+        </nav>
       </div>
       <div className="page-context-side">
         <span className="scope-chip">{tx(roleScopeDescription(user))}</span>
@@ -226,7 +219,7 @@ export function pageHeaderFallbackGroup(view: ViewKey, user: AdminUser) {
   if (view === "gateway") {
     const role = appRole(user.role);
     if (role === "team_leader") return "团队管理";
-    if (role === "user" || role === "guest") return "开始使用";
+    if (role === "user" || role === "consumer") return "开始使用";
     return "接入参考";
   }
   return "";
@@ -256,7 +249,7 @@ export function pageHeaderChips(view: ViewKey, data: AppData, user: AdminUser) {
         { label: role === "team_leader" ? "团队成员" : "用户", value: formatNumber(data.users.length) },
       ];
     case "api-keys":
-      if (role === "user" || role === "guest") {
+      if (role === "user" || role === "consumer") {
         return [
           { label: "Key", value: formatNumber(data.keys.length) },
           { label: "可用模型", value: formatNumber(playgroundModels(data).length) },
@@ -267,7 +260,7 @@ export function pageHeaderChips(view: ViewKey, data: AppData, user: AdminUser) {
         { label: "项目", value: formatNumber(data.projects.length) },
       ];
     case "gateway":
-      if (role === "user" || role === "guest" || role === "team_leader") {
+      if (role === "user" || role === "consumer" || role === "team_leader") {
         return [
           { label: "API Key", value: formatNumber(data.keys.length) },
           { label: "可用模型", value: formatNumber(playgroundModels(data).length) },
@@ -283,7 +276,7 @@ export function pageHeaderChips(view: ViewKey, data: AppData, user: AdminUser) {
     case "billing":
       return [
         { label: "请求", value: formatNumber(data.summary.request_count) },
-        { label: "成本", value: `$${formatMoney(data.summary.estimated_cost_usd)}` },
+        { label: "成本", value: `¥${formatMoney(data.summary.estimated_cost_usd)}` },
       ];
     case "audit":
       return [
@@ -306,6 +299,7 @@ export function pageRecordCount(view: ViewKey, data: AppData) {
 
 type TopNavProps = {
   activeView: ViewKey;
+  api: ApiContext;
   data: AppData;
   user: AdminUser;
   theme: "light" | "dark";
@@ -322,8 +316,9 @@ export function TopNav(props: TopNavProps) {
   return <ConsoleTopNav {...props} />;
 }
 
-function ConsoleTopNav({ user, theme, language, sidebarCollapsed, onLanguageChange, onThemeToggle, onToggleSidebar, onLogout }: TopNavProps) {
+function ConsoleTopNav({ activeView, api, user, theme, language, sidebarCollapsed, onLanguageChange, onSelectView, onThemeToggle, onToggleSidebar, onLogout }: TopNavProps) {
   const [accountOpen, setAccountOpen] = useState(false);
+  const isGuest = appRole(user.role) === "consumer";
   const accountRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -362,23 +357,31 @@ function ConsoleTopNav({ user, theme, language, sidebarCollapsed, onLanguageChan
         type="button">
         {theme === "dark" ? <Sun size={17} /> : <Moon size={17} />}
       </button>
-      {/* <span className="console-topbar-divider" /> */}
+      {isGuest || appRole(user.role) === "team_leader" ? <BalanceCard activeView={activeView} api={api} teamID={appRole(user.role) === "team_leader" ? user.team_id : undefined} onSelectView={onSelectView} /> : null}
       <div className="console-topbar-account" ref={accountRef}>
-        <button aria-expanded={accountOpen} className="console-topbar-account-trigger" onClick={() => setAccountOpen(value => !value)} type="button">
+        <button aria-expanded={accountOpen} aria-haspopup="menu" aria-label={tx("个人中心")} className="console-topbar-account-trigger" onClick={() => setAccountOpen(value => !value)} type="button">
           <span className="console-topbar-avatar">{userInitial(user)}</span>
           <span className="console-topbar-identity">
-            <strong>{user.username}</strong>
-            <small>{roleLabel(user.role)}</small>
+            <strong>{displayText(user.name) || user.username}</strong>
           </span>
           <ChevronDown className={accountOpen ? "open" : ""} size={14} />
         </button>
         {accountOpen ? (
-          <div className="console-account-menu">
-            {/* <button onClick={onThemeToggle} type="button">
-              {theme === "light" ? <Moon size={15} /> : <Sun size={15} />}
-              <span>{tx("切换主题")}</span>
-            </button> */}
-            <button onClick={onLogout} type="button">
+          <div className="console-account-menu" role="menu" aria-label={tx("个人中心")}>
+            <div className="console-account-menu-profile">
+              <span className="console-topbar-avatar">{userInitial(user)}</span>
+              <span className="console-topbar-identity">
+                <strong>{user.username}</strong>
+                {user.email ? <small>{user.email}</small> : null}
+              </span>
+            </div>
+            {isGuest ? (
+              <button onClick={() => { setAccountOpen(false); onSelectView("balance-recharge"); }} role="menuitem" type="button">
+                <Wallet size={15} />
+                <span>{tx("余额充值")}</span>
+              </button>
+            ) : null}
+            <button onClick={onLogout} role="menuitem" type="button">
               <LogOut size={15} />
               <span>{tx("退出登录")}</span>
             </button>
@@ -500,10 +503,6 @@ export function StandardTopNav({ activeView, data, user, theme, onSelectView, on
               </button>
             );
           })}
-        </div>
-        <div className="top-scope-pill" title={tx(roleScopeDescription(user))}>
-          <span>{userInitial(user)}</span>
-          <strong>{roleLabel(user.role)}</strong>
         </div>
         <button className="top-icon-button" onClick={onThemeToggle} title={tx("切换主题")} type="button">
           {theme === "light" ? <Moon size={17} /> : <Sun size={17} />}

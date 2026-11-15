@@ -3,7 +3,7 @@ id: "tokenhub.provider.commandcode-plan-subscription"
 name: "Command Code"
 version: 1.0.0
 summary: "Connect a Command Code subscription account."
-description: "Connect an explicitly authorized Command Code subscription account through TokenHub's isolated bundled runtime."
+description: "Connect an explicitly authorized Command Code subscription account through TokenStation's isolated bundled runtime."
 category: provider_integration
 tokenhub:
   plugin_api: v2

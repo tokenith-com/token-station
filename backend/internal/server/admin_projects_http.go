@@ -577,6 +577,10 @@ func (s *Server) handleAdminUsersPost(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
+	if isConsumerRole(req.Role) {
+		req.TeamID = ""
+		req.TeamIDs = nil
+	}
 	user, err := s.store.CreateAdminUser(AdminUser{
 		Username: req.Username,
 		Name:     req.Name,
@@ -977,6 +981,16 @@ func (s *Server) serveAdminUserPatch(w http.ResponseWriter, r *http.Request, act
 		}
 		req.Role = "user"
 	}
+	effectiveRole := req.Role
+	if effectiveRole == "" {
+		if target, ok := s.findAdminUser(userID); ok {
+			effectiveRole = target.Role
+		}
+	}
+	if isConsumerRole(effectiveRole) {
+		req.TeamID = ""
+		req.TeamIDs = nil
+	}
 	updatedUser, err := s.store.UpdateAdminUser(userID, AdminUser{
 		Username: req.Username,
 		Name:     req.Name,
@@ -1072,17 +1086,34 @@ func (s *Server) handleAdminAPIKeysPost(w http.ResponseWriter, r *http.Request) 
 }
 
 func (s *Server) personalAPIKeyProject(user AdminUser) (Project, error) {
-	if normalizeAdminRole(user.Role) != "user" {
+	role := normalizeAdminRole(user.Role)
+	if role != "user" && role != "consumer" {
 		return Project{}, NewHTTPError(400, "project_required", "Project ID is required")
 	}
+	// Consumer (guest) accounts have no project concept; their keys always live in the dedicated consumer project.
+	if role == "consumer" {
+		return s.consumerAPIKeyProject()
+	}
 	for _, project := range s.store.ListProjects() {
-		if project.ID == defaultProjectID || (project.Status != "" && project.Status != StatusActive) {
+		if project.ID == defaultProjectID || project.ID == consumerProjectID || (project.Status != "" && project.Status != StatusActive) {
 			continue
 		}
 		if s.canUseProjectForAPIKey(user, project.ID) {
 			return project, nil
 		}
 	}
+	return s.defaultAPIKeyProject()
+}
+
+func (s *Server) consumerAPIKeyProject() (Project, error) {
+	project, ok := s.store.GetProject(consumerProjectID)
+	if !ok || (project.Status != "" && project.Status != StatusActive) {
+		return Project{}, NewHTTPError(409, "consumer_project_unavailable", "Consumer project is unavailable")
+	}
+	return project, nil
+}
+
+func (s *Server) defaultAPIKeyProject() (Project, error) {
 	project, ok := s.store.GetProject(defaultProjectID)
 	if !ok || (project.Status != "" && project.Status != StatusActive) {
 		return Project{}, NewHTTPError(409, "default_project_unavailable", "Default project is unavailable")
@@ -1218,6 +1249,21 @@ func (s *Server) handleAdminAPIKeyDelete(w http.ResponseWriter, r *http.Request)
 
 func (s *Server) handleAdminAPIKeyRotatePost(w http.ResponseWriter, r *http.Request) {
 	s.handleAdminAPIKeyRoute(w, r, s.serveAdminAPIKeyRotate)
+}
+
+func (s *Server) handleAdminAPIKeySecretGet(w http.ResponseWriter, r *http.Request) {
+	s.handleAdminAPIKeyRoute(w, r, s.serveAdminAPIKeySecret)
+}
+
+func (s *Server) serveAdminAPIKeySecret(w http.ResponseWriter, r *http.Request, user AdminUser, keyID string) {
+	secret, err := s.store.RevealAPIKey(keyID)
+	if err != nil {
+		writeError(w, r, err)
+		return
+	}
+	s.recordAdminAudit(r, user, "reveal", "api_key", keyID, "", map[string]any{"id": keyID})
+	w.Header().Set("Cache-Control", "no-store")
+	writeJSON(w, http.StatusOK, map[string]any{"id": keyID, "api_key": secret})
 }
 
 func (s *Server) handleAdminAPIKeyRoute(w http.ResponseWriter, r *http.Request, handler func(http.ResponseWriter, *http.Request, AdminUser, string)) {

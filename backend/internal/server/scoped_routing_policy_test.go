@@ -395,9 +395,10 @@ func TestPlaygroundGlobalRoutingPolicyAnnotatesMissingBaseCandidates(t *testing.
 	if err != nil {
 		t.Fatal(err)
 	}
+	keyID := createPlaygroundTestKey(t, store, project.ID, "")
 	for _, path := range []string{"/api/admin/playground/chat", "/api/admin/playground/chat/stream"} {
 		resp := doJSON(t, newManagedTestServer(t, store).Handler(), http.MethodPost, path, map[string]any{
-			"project_id": project.ID, "model": model.Name, "messages": []map[string]any{{"role": "user", "content": "no route"}},
+			"api_key_id": keyID, "model": model.Name, "messages": []map[string]any{{"role": "user", "content": "no route"}},
 		}, "")
 		if resp.Code != http.StatusServiceUnavailable {
 			t.Fatalf("%s missing base routes: status=%d body=%s", path, resp.Code, resp.Body)

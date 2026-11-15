@@ -1,5 +1,5 @@
 services:
-  tokenhub-backend:
+  tokenstation-backend:
     image: ghcr.io/astaxie/tokenhub-backend:${TOKENHUB_IMAGE_TAG:-latest}
     scale: ${TOKENHUB_BACKEND_REPLICAS:-2}
     build:
@@ -79,9 +79,9 @@ services:
     volumes:
       - tokenhub-plugins:/app/plugins
     networks:
-      - tokenhub
+      - tokenstation
 
-  tokenhub-frontend:
+  tokenstation-frontend:
     image: ghcr.io/astaxie/tokenhub-backend:${TOKENHUB_IMAGE_TAG:-latest}
     scale: ${TOKENHUB_FRONTEND_REPLICAS:-2}
     build:
@@ -105,9 +105,9 @@ services:
       retries: 12
       start_period: 20s
     networks:
-      - tokenhub
+      - tokenstation
 
-  tokenhub-load-balancer:
+  tokenstation-load-balancer:
     image: nginx:1.27-alpine
     restart: unless-stopped
     environment:
@@ -117,9 +117,9 @@ services:
     volumes:
       - ./nginx.multi-instance.conf:/etc/nginx/templates/default.conf.template:ro
     depends_on:
-      tokenhub-backend:
+      tokenstation-backend:
         condition: service_healthy
-      tokenhub-frontend:
+      tokenstation-frontend:
         condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8080/gateway-healthz >/dev/null 2>&1"]
@@ -127,10 +127,10 @@ services:
       timeout: 3s
       retries: 12
     networks:
-      - tokenhub
+      - tokenstation
 
 networks:
-  tokenhub: {}
+  tokenstation: {}
 
 volumes:
   tokenhub-plugins:

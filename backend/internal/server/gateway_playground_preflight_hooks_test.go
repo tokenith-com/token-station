@@ -71,7 +71,7 @@ func TestPlaygroundChatStreamRunsPrivacyAndContextOptimizeHooks(t *testing.T) {
 	}
 
 	resp := doJSON(t, server.Handler(), http.MethodPost, "/api/admin/playground/chat/stream", map[string]any{
-		"project_id": defaultProjectID,
+		"api_key_id": createPlaygroundTestKey(t, store, defaultProjectID, ""),
 		"model":      "gpt-4.1-mini",
 		"messages": []map[string]any{
 			{"role": "user", "content": "secret prompt"},
@@ -119,7 +119,7 @@ func TestPlaygroundRoutedCallRunsRouteCandidateHooks(t *testing.T) {
 		t.Fatalf("register route candidates handler: %v", err)
 	}
 
-	routed, err := server.preparePlaygroundRoutedCall(context.Background(), ChatCompletionRequest{Model: "gpt-playground-candidates"}, server.newPlaygroundCallContext(AdminUser{ID: "dev_admin"}, "gpt-playground-candidates", time.Now()))
+	routed, err := server.preparePlaygroundRoutedCall(context.Background(), ChatCompletionRequest{Model: "gpt-playground-candidates"}, CallContext{RequestID: NewID("req"), Model: Model{Name: "gpt-playground-candidates"}, StartedAt: time.Now()})
 	if err != nil {
 		t.Fatalf("prepare playground routed call: %v", err)
 	}

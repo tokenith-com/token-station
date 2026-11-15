@@ -129,6 +129,7 @@ type APIKey struct {
 	Name            string            `json:"name"`
 	Group           string            `json:"group,omitempty" gorm:"index"`
 	KeyHash         string            `json:"-" gorm:"uniqueIndex"`
+	KeyCiphertext   string            `json:"-" gorm:"column:key_ciphertext;-:migration"`
 	KeyPrefix       string            `json:"key_prefix"`
 	KeySuffix       string            `json:"key_suffix"`
 	AllowedModels   map[string]bool   `json:"-" gorm:"-"`
@@ -1338,10 +1339,12 @@ type CallContext struct {
 	measuredAt time.Time
 	// RateLimitHeaders is calculated atomically with minute-bucket admission so
 	// every compatible HTTP surface reports the same effective limits.
-	RateLimitHeaders  map[string]string
-	TokenLimitBucket  string
-	MinuteRequestHeld bool
-	ReservedTokens    int64
+	RateLimitHeaders        map[string]string
+	TokenLimitBucket        string
+	MinuteRequestHeld       bool
+	ReservedTokens          int64
+	TeamWalletEnabled       bool
+	TeamWalletReservedCents int64
 	// UserQuotaID identifies the durable aggregate bucket when a user-scoped
 	// quota policy applies. It is intentionally internal and never exposed to
 	// gateway clients.

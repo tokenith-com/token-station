@@ -79,6 +79,7 @@ func modelAllowedByScopes(project Project, key APIKey, modelName string) bool {
 
 func publicKey(key APIKey) APIKey {
 	key.KeyHash = ""
+	key.KeyCiphertext = ""
 	if key.Allowed == nil && key.AllowedModels != nil {
 		key.Allowed = make([]string, 0, len(key.AllowedModels))
 		for model := range key.AllowedModels {
@@ -91,6 +92,9 @@ func publicKey(key APIKey) APIKey {
 
 func publicAdminUser(user AdminUser) AdminUser {
 	user.PasswordHash = ""
+	if isConsumerRole(user.Role) {
+		user.Role = "consumer"
+	}
 	return user
 }
 

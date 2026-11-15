@@ -3,7 +3,7 @@ id: tokenhub.provider.mock-go
 name: Mock Go Provider
 version: 1.0.0
 summary: Exercise the Provider contract without a real upstream service.
-description: Reference Go Provider plugin using the TokenHub stdio-json-v1 transport.
+description: Reference Go Provider plugin using the TokenStation stdio-json-v1 transport.
 category: provider_integration
 tokenhub:
   plugin_api: v2

@@ -90,5 +90,7 @@ describe("API key model access editing", () => {
     expect(screen.queryByRole("button", { name: "编辑" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "轮换" })).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "使用" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "显示 Key" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "复制 Key" })).toBeVisible();
   });
 });

@@ -302,7 +302,7 @@ export function AuditView({ api, data, user }: { api: ApiContext; data: AppData;
                           <span>{providerAuditLabel(data, log)}</span>
                           <span>{formatTime(log.created_at)}</span>
                           {log.usage_record_count ? <span>{compactNumber(log.total_tokens ?? 0)} Token</span> : null}
-                          {log.usage_record_count ? <span>${formatMoney(log.estimated_cost_usd ?? 0)}</span> : null}
+                          {log.usage_record_count ? <span>¥{formatMoney(log.estimated_cost_usd ?? 0)}</span> : null}
                         </span>
                         <span className="request-row-tail">
                           <StatusPill status={log.status_code >= 400 ? "error" : "ok"} label={String(log.status_code || "-")} />
@@ -499,14 +499,14 @@ export function RequestDetailPanel({
         </div>
         <div className="request-usage-total">
           <UsageStat label="总量" value={detail.usage.length ? formatNumber(usageTotals.total_tokens) : "—"} />
-          <UsageStat label="对外计费" value={detail.usage.length ? `$${formatMoney(usageTotals.estimated_cost_usd)}` : "—"} />
-          {showProviderCost ? <UsageStat label="渠道真实成本" value={detail.usage.length ? `$${formatMoney(usageTotals.provider_cost_usd)}` : "—"} /> : null}
+          <UsageStat label="对外计费" value={detail.usage.length ? `¥${formatMoney(usageTotals.estimated_cost_usd)}` : "—"} />
+          {showProviderCost ? <UsageStat label="渠道真实成本" value={detail.usage.length ? `¥${formatMoney(usageTotals.provider_cost_usd)}` : "—"} /> : null}
         </div>
       </div>
 
       <RequestPayloadSection key={requestID} payload={detail.payload ?? null} />
 
-      <details className="request-secondary-details" key={`metadata-${requestID}`}><summary>{tx("详情")}</summary><div className="request-detail-grid">
+      <details open className="request-secondary-details" key={`metadata-${requestID}`}><summary>{tx("详情")}</summary><div className="request-detail-grid">
         <DetailField label="项目" value={projectName(data, log.project_id)} />
         <DetailField label="API Key" value={apiKeyAuditLabel(data, log.api_key_id)} />
         <DetailField label="Provider 资源" value={providerResourceAuditLabel(data, log.provider_resource_id)} />
@@ -514,7 +514,7 @@ export function RequestDetailPanel({
         <DetailField label="策略作用域 / 优先级" value={log.routing_policy_id ? `${tx(log.routing_policy_scope || "-")} / P${log.routing_policy_priority || 0}` : "-"} />
         <DetailField label="客户端 IP" value={log.client_ip || "-"} />
       </div></details>
-      <details className="request-secondary-details" key={`usage-${requestID}`}><summary>{tx("Token 与成本")} · {tx("详情")}</summary>
+      <details open className="request-secondary-details" key={`usage-${requestID}`}><summary>{tx("Token 与成本")} · {tx("详情")}</summary>
         <div className="request-usage-breakdown">
           <UsageBreakdownGroup
             label="输入"

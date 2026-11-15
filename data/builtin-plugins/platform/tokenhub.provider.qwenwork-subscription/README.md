@@ -1,6 +1,6 @@
 # QwenWork
 
-Connect an explicitly authorized QwenWork account to TokenHub.
+Connect an explicitly authorized QwenWork account to TokenStation.
 
 - Plugin ID: `tokenhub.provider.qwenwork-subscription`
 - Configuration: Provider management, with a separate account resource

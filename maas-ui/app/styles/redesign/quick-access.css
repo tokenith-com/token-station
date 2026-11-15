@@ -809,7 +809,7 @@
 
 .personal-key-create-modal {
   width: min(100%, 832px);
-  color: #324558;
+  color: var(--ink-2);
 }
 
 .personal-key-create-modal .quick-key-modal-head {
@@ -822,7 +822,7 @@
 }
 
 .personal-key-create-modal .quick-key-modal-head h2 {
-  color: #1d2129;
+  color: var(--ink);
   font-size: calc(16 * var(--content-font-unit, 1px));
   font-weight: 500;
 }
@@ -830,7 +830,7 @@
 .personal-key-create-modal .quick-key-modal-head .icon-button {
   width: calc(28 * var(--content-font-unit, 1px));
   height: calc(28 * var(--content-font-unit, 1px));
-  color: #7b8794;
+  color: var(--ink-3);
 }
 
 .personal-key-create-modal .quick-key-modal-body {
@@ -843,7 +843,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  color: #324558;
+  color: var(--ink-2);
   font-size: calc(14 * var(--content-font-unit, 1px));
   font-weight: 500;
 }
@@ -852,7 +852,7 @@
   width: 3px;
   height: 14px;
   border-radius: 2px;
-  background: #3f7cf3;
+  background: var(--accent);
 }
 
 .personal-key-create-modal .personal-key-name-field {
@@ -860,19 +860,19 @@
 }
 
 .personal-key-create-modal .personal-key-name-field > span {
-  color: #324558;
+  color: var(--ink-2);
   font-weight: 400;
 }
 
 .personal-key-create-modal .personal-key-name-field > span b {
   margin-right: 3px;
-  color: #f05b60;
+  color: var(--danger);
   font-weight: 500;
 }
 
 .personal-key-create-modal .personal-key-name-field input {
   height: calc(30 * var(--content-font-unit, 1px));
-  border-color: #dfe3e9;
+  border-color: var(--border-2);
   border-radius: 3px;
   padding: 0 9px;
   font-size: calc(12 * var(--content-font-unit, 1px));
@@ -882,7 +882,7 @@
   min-height: 57px;
   padding: 0 20px;
   align-items: center;
-  background: #fff;
+  background: var(--surface);
 }
 
 .personal-key-create-modal .quick-key-modal-actions .button,

@@ -205,6 +205,9 @@ func newRedisBillingCommitFailureStore(t *testing.T) (*GormStore, *atomic.Bool, 
 			}
 		}
 	}
+	if err := apiKeyCiphertextMigration().Go(context.Background(), directSQLMigrationExecer{DB: sqlDB}); err != nil {
+		t.Fatal(err)
+	}
 	billingRedis, err := newRedisBillingCoordinator(context.Background(), "redis://"+redisServer.Addr()+"/0", 2*time.Second)
 	if err != nil {
 		t.Fatal(err)

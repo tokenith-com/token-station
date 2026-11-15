@@ -61,7 +61,7 @@ export function BillingRateCards({ api, data }: { api: ApiContext; data: AppData
     <p>{tx("影子价目用于核对，不改变当前收费与预算。单价单位为原币/百万 Token；填写 0 表示免费，时段留空表示继承。")}</p>
     <form onSubmit={(event) => { event.preventDefault(); void act("preview"); }} onChange={() => setPreview(null)}>
       <div className="form-grid">
-        <label>{tx("价目用途")}<select value={card.kind} onChange={(event) => setCard({ ...card, kind: event.target.value, target: "", currency: "USD" })}><option value="tenant">{tx("租户费用")}</option><option value="provider">{tx("上游成本")}</option></select></label>
+        <label>{tx("价目用途")}<select value={card.kind} onChange={(event) => setCard({ ...card, kind: event.target.value, target: "", currency: event.target.value === "tenant" ? "USD" : "CNY" })}><option value="tenant">{tx("租户费用")}</option><option value="provider">{tx("上游成本")}</option></select></label>
         <label>{tx("计价对象")}<select required value={card.target} onChange={(event) => setCard({ ...card, target: event.target.value })}><option value="">{tx("请选择")}</option>{card.kind === "tenant" ? data.models.map((model) => <option key={model.name} value={model.name}>{model.name}</option>) : data.providerModels.map((model) => <option key={model.id} value={`${model.provider_id}:${model.upstream_model}`}>{model.provider_id} / {model.upstream_model}</option>)}</select></label>
         <label>{tx("币种")}<input required pattern="[A-Z]{3}" value={card.currency} readOnly={card.kind === "tenant"} onChange={(event) => setCard({ ...card, currency: event.target.value.toUpperCase() })} /></label>
         <label>{tx("价格依据")}<input required value={card.source} onChange={(event) => setCard({ ...card, source: event.target.value })} /></label>

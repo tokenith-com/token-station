@@ -11,7 +11,7 @@ const governanceSteps: Array<{
 }> = [
   {
     stage: "providers",
-    title: "Provider 渠道",
+    title: "供应商",
     detail: "引入上游模型 · 维护真实成本",
   },
   {
@@ -29,7 +29,7 @@ const governanceSteps: Array<{
 export function ModelGovernanceFlow({ currentStage }: { currentStage?: ModelGovernanceStage }) {
   const currentIndex = governanceSteps.findIndex((step) => step.stage === currentStage);
   return (
-    <div className="model-governance-flow" aria-label={tx("Provider 渠道、模型目录和路由策略的配置流程")}>
+    <div className="model-governance-flow" aria-label={tx("供应商、模型目录和路由策略的配置流程")}>
       {governanceSteps.map((step, index) => {
         const state = currentIndex < 0 ? "" : index < currentIndex ? "is-complete" : index === currentIndex ? "is-current" : "is-upcoming";
         return (

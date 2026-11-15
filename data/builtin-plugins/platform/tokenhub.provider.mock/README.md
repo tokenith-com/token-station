@@ -1,6 +1,6 @@
 # Mock Provider
 
-Built-in provider integration plugin for TokenHub.
+Built-in provider integration plugin for TokenStation.
 
 - Plugin ID: `tokenhub.provider.mock`
 - Configuration: Provider management

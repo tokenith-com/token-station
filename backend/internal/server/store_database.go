@@ -380,7 +380,7 @@ func (s *GormStore) recordScheduledBillingAudit(run billing.SyncRun) {
 		status = "failed"
 	}
 	s.RecordAuditEvent(AuditEvent{
-		ActorUserID: "system", ActorName: "TokenHub Scheduler", ActorRole: "system",
+		ActorUserID: "system", ActorName: "TokenStation Scheduler", ActorRole: "system",
 		Action: "sync", ResourceType: "billing_connector", ResourceID: run.ConnectorID,
 		Status: status, Message: run.ErrorCode, AfterSnapshot: snapshotJSON(run),
 	})

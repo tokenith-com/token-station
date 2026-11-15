@@ -531,20 +531,13 @@ func (s *Server) handleAdminPlaygroundChat(w http.ResponseWriter, r *http.Reques
 	}
 	req.Stream = false
 	req.StreamOptions = nil
-	guardrailProjectID, err := s.resolvePlaygroundGuardrailProjectID(user, playgroundReq.ProjectID)
-	if err != nil {
-		writeError(w, r, err)
-		return
-	}
-
 	startedAt := time.Now()
-	call := s.newPlaygroundCallContext(user, req.Model, startedAt)
-	if err := s.setPlaygroundWalletPayer(&call, user, guardrailProjectID); err != nil {
-		writeError(w, r, err)
+	call, ok := s.admitPlaygroundCall(w, r, user, playgroundReq.APIKeyID, req, startedAt)
+	if !ok {
 		return
 	}
+	guardrailProjectID := call.Project.ID
 	requestID := call.RequestID
-	w.Header().Set("x-request-id", requestID)
 	if err := s.runGatewayAuthContextHooks(r.Context(), &call, r.Header); err != nil {
 		httpErr := AsHTTPError(err)
 		requestAuditPayload := guardrailAuditSummary{Model: req.Model}
@@ -627,6 +620,7 @@ func (s *Server) handleAdminPlaygroundChat(w http.ResponseWriter, r *http.Reques
 		})
 		writeError(w, r, routeErr)
 	}
+	var err error
 	routed.Call.Model, err = resolvePlaygroundModelPricing(s.store, routed.Call.Model)
 	if err != nil {
 		finishRoutingFailure(err)

@@ -31,7 +31,7 @@ export function GlobalUsageView({ api, data, user, renderReport }: {
       <div className="global-usage-ranges" role="group" aria-label={tx("用量时间范围")}>
         {ranges.map(value => <button key={value} type="button" aria-pressed={range === value} onClick={() => setRange(value)}>{rangeLabel(value)}</button>)}
       </div>
-      <div className="global-usage-cost"><strong>{report ? usageMoney(report.summary.estimated_cost_usd) : "—"}</strong><span>{tx("估算成本")}</span></div>
+      <div className="global-usage-cost"><strong>{report ? usageMoney(report.summary.estimated_cost_usd) : "—"}</strong><span>{appRole(user.role) === "user" ? tx("本人估算金额") : tx("估算成本")}</span></div>
       <button className="secondary-button" type="button" disabled={refreshing} onClick={refresh}><RefreshCw size={15} />{tx("刷新")}</button>
     </div>
     <div className="global-usage-context">
@@ -84,7 +84,7 @@ function UsageTable({ title, label, rows, name, paginationKey }: {
 }
 
 function usageMoney(value: number) {
-  return new Intl.NumberFormat(languageLocale(), { style: "currency", currency: "USD", minimumFractionDigits: 2, maximumFractionDigits: 6 }).format(value);
+  return new Intl.NumberFormat(languageLocale(), { style: "currency", currency: "CNY", currencyDisplay: "narrowSymbol", minimumFractionDigits: 2, maximumFractionDigits: 6 }).format(value);
 }
 
 function usageWindowLabel(report: UsageReport) {

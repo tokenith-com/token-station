@@ -38,8 +38,8 @@ export function Sidebar({
   return (
     <aside className={collapsed ? "sidebar collapsed" : "sidebar"}>
       <div className="brand">
-        <img src="/brand/tokenhub-logo.png" alt="TokenHub" className="brand-logo" />
-        <span className="brand-name">TokenHub</span>
+        <img src="/brand/tokenstation-logo.png" alt="TokenStation" className="brand-logo" />
+        <span className="brand-name">TokenStation</span>
         <div className="sidebar-version-status" id="sidebar-version-status" />
         <button
           className="sidebar-toggle"
@@ -261,7 +261,7 @@ export function navPathForView(user: AdminUser, view: ViewKey) {
 export function pageHeaderCrumbs(user: AdminUser, view: ViewKey, meta: { title: string }) {
   const path = navPathForView(user, view);
   const pathGroup = path.group || pageHeaderFallbackGroup(view, user);
-  const crumbs: { label: string; view?: ViewKey }[] = [{ label: "TokenHub", view: "overview" }];
+  const crumbs: { label: string; view?: ViewKey }[] = [{ label: "TokenStation", view: "overview" }];
   if (pathGroup) crumbs.push({ label: pathGroup });
   if (path.parent) crumbs.push({ label: path.parent });
   crumbs.push({ label: path.label || meta.title });

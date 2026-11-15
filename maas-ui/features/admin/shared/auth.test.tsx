@@ -100,12 +100,10 @@ describe("LoginView", () => {
     expect(screen.queryByText("沪ICP备15028292-1号")).not.toBeInTheDocument();
   });
 
-  it("only exposes SMS registration on the consumer deployment", async () => {
+  it.each(["b", "c"] as const)("exposes email registration on portal %s", async portal => {
     const user = userEvent.setup();
-    const { rerender } = render(<LoginView {...baseProps} portal="b" onLogin={vi.fn()} />);
-    expect(screen.queryByRole("button", { name: "短信注册" })).not.toBeInTheDocument();
-    rerender(<LoginView {...baseProps} portal="c" captchaID="app-id" onLogin={vi.fn()} />);
-    await user.click(screen.getByRole("button", { name: "短信注册" }));
+    render(<LoginView {...baseProps} portal={portal} onLogin={vi.fn()} />);
+    await user.click(screen.getByRole("button", { name: "邮箱注册" }));
     expect(screen.getByRole("heading", { name: "注册账号" })).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "已有账号？返回登录" }));
     expect(screen.getByLabelText("账号")).toBeInTheDocument();

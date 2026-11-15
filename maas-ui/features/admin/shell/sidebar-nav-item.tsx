@@ -1,4 +1,4 @@
-import { useEffect, useId, useState, type ReactNode } from "react";
+import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 
 export function SidebarNavItem({ active, collapsed, label, onSelect, children }: {
@@ -10,6 +10,13 @@ export function SidebarNavItem({ active, collapsed, label, onSelect, children }:
 }) {
   const tooltipID = useId();
   const [position, setPosition] = useState<{ left: number; top: number } | null>(null);
+  const focusFrame = useRef<number | null>(null);
+
+  function hideTooltip() {
+    if (focusFrame.current !== null) cancelAnimationFrame(focusFrame.current);
+    focusFrame.current = null;
+    setPosition(null);
+  }
 
   function showTooltip(button: HTMLButtonElement) {
     if (!collapsed) return;
@@ -17,6 +24,10 @@ export function SidebarNavItem({ active, collapsed, label, onSelect, children }:
     const sidebar = button.closest(".sidebar")?.getBoundingClientRect();
     setPosition({ left: (sidebar?.right ?? bounds.right) + 8, top: Math.max(24, Math.min(innerHeight - 24, (bounds.top + bounds.bottom) / 2)) });
   }
+
+  useEffect(() => () => {
+    if (focusFrame.current !== null) cancelAnimationFrame(focusFrame.current);
+  }, []);
 
   useEffect(() => {
     if (!position) return;
@@ -39,11 +50,20 @@ export function SidebarNavItem({ active, collapsed, label, onSelect, children }:
         aria-describedby={collapsed && position ? tooltipID : undefined}
         className={active ? "nav-item active" : "nav-item"}
         onPointerEnter={event => { if (event.pointerType !== "touch") showTooltip(event.currentTarget); }}
-        onPointerLeave={() => setPosition(null)}
-        onPointerDown={event => { if (event.pointerType === "touch") setPosition(null); }}
-        onFocus={event => { if (event.currentTarget.matches(":focus-visible")) showTooltip(event.currentTarget); }}
-        onBlur={() => setPosition(null)}
-        onClick={() => { setPosition(null); onSelect(); }}
+        onPointerLeave={hideTooltip}
+        onPointerDown={event => { if (event.pointerType === "touch") hideTooltip(); }}
+        onFocus={event => {
+          const button = event.currentTarget;
+          if (!button.matches(":focus-visible")) return;
+          // Focus may scroll the sidebar; position the tooltip after that scroll event.
+          focusFrame.current = requestAnimationFrame(() => {
+            focusFrame.current = null;
+            if (document.activeElement === button && button.matches(":focus-visible")) showTooltip(button);
+          });
+        }}
+        onKeyDown={event => { if (event.key === "Escape") hideTooltip(); }}
+        onBlur={hideTooltip}
+        onClick={() => { hideTooltip(); onSelect(); }}
         type="button">
         {children}
         <span>{label}</span>

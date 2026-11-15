@@ -21,7 +21,7 @@ const { data: result, response, requestId } = await client.systemOne({
 }).withResponse();
 assert.ok(requestId, "The upstream request ID must be available through withResponse().");
 assert.equal(requestId, response.headers.get("x-typesafe-request-id"));
-assert.ok(response.headers.get("x-request-id"), "The TokenHub request ID must remain available.");
+assert.ok(response.headers.get("x-request-id"), "The TokenStation request ID must remain available.");
 assert.notEqual(requestId, response.headers.get("x-request-id"));
 assert.equal(typeof result.model, "string");
 assert.deepEqual(Object.keys(result.answers).sort(), ["intent", "severity", "urgent"]);

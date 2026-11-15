@@ -13,7 +13,7 @@ describe("Provider account OAuth UI", () => {
       <ProviderOAuthNoticeModal
         busy={false}
         error=""
-        oauthMetadata={{ notice_login_step: "Sign in to Kimi and approve TokenHub." }}
+        oauthMetadata={{ notice_login_step: "Sign in to Kimi and approve TokenStation." }}
         onClose={vi.fn()}
         onConfirm={vi.fn()}
         onCopy={vi.fn()}
@@ -21,7 +21,7 @@ describe("Provider account OAuth UI", () => {
       />,
     );
 
-    expect(screen.getByText("Sign in to Kimi and approve TokenHub.")).toBeInTheDocument();
+    expect(screen.getByText("Sign in to Kimi and approve TokenStation.")).toBeInTheDocument();
     expect(screen.queryByText(/OpenAI\/Codex/)).not.toBeInTheDocument();
   });
 

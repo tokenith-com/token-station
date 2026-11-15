@@ -35,6 +35,12 @@ func (e *recordingTraceEmitter) take() []GatewayCallCompletion {
 
 func newTracedTestServer(t *testing.T) (http.Handler, *recordingTraceEmitter) {
 	t.Helper()
+	app, emitter, _ := newTracedTestServerWithStore(t)
+	return app, emitter
+}
+
+func newTracedTestServerWithStore(t *testing.T) (http.Handler, *recordingTraceEmitter, Store) {
+	t.Helper()
 	store := newTestMemoryStore(t)
 	if err := SeedDemoData(store); err != nil {
 		t.Fatal(err)
@@ -42,7 +48,7 @@ func newTracedTestServer(t *testing.T) (http.Handler, *recordingTraceEmitter) {
 	app := newManagedTestServer(t, store)
 	emitter := &recordingTraceEmitter{}
 	app.traceEmitter = emitter
-	return app.Handler(), emitter
+	return app.Handler(), emitter, store
 }
 
 func TestGatewayCompletionRunsTraceExportHooks(t *testing.T) {
@@ -245,6 +251,9 @@ func TestGatewayCallEmitsExactlyOneCompletion(t *testing.T) {
 		payload      map[string]any
 		expectStatus int
 		expectKind   CompletionKind
+		// playgroundKeyProject, when set, adds an api_key_id for a key owned by
+		// the admin test caller in that project.
+		playgroundKeyProject string
 	}{
 		{
 			name:  "chat completion",
@@ -293,18 +302,21 @@ func TestGatewayCallEmitsExactlyOneCompletion(t *testing.T) {
 			path:  "/api/admin/playground/chat",
 			token: "",
 			payload: map[string]any{
-				"project_id": "prj_demo",
-				"model":      "gpt-4.1-mini",
-				"messages":   []map[string]any{{"role": "user", "content": "hello"}},
+				"model":    "gpt-4.1-mini",
+				"messages": []map[string]any{{"role": "user", "content": "hello"}},
 			},
-			expectStatus: http.StatusOK,
-			expectKind:   CompletionKindPlayground,
+			playgroundKeyProject: "prj_demo",
+			expectStatus:         http.StatusOK,
+			expectKind:           CompletionKindPlayground,
 		},
 	}
 
 	for _, testCase := range cases {
 		t.Run(testCase.name, func(t *testing.T) {
-			app, emitter := newTracedTestServer(t)
+			app, emitter, store := newTracedTestServerWithStore(t)
+			if testCase.playgroundKeyProject != "" {
+				testCase.payload["api_key_id"] = createPlaygroundTestKey(t, store, testCase.playgroundKeyProject, "")
+			}
 			response := doJSON(t, app, http.MethodPost, testCase.path, testCase.payload, testCase.token)
 			if response.Code != testCase.expectStatus {
 				t.Fatalf("expected %d, got %d: %s", testCase.expectStatus, response.Code, response.Body)

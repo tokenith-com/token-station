@@ -46,7 +46,7 @@ test("billing price preview and shadow publication are separate actions", async 
 test("billing exact pricing fields wrap instead of crowding one row", async ({ page }, testInfo) => {
   await openBilling(page);
   const trail = page.getByRole("navigation", { name: "当前位置" });
-  await expect(trail.getByRole("button", { name: "TokenHub" })).toBeVisible();
+  await expect(trail.getByRole("button", { name: "TokenStation" })).toBeVisible();
   await expect(trail).toContainText("成本治理");
   await expect(trail.locator("[aria-current='page']")).toHaveText("成本账单");
   const form = section(page, "精确计价与影子核对");
@@ -72,7 +72,7 @@ test("billing exact pricing layout stays usable on a phone", async ({ page }, te
   await page.setViewportSize({ width: 390, height: 844 });
   await openBilling(page);
   const trail = page.getByRole("navigation", { name: "当前位置" });
-  await expect(trail.getByRole("button", { name: "TokenHub" })).toBeVisible();
+  await expect(trail.getByRole("button", { name: "TokenStation" })).toBeVisible();
   await expect(trail.locator("[aria-current='page']")).toHaveText("成本账单");
   await expect.poll(() => page.locator(".page-header").evaluate((element) => element.scrollWidth <= element.clientWidth + 1)).toBe(true);
   const form = section(page, "精确计价与影子核对");

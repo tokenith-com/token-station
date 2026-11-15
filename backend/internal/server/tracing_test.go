@@ -755,7 +755,7 @@ func TestTracingTagsPlaygroundTraffic(t *testing.T) {
 	app := newTracingTestServer(t, tracingTestConfig(endpoint.tracesURL()))
 
 	response := doJSON(t, app.Handler(), http.MethodPost, "/api/admin/playground/chat", map[string]any{
-		"project_id": "prj_demo",
+		"api_key_id": createPlaygroundTestKey(t, app.store, "prj_demo", ""),
 		"model":      "gpt-4.1-mini",
 		"messages":   []map[string]any{{"role": "user", "content": "hello"}},
 	}, "")
@@ -918,7 +918,7 @@ func TestTracingPricesPlaygroundGenerations(t *testing.T) {
 	app := newTracingTestServer(t, tracingTestConfig(endpoint.tracesURL()))
 
 	response := doJSON(t, app.Handler(), http.MethodPost, "/api/admin/playground/chat", map[string]any{
-		"project_id": "prj_demo",
+		"api_key_id": createPlaygroundTestKey(t, app.store, "prj_demo", ""),
 		"model":      "gpt-4.1-mini",
 		"messages":   []map[string]any{{"role": "user", "content": "hello"}},
 	}, "")

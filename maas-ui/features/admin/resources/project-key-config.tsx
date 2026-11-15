@@ -169,7 +169,7 @@ export function apiKeyConfig(): ResourceConfig<APIKey> {
       { key: "owner_user_id", label: "归属用户", render: (item, ctx) => ownerUserLabel(ctx, apiKeyOwnerUserID(ctx, item)) },
       { key: "project_owner", label: "项目负责人", render: (item, ctx) => projectOwnerLabel(ctx, item.project_id) },
       { key: "project_team", label: "团队", render: (item, ctx) => projectTeamLabel(ctx, item.project_id) },
-      { key: "key_prefix", label: "Key", render: (item) => <APIKeyValue apiKey={item} /> },
+      { key: "key_prefix", label: "Key", render: (item) => <APIKeyValue key={item.id} apiKey={item} /> },
       { key: "allowed_models", label: "模型", render: (item) => modelAccessSummary(item.model_access_mode, item.allowed_models) },
       { key: "ip_allowlist", label: "IP 白名单", render: (item) => (item.ip_allowlist ?? []).join(", ") || tx("不限") },
       { key: "rate_limit_rpm", label: "RPM" },

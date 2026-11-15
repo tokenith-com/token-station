@@ -1,5 +1,5 @@
 name: Question or support request
-description: Ask about configuring, integrating, or operating TokenHub.
+description: Ask about configuring, integrating, or operating TokenStation.
 labels: ["question"]
 body:
   - type: markdown

@@ -76,8 +76,8 @@ func TestAlertBotDeliveryFormats(t *testing.T) {
 		{channelType: "feishu", bodyMarker: `"msg_type":"text"`},
 		{channelType: "dingtalk", bodyMarker: `"msgtype":"text"`},
 		{channelType: "wecom", bodyMarker: `"msgtype":"text"`},
-		{channelType: "slack", bodyMarker: `"text":"[TokenHub] monitor_check_failed`},
-		{channelType: "discord", bodyMarker: `"content":"[TokenHub] monitor_check_failed`},
+		{channelType: "slack", bodyMarker: `"text":"[TokenStation] monitor_check_failed`},
+		{channelType: "discord", bodyMarker: `"content":"[TokenStation] monitor_check_failed`},
 		{channelType: "telegram", bodyMarker: `"chat_id":"chat_123"`, fields: map[string]any{
 			"telegram_bot_token": "telegram-token",
 			"telegram_chat_id":   "chat_123",

@@ -61,10 +61,10 @@ func (blockedPlaygroundAdapter) ChatStream(context.Context, Provider, string, Ch
 }
 
 func TestPlaygroundBlockedAddressIncludesConfigurationDiagnostics(t *testing.T) {
-	server, _ := newPlaygroundTestServer(t)
+	server, store := newPlaygroundTestServer(t)
 	server.adapterRegistry.Register(ProviderMock, blockedPlaygroundAdapter{}, AdapterCapabilityChat)
 	response := doJSON(t, server.Handler(), http.MethodPost, "/api/admin/playground/chat/stream", map[string]any{
-		"project_id": "prj_demo", "model": "gpt-4.1-mini", "messages": []map[string]any{{"role": "user", "content": "diagnostic test"}},
+		"api_key_id": createPlaygroundTestKey(t, store, "prj_demo", ""), "model": "gpt-4.1-mini", "messages": []map[string]any{{"role": "user", "content": "diagnostic test"}},
 	}, "")
 	failed := findPlaygroundSSEEvent(t, parsePlaygroundSSE(t, response.Body), "playground.failed")
 	if failed.Data["code"] != "provider_address_blocked" {

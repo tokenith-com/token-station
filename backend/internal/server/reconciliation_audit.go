@@ -11,7 +11,7 @@ func (s *GormStore) recordScheduledReconciliationAudit(run reconciliation.Run) {
 		status = "failed"
 	}
 	s.RecordAuditEvent(AuditEvent{
-		ActorUserID: "system", ActorName: "TokenHub Scheduler", ActorRole: "system",
+		ActorUserID: "system", ActorName: "TokenStation Scheduler", ActorRole: "system",
 		Action: "reconcile", ResourceType: "billing_reconciliation", ResourceID: run.ID,
 		Status: status, Message: run.ErrorCode,
 		AfterSnapshot: snapshotJSON(reconciliation.RunAuditSnapshot(run)),

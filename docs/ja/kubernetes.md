@@ -2,7 +2,7 @@
 
 Language: English | [简体中文](../zh-CN/kubernetes.md) | [日本語](kubernetes.md)
 
-TokenHub は Kubernetes クラスター向けに `deploy/helm/tokenhub` の Helm チャートを同梱しています。このチャートは単一の TokenHub コンテナイメージを `all` ランモードでデプロイします。各 Pod はポート 8080 の Go API/ゲートウェイとポート 3000 の Next.js 管理コンソールを両方提供し、デフォルトの Docker Compose デプロイと同じプロセス構成です。
+TokenStation は Kubernetes クラスター向けに `deploy/helm/tokenstation` の Helm チャートを同梱しています。このチャートは単一の TokenStation コンテナイメージを `all` ランモードでデプロイします。各 Pod はポート 8080 の Go API/ゲートウェイとポート 3000 の Next.js 管理コンソールを両方提供し、デフォルトの Docker Compose デプロイと同じプロセス構成です。
 
 ## 前提条件
 
@@ -20,8 +20,8 @@ TokenHub は Kubernetes クラスター向けに `deploy/helm/tokenhub` の Helm
 # Chart.lock はサブチャートのバージョンを固定しますが、リポジトリ登録は行いません。
 helm repo add bitnami https://charts.bitnami.com/bitnami
 helm repo update
-helm dependency build deploy/helm/tokenhub
-helm install tokenhub deploy/helm/tokenhub \
+helm dependency build deploy/helm/tokenstation
+helm install tokenstation deploy/helm/tokenstation \
   --set postgresql.enabled=true \
   --set postgresql.auth.password=quick-test-password \
   --set secretEnv.TOKENHUB_SECRET_KEY="$(openssl rand -hex 32)" \
@@ -35,7 +35,7 @@ helm install tokenhub deploy/helm/tokenhub \
 `database.url` を RDS、Cloud SQL、Azure Database などのマネージド PostgreSQL に向け、`postgresql.enabled=false` のまま Ingress を有効化します:
 
 ```bash
-helm install tokenhub deploy/helm/tokenhub \
+helm install tokenstation deploy/helm/tokenstation \
   --set ingress.enabled=true \
   --set ingress.host=tokenhub.example.com \
   --set secretEnv.TOKENHUB_SECRET_KEY="$(openssl rand -hex 32)" \
@@ -53,7 +53,7 @@ Ingress を有効化すると、チャートは Ingress のスキームとホス
 初回ログインはユーザー名 `admin` と、`secretEnv.TOKENHUB_BOOTSTRAP_ADMIN_PASSWORD` に設定したブートストラップパスワードを使用します:
 
 ```bash
-kubectl get secret tokenhub-tokenhub-credentials -o jsonpath='{.data.TOKENHUB_BOOTSTRAP_ADMIN_PASSWORD}' | base64 -d
+kubectl get secret tokenstation-tokenstation-credentials -o jsonpath='{.data.TOKENHUB_BOOTSTRAP_ADMIN_PASSWORD}' | base64 -d
 ```
 
 チャートがパスワードを自動生成することはありません。`secretEnv` で安定した値を設定し、以降のアップグレードでも同じ値を維持してください。ブートストラップのシードは空のデータベースでのみ実行されます。`extraEnv` を使うとチャートがレンダリングする Secret 由来の環境変数と重複します。初回ログイン後に管理コンソールでパスワードを変更してください。
@@ -63,7 +63,7 @@ kubectl get secret tokenhub-tokenhub-credentials -o jsonpath='{.data.TOKENHUB_BO
 認証情報はインライン値の代わりに既存の Secret からも供給できます:
 
 ```bash
-helm install tokenhub deploy/helm/tokenhub \
+helm install tokenstation deploy/helm/tokenstation \
   --set ingress.enabled=true --set ingress.host=tokenhub.example.com \
   --set credentialsSecret=tokenhub-auth \
   --set database.existingSecret=tokenhub-database
@@ -75,7 +75,7 @@ helm install tokenhub deploy/helm/tokenhub \
 
 | リソース | 用途 |
 | --- | --- |
-| Deployment | 各 Pod レプリカが `tokenhub-run` で両プロセスを実行。環境変数は Pod spec に直接レンダリング |
+| Deployment | 各 Pod レプリカが `tokenstation-run` で両プロセスを実行。環境変数は Pod spec に直接レンダリング |
 | Secrets | `<release>-credentials` に認証キーと任意の管理者認証情報、`<release>-database` に組み立てたデータベース URL(それぞれチャート管理時のみ作成) |
 | Service | `api` ポート(8080)と `console` ポート(3000) |
 | PersistentVolumeClaim | 生成画像のストレージ。`imageStorage.type` が `pvc` の場合のみ(下記) |
@@ -94,7 +94,7 @@ Ingress のルーティングは `deploy/nginx.multi-instance.conf` と同じで
 
 ## ヘルスチェックとシャットダウン
 
-`tokenhub-run` は両プロセスを監視し、どちらかが終了するとコンテナごと終了するため、Kubernetes はプロセス障害時に Pod を再起動します。startup と readiness プローブは API の `/readyz` を HTTP で確認し、データベースに到達できない間は Pod がトラフィックを受けません。liveness プローブは API の `/livez` を確認します。デフォルトの `terminationGracePeriodSeconds` は 180 秒で、バックエンドのデフォルト 150 秒のグレースフルシャットダウン期間をカバーし、進行中のストリーミングリクエストは Pod の削除前に排水されます。ロールアウトは `Recreate` 戦略を使用します。アップグレードや `kubectl rollout restart` の間は、旧 Pod が完全に終了してから置き換えの Pod が起動するため、2 つの Pod が同時に稼働することはなく、処理能力は 1 回の起動期間だけ一時的に下がります。これにより、公開済みの `0.8.0` イメージでも画像ジョブのリカバリは安全に保たれます(下記参照)。
+`tokenstation-run` は両プロセスを監視し、どちらかが終了するとコンテナごと終了するため、Kubernetes はプロセス障害時に Pod を再起動します。startup と readiness プローブは API の `/readyz` を HTTP で確認し、データベースに到達できない間は Pod がトラフィックを受けません。liveness プローブは API の `/livez` を確認します。デフォルトの `terminationGracePeriodSeconds` は 180 秒で、バックエンドのデフォルト 150 秒のグレースフルシャットダウン期間をカバーし、進行中のストリーミングリクエストは Pod の削除前に排水されます。ロールアウトは `Recreate` 戦略を使用します。アップグレードや `kubectl rollout restart` の間は、旧 Pod が完全に終了してから置き換えの Pod が起動するため、2 つの Pod が同時に稼働することはなく、処理能力は 1 回の起動期間だけ一時的に下がります。これにより、公開済みの `0.8.0` イメージでも画像ジョブのリカバリは安全に保たれます(下記参照)。
 
 ## デフォルトでステートレス
 
@@ -104,7 +104,7 @@ Ingress のルーティングは `deploy/nginx.multi-instance.conf` と同じで
 - **リリース:** コンテナは起動のたびにイメージ内のリリースバンドルを一時ディレクトリへ展開します。モデルカタログとプロバイダーカタログはイメージに同梱され、初回起動時にデータベースへシードされます。管理コンソールでのカタログ変更は PostgreSQL に保存され、Pod の入れ替えでも失われません。アプリ内セルフアップデートは無効(`TOKENHUB_MANAGED_UPDATES=false`)です。アップグレードは `image.tag` の変更で行います:
 
 ```bash
-helm upgrade tokenhub deploy/helm/tokenhub --reuse-values --set image.tag=<new-tag>
+helm upgrade tokenstation deploy/helm/tokenstation --reuse-values --set image.tag=<new-tag>
 ```
 
 - **データ:** 永続状態はすべて PostgreSQL に保存されます。PostgreSQL のツールでバックアップしてください。詳細は [PostgreSQL セットアップ](postgresql-setup.md) を参照してください。
@@ -129,7 +129,7 @@ helm upgrade tokenhub deploy/helm/tokenhub --reuse-values --set image.tag=<new-t
 `extraEnv` はアップグレードのたびに丸ごと置き換えられます。`--reuse-values` はマージしません。そのため、既存のエントリ(上の本番インストールの trusted-proxy リスト)を新しいエントリと一緒に再指定してください:
 
 ```bash
-helm upgrade tokenhub deploy/helm/tokenhub --reuse-values \
+helm upgrade tokenstation deploy/helm/tokenstation --reuse-values \
   --set 'extraEnv[0].name=TOKENHUB_TRUSTED_PROXY_CIDRS' \
   --set 'extraEnv[0].value=10.0.0.0/8\,172.16.0.0/12\,192.168.0.0/16' \
   --set 'extraEnv[1].name=TOKENHUB_METRICS_ENABLED' \
@@ -150,7 +150,7 @@ metrics エンドポイントは Bearer 認証が必要です。`secretEnv` で�
 既存のリリースを移行する場合は、先に設定済みの認証情報とデータベース値を削除する必要があります。`--reuse-values` がそれらを保持し、このモードと競合するためです:
 
 ```bash
-helm upgrade tokenhub deploy/helm/tokenhub --reuse-values \
+helm upgrade tokenstation deploy/helm/tokenstation --reuse-values \
   --set externalSecret.enabled=true \
   --set externalSecret.secretStore=aws-secrets-manager \
   --set externalSecret.sourceSecretId=tokenhub/prod \
@@ -181,7 +181,7 @@ AWS Secrets Manager を例にすると、3 つの値の対応は次のとおり�
 2. `ClusterSecretStore` はクラスターごとに 1 回作成します。その metadata 名が `externalSecret.secretStore` です。IRSA 認証ではチャートの ServiceAccount を参照するため、そのアカウントにロールのアノテーションを付けます:
 
    ```bash
-   helm upgrade tokenhub deploy/helm/tokenhub --reuse-values \
+   helm upgrade tokenstation deploy/helm/tokenstation --reuse-values \
      --set serviceAccount.annotations."eks\.amazonaws\.com/role-arn"=arn:aws:iam::123456789012:role/tokenhub-external-secrets
    ```
 
@@ -198,7 +198,7 @@ AWS Secrets Manager を例にすると、3 つの値の対応は次のとおり�
          auth:
            jwt:
              serviceAccountRef:
-               name: tokenhub-tokenhub # チャートの ServiceAccount
+               name: tokenstation-tokenstation # チャートの ServiceAccount
                namespace: tokenhub
    ```
 
@@ -210,6 +210,6 @@ AWS Secrets Manager を例にすると、3 つの値の対応は次のとおり�
 
 ## Values
 
-注釈付きの [values.yaml](../deploy/helm/tokenhub/values.yaml) に全項目があります。[デプロイドキュメント](deployment.md#バックエンド環境変数)に記載された任意の `TOKENHUB_*` 変数は標準の `extraEnv` リストで追加でき、Pod の環境変数に直接レンダリングされます。機密値は `secretEnv` を使います。
+注釈付きの [values.yaml](../deploy/helm/tokenstation/values.yaml) に全項目があります。[デプロイドキュメント](deployment.md#バックエンド環境変数)に記載された任意の `TOKENHUB_*` 変数は標準の `extraEnv` リストで追加でき、Pod の環境変数に直接レンダリングされます。機密値は `secretEnv` を使います。
 
-チャート開発の注意点は [chart README](../deploy/helm/tokenhub/README.md) を参照してください。
+チャート開発の注意点は [chart README](../deploy/helm/tokenstation/README.md) を参照してください。

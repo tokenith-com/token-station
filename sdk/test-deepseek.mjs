@@ -13,11 +13,11 @@ loadDotEnv(resolve(__dirname, ".env"));
 const baseURL = normalizeBaseURL(process.env.TOKENHUB_BASE_URL || "http://localhost:8080/v1");
 const apiKey = process.env.TOKENHUB_API_KEY || "";
 const model = process.env.TOKENHUB_MODEL || "deepseek-chat";
-const prompt = process.env.TOKENHUB_PROMPT || "请用三句话说明 TokenHub 网关链路已经打通。";
+const prompt = process.env.TOKENHUB_PROMPT || "请用三句话说明 TokenStation 网关链路已经打通。";
 
 if (!apiKey || apiKey === "thk_your_tokenhub_key") {
   console.error("Missing TOKENHUB_API_KEY.");
-  console.error("Create an internal API Key in TokenHub, then run:");
+  console.error("Create an internal API Key in TokenStation, then run:");
   console.error("  TOKENHUB_API_KEY=thk_xxx npm run test:deepseek");
   console.error("");
   console.error("Optional env vars:");
@@ -33,7 +33,7 @@ const tokenhub = createOpenAICompatible({
   includeUsage: true,
 });
 
-console.log("TokenHub AI SDK smoke test");
+console.log("TokenStation AI SDK smoke test");
 console.log(`Base URL: ${baseURL}`);
 console.log(`Model:    ${model}`);
 console.log(`API Key:  ${maskKey(apiKey)}`);
@@ -45,7 +45,7 @@ try {
   const startedAt = Date.now();
   const result = await generateText({
     model: tokenhub(model),
-    system: "你是 TokenHub 网关链路测试助手。回答要简短，并明确说明请求已经经过 TokenHub。",
+    system: "你是 TokenStation 网关链路测试助手。回答要简短，并明确说明请求已经经过 TokenStation。",
     prompt,
     maxRetries: 0,
   });
@@ -91,7 +91,7 @@ async function checkModelVisibility({ baseURL, apiKey, model }) {
   if (!modelIDs.includes(model)) {
     console.warn(`Warning: model "${model}" was not listed by /models for this API key.`);
     console.warn(`Visible models: ${modelIDs.slice(0, 12).join(", ")}${modelIDs.length > 12 ? ", ..." : ""}`);
-    console.warn("The generateText call will still run, but TokenHub may reject it if the key or route is not configured.");
+    console.warn("The generateText call will still run, but TokenStation may reject it if the key or route is not configured.");
     console.warn("");
     return;
   }

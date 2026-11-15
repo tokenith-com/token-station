@@ -1,6 +1,6 @@
 # MiniMax Coding Plan Global
 
-Connect an explicitly authorized MiniMax Coding Plan Global account to TokenHub.
+Connect an explicitly authorized MiniMax Coding Plan Global account to TokenStation.
 
 - Plugin ID: `tokenhub.provider.minimax-code-global-subscription`
 - Configuration: Provider management, with a separate account resource

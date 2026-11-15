@@ -1,6 +1,6 @@
 # MiMo
 
-Connect an explicitly authorized MiMo account to TokenHub.
+Connect an explicitly authorized MiMo account to TokenStation.
 
 - Plugin ID: `tokenhub.provider.mimo-app-subscription`
 - Configuration: Provider management, with a separate account resource

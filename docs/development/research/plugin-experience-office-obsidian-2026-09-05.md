@@ -1,16 +1,16 @@
-# TokenHub 插件体验对照研究：Office Add-ins 与 Obsidian
+# TokenStation 插件体验对照研究：Office Add-ins 与 Obsidian
 
 访问日期：2026-09-05
 研究范围：插件开发路径、安装与更新、插件详情页、每插件设置页
-资料原则：外部事实只引用 Microsoft 与 Obsidian 官方文档、官方帮助站和官方仓库；TokenHub 现状以本仓库源码与文档为准。
+资料原则：外部事实只引用 Microsoft 与 Obsidian 官方文档、官方帮助站和官方仓库；TokenStation 现状以本仓库源码与文档为准。
 
 ## 结论先行
 
-TokenHub 当前的插件开发主路径是成立的，不需要改造成 Office Add-in 或 Obsidian 插件的复制品。更合适的组合是：
+TokenStation 当前的插件开发主路径是成立的，不需要改造成 Office Add-in 或 Obsidian 插件的复制品。更合适的组合是：
 
 - 用 **Office Add-ins** 作为企业插件治理的参考：manifest 契约、兼容性、集中部署、发布审核、更新时重新确认新增权限。
 - 用 **Obsidian** 作为管理员交互的参考：安装与启用分离、设置入口按需出现、插件设置集中在宿主应用的设置导航里、每个字段都有名称与说明。
-- 保留 TokenHub 自己更严格的服务端安全边界：checksum、签名、权限差异、待重启、回滚、审计和包文件检查。这些能力不应为了“像 Obsidian”而弱化。
+- 保留 TokenStation 自己更严格的服务端安全边界：checksum、签名、权限差异、待重启、回滚、审计和包文件检查。这些能力不应为了“像 Obsidian”而弱化。
 
 当前最明显的不一致不是底层开发路径，而是详情页的信息架构。面向普通管理员的默认页面不应展示“能力”“实现清单”、Hook ID、slot、序列化声明或文件统计。Microsoft 明确要求 Marketplace 摘要避免术语并先说用户价值，Office 首次使用指南也要求只突出核心收益和下一步；Obsidian 同样要求插件说明简短、直接、用动作开头。现有详情页应据此重做，而不是只换视觉样式。
 
@@ -30,7 +30,7 @@ Office Add-in 的基本单元不是一个直接在 Office 进程内运行的传�
 4. 生产发布有两条主路：提交 Microsoft Marketplace 面向公众分发，或通过 Microsoft 365 管理中心的 Integrated apps 向组织中的用户/群组集中部署。[来源：Deploy and publish Office Add-ins](https://learn.microsoft.com/en-us/office/dev/add-ins/publish/publish)
 5. 更新时要区分 Web 应用和 app package：Web 应用代码更新通常无需用户操作；manifest 或 package 文件改变时必须提高版本并更新发布。若新增或改变权限、支持的 Office 应用或事件，组织管理员需要重新同意，用户在同意前会被阻止使用新版。[来源：Update and maintain your Office Add-in](https://learn.microsoft.com/en-us/office/dev/add-ins/publish/maintain-breaking-changes)
 
-Office 给 TokenHub 的核心启示不是“照搬 task pane”，而是把以下三层分开：
+Office 给 TokenStation 的核心启示不是“照搬 task pane”，而是把以下三层分开：
 
 - 发布信息：用户价值、说明、图标、截图、开发者、支持渠道。
 - 运行契约：manifest、支持的宿主、权限、版本与兼容要求。
@@ -55,9 +55,9 @@ Obsidian 的每插件设置路径很明确：插件只有在运行时调用 `add
 
 用户提供的截图体现了同一个结构：左侧是宿主统一的 Settings 目录，安装且声明了设置页的 Community plugin 才成为左侧一项；右侧完全属于该插件，插件内部可以再按 General、Claude、Codex 等任务语义分组。值得学习的是“入口条件”和“字段表达”，不是照抄截图的颜色、圆角或 Tab 数量。
 
-### 3. TokenHub 当前路径
+### 3. TokenStation 当前路径
 
-TokenHub 当前路径是：
+TokenStation 当前路径是：
 
 1. 用 `plugin-devkit` 与示例包开发。
 2. 在包根目录编写 `plugin.yaml`，声明稳定 ID、语义版本、Plugin API、kind、placement、entry、capabilities、permissions 和 distribution。
@@ -71,20 +71,20 @@ TokenHub 当前路径是：
 
 ## 二、是否与 Office / Obsidian 保持一致
 
-| 维度 | Office Add-ins | Obsidian | TokenHub 判断 |
+| 维度 | Office Add-ins | Obsidian | TokenStation 判断 |
 | --- | --- | --- | --- |
 | 插件身份与契约 | manifest 声明 ID、版本、说明、宿主集成和权限 | `manifest.json` 声明 ID、版本、最低宿主版本、说明、作者与平台 | **一致。** `plugin.yaml` 作为单一入口是正确路径。 |
-| 运行载荷 | manifest/package 与远程 HTTPS Web 应用分离 | release 中下发本地 `main.js`、manifest、可选 CSS | **有意不同。** TokenHub ZIP 可含服务端命令和声明式 UI；不能按 Office 的“远程网页即时更新”处理。 |
+| 运行载荷 | manifest/package 与远程 HTTPS Web 应用分离 | release 中下发本地 `main.js`、manifest、可选 CSS | **有意不同。** TokenStation ZIP 可含服务端命令和声明式 UI；不能按 Office 的“远程网页即时更新”处理。 |
 | 开发加载 | sideload manifest，仅用于测试 | 放进 vault 插件目录并启用/reload | **一致。** Devkit 示例 + 本地 ZIP/目录测试属于同类开发闭环。 |
-| 公共发布 | Partner Center 审核、认证、Marketplace | 初次提交 Community directory；后续 GitHub Release | **大体一致。** TokenHub 的远程索引、不可变 ZIP、checksum 和签名更适合企业网关。 |
+| 公共发布 | Partner Center 审核、认证、Marketplace | 初次提交 Community directory；后续 GitHub Release | **大体一致。** TokenStation 的远程索引、不可变 ZIP、checksum 和签名更适合企业网关。 |
 | 安装与启用 | 用户安装或管理员集中部署；权限/能力影响同意流程 | 安装后单独启用 | **一致且应保留。** 安装不应等同于立即运行；“安装后启用”只能作为明确选项。 |
-| 更新 | Web 内容可透明更新；package/manifest 更新要升版，敏感变更需管理员同意 | 安全原因不自动更新，用户检查后更新 | **TokenHub 应偏 Obsidian + Office 管理同意。** 服务器插件不宜静默自动更新。 |
+| 更新 | Web 内容可透明更新；package/manifest 更新要升版，敏感变更需管理员同意 | 安全原因不自动更新，用户检查后更新 | **TokenStation 应偏 Obsidian + Office 管理同意。** 服务器插件不宜静默自动更新。 |
 | 设置入口 | 插件在自己的 task pane/UI 中实现，没有统一自动设置目录 | 只有注册 SettingTab 的插件才出现设置入口 | **应采用 Obsidian。** 无设置不显示入口；有设置才显示并进入该插件页面。 |
 | 详情页 | Marketplace 强调用户价值、截图、开发者、支持和准确说明 | Overview、Scorecard、Updates、版本、平台、许可、维护/审查信息 | **当前底层数据够，默认呈现不一致。** 技术清单不应占据首屏。 |
-| 权限隔离 | manifest 权限、认证/认证审核、管理员再同意 | 官方说明无法可靠限制插件到细粒度权限；插件继承 Obsidian 的访问能力 | **绝不能照搬 Obsidian。** TokenHub 的最小权限、差异预览、签名和审计必须保留。 |
-| 回滚与待重启 | 依赖部署渠道与宿主刷新 | 以本地 release 更新/reload 为主 | **TokenHub 需要更强。** 网关是多人共享基础设施，回滚与待重启是合理的企业能力。 |
+| 权限隔离 | manifest 权限、认证/认证审核、管理员再同意 | 官方说明无法可靠限制插件到细粒度权限；插件继承 Obsidian 的访问能力 | **绝不能照搬 Obsidian。** TokenStation 的最小权限、差异预览、签名和审计必须保留。 |
+| 回滚与待重启 | 依赖部署渠道与宿主刷新 | 以本地 release 更新/reload 为主 | **TokenStation 需要更强。** 网关是多人共享基础设施，回滚与待重启是合理的企业能力。 |
 
-总体结论：**开发路径约有七成一致，安全与运行模型必须保持 TokenHub 特有设计；真正需要重做的是面向管理员的表达层。**
+总体结论：**开发路径约有七成一致，安全与运行模型必须保持 TokenStation 特有设计；真正需要重做的是面向管理员的表达层。**
 
 ## 三、安装与更新应该怎样呈现
 
@@ -101,7 +101,7 @@ TokenHub 当前路径是：
 - 这个插件解决什么问题？
 - 谁发布的，是否验证？
 - 安装后会出现在哪里，怎样开始使用？
-- 支持当前 TokenHub 版本吗？
+- 支持当前 TokenStation 版本吗？
 - 要读取或修改哪些数据？相比已装版本新增了什么权限？
 - 当前版本、更新时间、发布说明、截图、许可证和支持链接是什么？
 - 是否需要重启？安装完成后是否立即启用？
@@ -116,7 +116,7 @@ Microsoft 对 Marketplace 的官方要求与此完全相符：名称和说明首
 2. **复核**：先显示兼容性、签名/checksum 和权限差异；新增权限用自然语言说明影响。
 3. **应用**：更新后明确显示“立即生效”或“重启后生效”，并给出回滚入口与目标版本。
 
-不要把“有下载地址”直接等同于“有可用更新”。更新可用性应由 Marketplace 的版本比较与兼容结果决定。对于内置插件，显示“随 TokenHub 更新”，不要放一个永远不可用的更新按钮。
+不要把“有下载地址”直接等同于“有可用更新”。更新可用性应由 Marketplace 的版本比较与兼容结果决定。对于内置插件，显示“随 TokenStation 更新”，不要放一个永远不可用的更新按钮。
 
 ## 四、插件详情页的推荐结构
 
@@ -168,7 +168,7 @@ Microsoft 对 Marketplace 的官方要求与此完全相符：名称和说明首
 
 ### Files：保留，但降级为审计工具
 
-Office 和 Obsidian 的普通用户详情页都不会把文件清单放在核心信息里。TokenHub 因为运行服务端插件，保留只读 Files 有企业审计价值，但应：
+Office 和 Obsidian 的普通用户详情页都不会把文件清单放在核心信息里。TokenStation 因为运行服务端插件，保留只读 Files 有企业审计价值，但应：
 
 - 对内置插件隐藏或显示一句“内置实现，无独立安装包”。
 - 对外部插件保留 package 清单、大小和安全预览。
@@ -193,24 +193,24 @@ Office 和 Obsidian 的普通用户详情页都不会把文件清单放在核心
 - 提供默认值、输入校验、错误说明和“恢复默认值”。
 - 依赖项使用条件显示或禁用状态，不要一次把无关选项全铺开。
 - 多于 4 个一级分组时优先使用侧栏或折叠分组；窄屏避免横向 Tab 溢出。Office 的导航指南建议 2–4 个同级区块才使用 Tab，更多区块应使用可折叠菜单，并要求当前上下文始终清晰。[来源：Navigation patterns for Office Add-ins](https://learn.microsoft.com/en-us/office/dev/add-ins/design/navigation-patterns)
-- 明确设置作用域：仅当前浏览器、当前管理员、全组织、某个 Provider、某个项目。TokenHub 当前主题覆盖保存在浏览器时，页面应明确写出“只影响当前浏览器”，否则管理员会误以为全团队生效。
+- 明确设置作用域：仅当前浏览器、当前管理员、全组织、某个 Provider、某个项目。TokenStation 当前主题覆盖保存在浏览器时，页面应明确写出“只影响当前浏览器”，否则管理员会误以为全团队生效。
 - 安全敏感值不得使用普通文本或浏览器存储；需要服务端加密、脱敏回显、权限控制和审计。
 
-中长期建议从当前仅围绕 `theme_tokens` 的判断，演进为显式的 `settings` 声明或受控 schema。宿主只渲染允许的控件，插件不能注入任意 React/JavaScript。声明至少应覆盖 section、label、description、control、default、validation、scope、secret、restart requirement。这样既得到 Obsidian 的设置体验，又保留 TokenHub 的企业安全边界。
+中长期建议从当前仅围绕 `theme_tokens` 的判断，演进为显式的 `settings` 声明或受控 schema。宿主只渲染允许的控件，插件不能注入任意 React/JavaScript。声明至少应覆盖 section、label、description、control、default、validation、scope、secret、restart requirement。这样既得到 Obsidian 的设置体验，又保留 TokenStation 的企业安全边界。
 
 ## 六、不应该照搬的内容
 
 ### 不照搬 Office
 
-- 不把插件运行时改成远程任意 Web 页面。Office 的核心假设是 HTTPS Web app；TokenHub 处理模型请求和凭据，需要更受控的进程、协议和数据投影。
-- 不采用“Web 资源一上传用户立即看到”的静默更新语义。TokenHub 服务端插件会影响全体调用方，必须版本化、校验、审计并支持回滚。
-- 不把每插件配置完全交给任意自绘 UI。Office task pane 很自由，但 TokenHub 应优先 schema-driven、allowlisted 控件。
+- 不把插件运行时改成远程任意 Web 页面。Office 的核心假设是 HTTPS Web app；TokenStation 处理模型请求和凭据，需要更受控的进程、协议和数据投影。
+- 不采用“Web 资源一上传用户立即看到”的静默更新语义。TokenStation 服务端插件会影响全体调用方，必须版本化、校验、审计并支持回滚。
+- 不把每插件配置完全交给任意自绘 UI。Office task pane 很自由，但 TokenStation 应优先 schema-driven、allowlisted 控件。
 
 ### 不照搬 Obsidian
 
-- 不采用其权限模型。Obsidian 官方明确说受技术限制，无法可靠把插件限制到特定权限，插件继承 Obsidian 的访问级别。[来源：Obsidian plugin security](https://help.obsidian.md/plugin-security) TokenHub 恰恰需要细粒度最小权限和数据投影。
-- 不依赖 GitHub Release 作为唯一企业分发渠道。TokenHub 应继续支持受签名的 Marketplace、镜像、离线包和撤销信息。
-- 不把本地 vault 级数据存储模式套到多人共享的网关。TokenHub 设置需要明确租户/组织/项目/用户作用域。
+- 不采用其权限模型。Obsidian 官方明确说受技术限制，无法可靠把插件限制到特定权限，插件继承 Obsidian 的访问级别。[来源：Obsidian plugin security](https://help.obsidian.md/plugin-security) TokenStation 恰恰需要细粒度最小权限和数据投影。
+- 不依赖 GitHub Release 作为唯一企业分发渠道。TokenStation 应继续支持受签名的 Marketplace、镜像、离线包和撤销信息。
+- 不把本地 vault 级数据存储模式套到多人共享的网关。TokenStation 设置需要明确租户/组织/项目/用户作用域。
 - 不把所有插件都直接运行在主进程并共享宿主权限。
 
 ## 七、对当前实现的优先级建议
@@ -235,13 +235,13 @@ Office 和 Obsidian 的普通用户详情页都不会把文件清单放在核心
 
 ### P1：把 Marketplace 元数据接入详情页
 
-TokenHub 类型中已经具备 `summary`、`description`、publisher、screenshots、release notes、advisories、compatibility 和 trust 等字段，可直接支撑 Office/Obsidian 风格的详情页。优先重用这些数据，不必先扩展底层 manifest。
+TokenStation 类型中已经具备 `summary`、`description`、publisher、screenshots、release notes、advisories、compatibility 和 trust 等字段，可直接支撑 Office/Obsidian 风格的详情页。优先重用这些数据，不必先扩展底层 manifest。
 
 ### P2：建立通用设置声明
 
 - 在安全允许的控件白名单内支持文本、数字、开关、下拉、颜色、文件/目录和分组。
 - 支持设置作用域、服务端持久化、secret、校验、重启提示和权限审计。
-- 继续禁止 arbitrary frontend code，把复杂业务配置引导到对应的 TokenHub 业务页面。
+- 继续禁止 arbitrary frontend code，把复杂业务配置引导到对应的 TokenStation 业务页面。
 
 ## 官方来源清单
 

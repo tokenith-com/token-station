@@ -1,6 +1,6 @@
 # データベース進化
 
-TokenHub は明示的かつフォワードオンリーなマイグレーションでデータベースを進化させます。このページでは進化モデル、メンテナンスコマンド、そしてアップグレードとロールバックがデータベースとどう関わるかを説明します。
+TokenStation は明示的かつフォワードオンリーなマイグレーションでデータベースを進化させます。このページでは進化モデル、メンテナンスコマンド、そしてアップグレードとロールバックがデータベースとどう関わるかを説明します。
 
 このページは、リポジトリ内のデータベース進化ライフサイクルと安全契約の規範となる情報源です。`backend/internal/dbschema`、メンテナンス CLI、管理アップグレード、CI はこの契約に従います。
 
@@ -20,13 +20,13 @@ TokenHub は明示的かつフォワードオンリーなマイグレーショ�
 メインバイナリは `db` サブコマンドを提供します。
 
 ```bash
-tokenhub db status                                  # 台帳、バックフィル、稼働中インスタンス
-tokenhub db verify                                  # 台帳チェックサム + 意味的スキーマ検証
-tokenhub db prepare                                 # 起動互換の採用と expand を実行（サービス提供なし）
-tokenhub db migrate                                 # 保留中の拡張マイグレーションを適用
-tokenhub db repair --version <n>                    # dirty マイグレーションのクリア（検証済み修復のみ）
-tokenhub db contract --dry-run                      # 収縮マイグレーションの事前確認
-tokenhub db contract --backup-reference <ref> --maintenance
+tokenstation db status                                  # 台帳、バックフィル、稼働中インスタンス
+tokenstation db verify                                  # 台帳チェックサム + 意味的スキーマ検証
+tokenstation db prepare                                 # 起動互換の採用と expand を実行（サービス提供なし）
+tokenstation db migrate                                 # 保留中の拡張マイグレーションを適用
+tokenstation db repair --version <n>                    # dirty マイグレーションのクリア（検証済み修復のみ）
+tokenstation db contract --dry-run                      # 収縮マイグレーションの事前確認
+tokenstation db contract --backup-reference <ref> --maintenance
 ```
 
 データベース接続は `TOKENHUB_DATABASE_URL`（またはデフォルトの SQLite パス）から解決されます。
@@ -35,8 +35,8 @@ tokenhub db contract --backup-reference <ref> --maintenance
 
 ## 運用メモ
 
-- 過去のメータリング移行のチェックサム不具合により、起動時に `checksum_mismatch (version 4)` が発生する場合があります。互換性修正を含むバージョンを使用し、`tokenhub db prepare`、`tokenhub db verify` の順に実行してから通常どおり再起動してください。修正では元の SQL チェックサムと中間バージョンの正確な値 `tokenhub-schema-metering-evidence-v2` の両方を認識し、既存の台帳行を保持します。監査相関の変更は引き続き移行 5 で適用されます。その他のチェックサム不一致では起動を拒否します。検証を回避するためにデータベースを削除したり台帳を編集したりしないでください。`db repair` は dirty 状態の移行用であり、この正常な台帳のチェックサム不一致は解消しません。
-- 採用ベースラインのないデータベースに対する `tokenhub db migrate` は、先に通常のサーバー起動を案内します。採用はサーバーの直列化されたスキーマ処理の中で行われます。
+- 過去のメータリング移行のチェックサム不具合により、起動時に `checksum_mismatch (version 4)` が発生する場合があります。互換性修正を含むバージョンを使用し、`tokenstation db prepare`、`tokenstation db verify` の順に実行してから通常どおり再起動してください。修正では元の SQL チェックサムと中間バージョンの正確な値 `tokenhub-schema-metering-evidence-v2` の両方を認識し、既存の台帳行を保持します。監査相関の変更は引き続き移行 5 で適用されます。その他のチェックサム不一致では起動を拒否します。検証を回避するためにデータベースを削除したり台帳を編集したりしないでください。`db repair` は dirty 状態の移行用であり、この正常な台帳のチェックサム不一致は解消しません。
+- 採用ベースラインのないデータベースに対する `tokenstation db migrate` は、先に通常のサーバー起動を案内します。採用はサーバーの直列化されたスキーマ処理の中で行われます。
 - 拒否された contract はどの前提条件が失敗したかを示します。その時点では何も実行されていません。
 - 旧リリースへロールバックした後も、旧リリースは現在のデータベースで動作し続けます。新しいリリースが戻ると台帳を再検証して進化を続けます。
 - 管理アップグレードは、まず対象リリース自身のバイナリで `db prepare` を実行します。サービス提供中のインスタンスハートビートを公開せずに、直列化された起動互換の採用と expand フローを実行するため、サポート対象の台帳導入前データベースもアクティブ化前に準備できます。その後 `db verify` が準備済みの台帳とスキーマを意味的に検証します。両方の成功後にのみ対象リリースをアクティブ化します。アクティブ化したリリースの最初の起動が失敗した場合は、前リリースを自動的に一度だけ再アクティブ化します（アップグレード中に contract を実行しておらず、前リリースの互換性記録がデータベース状態をカバーしている場合のみ）。2 回目の失敗ではバージョン切り替えを停止し、運用者の復旧に委ねます。

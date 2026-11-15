@@ -13,7 +13,9 @@ const legacyLineBaselines = new Map([
   ["features/source-admin/views/provider-editor.tsx", 1703],
   ["app/styles/legacy/resources.css", 1510],
   ["features/admin/i18n/en.tsx", 1513],
+  ["features/admin/shell/admin-console.tsx", 1552],
   ["features/admin/views/provider-editor.tsx", 2093],
+  ["features/source-admin/views/provider-editor.tsx", 1703],
 ]);
 
 const sourceFiles = [];

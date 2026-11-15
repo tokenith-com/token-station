@@ -10,8 +10,9 @@ for (const viewport of [{ width: 1440, height: 1000 }, { width: 390, height: 844
       { ...common, name: "ui-retired-model", metadata: { source: "tokenhub-standard-catalog", lifecycle_status: "retired", replacement_model: "ui-current-model", shutdown_at: "2026-08-01T00:00:00Z" } },
       { ...common, name: "ui-preview-model", metadata: { source: "tokenhub-standard-catalog", availability: "preview", call_support: "unsupported", pricing_status: "unverified" } },
     ];
-    api.replaceResponse("GET", "/api/admin/overview", { ...overview, models, providers: [{ id: "p", name: "UI Provider", type: "mock", priority: 1, status: "active" }] });
-    installModelDirectoryReads(api, models, [{ id: "p", name: "UI Provider", type: "mock", priority: 1, status: "active" }]);
+    const providers = [{ id: "p", name: "UI Provider", type: "mock", priority: 1, status: "active" }];
+    api.replaceResponse("GET", "/api/admin/overview", { ...overview, models, providers });
+    installModelDirectoryReads(api, models, providers);
     api.replaceResponse("GET", "/api/admin/provider-models", { data: [{ id: "pm", provider_id: "p", upstream_model: "ui-current-model", modality: "chat", status: "active", call_supported: true }] });
     for (const path of ["routing-rules", "provider-catalog"]) api.respond("GET", `/api/admin/${path}`, { data: [] });
     await page.goto("/models");

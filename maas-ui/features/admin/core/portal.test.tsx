@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { emptyData } from "../domain/catalog";
 import { roleSelectOptions } from "../domain/entities";
-import { portalAllowsRole, scopePortalData } from "./portal";
+import { portalAllowsRole, portalRole, scopePortalData } from "./portal";
 import { clearSavedSession, readSavedSession, saveSession } from "./session";
 import { sessionStorageKey, type AdminUser } from "./types";
 
@@ -16,6 +16,16 @@ describe("portal boundaries", () => {
     expect(portalAllowsRole("c", role)).toBe(c);
   });
 
+  it.each(["consumer", "guest", " GUEST "])("uses the canonical portal role for %s", role => {
+    expect(portalRole(role)).toBe("consumer");
+  });
+
+  it("canonicalizes legacy configured role choices", () => {
+    const data = emptyData();
+    data.resources["role-configs"] = [{ id: "role_guest", kind: "role-configs", name: "C端普通用户", status: "active", fields: { role_key: "guest" } }];
+    expect(roleSelectOptions(data, "c")).toEqual([{ value: "consumer", label: "C端普通用户" }]);
+  });
+
   it("scopes accounts and role choices without removing existing model data", () => {
     const data = emptyData();
     data.users = ["admin", "team_leader", "user", "guest"].map(role => ({ id: role, role }) as AdminUser);
@@ -23,7 +33,7 @@ describe("portal boundaries", () => {
     const c = scopePortalData(data, "c");
     expect(b.users.map(user => user.role)).toEqual(["admin", "team_leader", "user"]);
     expect(c.users.map(user => user.role)).toEqual(["admin", "guest"]);
-    expect(roleSelectOptions(c, "c").map(option => option.value)).toEqual(["admin", "guest"]);
+    expect(roleSelectOptions(c, "c").map(option => option.value)).toEqual(["admin", "consumer"]);
     expect(c.models).toBe(data.models);
     expect(data.users).toHaveLength(4);
   });

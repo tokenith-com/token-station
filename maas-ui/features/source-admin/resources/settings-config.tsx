@@ -52,6 +52,7 @@ function createResourceConfigs(): Partial<Record<ViewKey, ResourceConfig<any>>> 
     { key: "notify_mode", label: "通知模式", type: "select", options: ["silent", "popup"], required: true },
     { key: "target", label: "目标对象" },
   ]),
+  "role-configs": roleConfig(),
   "identity-providers": identityProviderConfig(),
   settings: systemSettingConfig(),
   };
@@ -92,8 +93,8 @@ function quotaPolicyConfig(): ResourceConfig<AdminResource> {
     { key: "monthly_requests", label: "月请求", type: "number" },
     { key: "daily_tokens", label: "日 Token", type: "number" },
     { key: "monthly_tokens", label: "月 Token", type: "number" },
-    { key: "daily_cost_usd", label: "日成本 USD", type: "number" },
-    { key: "monthly_cost_usd", label: "月成本 USD", type: "number" },
+    { key: "daily_cost_usd", label: "日成本 ¥", type: "number" },
+    { key: "monthly_cost_usd", label: "月成本 ¥", type: "number" },
     { key: "max_concurrency", label: "最大并发", type: "number" },
   ]);
   return {
@@ -126,7 +127,7 @@ function formatQuotaUsage(template: string, usage: { requests: number; total_tok
   return formatTranslationTemplate(template, {
     requests: new Intl.NumberFormat(locale).format(usage.requests || 0),
     tokens: new Intl.NumberFormat(locale).format(usage.total_tokens || 0),
-    cost: new Intl.NumberFormat(locale, { style: "currency", currency: "USD", maximumFractionDigits: 6 }).format(usage.cost_usd || 0),
+    cost: new Intl.NumberFormat(locale, { style: "currency", currency: "CNY", currencyDisplay: "narrowSymbol", maximumFractionDigits: 6 }).format(usage.cost_usd || 0),
   });
 }
 
@@ -198,7 +199,7 @@ export function systemSettingConfig(): ResourceConfig<AdminResource> {
       key: "provider_synthetic_dns_enabled",
       label: "允许 Provider 使用 Synthetic DNS / Fake-IP",
       type: "boolean",
-      help: "仅当 TokenHub 所在主机启用了 Fake-IP 代理，且 Provider 域名因此解析到合成地址时开启。该例外只用于域名解析结果，不允许把字面量 IP 直接配置为 Provider Base URL。",
+      help: "仅当 TokenStation 所在主机启用了 Fake-IP 代理，且 Provider 域名因此解析到合成地址时开启。该例外只用于域名解析结果，不允许把字面量 IP 直接配置为 Provider Base URL。",
     },
     {
       key: "provider_synthetic_dns_allow_private_ranges",
@@ -334,7 +335,7 @@ export function sqliteBackupConfig(): ResourceConfig<SQLiteBackup> {
     view: "sqlite-backups",
     title: "数据备份",
     eyebrow: "SQLite 备份",
-    description: "创建、下载和恢复 TokenHub SQLite 数据库快照。",
+    description: "创建、下载和恢复 TokenStation SQLite 数据库快照。",
     createLabel: "创建备份",
     columns: [
       { key: "name", label: "名称" },

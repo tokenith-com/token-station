@@ -1,7 +1,7 @@
-# TokenHub Core Provider Settings
+# TokenStation Core Provider Settings
 
-Built-in ui template plugin for TokenHub.
+Built-in ui template plugin for TokenStation.
 
 - Plugin ID: `tokenhub.admin.core-provider`
-- Configuration: TokenHub admin console
+- Configuration: TokenStation admin console
 - Lifecycle: installed, enabled, configured, and used independently
