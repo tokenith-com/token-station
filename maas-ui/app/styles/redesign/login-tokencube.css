@@ -1,4 +1,4 @@
-/* B-portal login, mirrored from tokencube AuthLayout + LoginView. */
+/* Shared portal login, mirrored from tokencube AuthLayout + LoginView. */
 .tc-login {
   position: relative;
   min-height: 100vh;
@@ -287,7 +287,7 @@
   cursor: not-allowed;
 }
 
-/* Registration and activation cards rendered inside the B-portal login card. */
+/* Registration and activation cards rendered inside the shared login card. */
 .tc-consumer-body .consumer-registration {
   width: 100%;
   padding: 0;
@@ -641,4 +641,54 @@
   border-color: #bfa3e0;
   background: rgba(138, 95, 196, 0.28);
   color: #fff;
+}
+
+.tc-login[data-portal="c"] .tc-login-remember {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #4b5563;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.tc-login[data-portal="c"] .tc-login-remember input {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  accent-color: #7449ad;
+}
+
+.tc-login[data-portal="c"] .login-error {
+  margin: 0;
+  border: 1px solid #fecaca;
+  border-radius: 12px;
+  padding: 12px 14px;
+  background: #fef2f2;
+  color: #b91c1c;
+  font-size: 14px;
+  overflow-wrap: anywhere;
+}
+
+.tc-login[data-portal="c"] .login-otp-card {
+  width: 100%;
+  padding: 0;
+}
+
+.tc-login[data-portal="c"][data-theme="dark"] .tc-login-remember {
+  color: #d1d5db;
+}
+
+.tc-login[data-portal="c"][data-theme="dark"] .login-error {
+  border-color: rgba(248, 113, 113, 0.4);
+  background: rgba(127, 29, 29, 0.35);
+  color: #fecaca;
+}
+
+@media (max-width: 480px) {
+  .tc-login[data-portal="c"] .tc-login-card { padding: 24px 20px; }
+}
+
+@media (max-height: 700px) {
+  .tc-login[data-portal="c"] { align-items: flex-start; }
 }
