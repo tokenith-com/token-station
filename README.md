@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="maas-ui/public/brand/tokenstation-logo.png" alt="TokenStation" width="96" />
+  <img src="maas-ui/public/brand/tokencube-logo.svg" alt="TokenStation" width="96" />
 </p>
 
 <h1 align="center">TokenStation</h1>
