@@ -1,5 +1,4 @@
 import { deploymentPath } from "@/lib/deployment-path";
-import { SvgIcon } from "@/components/svg-icon";
 import { Eye, EyeOff, Fingerprint, KeyRound, Lock, LockKeyhole, LogIn, Mail, Moon, ShieldCheck, Sun, UserRoundCheck, Users } from "lucide-react";
 import { type FormEvent, useEffect, useState } from "react";
 import { type Portal } from "../core/portal";
@@ -866,8 +865,7 @@ export function LoginView({
     </footer>
   );
 
-  if (portal === "b") {
-    return (
+  return (
       <main className={embedded ? "tc-login embedded" : "tc-login"} data-theme={theme} data-portal={portal}>
         {embedded ? null : (
           <div className="tc-login-bg" aria-hidden="true">
@@ -929,6 +927,25 @@ export function LoginView({
                       </button>
                     </span>
                   </label>
+                  {portal === "c" ? (
+                    <label className="tc-login-remember">
+                      <input
+                        checked={remember}
+                        onChange={event => {
+                          setRemember(event.target.checked);
+                          if (!event.target.checked) {
+                            try {
+                              window.localStorage.removeItem("tokenstation.c.remembered-account");
+                            } catch {
+                              /* Optional preference. */
+                            }
+                          }
+                        }}
+                        type="checkbox"
+                      />
+                      <span>{tx("记住账号")}</span>
+                    </label>
+                  ) : null}
                   {registrationNotice ? (
                     <p className="consumer-form-note" role="status">
                       {registrationNotice}
@@ -958,92 +975,6 @@ export function LoginView({
           <div className="tc-login-copyright">{footer}</div>
         </div>
       </main>
-    );
-  }
-
-  return (
-    <main className="login-shell login-account-shell consumer-login-shell" data-theme={theme} data-portal={portal}>
-      <section className="login-stage login-account-stage">
-        <aside className="login-account-visual" aria-label="世纪利通 TokenStation">
-          <SvgIcon className="login-account-logo" name="layout-logo" size="100%" />
-        </aside>
-
-        <section className="login-account-main">
-          {otpLogin ? (
-            <LoginOTPPreview identity={otpLogin.identity} error={error} onBack={closeOTPLogin} onVerify={otpLogin.onVerify} />
-          ) : activationToken ? (
-            <ConsumerActivation token={activationToken} onDone={finishActivation} />
-          ) : registering ? (
-            <ConsumerRegistration onBack={() => setRegistering(false)} />
-          ) : (
-            <form className="login-card login-account-card" onSubmit={submit}>
-              <label className="login-account-field">
-                <span>{tx("账号")}</span>
-                <input aria-label={tx("账号")} autoComplete="username" onChange={event => setIdentity(event.target.value)} placeholder={tx("账号")} required value={identity} />
-              </label>
-              <label className="login-account-field">
-                <span>{tx("密码")}</span>
-                <span className="password-field">
-                  <input
-                    aria-label={tx("密码")}
-                    autoComplete="current-password"
-                    onChange={event => setPassword(event.target.value)}
-                    placeholder={tx("密码")}
-                    required
-                    type={passwordVisible ? "text" : "password"}
-                    value={password}
-                  />
-                  <button aria-label={passwordVisible ? tx("隐藏密码") : tx("显示密码")} className="password-toggle" onClick={() => setPasswordVisible(value => !value)} type="button">
-                    {passwordVisible ? <EyeOff size={16} /> : <Eye size={16} />}
-                  </button>
-                </span>
-              </label>
-              <div className="login-helper-row">
-                <label className="login-remember">
-                  <input
-                    checked={remember}
-                    onChange={event => {
-                      setRemember(event.target.checked);
-                      if (!event.target.checked) {
-                        try {
-                          window.localStorage.removeItem("tokenstation.c.remembered-account");
-                        } catch {
-                          /* Optional preference. */
-                        }
-                      }
-                    }}
-                    type="checkbox"
-                  />
-                  <span>{tx("记住账号")}</span>
-                </label>
-                <button
-                  className="consumer-auth-link"
-                  type="button"
-                  disabled={loading}
-                  onClick={startRegistration}>
-                  {tx("邮箱注册")}
-                </button>
-              </div>
-              {registrationNotice ? (
-                <p className="consumer-form-note" role="status">
-                  {registrationNotice}
-                </p>
-              ) : null}
-              {error ? (
-                <div className="login-error" role="alert">
-                  {error}
-                </div>
-              ) : null}
-              <button className="button login-submit" disabled={loading} type="submit">
-                {loading ? tx("登录中") : tx("登录")}
-              </button>
-              {ssoSection}
-            </form>
-          )}
-          {footer}
-        </section>
-      </section>
-    </main>
   );
 }
 

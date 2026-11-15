@@ -13,6 +13,7 @@ const oauthUser: AdminUser = {
 };
 
 test.use({ sessionUser: null });
+test.skip(process.env.NEXT_PUBLIC_TOKENHUB_PORTAL === "c", "OAuth fixtures target the B portal session and overview.");
 
 test.beforeEach(async ({ api }) => {
   api.respond("GET", "/api/admin/auth/identity-providers", { data: [{

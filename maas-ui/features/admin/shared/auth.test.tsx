@@ -18,17 +18,19 @@ const baseProps = {
 describe("LoginView", () => {
   afterEach(() => {
     vi.unstubAllEnvs();
+    vi.restoreAllMocks();
+    window.localStorage.clear();
     window.history.replaceState(null, "", "/");
   });
 
-  it("only shows OTP when otpLogin is supplied and delegates verification and return", async () => {
+  it.each(["b", "c"] as const)("only shows OTP when supplied and delegates verification and return on portal %s", async portal => {
     window.history.replaceState(null, "", "/?keep=value#section");
     const user = userEvent.setup();
     const onLogin = vi.fn();
     const otpLogin = { identity: "admin@example.com", onVerify: vi.fn(), onBack: vi.fn() };
-    const { rerender } = render(<LoginView {...baseProps} onLogin={onLogin} />);
+    const { rerender } = render(<LoginView {...baseProps} portal={portal} onLogin={onLogin} />);
     await user.type(screen.getByLabelText("密码"), "password");
-    rerender(<LoginView {...baseProps} onLogin={onLogin} otpLogin={otpLogin} />);
+    rerender(<LoginView {...baseProps} portal={portal} onLogin={onLogin} otpLogin={otpLogin} />);
 
     expect(screen.getByRole("form", { name: "手机号验证码认证" })).toBeInTheDocument();
     expect(screen.getByLabelText("账号")).toHaveValue(otpLogin.identity);
@@ -39,7 +41,7 @@ describe("LoginView", () => {
     expect(onLogin).not.toHaveBeenCalled();
     await user.click(screen.getByRole("button", { name: "返回账号密码登录" }));
     expect(otpLogin.onBack).toHaveBeenCalledOnce();
-    rerender(<LoginView {...baseProps} onLogin={onLogin} />);
+    rerender(<LoginView {...baseProps} portal={portal} onLogin={onLogin} />);
 
     expect(screen.getByLabelText("密码")).toHaveValue("");
     expect(window.location.search).toBe("?keep=value");
@@ -64,13 +66,67 @@ describe("LoginView", () => {
     expect(screen.queryByRole("form", { name: "手机号验证码认证" })).not.toBeInTheDocument();
   });
 
-  it("keeps the consumer logo separate from its CSS illustration background", () => {
-    render(<LoginView {...baseProps} portal="c" onLogin={vi.fn()} />);
+  it("uses the shared branded card instead of the old consumer illustration", () => {
+    const { container } = render(<LoginView {...baseProps} portal="c" onLogin={vi.fn()} />);
 
-    const visual = screen.getByLabelText("世纪利通 TokenStation");
-    expect(visual).toHaveClass("login-account-visual");
-    expect(visual.querySelector(".login-account-logo use")).toHaveAttribute("href", "/icons/sprite.svg#icon-layout-logo");
-    expect(visual.querySelector('use[href="/icons/sprite.svg#icon-layout-bg"]')).not.toBeInTheDocument();
+    expect(screen.getByRole("main")).toHaveClass("tc-login");
+    expect(screen.getByRole("main")).toHaveAttribute("data-portal", "c");
+    expect(screen.getByRole("heading", { name: "TokenStation" })).toBeInTheDocument();
+    expect(screen.getByRole("img", { name: "Logo" })).toHaveAttribute("src", "/brand/tokencube-logo.svg");
+    expect(container.querySelector(".login-account-visual")).not.toBeInTheDocument();
+  });
+
+  it("restores and immediately clears the remembered consumer account on opt out", async () => {
+    window.localStorage.setItem("tokenstation.c.remembered-account", "consumer@example.test");
+    const user = userEvent.setup();
+    render(<LoginView {...baseProps} portal="c" onLogin={vi.fn()} />);
+    expect(screen.getByLabelText("账号")).toHaveValue("consumer@example.test");
+    expect(screen.getByLabelText("密码")).toHaveValue("");
+    await user.click(screen.getByRole("checkbox", { name: "记住账号" }));
+    expect(window.localStorage.getItem("tokenstation.c.remembered-account")).toBeNull();
+    await user.type(screen.getByLabelText("密码"), "fixture-password");
+    await user.click(screen.getByRole("button", { name: "登录" }));
+    expect(window.localStorage.getItem("tokenstation.c.remembered-account")).toBeNull();
+  });
+
+  it("remembers only the trimmed consumer account on submit", async () => {
+    const user = userEvent.setup();
+    const onLogin = vi.fn();
+    render(<LoginView {...baseProps} portal="c" onLogin={onLogin} />);
+    await user.type(screen.getByLabelText("账号"), " consumer@example.test ");
+    await user.type(screen.getByLabelText("密码"), "fixture-password");
+    await user.click(screen.getByRole("button", { name: "登录" }));
+    expect(window.localStorage.getItem("tokenstation.c.remembered-account")).toBe("consumer@example.test");
+    expect(onLogin).toHaveBeenCalledWith(" consumer@example.test ", "fixture-password");
+  });
+
+  it("keeps consumer account preferences out of the embedded business login", async () => {
+    window.localStorage.setItem("tokenstation.c.remembered-account", "consumer@example.test");
+    const user = userEvent.setup();
+    render(<LoginView {...baseProps} embedded onLogin={vi.fn()} />);
+    expect(screen.getByRole("main")).toHaveClass("tc-login", "embedded");
+    expect(screen.queryByRole("checkbox", { name: "记住账号" })).not.toBeInTheDocument();
+    expect(screen.getByLabelText("账号")).toHaveValue("");
+    await user.type(screen.getByLabelText("账号"), "business@example.test");
+    await user.type(screen.getByLabelText("密码"), "fixture-password");
+    await user.click(screen.getByRole("button", { name: "登录" }));
+    expect(window.localStorage.getItem("tokenstation.c.remembered-account")).toBe("consumer@example.test");
+  });
+
+  it("allows consumer login when persistent storage is unavailable", async () => {
+    vi.spyOn(Storage.prototype, "getItem").mockImplementation(() => { throw new Error("Storage disabled"); });
+    vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => { throw new Error("Storage disabled"); });
+    const user = userEvent.setup();
+    const onLogin = vi.fn();
+    const { rerender } = render(<LoginView {...baseProps} portal="c" error="login 401" loading onLogin={onLogin} />);
+    expect(screen.getByRole("alert")).toHaveTextContent("login 401");
+    expect(screen.getByRole("button", { name: "登录中..." })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "邮箱注册" })).toBeDisabled();
+    rerender(<LoginView {...baseProps} portal="c" onLogin={onLogin} />);
+    await user.type(screen.getByLabelText("账号"), "consumer@example.test");
+    await user.type(screen.getByLabelText("密码"), "fixture-password");
+    await user.click(screen.getByRole("button", { name: "登录" }));
+    expect(onLogin).toHaveBeenCalledWith("consumer@example.test", "fixture-password");
   });
 
   it("renders the centered card login layout with TokenStation branding", () => {
