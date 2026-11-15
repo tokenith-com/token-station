@@ -2,6 +2,7 @@
 
 import { Moon, Pause, Play, Sun } from "lucide-react";
 import { type ReactNode, useState } from "react";
+import { LoginAccountFooter } from "./auth";
 import { LanguageSelect } from "../i18n/language-switcher";
 import { type AppLanguage, tx } from "../i18n/runtime";
 
@@ -199,6 +200,7 @@ export function LoginDesignPreview({ theme, language, onThemeToggle, onLanguageC
           </div>
         </section>
       </div>
+      <div className="tc-login-preview-footer"><LoginAccountFooter /></div>
     </div>
   );
 }

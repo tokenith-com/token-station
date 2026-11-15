@@ -36,7 +36,7 @@
 .tc-login-preview-actions { gap: 12px; font-size: 12px; }
 .tc-login-preview-theme { width: 36px; height: 36px; display: grid; place-items: center; border: 0; border-radius: 8px; background: transparent; color: var(--preview-muted); cursor: pointer; }
 .tc-login-preview-theme:hover { background: var(--preview-soft); color: var(--preview-purple); }
-.tc-login-preview .tc-login-preview-language .language-select-trigger { background: transparent; border-color: var(--preview-border); color: var(--preview-muted); }
+.tc-login-preview .tc-login-preview-language .language-select-trigger { height: 36px; display: flex; align-items: center; gap: 6px; padding: 0 10px; background: transparent; border-color: var(--preview-border); color: var(--preview-muted); }
 .tc-login-preview-content { max-width: 1280px; padding: 0 56px; margin: auto; }
 .tc-login-preview-hero { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(330px, 1fr); gap: 72px; align-items: center; padding: 76px 0 84px; }
 .tc-login-preview-intro { min-width: 0; }
@@ -66,9 +66,9 @@
 .tc-login-preview .tc-login-submit:hover:not(:disabled) { background: #65409c; box-shadow: none; }
 .tc-login-preview .tc-login .login-divider { color: var(--preview-muted); }
 .tc-login-preview .tc-login .login-divider span { background: var(--preview-border); }
-.tc-login-preview .tc-login-copyright { margin: 0; padding: 0 18px 18px; }
-.tc-login-preview .tc-login-copyright .login-account-footer { position: static; margin: 0; transform: none; gap: 4px; }
-.tc-login-preview .tc-login-copyright .login-account-footer :is(p, small, a) { color: var(--preview-muted); font-size: 11px; }
+.tc-login-preview-footer { padding: 28px 24px; border-top: 1px solid var(--preview-border); text-align: center; }
+.tc-login-preview-footer .login-account-footer { position: static; margin: 0; padding: 0; transform: none; gap: 4px; }
+.tc-login-preview-footer .login-account-footer :is(p, small, a) { color: var(--preview-muted); font-size: 11px; }
 .tc-login-preview-brands { padding: 48px 0 64px; border-top: 1px solid var(--preview-border); }
 .tc-login-preview-brands-head { text-align: center; }
 .tc-login-preview-brands-head .tc-login-preview-eyebrow { margin-bottom: 12px; }

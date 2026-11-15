@@ -1,8 +1,10 @@
 package server
 
 import (
+	"bytes"
 	"encoding/base64"
 	"encoding/json"
+	"image/png"
 	"io"
 	"mime"
 	"mime/multipart"
@@ -15,6 +17,34 @@ import (
 	"testing"
 	"time"
 )
+
+func TestConsumerCaptchaGlyphsFillImage(t *testing.T) {
+	data, err := renderConsumerCaptchaPNG("W2A9")
+	if err != nil {
+		t.Fatal(err)
+	}
+	img, err := png.Decode(bytes.NewReader(data))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if img.Bounds().Dx() != 192 || img.Bounds().Dy() != 84 {
+		t.Fatalf("unexpected captcha dimensions: %v", img.Bounds())
+	}
+	for cell := 0; cell < consumerCaptchaLength; cell++ {
+		pixels := 0
+		for y := 0; y < 84; y++ {
+			for x := cell * 48; x < (cell+1)*48; x++ {
+				r, g, b, _ := img.At(x, y).RGBA()
+				if r>>8 < 160 && g>>8 < 120 && b>>8 < 210 {
+					pixels++
+				}
+			}
+		}
+		if pixels < 400 {
+			t.Errorf("captcha cell %d has only %d glyph pixels; characters must fill their cells", cell, pixels)
+		}
+	}
+}
 
 func newConsumerRegistrationTestServer(t *testing.T) (*GormStore, *Server, <-chan string) {
 	t.Helper()

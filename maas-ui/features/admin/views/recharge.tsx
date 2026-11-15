@@ -22,11 +22,11 @@ function checkoutURL(value: string | undefined) {
 }
 
 export function ConsumerRechargeView({ api }: { api: ApiContext }) {
-  const [mode, setMode] = useState<"payment" | "consumer">("payment");
+  const [mode, setMode] = useState<"payment" | "consumer">("consumer");
   return <>
-    <div role="group" aria-label={tx("充值方式")}>
-      <button type="button" aria-pressed={mode === "payment"} onClick={() => setMode("payment")}>{tx("在线支付充值")}</button>
-      <button type="button" aria-pressed={mode === "consumer"} onClick={() => setMode("consumer")}>{tx("账户余额充值")}</button>
+    <div className="toolbar consumer-recharge-tabs" role="group" aria-label={tx("充值方式")}>
+      <button className={mode === "consumer" ? "button" : "secondary-button"} type="button" aria-pressed={mode === "consumer"} onClick={() => setMode("consumer")}>{tx("账户余额充值")}</button>
+      <button className={mode === "payment" ? "button" : "secondary-button"} type="button" aria-pressed={mode === "payment"} onClick={() => setMode("payment")}>{tx("在线支付充值")}</button>
     </div>
     {mode === "payment" ? <RechargeView api={api} /> : <BalanceRechargeView api={api} />}
   </>;

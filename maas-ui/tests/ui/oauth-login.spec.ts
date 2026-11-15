@@ -29,6 +29,29 @@ test("login-home keeps the form, model scrolling, theme and mobile layout", asyn
   await expect(page.locator(".tc-login-preview")).toBeVisible();
   await expect(page.getByLabel("密码", { exact: true })).toBeVisible();
   await expect(page.getByRole("link", { name: "使用 UI Keycloak 登录" })).toBeVisible();
+  const expectHeaderAlignment = async () => {
+    const language = page.locator(".tc-login-preview-language button");
+    const theme = page.locator(".tc-login-preview-theme");
+    const themeBounds = await theme.boundingBox();
+    expect(themeBounds).not.toBeNull();
+    const centerY = themeBounds!.y + themeBounds!.height / 2;
+    await expect(language).toHaveCSS("height", "36px");
+    for (const icon of [language.locator("svg").first(), language.locator("svg").last(), theme.locator("svg")]) {
+      const bounds = await icon.boundingBox();
+      expect(bounds).not.toBeNull();
+      expect(Math.abs(bounds!.y + bounds!.height / 2 - centerY)).toBeLessThanOrEqual(1);
+    }
+  };
+  await expectHeaderAlignment();
+  const footer = page.locator(".tc-login-preview-footer");
+  await expect(page.locator(".tc-login-preview-panel .login-account-footer")).toHaveCount(0);
+  await expect(footer.getByRole("link", { name: "世纪利通官网" })).toHaveAttribute("href", "https://www.century-lt.com/cn/");
+  await expect(footer.getByText("沪ICP备2023030709号", { exact: true })).toHaveCount(1);
+  const footerBounds = await footer.boundingBox();
+  const contentBounds = await page.locator(".tc-login-preview-content").boundingBox();
+  expect(footerBounds!.y).toBeGreaterThanOrEqual(contentBounds!.y + contentBounds!.height);
+  await footer.scrollIntoViewIfNeeded();
+  await capture(page, info, footer, "login-page-footer", "Login page legal footer");
   const brandWall = page.locator(".tc-login-preview-brands");
   await expect(brandWall.getByRole("heading", { name: "一个入口，连接主流 AI 模型" })).toBeVisible();
   await expect(brandWall.getByRole("listitem")).toHaveCount(14);
@@ -73,15 +96,18 @@ test("login-home keeps the form, model scrolling, theme and mobile layout", asyn
   await capture(page, info, page.locator(".tc-login-preview"), "login-design-preview-desktop", "正式登录页：桌面布局", "viewport");
   await page.getByRole("button", { name: "切换到深色模式" }).click();
   await expect(page.locator(".tc-login-preview")).toHaveAttribute("data-theme", "dark");
+  await expectHeaderAlignment();
   await capture(page, info, page.locator(".tc-login-preview"), "login-design-preview-dark", "正式登录页：深色模式", "viewport");
   await page.getByRole("button", { name: "切换到浅色模式" }).click();
   await page.locator(".tc-login-preview-language button").click();
   await page.getByRole("option", { name: "English", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Every model. One gateway." })).toBeVisible();
   await expect(page.locator(".tc-login-preview")).toHaveAttribute("lang", "en");
+  await expectHeaderAlignment();
   await page.locator(".tc-login-preview-language button").click();
   await page.getByRole("option", { name: "简体中文", exact: true }).click();
   await page.setViewportSize({ width: 390, height: 844 });
+  await expectHeaderAlignment();
   await expect(page.getByLabel("密码", { exact: true })).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   await capture(page, info, page.locator(".tc-login-preview"), "login-design-preview-mobile", "正式登录页：移动端登录", "viewport");

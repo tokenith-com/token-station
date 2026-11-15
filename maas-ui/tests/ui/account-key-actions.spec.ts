@@ -36,7 +36,8 @@ test("administrator-key-list resolves secrets only when requested", async ({ pag
   api.respond("GET", "/api/admin/resources/project-members", { data: [] });
   api.respond("GET", "/api/admin/api-keys", { data: [{ id: "key_ui_actions", project_id: "prj_ui", name: "Synthetic UI Key", status: "active", key_prefix: "sk_ui", key_suffix: "test", allowed_models: [], limits: {} }] });
   const secretPath = "/api/admin/api-keys/key_ui_actions/secret";
-  api.respond("GET", secretPath, { api_key: "sk_synthetic_ui_secret_only" });
+  let legacy = false;
+  api.define("GET", secretPath, () => legacy ? { status: 409, json: {} } : { json: { api_key: "sk_synthetic_ui_secret_only" } });
   await enterConsole(page, "/api-keys");
   const reveal = page.getByRole("button", { name: "显示 Key", exact: true });
   await expect(reveal).toBeVisible();
@@ -48,4 +49,15 @@ test("administrator-key-list resolves secrets only when requested", async ({ pag
   await page.getByRole("button", { name: "隐藏 Key", exact: true }).click();
   await expect(page.getByText("sk_synthetic_ui_secret_only", { exact: true })).not.toBeVisible();
   await capture(page, testInfo, page.locator(".app-shell"), "administrator-key-actions", "Key 列表查看与复制按钮", "viewport");
+  legacy = true;
+  await page.getByRole("button", { name: "显示 Key", exact: true }).click();
+  const notice = page.locator(".personal-api-key-copy-notice");
+  await expect(notice).toBeVisible();
+  const cell = notice.locator("..");
+  const messageBox = await notice.boundingBox();
+  const keyBox = await cell.locator(":scope > span").boundingBox();
+  const cellBox = await cell.boundingBox();
+  expect(messageBox!.y).toBeGreaterThanOrEqual(keyBox!.y + keyBox!.height);
+  expect(messageBox!.x + messageBox!.width).toBeLessThanOrEqual(cellBox!.x + cellBox!.width + 1);
+  await capture(page, testInfo, page.locator(".app-shell"), "administrator-key-notice", "Key 下方独立显示旧版本提示", "viewport");
 });

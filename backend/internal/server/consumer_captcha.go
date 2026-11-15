@@ -13,7 +13,8 @@ import (
 	"time"
 
 	"golang.org/x/image/font"
-	"golang.org/x/image/font/basicfont"
+	"golang.org/x/image/font/gofont/gomonobold"
+	"golang.org/x/image/font/opentype"
 	"golang.org/x/image/math/fixed"
 )
 
@@ -102,8 +103,17 @@ func drawCaptchaLine(img *image.RGBA, x0, y0, x1, y1 int, col color.RGBA) {
 }
 
 func renderConsumerCaptchaPNG(code string) ([]byte, error) {
-	const width = 132
-	const height = 44
+	const width = 192
+	const height = 84
+	parsedFont, err := opentype.Parse(gomonobold.TTF)
+	if err != nil {
+		return nil, err
+	}
+	face, err := opentype.NewFace(parsedFont, &opentype.FaceOptions{Size: 76, DPI: 72, Hinting: font.HintingFull})
+	if err != nil {
+		return nil, err
+	}
+	defer face.Close()
 	img := image.NewRGBA(image.Rect(0, 0, width, height))
 	for y := 0; y < height; y++ {
 		for x := 0; x < width; x++ {
@@ -121,15 +131,15 @@ func renderConsumerCaptchaPNG(code string) ([]byte, error) {
 			color.RGBA{R: uint8(captchaRandInt(256)), G: uint8(captchaRandInt(256)), B: uint8(captchaRandInt(256)), A: 255})
 	}
 	// Code glyphs with per-character colour and vertical jitter.
-	face := basicfont.Face7x13
-	startX := (width - face.Advance*len(code)) / 2
-	baseY := (height + face.Height) / 2
+	bounds, advance := font.BoundString(face, code)
+	startX := (fixed.I(width) - advance) / 2
+	baseY := (fixed.I(height) - bounds.Max.Y - bounds.Min.Y) / 2
 	for _, ch := range code {
 		col := color.RGBA{R: uint8(50 + captchaRandInt(110)), G: uint8(40 + captchaRandInt(80)), B: uint8(90 + captchaRandInt(120)), A: 255}
 		drawer := font.Drawer{Dst: img, Src: image.NewUniform(col), Face: face}
-		drawer.Dot = fixed.P(startX, baseY+captchaRandInt(7)-3)
+		drawer.Dot = fixed.Point26_6{X: startX, Y: baseY + fixed.I(captchaRandInt(7)-3)}
 		drawer.DrawString(string(ch))
-		startX += face.Advance
+		startX += font.MeasureString(face, string(ch))
 	}
 	var buf bytes.Buffer
 	if err := png.Encode(&buf, img); err != nil {
