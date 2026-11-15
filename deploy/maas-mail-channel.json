@@ -1,0 +1,13 @@
+{
+  "name": "MaaS registration email",
+  "status": "active",
+  "fields": {
+    "type": "email",
+    "smtp_host": "smtp.qiye.aliyun.com",
+    "smtp_port": 465,
+    "smtp_encryption": "tls",
+    "smtp_username": "noreply@centlt.com",
+    "smtp_from": "noreply@centlt.com",
+    "smtp_from_name": "世纪利通"
+  }
+}
