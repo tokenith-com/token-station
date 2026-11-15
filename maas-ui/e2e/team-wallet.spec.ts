@@ -5,7 +5,6 @@ const backendURL = `http://127.0.0.1:${process.env.TOKENHUB_E2E_BACKEND_PORT ?? 
 
 test("super admin credits a team wallet once and reads its exact CNY ledger", async ({ page, request }) => {
   await page.goto("/");
-  await page.getByRole("button", { name: "登录 / 立即开始", exact: true }).click();
   await page.getByRole("textbox", { name: "账号", exact: true }).fill(e2eDefaults.adminIdentity);
   await page.getByLabel("密码", { exact: true }).fill(process.env.TOKENHUB_E2E_ADMIN_PASSWORD ?? e2eDefaults.adminPassword);
   await page.locator("form").getByRole("button", { name: "登录", exact: true }).click();

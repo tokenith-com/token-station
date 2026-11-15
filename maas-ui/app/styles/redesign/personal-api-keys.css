@@ -41,14 +41,15 @@
 
 .personal-api-key-value {
   min-width: 0;
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(72px, 1fr) auto auto;
   align-items: center;
   gap: 7px;
 }
 
 .personal-api-key-value > span {
-  min-width: 72px;
-  max-width: calc(100% - 60px);
+  min-width: 0;
+  max-width: 100%;
   overflow: hidden;
   color: #4c5e70;
   text-overflow: ellipsis;
@@ -74,10 +75,13 @@
 }
 
 .personal-api-key-copy-notice {
-  flex: 0 0 auto;
+  grid-column: 1 / -1;
+  min-width: 0;
   font-style: normal;
   font-size: calc(12 * var(--content-font-unit, 1px));
-  white-space: nowrap;
+  line-height: 1.5;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 .personal-api-key-copy-notice.is-ok {

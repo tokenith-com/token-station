@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import { useCallback, useEffect, useState } from "react";
 import type { ApiContext, AppData, UsageBreakdownRow } from "../core/types";
 import type { UsageRange } from "../core/usage-report-types";
-import { apiKeyAuditLabel, projectName } from "../domain/entities";
+import { apiKeyAuditLabel } from "../domain/entities";
 import { compactNumber, formatNumber } from "../domain/formatting";
 import { languageLocale, tx } from "../i18n/runtime";
 import { adminFetch, readAdminError } from "../resources/payloads";
@@ -98,9 +98,8 @@ export function GuestCostDetailsView({ api, data }: { api: ApiContext; data: App
 
       <div className="cost-details-grid">
         <CostTable title={tx("模型成本")} label={tx("模型")} rows={report?.breakdown.models ?? []} paginationKey="cost-models" name={row => row.id} />
-        <CostTable title={tx("项目成本")} label={tx("项目")} rows={report?.breakdown.projects ?? []} paginationKey="cost-projects" name={row => projectName(data, row.id)} />
+        <CostTable title={tx("API Key 成本")} label="API Key" rows={report?.breakdown.api_keys ?? []} paginationKey="cost-api-keys" name={row => apiKeyAuditLabel(data, row.id)} />
       </div>
-      <CostTable title={tx("API Key 成本")} label="API Key" rows={report?.breakdown.api_keys ?? []} paginationKey="cost-api-keys" name={row => apiKeyAuditLabel(data, row.id)} />
 
       <CostPanel title={tx("充值记录")}>
         {ordersError ? <div className="recharge-alert error" role="alert">{ordersError}</div> : null}

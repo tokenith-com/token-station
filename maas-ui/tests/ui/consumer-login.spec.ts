@@ -16,15 +16,13 @@ test.beforeEach(async ({ api }) => {
 });
 
 async function showLogin(page: Page) {
-  await page.getByRole("button", { name: "登录 / 立即开始", exact: true }).click();
   await expect(page.locator('.tc-login[data-portal="c"]')).toBeVisible();
   await expect(page.getByRole("heading", { name: "欢迎回来", exact: true })).toBeVisible();
 }
 
 async function openLogin(page: Page) {
   await page.goto("/");
-  await expect(page.getByRole("heading", { name: "MaaS Platform", exact: true })).toBeVisible();
-  await expect(page.locator('.tc-login[data-portal="c"]')).toHaveCount(0);
+  await expect(page.locator(".tc-login-preview")).toBeVisible();
   await showLogin(page);
 }
 
@@ -43,25 +41,22 @@ async function submitLogin(page: Page) {
 }
 
 async function expectBrand(page: Page) {
-  const brand = page.locator(".tc-login-brand");
-  await expect(brand.getByRole("heading", { name: "TokenStation", exact: true })).toBeVisible();
-  await expect(brand.getByText("MaaS Platform", { exact: true })).toBeVisible();
+  const brand = page.locator(".tc-login-preview-brand");
+  await expect(brand.getByText("TokenStation", { exact: true })).toBeVisible();
   const logo = brand.locator("img");
   await expect(logo).toHaveAttribute("src", "/brand/tokencube-logo.svg");
   await expect.poll(() => logo.evaluate(image => (image as HTMLImageElement).naturalWidth)).toBeGreaterThan(0);
-  for (const subject of [brand, page.locator(".tc-login-card")]) {
-    await expect.poll(async () => {
-      const bounds = await subject.boundingBox();
-      return bounds ? Math.abs(bounds.x + bounds.width / 2 - page.viewportSize()!.width / 2) : Infinity;
-    }, { message: "Login branding and card should be horizontally centered" }).toBeLessThanOrEqual(2);
-  }
+  const panel = page.locator(".tc-login-preview-panel");
+  await expect.poll(() => panel.evaluate(element => element.scrollWidth <= element.clientWidth + 1)).toBe(true);
   await expect(page.locator(".login-account-visual")).toHaveCount(0);
-  await expect(page.locator(".tc-login").getByRole("link", { name: "世纪利通官网", exact: true })).toHaveAttribute("href", "https://www.century-lt.com/cn/");
-  await expect(page.locator(".tc-login").getByText("世纪利通 版权所有 2024–2026", { exact: true })).toBeVisible();
-  await expect(page.locator(".tc-login").getByText("沪ICP备2023030709号", { exact: true })).toBeVisible();
+  const footer = page.locator(".tc-login-preview-footer");
+  await expect(footer.getByRole("link", { name: "世纪利通官网", exact: true })).toHaveAttribute("href", "https://www.century-lt.com/cn/");
+  await expect(footer.getByText("世纪利通 版权所有 2024–2026", { exact: true })).toBeVisible();
+  await expect(footer.getByText("沪ICP备2023030709号", { exact: true })).toBeVisible();
+  await expect(page.locator(".tc-login .login-account-footer")).toHaveCount(0);
 }
 
-test("consumer-login centered branding and password visibility", async ({ page }, info) => {
+test("consumer-login unified branding and password visibility", async ({ page }, info) => {
   await openLogin(page);
   await expectBrand(page);
   await expect(page.getByRole("checkbox", { name: "记住账号" })).toBeChecked();
@@ -129,6 +124,7 @@ test("consumer-login mobile keeps branding and actions within the viewport", asy
   await openLogin(page);
   await expectBrand(page);
   for (const control of [page.getByRole("textbox", { name: "账号", exact: true }), page.getByLabel("密码", { exact: true }), page.getByRole("checkbox", { name: "记住账号" }), page.getByRole("button", { name: "邮箱注册", exact: true }), page.locator(".tc-login-form").getByRole("button", { name: "登录", exact: true })]) {
+    await control.scrollIntoViewIfNeeded();
     await expect(control).toBeInViewport();
   }
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
@@ -138,14 +134,14 @@ test("consumer-login mobile keeps branding and actions within the viewport", asy
 test("consumer-login short viewport keeps all actions reachable", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 568 });
   await openLogin(page);
-  const brand = await page.locator(".tc-login-brand").boundingBox();
+  const brand = await page.locator(".tc-login-preview-brand").boundingBox();
   expect(brand!.y).toBeGreaterThanOrEqual(0);
   await page.getByRole("button", { name: "邮箱注册", exact: true }).scrollIntoViewIfNeeded();
   await expect(page.getByRole("button", { name: "邮箱注册", exact: true })).toBeInViewport();
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
 });
 
-test("consumer-login dark theme retains the centered branding", async ({ context, page }, info) => {
+test("consumer-login dark theme retains the shared branding", async ({ context, page }, info) => {
   await context.addInitScript(() => localStorage.setItem("tokenhub.theme", "dark"));
   await openLogin(page);
   await expect(page.locator('.tc-login[data-portal="c"]')).toHaveAttribute("data-theme", "dark");

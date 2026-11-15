@@ -92,6 +92,7 @@ export function loadPlanForView(user: AdminUser, view: ViewKey): LoadPlan {
       plan.overview = true;
       plan.breakdown = true;
       plan.timeseries = true;
+      plan.keys = can("api-keys");
       plan.logs = can("audit");
       plan.users = appRole(user.role) === "admin" || appRole(user.role) === "team_leader";
       if (appRole(user.role) === "admin" || appRole(user.role) === "team_leader") {

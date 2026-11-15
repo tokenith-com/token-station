@@ -12,7 +12,7 @@ export const expectedMenus: Record<AppRole, string[]> = {
     "security-policies", "sqlite-backups", "database-status", "announcements", "plugins",
     "users", "role-configs", "identity-providers", "settings",
   ],
-  team_leader: ["overview", "usage", "models", "playground", "api-keys", "gateway", "projects", "users", "audit"],
+  team_leader: ["overview", "usage", "models", "playground", "api-keys", "gateway", "users", "audit"],
   user: ["overview", "models", "playground", "api-keys", "gateway", "usage", "audit"],
   consumer: ["overview", "models", "playground", "api-keys", "gateway", "usage", "audit", "billing", "balance-recharge"],
 };
@@ -33,6 +33,13 @@ describe("custom role menus retained during upstream merge", () => {
     expect(navGroupsForUser(user)).toEqual(navGroupsForUser({ role: "consumer" } as AdminUser));
     expect(canAccessView(user, "balance-recharge")).toBe(true);
     expect(canAccessView(user, "users")).toBe(false);
+  });
+
+  it.each(["team_leader", "teamlead", "project_admin"])("hides projects from the %s menu without removing access", role => {
+    const user = { role } as AdminUser;
+    const items = navGroupsForUser(user).flatMap(group => group.items);
+    expect(items).not.toEqual(expect.arrayContaining([expect.objectContaining({ view: "projects" })]));
+    expect(canAccessView(user, "projects")).toBe(true);
   });
 
   it("retains the custom provider label in the admin navigation", () => {

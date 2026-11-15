@@ -22,6 +22,101 @@ test.beforeEach(async ({ api }) => {
   }] });
 });
 
+test("login-home keeps the form, model scrolling, theme and mobile layout", async ({ page }, info) => {
+  await page.goto("/");
+  await expect(page.getByText("设计预览", { exact: true })).toHaveCount(0);
+  await expect(page.getByRole("link", { name: "切回原版" })).toHaveCount(0);
+  await expect(page.locator(".tc-login-preview")).toBeVisible();
+  await expect(page.getByLabel("密码", { exact: true })).toBeVisible();
+  await expect(page.getByRole("link", { name: "使用 UI Keycloak 登录" })).toBeVisible();
+  const expectHeaderAlignment = async () => {
+    const language = page.locator(".tc-login-preview-language button");
+    const theme = page.locator(".tc-login-preview-theme");
+    const themeBounds = await theme.boundingBox();
+    expect(themeBounds).not.toBeNull();
+    const centerY = themeBounds!.y + themeBounds!.height / 2;
+    await expect(language).toHaveCSS("height", "36px");
+    for (const icon of [language.locator("svg").first(), language.locator("svg").last(), theme.locator("svg")]) {
+      const bounds = await icon.boundingBox();
+      expect(bounds).not.toBeNull();
+      expect(Math.abs(bounds!.y + bounds!.height / 2 - centerY)).toBeLessThanOrEqual(1);
+    }
+  };
+  await expectHeaderAlignment();
+  const footer = page.locator(".tc-login-preview-footer");
+  await expect(page.locator(".tc-login-preview-panel .login-account-footer")).toHaveCount(0);
+  await expect(footer.getByRole("link", { name: "世纪利通官网" })).toHaveAttribute("href", "https://www.century-lt.com/cn/");
+  await expect(footer.getByText("沪ICP备2023030709号", { exact: true })).toHaveCount(1);
+  const footerBounds = await footer.boundingBox();
+  const contentBounds = await page.locator(".tc-login-preview-content").boundingBox();
+  expect(footerBounds!.y).toBeGreaterThanOrEqual(contentBounds!.y + contentBounds!.height);
+  await footer.scrollIntoViewIfNeeded();
+  await capture(page, info, footer, "login-page-footer", "Login page legal footer");
+  const brandWall = page.locator(".tc-login-preview-brands");
+  await expect(brandWall.getByRole("heading", { name: "一个入口，连接主流 AI 模型" })).toBeVisible();
+  await expect(brandWall.getByRole("listitem")).toHaveCount(14);
+  const tracks = brandWall.locator(".tc-login-preview-brand-track");
+  await expect(tracks.first()).toHaveCSS("animation-name", "none");
+  const firstModel = brandWall.getByRole("listitem").first();
+  await expect(firstModel.locator("strong")).toHaveText("GPT");
+  await expect(firstModel.locator("span")).toHaveText("OpenAI");
+  const modelBounds = await firstModel.locator("strong").boundingBox();
+  const brandBounds = await firstModel.locator("span").boundingBox();
+  expect(modelBounds!.y + modelBounds!.height).toBeLessThan(brandBounds!.y);
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await expect(tracks.first()).toHaveCSS("animation-name", "tc-preview-brand-scroll");
+  await expect(tracks.nth(1)).toHaveCSS("animation-direction", "reverse");
+  await brandWall.getByRole("button", { name: "暂停滚动" }).click();
+  await expect(tracks.first()).toHaveCSS("animation-play-state", "paused");
+  await brandWall.getByRole("button", { name: "继续滚动" }).click();
+  await page.mouse.move(0, 0);
+  await expect(tracks.first()).toHaveCSS("animation-play-state", "running");
+  await brandWall.locator(".tc-login-preview-brand-lane").first().focus();
+  await expect(tracks.first()).toHaveCSS("animation-play-state", "paused");
+  await page.getByRole("heading", { name: "一个入口，连接主流 AI 模型" }).click();
+  await brandWall.scrollIntoViewIfNeeded();
+  await capture(page, info, brandWall, "login-model-brand-wall", "模型品牌墙：双行滚动");
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  const rows = page.locator(".tc-login-preview-insight");
+  await expect(rows).toHaveCount(4);
+  await expect(page.getByRole("heading", { name: "洞察模型使用分布" })).toBeVisible();
+  await expect(page.locator(".tc-login-preview-health > span")).toHaveCount(100);
+  await expect(page.locator(".tc-login-preview-health > .success")).toHaveCount(96);
+  await expect(page.locator(".tc-login-preview-health > .warning")).toHaveCount(3);
+  await expect(page.locator(".tc-login-preview-health > .failure")).toHaveCount(1);
+  for (let index = 0; index < 4; index++) {
+    await expect(rows.nth(index).locator(".tc-login-preview-insight-copy p")).not.toBeEmpty();
+    const bounds = await rows.nth(index).boundingBox();
+    const nextBounds = index < 3 ? await rows.nth(index + 1).boundingBox() : null;
+    if (nextBounds) expect(nextBounds.y).toBeGreaterThanOrEqual(bounds!.y + bounds!.height);
+    await rows.nth(index).scrollIntoViewIfNeeded();
+    await capture(page, info, rows.nth(index), `login-design-insight-${index + 1}`, `登录页图文展示 ${index + 1}`);
+  }
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await capture(page, info, page.locator(".tc-login-preview"), "login-design-preview-desktop", "正式登录页：桌面布局", "viewport");
+  await page.getByRole("button", { name: "切换到深色模式" }).click();
+  await expect(page.locator(".tc-login-preview")).toHaveAttribute("data-theme", "dark");
+  await expectHeaderAlignment();
+  await capture(page, info, page.locator(".tc-login-preview"), "login-design-preview-dark", "正式登录页：深色模式", "viewport");
+  await page.getByRole("button", { name: "切换到浅色模式" }).click();
+  await page.locator(".tc-login-preview-language button").click();
+  await page.getByRole("option", { name: "English", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Every model. One gateway." })).toBeVisible();
+  await expect(page.locator(".tc-login-preview")).toHaveAttribute("lang", "en");
+  await expectHeaderAlignment();
+  await page.locator(".tc-login-preview-language button").click();
+  await page.getByRole("option", { name: "简体中文", exact: true }).click();
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expectHeaderAlignment();
+  await expect(page.getByLabel("密码", { exact: true })).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+  await capture(page, info, page.locator(".tc-login-preview"), "login-design-preview-mobile", "正式登录页：移动端登录", "viewport");
+  await page.goto("/?loginDesign=preview&auth=login");
+  await expect(page.locator(".tc-login-preview")).toBeVisible();
+  await expect(page.locator(".tc-home-drawer")).toHaveCount(0);
+  await expect(page.getByLabel("密码", { exact: true })).toBeVisible();
+});
+
 async function seedPendingLogin(context: BrowserContext) {
   await context.addInitScript(({ key, pending }) => {
     window.sessionStorage.setItem(key, JSON.stringify(pending));

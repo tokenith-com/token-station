@@ -13,6 +13,16 @@ import { buildOAuthLoginStartURL, createOAuthLoginPKCE } from "../domain/oauth-l
 import { LanguageSelect } from "../i18n/language-switcher";
 import { type AppLanguage, formatTranslationTemplate, tx } from "../i18n/runtime";
 
+export function LoginAccountFooter() {
+  return (
+    <footer className="login-account-footer">
+      <div><a href="https://www.century-lt.com/cn/" target="_blank" rel="noopener noreferrer">{tx("世纪利通官网")}</a></div>
+      <p>{tx("世纪利通 版权所有 2024–2026")}</p>
+      <small>{tx("沪ICP备2023030709号")}</small>
+    </footer>
+  );
+}
+
 export const identityProviderIconOptions = ["auto", "dingtalk", "feishu", "wecom", "gitlab", "github", "google", "microsoft", "okta", "keycloak", "oidc", "oauth2", "saml", "ldap", "sso"];
 
 export type IdentityProviderEndpointDefaults = {
@@ -853,18 +863,6 @@ export function LoginView({
     </>
   ) : null;
 
-  const footer = (
-    <footer className="login-account-footer">
-      <div>
-        <a href="https://www.century-lt.com/cn/" target="_blank" rel="noopener noreferrer">
-          {tx("世纪利通官网")}
-        </a>
-      </div>
-      <p>{tx("世纪利通 版权所有 2024–2026")}</p>
-      <small>{tx("沪ICP备2023030709号")}</small>
-    </footer>
-  );
-
   return (
       <main className={embedded ? "tc-login embedded" : "tc-login"} data-theme={theme} data-portal={portal}>
         {embedded ? null : (
@@ -972,7 +970,7 @@ export function LoginView({
               </div>
             )}
           </div>
-          <div className="tc-login-copyright">{footer}</div>
+          {embedded ? null : <div className="tc-login-copyright"><LoginAccountFooter /></div>}
         </div>
       </main>
   );

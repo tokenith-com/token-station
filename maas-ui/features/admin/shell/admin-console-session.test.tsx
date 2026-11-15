@@ -40,11 +40,8 @@ describe("console session restoration", () => {
       expect(fetcher).toHaveBeenCalledWith(`${baseURL}/api/admin/auth/identity-providers`, expect.objectContaining({ credentials: "omit", headers: { accept: "application/json" } }));
       expect(fetcher.mock.calls.every(([path]) => path === `${baseURL}/api/admin/auth/identity-providers`)).toBe(true);
     } else {
-      const start = await screen.findByRole("button", { name: "登录 / 立即开始" });
-      expect(screen.getByRole("heading", { name: "MaaS Platform" })).toBeInTheDocument();
-      expect(screen.queryByLabelText("密码")).not.toBeInTheDocument();
-      await userEvent.setup().click(start);
       await screen.findByLabelText("密码");
+      expect(document.querySelector(".tc-login-preview")).toBeInTheDocument();
       expect(screen.queryByText(/Enterprise SSO/)).not.toBeInTheDocument();
       expect(fetcher).not.toHaveBeenCalled();
     }
