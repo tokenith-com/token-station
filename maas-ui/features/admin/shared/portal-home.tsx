@@ -46,10 +46,11 @@ type PortalHomeProps = {
   onThemeToggle: () => void;
   onLanguageChange: (language: AppLanguage) => void;
   forceOpen?: boolean;
+  fullWidthLogin?: boolean;
   children: ReactNode;
 };
 
-export function PortalHome({ theme, language, onThemeToggle, onLanguageChange, forceOpen = false, children }: PortalHomeProps) {
+export function PortalHome({ theme, language, onThemeToggle, onLanguageChange, forceOpen = false, fullWidthLogin = false, children }: PortalHomeProps) {
   const [open, setOpen] = useState(initialOpen);
   const [mounted, setMounted] = useState(open);
   const [prevForceOpen, setPrevForceOpen] = useState(false);
@@ -192,7 +193,7 @@ export function PortalHome({ theme, language, onThemeToggle, onLanguageChange, f
         </footer>
       </div>
 
-      <aside inert={!loginOpen} aria-hidden={!loginOpen} className={loginOpen ? "tc-home-drawer open" : "tc-home-drawer"}>
+      <aside inert={!loginOpen} aria-hidden={!loginOpen} className={`tc-home-drawer${fullWidthLogin ? " full-width" : ""}${loginOpen ? " open" : ""}`}>
         <button className="tc-home-drawer-close" onClick={() => setOpen(false)} title={tx("关闭")} type="button">
           <X size={20} />
         </button>

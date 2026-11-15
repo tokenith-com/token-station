@@ -978,9 +978,8 @@ function AdminConsoleContent({ defaultBaseURL, portal = "b" }: ConsoleProps) {
         onLogin={(identity, password) => void login(identity, password)}
       />
     );
-    if (portal !== "b") return loginView;
     return (
-      <PortalHome forceOpen={Boolean(loginError || pendingLoginOTP || activationLinkOpen)} language={language} onLanguageChange={changeLanguage} onThemeToggle={toggleTheme} theme={theme}>
+      <PortalHome fullWidthLogin={portal === "c"} forceOpen={Boolean(loginError || pendingLoginOTP || activationLinkOpen)} language={language} onLanguageChange={changeLanguage} onThemeToggle={toggleTheme} theme={theme}>
         {loginView}
       </PortalHome>
     );

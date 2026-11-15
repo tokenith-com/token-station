@@ -528,6 +528,11 @@
   transition: transform 0.6s var(--tc-ease), opacity 0.45s ease;
 }
 
+.tc-home-drawer.full-width {
+  width: 100%;
+  border-left: 0;
+}
+
 .tc-home-drawer.open {
   opacity: 1;
   transform: translateX(0);
@@ -593,6 +598,21 @@
   .tc-home-hero h1 {
     font-size: 30px;
     white-space: normal;
+  }
+}
+
+@media (max-width: 480px) {
+  .tc-home-nav {
+    height: auto;
+    min-height: 80px;
+    flex-wrap: wrap;
+    gap: 12px;
+    padding-block: 12px;
+  }
+
+  .tc-home-actions {
+    margin-left: auto;
+    flex-shrink: 0;
   }
 }
 
