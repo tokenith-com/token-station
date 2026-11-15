@@ -35,6 +35,7 @@ it.each(["admin", "team_leader", "user", "guest"])("loads overview statistics an
   expect(plan.overview).toBe(true);
   expect(plan.breakdown).toBe(true);
   expect(plan.timeseries).toBe(true);
+  expect(plan.keys).toBe(true);
   expect(plan.logs).toBe(true);
   expect(plan.plugins).toBe(false);
   expect(plan.pluginMarketplace).toBe(false);

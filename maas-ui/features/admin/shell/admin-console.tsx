@@ -197,7 +197,6 @@ function AdminConsoleContent({ defaultBaseURL, portal = "b" }: ConsoleProps) {
 
   const [reportHistory, setReportHistory] = useState<ReportExportHistoryItem[]>([]);
   const [resetToken, setResetToken] = useState("");
-  const [activationLinkOpen, setActivationLinkOpen] = useState(false);
 
   const api = useMemo(() => ({ baseURL, adminToken }), [baseURL, adminToken]);
   const providerTypeOptions = providerTypeOptionsFromData(data);
@@ -289,7 +288,6 @@ function AdminConsoleContent({ defaultBaseURL, portal = "b" }: ConsoleProps) {
         // another account is signed in on this browser.
         clearSavedSession(portal);
         setCurrentUser(null);
-        setActivationLinkOpen(true);
         setBootstrapped(true);
         return;
       }
@@ -980,7 +978,7 @@ function AdminConsoleContent({ defaultBaseURL, portal = "b" }: ConsoleProps) {
     );
     if (portal !== "b") return loginView;
     return (
-      <PortalHome forceOpen={Boolean(loginError || pendingLoginOTP || activationLinkOpen)} language={language} onLanguageChange={changeLanguage} onThemeToggle={toggleTheme} theme={theme}>
+      <PortalHome language={language} onLanguageChange={changeLanguage} onThemeToggle={toggleTheme} theme={theme}>
         {loginView}
       </PortalHome>
     );

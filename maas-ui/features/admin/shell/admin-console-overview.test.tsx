@@ -92,7 +92,12 @@ it.each(["admin", "team_leader", "user"])("loads %s overview on first mount and 
   const fetcher = vi.fn().mockImplementation(async (path: string) => {
     const pathname = new URL(path).pathname;
     if (pathname === "/api/admin/overview") return Response.json({ summary, projects: [], providers: [], models: [] });
-    if (pathname === "/api/admin/usage/breakdown") return Response.json({ models: [], members: [], provider_resources: [] });
+    if (pathname === "/api/admin/usage/breakdown") return Response.json({ models: [], members: [], provider_resources: [], api_keys: [
+      { id: "key_ranked", request_count: 12, total_tokens: 1200, estimated_cost_usd: 0.5 },
+    ] });
+    if (pathname === "/api/admin/api-keys") return Response.json({ data: [
+      { id: "key_ranked", name: "Overview ranking key", project_id: "project", allowed_models: [], status: "active", key_prefix: "sk_test", key_suffix: "1234" },
+    ] });
     if (pathname === "/api/admin/usage/report") return Response.json({ range: "all", summary, breakdown: { members: [] }, timeseries: [] });
     if (pathname === "/api/admin/audit/requests") return Response.json({
       data: logs,
@@ -114,11 +119,19 @@ it.each(["admin", "team_leader", "user"])("loads %s overview on first mount and 
   const firstPage = mount();
   await waitFor(() => expect(requestMetric(role)).toHaveTextContent("134"));
   expect(screen.queryByText("连接失败")).not.toBeInTheDocument();
+  if (role !== "admin") {
+    expect(screen.getByText("Overview ranking key (sk_test...1234)")).toBeInTheDocument();
+    expect(screen.queryByText("key_ranked")).not.toBeInTheDocument();
+  }
   if (role !== "admin") expect(screen.getByText("100", { selector: ".dashboard-kpi-value" })).toHaveTextContent("100ms");
   firstPage.unmount();
 
   mount();
   await waitFor(() => expect(requestMetric(role)).toHaveTextContent("134"));
+  if (role !== "admin") {
+    expect(screen.getByText("Overview ranking key (sk_test...1234)")).toBeInTheDocument();
+    expect(screen.queryByText("key_ranked")).not.toBeInTheDocument();
+  }
   expect(fetcher.mock.calls.filter(([path]) => new URL(path).pathname === "/api/admin/overview").length).toBeGreaterThanOrEqual(2);
   if (role !== "admin") {
     expect(fetcher.mock.calls.some(([path]) => new URL(path).pathname.startsWith("/api/admin/plugin"))).toBe(false);

@@ -227,7 +227,7 @@ for (const size of [...sizes, { width: 1366, height: 768 }, { width: 1920, heigh
     await page.setViewportSize(size);
     await installLayoutFixtures(page, "user", false);
     await page.goto("/");
-    await page.getByRole("button", { name: "登录", exact: true }).click();
+    await expect(page.locator(".tc-login-preview")).toBeVisible();
     const form = page.locator(".tc-login-form");
     await expect(form.getByLabel("账号", { exact: true })).toBeVisible();
     const submit = form.getByRole("button", { name: "登录", exact: true });
@@ -240,7 +240,7 @@ for (const size of [...sizes, { width: 1366, height: 768 }, { width: 1920, heigh
     await expect(page.locator(".tc-login-logo img")).toHaveJSProperty("complete", true);
     expect(await page.locator(".tc-login-logo img").evaluate(image => (image as HTMLImageElement).naturalWidth)).toBeGreaterThan(0);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
-    await page.screenshot({ path: test.info().outputPath("login-drawer.png") });
+    await page.screenshot({ path: test.info().outputPath("login-home.png") });
 
   });
 }

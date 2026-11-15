@@ -68,7 +68,6 @@ export const teamLeaderNavGroups: NavGroup[] = [
     title: "团队管理",
     icon: Users,
     items: [
-      { view: "projects", label: "项目空间", icon: Boxes },
       { view: "users", label: "团队成员", icon: Users },
       { view: "audit", label: "请求日志", icon: FileText },
     ],

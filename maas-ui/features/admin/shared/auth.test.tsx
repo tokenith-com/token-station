@@ -2,6 +2,7 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { applyIdentityProviderTemplate, identityProviderEndpointDefaults, identityProviderTemplateOptionsFromData, identityProviderTemplatesFromData, LoginView } from "./auth";
+import { PortalHome } from "./portal-home";
 
 const baseProps = {
   loading: false,
@@ -21,6 +22,31 @@ describe("LoginView", () => {
     vi.restoreAllMocks();
     window.localStorage.clear();
     window.history.replaceState(null, "", "/");
+  });
+
+  it("shows the new homepage and login form by default without preview controls", () => {
+    const { container } = render(<PortalHome {...baseProps}><LoginView {...baseProps} embedded onLogin={vi.fn()} /></PortalHome>);
+    expect(container.querySelector(".tc-login-preview")).toBeInTheDocument();
+    expect(container.querySelector(".tc-home-drawer")).not.toBeInTheDocument();
+    expect(screen.getByLabelText("密码")).toBeInTheDocument();
+    expect(screen.queryByText("设计预览")).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "切回原版" })).not.toBeInTheDocument();
+    expect(screen.getByText("示例数据 · 非真实业务用量")).toBeInTheDocument();
+  });
+
+  it("keeps the new homepage and login submission with legacy query parameters", async () => {
+    window.history.replaceState(null, "", "/?loginDesign=preview&keep=value");
+    const user = userEvent.setup();
+    const onLogin = vi.fn();
+    const { container } = render(<PortalHome {...baseProps}><LoginView {...baseProps} embedded onLogin={onLogin} /></PortalHome>);
+    expect(container.querySelector(".tc-login-preview")).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "切回原版" })).not.toBeInTheDocument();
+    expect(window.location.search).toBe("?loginDesign=preview&keep=value");
+    await user.clear(screen.getByLabelText("账号"));
+    await user.type(screen.getByLabelText("账号"), "preview@example.test");
+    await user.type(screen.getByLabelText("密码"), "fixture-password");
+    await user.click(screen.getByRole("button", { name: /^登录$/ }));
+    expect(onLogin).toHaveBeenCalledWith("preview@example.test", "fixture-password");
   });
 
   it.each(["b", "c"] as const)("only shows OTP when supplied and delegates verification and return on portal %s", async portal => {
