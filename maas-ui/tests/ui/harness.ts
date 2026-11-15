@@ -46,7 +46,7 @@ export function section(page: Page, title: string): Locator {
 export async function openBilling(page: Page) {
   await page.goto("/billing");
   await expect(page.locator(".app-shell")).toBeVisible();
-  await expect(section(page, "费用对账单").getByRole("option", { name: "UI Review Project (prj_ui)", exact: true })).toBeAttached();
+  await expect(section(page, "费用对账单").getByRole("checkbox", { name: /UI Review Project/ })).toBeAttached();
 }
 export async function capture(page: Page, testInfo: TestInfo, subject: Locator, id: string, title: string, mode: "section" | "viewport" = "section") {
   testInfo.annotations.push({ type: "ui-capture", description: JSON.stringify({ id, title }) });

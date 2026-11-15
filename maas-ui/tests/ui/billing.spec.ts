@@ -7,7 +7,7 @@ import { statements } from "./scenarios/billing";
 
 async function customer(form: Locator) {
   await form.getByLabel("客户名称", { exact: true }).fill("UI Review Customer");
-  await form.getByLabel("客户项目（可多选）").selectOption(project.id);
+  await form.getByRole("group", { name: "客户项目（可多选）", exact: true }).getByRole("checkbox", { name: new RegExp(project.name) }).check();
 }
 for (const scenario of statements) {
   test(`billing ${scenario.id}`, async ({ page, api }, testInfo) => {

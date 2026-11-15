@@ -14,13 +14,18 @@ test.describe("recharge administration", () => {
       return { json: body };
     });
     await page.goto("/billing/");
-    await page.getByRole("button", { name: "配置充值档位" }).click();
+    await page.getByRole("tab", { name: "充值设置", exact: true }).click();
     await page.getByLabel("允许自定义充值金额").check();
     await page.getByLabel("最低金额（元）", { exact: true }).fill("1.23");
     await page.getByRole("button", { name: "保存充值设置" }).click();
     await expect(page.getByRole("status").filter({ hasText: "充值设置已保存" })).toBeVisible();
     expect(saved).toBe(true);
     await capture(page, info, page.getByRole("region", { name: "充值设置" }), "recharge-settings", "Recharge configuration", "viewport");
+    await page.setViewportSize({ width: 390, height: 844 });
+    const panel = page.getByRole("region", { name: "充值设置" });
+    await expect.poll(() => panel.evaluate(element => element.scrollWidth <= element.clientWidth + 1)).toBe(true);
+    await expect(page.getByRole("button", { name: "保存充值设置" })).toBeVisible();
+    await capture(page, info, panel, "recharge-settings-mobile", "Mobile recharge configuration", "viewport");
   });
 });
 

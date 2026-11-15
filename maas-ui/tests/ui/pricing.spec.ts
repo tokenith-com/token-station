@@ -17,6 +17,7 @@ test("billing price preview and shadow publication are separate actions", async 
   });
   api.define("GET", "/api/admin/billing/rate-cards", () => ({ json: { data: saved ? [saved] : [] } }));
   await openBilling(page);
+  await page.getByRole("tab", { name: "计费管理", exact: true }).click();
   const form = section(page, "精确计价与影子核对");
   await form.getByLabel("计价对象").selectOption(model.name);
   await form.getByLabel("价格依据", { exact: true }).fill("ui-fixture");
@@ -33,6 +34,7 @@ test("billing price preview and shadow publication are separate actions", async 
   await form.getByLabel("普通输入", { exact: true }).fill("3");
   await expect(form.getByRole("button", { name: "发布影子价目" })).toBeDisabled();
   await page.reload();
+  await page.getByRole("tab", { name: "计费管理", exact: true }).click();
   await expect(form.locator("li")).toHaveCount(0);
   await form.getByRole("button", { name: "读取已发布版本" }).click();
   await expect(form.locator("li")).toHaveCount(1);
@@ -45,6 +47,7 @@ test("billing price preview and shadow publication are separate actions", async 
 
 test("billing exact pricing fields wrap instead of crowding one row", async ({ page }, testInfo) => {
   await openBilling(page);
+  await page.getByRole("tab", { name: "计费管理", exact: true }).click();
   const trail = page.getByRole("navigation", { name: "当前位置" });
   await expect(trail.getByRole("button", { name: "TokenStation" })).toBeVisible();
   await expect(trail).toContainText("成本治理");
@@ -71,6 +74,7 @@ test("billing exact pricing fields wrap instead of crowding one row", async ({ p
 test("billing exact pricing layout stays usable on a phone", async ({ page }, testInfo) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await openBilling(page);
+  await page.getByRole("tab", { name: "计费管理", exact: true }).click();
   const trail = page.getByRole("navigation", { name: "当前位置" });
   await expect(trail.getByRole("button", { name: "TokenStation" })).toBeVisible();
   await expect(trail.locator("[aria-current='page']")).toHaveText("成本账单");
@@ -94,6 +98,7 @@ test("billing exact pricing layout stays usable on a phone", async ({ page }, te
 
 test("billing invalid token counts fail before a request", async ({ page, api }, testInfo) => {
   await openBilling(page);
+  await page.getByRole("tab", { name: "计费管理", exact: true }).click();
   const form = section(page, "精确计价与影子核对");
   await form.getByLabel("计价对象").selectOption(model.name);
   await form.getByLabel("价格依据", { exact: true }).fill("ui-fixture");

@@ -235,6 +235,7 @@ test("admin can adjust UI template settings", async ({ page }) => {
 test("admin can preview and publish an exact shadow rate card", async ({ page }) => {
   await login(page);
   await page.goto("/billing");
+  await page.getByRole("tab", { name: "计费管理", exact: true }).click();
   await expect(page.getByRole("heading", { name: "精确计价与影子核对" })).toBeVisible();
   await page.getByRole("combobox", { name: "计价对象", exact: true }).selectOption({ index: 1 });
   await page.getByLabel("价格依据", { exact: true }).fill("E2E pricing fixture");
@@ -263,7 +264,7 @@ test("admin can preview and export separate billing statements", async ({ page, 
   await page.goto("/billing");
   await expect(page.getByRole("heading", { name: "费用对账单", exact: true })).toBeVisible();
   await page.getByLabel("客户名称", { exact: true }).fill("E2E Customer");
-  await page.getByLabel("客户项目（可多选）").selectOption({ index: 0 });
+  await page.getByRole("group", { name: "客户项目（可多选）", exact: true }).getByRole("checkbox").first().check();
   await page.getByRole("button", { name: "预览对账单", exact: true }).click();
   await expect(page.getByRole("button", { name: "导出当前预览 CSV" })).toBeVisible();
   const downloaded = page.waitForEvent("download");

@@ -1,5 +1,7 @@
 "use client";
 
+import { BillingProjectPicker } from "../../admin/views/billing-project-picker";
+
 import { createPortal } from "react-dom";
 import { useCallback, useEffect, useRef, useState, type FormEvent, type ReactNode, type RefObject } from "react";
 import { type ApiContext } from "../core/types";
@@ -75,6 +77,7 @@ export function BillingStatements({ api, side = "tenant", model = "", providerID
   }
   async function preview(event: FormEvent) {
     event.preventDefault(); event.stopPropagation(); setError(""); setResult(null);
+    if (query.side === "tenant" && query.project_ids.length === 0) { setError(tx("请选择至少一个客户项目")); return; }
     const currency = currencyPreferences.currency;
     const rate = currencyPreferences.rates[currency] ?? "";
     if (currency !== "USD" && !validStatementExchangeRate(rate)) { setError(tx("请输入大于 0 的手动汇率，最多 18 位整数和 12 位小数。")); return; }
@@ -101,11 +104,11 @@ export function BillingStatements({ api, side = "tenant", model = "", providerID
     try { return new Intl.DateTimeFormat(languageLocale(), { dateStyle: "short", timeStyle: "short", timeZone: timezone }).format(new Date(value)); }
     catch { return value; }
   };
-  return <DataSection title="费用对账单">
-    <p>{tx("仅供费用核对，不代表确认或收付款。导出与当前预览使用同一份数据。")}</p>
-    <p>{tx("换算仅用于对账单显示与导出；收费、价格和预算仍以 USD 记账。币种与手动汇率仅保存在此浏览器，不自动获取汇率。")}</p>
+  return <div className="billing-statement"><DataSection title="费用对账单">
+    <p className="billing-help">{tx("仅供费用核对，不代表确认或收付款。导出与当前预览使用同一份数据。")}</p>
+    <details className="billing-explanation"><summary>{tx("对账说明")}</summary><p>{tx("换算仅用于对账单显示与导出；收费、价格和预算仍以 USD 记账。币种与手动汇率仅保存在此浏览器，不自动获取汇率。")}</p></details>
     <form onSubmit={event => void preview(event)}>
-      <fieldset disabled={busy} className="statement-fields">
+      <fieldset disabled={busy} className="statement-fields"><legend>{tx("账期与币种")}</legend>
         <label>{tx("对账单类型")}<select value={query.side} onChange={event => change({ side: event.target.value as StatementSide, customer: "", provider_id: "", resource_id: "", model: "", project_ids: [] })}>
           <option value="tenant">{tx("下游费用对账单")}</option><option value="provider">{tx("上游费用对账单")}</option><option value="margin">{tx("预计毛利汇总")}</option>
         </select></label>
@@ -114,18 +117,18 @@ export function BillingStatements({ api, side = "tenant", model = "", providerID
         <label>{tx("账期时区")}<input required value={query.timezone} onChange={event => change({ timezone: event.target.value })} /></label>
         <label>{tx("对账单币种")}<select value={currencyPreferences.currency} onChange={event => changeCurrency({ ...currencyPreferences, currency: event.target.value as StatementCurrency })}>{statementCurrencies.map(currency => <option key={currency} value={currency}>{currency}</option>)}</select></label>
         {currencyPreferences.currency !== "USD" ? <label>{tx("手动汇率：1 USD 兑目标币种")}<input inputMode="decimal" maxLength={31} value={currencyPreferences.rates[currencyPreferences.currency] ?? ""} onChange={event => changeRate(event.currentTarget)} /></label> : null}
+      </fieldset>
+      <fieldset disabled={busy} className="statement-fields"><legend>{tx("核对范围")}</legend>
         {query.side !== "provider" ? <>
           <label>{tx("客户名称")}<input required={query.side === "tenant"} maxLength={200} value={query.customer} onChange={event => change({ customer: event.target.value })} /></label>
-          <label>{tx("客户项目（可多选）")}<select multiple required={query.side === "tenant"} value={query.project_ids} onChange={event => change({ project_ids: Array.from(event.target.selectedOptions, option => option.value) })}>
-            {projects.map(project => <option key={project.id} value={project.id}>{project.name} ({project.id})</option>)}
-          </select></label>
+          <BillingProjectPicker projects={projects} value={query.project_ids} onChange={project_ids => change({ project_ids })} />
         </> : <>
           <label>{tx("Provider ID（留空为全部）")}<input value={query.provider_id} onChange={event => change({ provider_id: event.target.value })} /></label>
           <label>{tx("资源账号 ID（留空为全部）")}<input value={query.resource_id} onChange={event => change({ resource_id: event.target.value })} /></label>
         </>}
         <label>{query.side === "provider" ? tx("上游模型（留空为全部）") : tx("对外模型（留空为全部）")}<input value={query.model} onChange={event => change({ model: event.target.value })} /></label>
-        <button className="button" type="submit">{busy ? tx("生成中") : tx("预览对账单")}</button>
       </fieldset>
+      <div className="billing-form-actions"><button className="button" type="submit" disabled={busy}>{busy ? tx("生成中") : tx("预览对账单")}</button></div>
     </form>
     {projectError && query.side !== "provider" ? <p role="alert">{projectError}</p> : null}
     {error ? <p role="alert">{error}</p> : null}
@@ -160,7 +163,7 @@ export function BillingStatements({ api, side = "tenant", model = "", providerID
         result.conversion ? <span key="amount" className="statement-amount"><span>{money(row.amount, row.currency)}</span><small>{formatTranslationTemplate(tx("换算金额：{amount}"), { amount: money(row.display_amount ?? null, result.conversion.currency) })}</small></span> : money(row.amount, row.currency), <details key="evidence"><summary>{statementStatus(row.status)}</summary><p>{statementReason(row.reason)}</p>{row.external_id ? <p>{row.external_id}</p> : null}{row.price ? <p>{row.price.version || row.price.source}</p> : null}{row.lines?.map(line => <p key={line.kind}>{statementUnit(line.kind)}: {line.kind === "audio_second" ? quantity(line.quantity ?? String(line.units)) : number(line.units)} × {money(line.rate, row.currency)}{line.kind === "audio_second" ? "" : " / 1M"} = {money(line.amount, row.currency)}</p>)}</details>,
       ])} />
     </> : null}
-  </DataSection>;
+  </DataSection></div>;
 }
 
 function statementSource(value: string) { return ({ tenant: tx("租户费用"), provider_estimate: tx("本地估算成本"), provider_billed: tx("供应商账单金额") })[value] ?? value; }

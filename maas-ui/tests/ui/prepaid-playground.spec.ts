@@ -49,7 +49,7 @@ test.describe("wallet reconciliation", () => {
       json: { data: settled ? [] : [{ request_id: "pending-chat", model: model.name, reserved_micros: 1000 }] },
     }), (query) => {
       expect(query.get("status")).toBe("pending_review");
-      expect(query.get("request_id")).toBe(settled ? "pending-chat" : null);
+      expect(query.get("request_id")).toBe(null);
     });
     api.define("POST", "/api/admin/payment-wallet/usage/pending-chat/resolve", ({ body }) => {
       expect(body).toEqual({ charged_micros: 300, reason: "Verified fixture usage" });
@@ -58,14 +58,17 @@ test.describe("wallet reconciliation", () => {
     });
 
     await page.goto("/billing/");
-    await page.getByRole("button", { name: "查询支付与待结算请求" }).click();
-    await page.getByRole("button", { name: "pending-chat" }).click();
-    await page.getByLabel("扣费金额（百万分之一元）").fill("300");
-    await page.getByLabel("对账或退款原因").fill("Verified fixture usage");
-    await page.getByRole("button", { name: "结算待核对请求" }).click();
+    await page.getByRole("tab", { name: "支付与钱包对账", exact: true }).click();
+    await page.getByRole("button", { name: "待结算请求", exact: true }).click();
+    await page.getByRole("button", { name: "结算待核对请求", exact: true }).click();
+    const dialog = page.getByRole("dialog");
+    await dialog.getByLabel("扣费金额（元）").fill("0.0003");
+    await dialog.getByLabel("对账或退款原因").fill("Verified fixture usage");
+    await dialog.getByRole("button", { name: "结算待核对请求", exact: true }).click();
     expect(settled).toBe(false);
-    await page.getByRole("button", { name: "确认钱包结算" }).click();
-    await expect(page.getByRole("button", { name: "pending-chat" })).toHaveCount(0);
+    await dialog.getByRole("button", { name: "确认钱包结算", exact: true }).click();
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+    await expect(page.getByText("pending-chat", { exact: true })).toHaveCount(0);
     expect(settled).toBe(true);
   });
 });

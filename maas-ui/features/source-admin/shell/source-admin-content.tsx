@@ -1,7 +1,7 @@
 "use client";
 
-import { RechargeSettings } from "@/features/admin/views/recharge-settings";
-import { WalletOperations } from "@/features/admin/views/wallet-operations";
+import { BillingWorkspace } from "../views/billing-workspace";
+
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { type LoadedData, loadPlanForView, mergeLoadedData } from "../core/data-loading";
@@ -721,11 +721,9 @@ export function SourceAdminContent({ baseURL, adminToken, currentUser, language,
           ) : activeView === "usage" ? (
             <UsageView api={api} data={data} user={currentUser} />
           ) : activeView === "billing" ? (
-            <>
-              {currentUser.role === "system_admin" && <RechargeSettings api={api} />}
-              <WalletOperations api={api} />
-              <BillingView api={api} data={data} user={currentUser} loading={loading} onReload={() => load("billing")} />
-            </>
+            <BillingWorkspace api={api} role={currentUser.role}>
+              <BillingView api={api} data={data} user={currentUser} loading={loading} onReload={() => load("billing")} statements={false} />
+            </BillingWorkspace>
           ) : activeView === "audit" ? (
             <AuditView api={api} data={data} user={currentUser} />
           ) : activeView === "database-status" ? (

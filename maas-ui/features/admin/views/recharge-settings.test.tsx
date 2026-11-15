@@ -7,7 +7,6 @@ it("loads and persists plans and custom limits in integer cents", async () => {
   const fetch = vi.fn(async (_url: string, init?: RequestInit) => Response.json(init?.method === "PUT" ? JSON.parse(String(init.body)) : initial));
   vi.stubGlobal("fetch", fetch);
   render(<RechargeSettings api={{ baseURL: "http://example.test", adminToken: "synthetic-session" }} />);
-  fireEvent.click(screen.getByRole("button", { name: "配置充值档位" }));
   fireEvent.click(await screen.findByLabelText("允许自定义充值金额"));
   fireEvent.change(screen.getByLabelText("最低金额（元）"), { target: { value: "1.23" } });
   fireEvent.click(screen.getByLabelText("启用"));

@@ -16,11 +16,10 @@ describe("BillingStatements", () => {
     });
     vi.stubGlobal("fetch", fetchMock);
     render(<BillingStatements api={api} />);
-    await screen.findByRole("option", { name: "Example (project)" });
+    await screen.findByRole("checkbox", { name: /Example/ });
     expect(screen.queryByRole("button", { name: "导出当前预览 CSV" })).not.toBeInTheDocument();
     fireEvent.change(screen.getByLabelText("客户名称"), { target: { value: "Customer" } });
-    const projects = screen.getByLabelText("客户项目（可多选）") as HTMLSelectElement;
-    projects.options[0].selected = true; fireEvent.change(projects);
+    fireEvent.click(screen.getByRole("checkbox", { name: /Example/ }));
     fireEvent.submit(screen.getByRole("button", { name: "预览对账单" }).closest("form")!);
     await screen.findByRole("button", { name: "导出当前预览 CSV" });
     expect(fetchMock).toHaveBeenCalledTimes(2);

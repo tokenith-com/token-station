@@ -521,6 +521,7 @@ export function shortLabel(value: string, maxLength: number) {
 }
 
 export function BillingView({
+  statements = true,
   api,
   data,
   user,
@@ -532,6 +533,7 @@ export function BillingView({
   user: AdminUser;
   loading: boolean;
   onReload: () => Promise<void>;
+  statements?: boolean;
 }) {
   const showMemberBreakdown = appRole(user.role) === "team_leader";
   const costCenterSection = (
@@ -565,7 +567,7 @@ export function BillingView({
   return (
     <>
       {appRole(user.role) === "admin" ? <BillingRateCards api={api} data={data} /> : null}
-      {appRole(user.role) === "admin" ? <BillingStatements api={api} /> : null}
+      {statements && appRole(user.role) === "admin" ? <BillingStatements api={api} /> : null}
       {appRole(user.role) === "admin" ? <BillingConnectorManager api={api} data={data} loading={loading} onReload={onReload} /> : null}
       {appRole(user.role) === "admin" ? <ReconciliationManager api={api} data={data} loading={loading} onReload={onReload} /> : null}
       {showMemberBreakdown ? (

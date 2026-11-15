@@ -577,3 +577,5 @@ See [Jev semantic routing](semantic-routing.md) for rollout, request eligibility
 ## Recharge configuration
 
 System administrators can open Cost billing → Recharge settings to edit named fixed-amount plans, enable or disable each plan, and configure custom recharge amounts with minimum and maximum limits in CNY. Saved settings persist in the database and apply to new orders immediately. Before the first save, plans come from the payment YAML and custom amounts are disabled. Existing orders retain their original amounts. All amounts are validated as integer cents by the backend; consumers cannot change plan prices.
+
+The MaaS **Cost billing** workspace separates statements, payment/wallet reconciliation, recharge settings (system administrators only), and billing management into tabs. Recharge settings load directly; draft edits remain when switching tabs. Refunds and settlements start from a ledger row and require confirmation. Settlement amounts are entered in CNY with up to six decimal places. Statement projects use a searchable checkbox list; CSV exports still use the current preview snapshot.
