@@ -1,5 +1,6 @@
 "use client";
 
+import { RechargeSettings } from "@/features/admin/views/recharge-settings";
 import { WalletOperations } from "@/features/admin/views/wallet-operations";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -721,6 +722,7 @@ export function SourceAdminContent({ baseURL, adminToken, currentUser, language,
             <UsageView api={api} data={data} user={currentUser} />
           ) : activeView === "billing" ? (
             <>
+              {currentUser.role === "system_admin" && <RechargeSettings api={api} />}
               <WalletOperations api={api} />
               <BillingView api={api} data={data} user={currentUser} loading={loading} onReload={() => load("billing")} />
             </>

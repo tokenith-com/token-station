@@ -8,9 +8,9 @@ import { tx } from "../i18n/runtime";
 import { formatWalletMicros, walletRequest, type Wallet } from "../resources/wallet";
 
 type Order = { order_no: string; status: string; qr_code?: string; pay_url?: string };
-type Plans = { data: { id: string; name: string; amount_fen: number }[]; channels: string[] };
+type Plans = { custom_enabled?: boolean; min_fen?: number; max_fen?: number; data: { id: string; name: string; amount_fen: number }[]; channels: string[] };
 type Usage = { request_id: string; model: string; status: string; charged_micros: number };
-type CheckoutAttempt = { plan_id: string; channel: string; key: string };
+type CheckoutAttempt = { plan_id: string; amount_fen?: number; channel: string; key: string };
 
 function checkoutURL(value: string | undefined) {
   if (!value) return "";
@@ -34,6 +34,7 @@ export function RechargeView({ api }: { api: ApiContext }) {
   const [order, setOrder] = useState<Order>();
   const [orders, setOrders] = useState<Order[]>([]);
   const [plan, setPlan] = useState("");
+  const [custom, setCustom] = useState("");
   const [channel, setChannel] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -61,18 +62,22 @@ export function RechargeView({ api }: { api: ApiContext }) {
     return () => controller.abort();
   }, [baseURL, adminToken]);
 
+  const customFen = /^\d+(?:\.\d{1,2})?$/.test(custom) ? Math.round(Number(custom) * 100) : 0;
+  const validAmount = Boolean(plan) || Boolean(plans?.custom_enabled && customFen >= (plans.min_fen ?? 1) && customFen <= (plans.max_fen ?? 0));
+
   async function createOrder() {
+    if (!validAmount) return;
     // Reserve a tab during the click so async checkout is not popup-blocked.
     const checkoutTab = channel === "alipay" ? window.open("about:blank", "_blank") : null;
     if (checkoutTab) checkoutTab.opener = null;
-    const current = attempt ?? { plan_id: plan, channel, key: uniqueUIID("recharge") };
+    const current = attempt ?? { plan_id: plan, ...(plan ? {} : { amount_fen: customFen }), channel, key: uniqueUIID("recharge") };
     setAttempt(current);
     setBusy(true);
     setError("");
     try {
       const next = await walletRequest<Order>(api, "/api/admin/recharge/orders", {
         method: "POST", headers: { "Idempotency-Key": current.key },
-        body: JSON.stringify({ plan_id: current.plan_id, channel: current.channel }),
+        body: JSON.stringify({ plan_id: current.plan_id, channel: current.channel, ...(current.amount_fen === undefined ? {} : { amount_fen: current.amount_fen }) }),
       });
       const url = checkoutURL(next.pay_url);
       if (checkoutTab) {
@@ -146,12 +151,14 @@ export function RechargeView({ api }: { api: ApiContext }) {
         <section className="section">
           <form className="payment-form" onSubmit={(event) => { event.preventDefault(); void createOrder(); }}>
             <label>{tx("充值金额")} <select value={plan} disabled={busy || Boolean(attempt) || Boolean(order)} onChange={(event) => setPlan(event.target.value)}>
+              {plans.custom_enabled && <option value="">{tx("自定义金额")}</option>}
               {plans.data.map((item) => <option key={item.id} value={item.id}>{formatWalletMicros(item.amount_fen * 10_000)}</option>)}
             </select></label>
+            {!plan && plans.custom_enabled && <label>{tx("自定义金额")}<input aria-label={tx("自定义金额")} type="number" required min={(plans.min_fen ?? 1) / 100} max={(plans.max_fen ?? 0) / 100} step="0.01" value={custom} disabled={busy || Boolean(attempt) || Boolean(order)} onChange={event => setCustom(event.target.value)} /><small>{formatWalletMicros((plans.min_fen ?? 1) * 10000)} – {formatWalletMicros((plans.max_fen ?? 0) * 10000)}</small></label>}
             <label>{tx("支付方式")} <select value={channel} disabled={busy || Boolean(attempt) || Boolean(order)} onChange={(event) => setChannel(event.target.value)}>
               {plans.channels.map((item) => <option key={item} value={item}>{item === "wechat" ? tx("微信支付") : tx("支付宝")}</option>)}
             </select></label>
-            {(!order || order.status === "pending" && !order.qr_code && !payURL) && <button className="button" disabled={busy || !plan || !channel}>{tx("创建充值订单")}</button>}
+            {(!order || order.status === "pending" && !order.qr_code && !payURL) && <button className="button" disabled={busy || !validAmount || !channel}>{tx("创建充值订单")}</button>}
           </form>
           {order && <div>
             <p>{tx("订单号")} {order.order_no}</p>

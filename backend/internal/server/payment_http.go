@@ -15,6 +15,7 @@ import (
 )
 
 func (s *Server) paymentRoutes() {
+	s.registerMethodRoutes("/api/admin/recharge/settings", jsonMethodNotAllowed, methodRoute{Method: "GET", Handler: s.paymentSettings}, methodRoute{Method: "PUT", Handler: s.paymentSettings})
 	s.registerSingleMethodRoute("GET", "/api/admin/recharge/plans", s.paymentPlans, jsonMethodNotAllowed("GET"))
 	s.registerMethodRoutes("/api/admin/recharge/orders", jsonMethodNotAllowed,
 		methodRoute{Method: "GET", Handler: s.listOwnPaymentOrders}, methodRoute{Method: "POST", Handler: s.createPaymentOrder})
@@ -83,7 +84,12 @@ func (s *Server) paymentPlans(w http.ResponseWriter, r *http.Request) {
 			channels = append(channels, key)
 		}
 	}
-	writeJSON(w, 200, map[string]any{"data": s.payments.config.Plans, "channels": channels, "alipay_api_methods": s.payments.config.AlipayMethods, "currency": payment.Currency})
+	settings, err := s.rechargeSettings()
+	if err != nil {
+		paymentWriteError(w, r, err)
+		return
+	}
+	writeJSON(w, 200, map[string]any{"data": enabledRechargePlans(settings.Plans), "custom_enabled": settings.CustomEnabled, "min_fen": settings.MinFen, "max_fen": settings.MaxFen, "channels": channels, "alipay_api_methods": s.payments.config.AlipayMethods, "currency": payment.Currency})
 }
 
 func (s *Server) createPaymentOrder(w http.ResponseWriter, r *http.Request) {
@@ -94,11 +100,16 @@ func (s *Server) createPaymentOrder(w http.ResponseWriter, r *http.Request) {
 	}
 	var request struct {
 		PlanID    string `json:"plan_id"`
+		AmountFen int64  `json:"amount_fen"`
 		Channel   string `json:"channel"`
 		APIMethod string `json:"api_method"`
 	}
 	if err := s.decodeJSON(w, r, &request); err != nil {
 		writeError(w, r, err)
+		return
+	}
+	if request.AmountFen < 0 || (request.PlanID != "" && request.AmountFen != 0) {
+		writeError(w, r, NewHTTPError(400, "invalid_recharge_selection", "Choose a plan or custom amount"))
 		return
 	}
 	key := strings.TrimSpace(r.Header.Get("Idempotency-Key"))
@@ -111,11 +122,19 @@ func (s *Server) createPaymentOrder(w http.ResponseWriter, r *http.Request) {
 	status := http.StatusOK
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		var plan payment.Plan
-		for _, item := range p.config.Plans {
-			if item.ID == request.PlanID {
+		settings, settingsErr := s.rechargeSettings()
+		if settingsErr != nil {
+			paymentWriteError(w, r, settingsErr)
+			return
+		}
+		for _, item := range settings.Plans {
+			if item.ID == request.PlanID && !item.Disabled {
 				plan = item
 				break
 			}
+		}
+		if request.PlanID == "" && settings.CustomEnabled && request.AmountFen >= settings.MinFen && request.AmountFen <= settings.MaxFen {
+			plan = payment.Plan{ID: "custom", Name: "TokenStation recharge", AmountFen: request.AmountFen}
 		}
 		channel := p.config.Channels[request.Channel]
 		if plan.ID == "" || channel == nil {
@@ -145,7 +164,11 @@ func (s *Server) createPaymentOrder(w http.ResponseWriter, r *http.Request) {
 		paymentWriteError(w, r, err)
 		return
 	}
-	if order.PlanID != request.PlanID || order.Channel != request.Channel || (request.APIMethod != "" && order.APIMethod != request.APIMethod) {
+	expectedPlan := request.PlanID
+	if expectedPlan == "" {
+		expectedPlan = "custom"
+	}
+	if order.PlanID != expectedPlan || (expectedPlan == "custom" && order.AmountFen != request.AmountFen) || order.Channel != request.Channel || (request.APIMethod != "" && order.APIMethod != request.APIMethod) {
 		writeError(w, r, NewHTTPError(409, "idempotency_conflict", "This idempotency key belongs to a different recharge request"))
 		return
 	}

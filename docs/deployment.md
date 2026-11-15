@@ -573,3 +573,7 @@ See [Jev semantic routing](semantic-routing.md) for rollout, request eligibility
 | `TOKENHUB_TYPESAFE_API_KEY` | empty | Server-only TypeSafe credential. |
 | `TOKENHUB_TYPESAFE_MODEL` | `jev-1.13.0` | Concrete evaluator model version. |
 | `TOKENHUB_SEMANTIC_ROUTING_TIMEOUT_MS` | `1000` | Catalog lookup and evaluation timeout, 1–10000 ms. |
+
+## Recharge configuration
+
+System administrators can open Cost billing → Recharge settings to edit named fixed-amount plans, enable or disable each plan, and configure custom recharge amounts with minimum and maximum limits in CNY. Saved settings persist in the database and apply to new orders immediately. Before the first save, plans come from the payment YAML and custom amounts are disabled. Existing orders retain their original amounts. All amounts are validated as integer cents by the backend; consumers cannot change plan prices.

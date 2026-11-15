@@ -29,6 +29,7 @@ const (
 var ErrOrderNotFound = errors.New("payment order not found at channel")
 
 type Plan struct {
+	Disabled  bool   `yaml:"disabled" json:"disabled"`
 	ID        string `yaml:"id" json:"id"`
 	Name      string `yaml:"name" json:"name"`
 	AmountFen int64  `yaml:"amount_fen" json:"amount_fen"`
