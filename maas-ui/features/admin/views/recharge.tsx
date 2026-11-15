@@ -4,10 +4,10 @@ import { QRCodeCanvas } from "qrcode.react";
 
 import type { ApiContext } from "../core/types";
 import { uniqueUIID } from "../domain/formatting";
-import { tx } from "../i18n/runtime";
+import { languageLocale, tx } from "../i18n/runtime";
 import { formatWalletMicros, walletRequest, type Wallet } from "../resources/wallet";
 
-type Order = { order_no: string; status: string; qr_code?: string; pay_url?: string };
+type Order = { order_no: string; status: string; qr_code?: string; pay_url?: string; amount_fen?: number; channel?: string; created_at?: number };
 type Plans = { custom_enabled?: boolean; min_fen?: number; max_fen?: number; data: { id: string; name: string; amount_fen: number }[]; channels: string[] };
 type Usage = { request_id: string; model: string; status: string; charged_micros: number };
 type CheckoutAttempt = { plan_id: string; amount_fen?: number; channel: string; key: string };
@@ -36,7 +36,7 @@ export function RechargeView({ api }: { api: ApiContext }) {
   const [plan, setPlan] = useState("");
   const [custom, setCustom] = useState("");
   const [channel, setChannel] = useState("");
-  const [busy, setBusy] = useState(false);
+  const [busy, setBusy] = useState(true);
   const [error, setError] = useState("");
   const { baseURL, adminToken } = api;
 
@@ -50,14 +50,28 @@ export function RechargeView({ api }: { api: ApiContext }) {
       walletRequest<{ data: Usage[] }>(context, "/api/admin/wallet/usage", options),
       walletRequest<{ data: Order[] }>(context, "/api/admin/recharge/orders", options),
     ]).then(([options, balance, history, checkoutHistory]) => {
+      if (controller.signal.aborted) return;
       setPlans(options);
       setPlan(options.data[0]?.id ?? "");
       setChannel(options.channels[0] ?? "");
       setWallet(balance);
       setUsage(history.data);
       setOrders(checkoutHistory.data);
+      const returnedOrder = new URLSearchParams(window.location.search).get("payment_order");
+      if (returnedOrder) {
+        return walletRequest<Order>(context, `/api/admin/recharge/orders/${encodeURIComponent(returnedOrder)}`, { signal: controller.signal }).then(async result => {
+          const latestBalance = await walletRequest<Wallet>(context, "/api/admin/wallet", { signal: controller.signal });
+          if (!controller.signal.aborted) {
+            setOrder(result);
+            setWallet(latestBalance);
+            window.dispatchEvent(new Event("tokenstation-wallet-updated"));
+          }
+        });
+      }
     }).catch((err: unknown) => {
       if (!controller.signal.aborted) setError(String(err instanceof Error ? err.message : err));
+    }).finally(() => {
+      if (!controller.signal.aborted) setBusy(false);
     });
     return () => controller.abort();
   }, [baseURL, adminToken]);
@@ -113,21 +127,39 @@ export function RechargeView({ api }: { api: ApiContext }) {
   useEffect(() => {
     if (!order || order.status !== "pending") return;
     const controller = new AbortController();
-    const timer = window.setTimeout(async () => {
+    let timer: number;
+    const poll = async () => {
       try {
         const next = await walletRequest<Order>(api, `/api/admin/recharge/orders/${encodeURIComponent(order.order_no)}`, { signal: controller.signal });
-        setOrder(next);
-        setOrders(current => current.map(item => item.order_no === next.order_no ? next : item));
+        if (controller.signal.aborted) return;
         if (next.status !== "pending") {
-          setWallet(await walletRequest<Wallet>(api, "/api/admin/wallet", { signal: controller.signal }));
+          const balance = await walletRequest<Wallet>(api, "/api/admin/wallet", { signal: controller.signal });
+          if (controller.signal.aborted) return;
+          setWallet(balance);
           window.dispatchEvent(new Event("tokenstation-wallet-updated"));
         }
+        setError("");
+        setOrder(next);
+        setOrders(current => current.map(item => item.order_no === next.order_no ? next : item));
       } catch (err) {
-        if (!controller.signal.aborted) setError(err instanceof Error ? err.message : tx("请求失败"));
+        if (!controller.signal.aborted) {
+          setError(err instanceof Error ? err.message : tx("请求失败"));
+          timer = window.setTimeout(poll, 3000);
+        }
       }
-    }, 3000);
+    };
+    timer = window.setTimeout(poll, 3000);
     return () => { window.clearTimeout(timer); controller.abort(); };
   }, [api, order]);
+
+  function newOrder() {
+    setAttempt(undefined); setOrder(undefined); setError("");
+    const url = new URL(window.location.href);
+    url.searchParams.delete("payment_order");
+    window.history.replaceState(window.history.state, "", url);
+  }
+  const channelLabel = (value?: string) => value === "wechat" ? tx("微信支付") : value === "alipay" ? tx("支付宝") : "—";
+  const amountLabel = (value?: number) => typeof value === "number" ? formatWalletMicros(value * 10000) : "—";
 
   const payURL = checkoutURL(order?.pay_url);
   const statusLabel = (status: string) => {
@@ -149,7 +181,7 @@ export function RechargeView({ api }: { api: ApiContext }) {
       {error && <p role="alert">{error}</p>}
       {plans && (
         <section className="section">
-          <form className="payment-form" onSubmit={(event) => { event.preventDefault(); void createOrder(); }}>
+          {!order && <form className="payment-form" onSubmit={(event) => { event.preventDefault(); void createOrder(); }}>
             <fieldset className="payment-amounts" disabled={busy || Boolean(attempt) || Boolean(order)}>
               <legend>{tx("充值金额")}</legend>
               <div className="payment-amount-options">
@@ -158,28 +190,47 @@ export function RechargeView({ api }: { api: ApiContext }) {
               </div>
             </fieldset>
             {!plan && plans.custom_enabled && <label>{tx("自定义金额")}<input aria-label={tx("自定义金额")} type="number" required min={(plans.min_fen ?? 1) / 100} max={(plans.max_fen ?? 0) / 100} step="0.01" value={custom} disabled={busy || Boolean(attempt) || Boolean(order)} onChange={event => setCustom(event.target.value)} /><small>{formatWalletMicros((plans.min_fen ?? 1) * 10000)} – {formatWalletMicros((plans.max_fen ?? 0) * 10000)}</small></label>}
-            <label>{tx("支付方式")} <select value={channel} disabled={busy || Boolean(attempt) || Boolean(order)} onChange={(event) => setChannel(event.target.value)}>
-              {plans.channels.map((item) => <option key={item} value={item}>{item === "wechat" ? tx("微信支付") : tx("支付宝")}</option>)}
-            </select></label>
-            {(!order || order.status === "pending" && !order.qr_code && !payURL) && <button className="button" disabled={busy || !validAmount || !channel}>{tx("创建充值订单")}</button>}
-          </form>
-          {order && <div>
-            <p>{tx("订单号")} {order.order_no}</p>
-            {order.status === "pending" && order.qr_code && <QRCodeCanvas value={order.qr_code} size={200} marginSize={4} title={tx("支付二维码")} />}
-            {order.status === "pending" && payURL && <a href={payURL} target="_blank" rel="noopener noreferrer">{tx("打开支付宝收银台")}</a>}
-            <p role="status">{statusLabel(order.status)}</p>
-            {order.status === "succeeded" && <Link className="button" href="/playground">{tx("模型演练场")}</Link>}
-            <button type="button" className="secondary-button" disabled={busy} onClick={() => void refreshOrder(order)}>{tx("刷新订单状态")}</button>
+            <fieldset className="payment-amounts" disabled={busy || Boolean(attempt)}>
+              <legend>{tx("支付方式")}</legend>
+              <div className="payment-channel-options">
+                {plans.channels.map(item => <button key={item} type="button" className="payment-amount-option" aria-pressed={channel === item} onClick={() => setChannel(item)}>{channelLabel(item)}</button>)}
+              </div>
+            </fieldset>
+            {<button className="button" disabled={busy || !validAmount || !channel}>{tx("创建充值订单")}</button>}
+          </form>}
+          {order && <div className="payment-result">
+            <p role="status" className="payment-result-status">{statusLabel(order.status)}</p>
+            <strong className="payment-result-amount">{amountLabel(order.amount_fen)}</strong>
+            <p className="payment-order-detail">{channelLabel(order.channel)} · {tx("订单号")} {order.order_no}</p>
+            {order.status === "pending" && <>
+              {order.qr_code && <QRCodeCanvas value={order.qr_code} size={200} marginSize={4} title={tx("支付二维码")} />}
+              {payURL && <a className="button" href={payURL} target="_blank" rel="noopener noreferrer">{tx("打开支付宝收银台")}</a>}
+              <p className="muted">{tx("支付完成后自动更新到账结果")}</p>
+            </>}
+            <div className="payment-actions">
+              {order.status === "succeeded" && <Link className="button" href="/playground">{tx("模型演练场")}</Link>}
+              {order.status === "pending" && <button type="button" className="secondary-button" disabled={busy} onClick={() => void refreshOrder(order)}>{tx("刷新订单状态")}</button>}
+              <button type="button" className="secondary-button" disabled={busy} onClick={newOrder}>{order.status === "pending" ? tx("返回充值选择") : tx("继续充值")}</button>
+            </div>
           </div>}
-          {(attempt || order) && !busy && <button type="button" className="secondary-button" onClick={() => { setAttempt(undefined); setOrder(undefined); setError(""); }}>{tx("新建充值订单")}</button>}
+          {attempt && !order && !busy && <button type="button" className="secondary-button" onClick={newOrder}>{tx("新建充值订单")}</button>}
+
         </section>
       )}
       {<section className="section payment-history">
         <h2>{tx("充值订单")}</h2>
         {orders.length === 0 && <p className="muted">{tx("暂无数据")}</p>}
-        <ul>{orders.map((item) => <li key={item.order_no}>
-          <button type="button" className="text-button" disabled={busy} onClick={() => void refreshOrder(item)}>{item.order_no}</button> · {statusLabel(item.status)}
-        </li>)}</ul>
+        {orders.length > 0 && <div className="payment-table-scroll"><table className="payment-orders-table">
+          <thead><tr><th>{tx("充值金额")}</th><th>{tx("支付方式")}</th><th>{tx("时间")}</th><th>{tx("状态")}</th><th>{tx("操作")}</th></tr></thead>
+          <tbody>{orders.map(item => <tr key={item.order_no}>
+            <td><strong>{amountLabel(item.amount_fen)}</strong><small>{item.order_no}</small></td>
+            <td data-label={tx("支付方式")}>{channelLabel(item.channel)}</td>
+            <td data-label={tx("时间")}>{item.created_at ? new Intl.DateTimeFormat(languageLocale(), { dateStyle: "short", timeStyle: "short" }).format(new Date(item.created_at * 1000)) : "—"}</td>
+            <td data-label={tx("状态")}>{statusLabel(item.status)}</td>
+            <td><button type="button" className="text-button" disabled={busy} onClick={() => void refreshOrder(item)}>{item.status === "pending" ? tx("继续支付") : tx("查看详情")}</button></td>
+          </tr>)}</tbody>
+        </table></div>}
+
       </section>}
       {usage.length > 0 && <section className="section">
         <h2>{tx("消费流水")}</h2>

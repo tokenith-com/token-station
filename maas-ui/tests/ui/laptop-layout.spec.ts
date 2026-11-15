@@ -75,7 +75,7 @@ for (const size of [{ width: 1366, height: 598 }, { width: 1920, height: 1080 }]
     const errors: string[] = [];
     page.on("pageerror", error => errors.push(error.message));
     await page.goto("/usage/");
-    await expect(page.locator(".sidebar .nav-item")).toHaveText(["团队总览", "团队报表", "可用模型", "模型演练场", "Key 管理", "接口文档", "项目空间", "团队成员", "请求日志"]);
+    await expect(page.locator(".sidebar .nav-item")).toHaveText(["团队总览", "团队报表", "可用模型", "模型演练场", "Key 管理", "接口文档", "团队成员", "请求日志"]);
     await expectPageFits(page);
     await expect(page.getByRole("navigation", { name: "当前位置" })).toContainText("团队报表");
     await page.getByRole("button", { name: "7 天", exact: true }).click();
@@ -96,7 +96,8 @@ for (const size of [{ width: 1366, height: 598 }, { width: 1920, height: 1080 }]
     await expect(page).not.toHaveURL(/usage_key/);
     await expect(page.getByText("Laptop application key", { exact: true })).toBeVisible();
 
-    await page.locator(".sidebar").getByRole("button", { name: "项目空间", exact: true }).click();
+    // Project access is retained even though the team navigation entry is hidden.
+    await page.goto("/projects/");
     await expectPageFits(page);
     await page.screenshot({ path: test.info().outputPath("team-project-list.png") });
     await page.getByRole("button", { name: "查看与配置", exact: true }).click();

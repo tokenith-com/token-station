@@ -98,6 +98,7 @@ func (f alipayTestTransport) RoundTrip(r *http.Request) (*http.Response, error) 
 
 func TestPaymentAlipayCheckoutModes(t *testing.T) {
 	a, key := newTestAlipay(t, AlipayPagePay, AlipayPrecreate)
+	a.config.ReturnURL = "https://app.example.com/maas/balance-recharge/?source=checkout"
 	expires := time.Date(2026, time.November, 13, 9, 30, 0, 0, time.UTC)
 	checkTrade := func(form url.Values, method, product string) {
 		t.Helper()
@@ -148,6 +149,10 @@ func TestPaymentAlipayCheckoutModes(t *testing.T) {
 		t.Fatalf("invalid checkout URL: %s", page.PayURL)
 	}
 	checkTrade(checkoutURL.Query(), AlipayPagePay, "FAST_INSTANT_TRADE_PAY")
+	returnURL, err := url.Parse(checkoutURL.Query().Get("return_url"))
+	if err != nil || returnURL.Host != "app.example.com" || returnURL.Path != "/maas/balance-recharge/" || returnURL.Query().Get("payment_order") != "TS-test" || returnURL.Query().Get("source") != "checkout" {
+		t.Fatalf("invalid merchant return URL: %v, %v", returnURL, err)
+	}
 	qr, err := a.Prepay(context.Background(), "TS-test", "Test recharge", 1005, expires, AlipayPrecreate)
 	if err != nil || qr.PayURL != "" || qr.QRCode != "https://qr.alipay.example/test" || calls != 1 {
 		t.Fatalf("precreate checkout: %+v, %v, requests %d", qr, err, calls)
@@ -197,5 +202,16 @@ func TestPaymentWechatSignedEncryptedNotification(t *testing.T) {
 	tampered.Header = r.Header.Clone()
 	if _, err := adapter.Notify(tampered); err == nil {
 		t.Fatal("tampered notification accepted")
+	}
+}
+
+func TestPaymentAlipayRejectsUnsafeReturnURLs(t *testing.T) {
+	for _, value := range []string{"http://app.example.com/", "//app.example.com/", "https:///page", "https://user:secret@app.example.com/", "https://app.example.com/#token", "javascript:alert(1)"} {
+		t.Run(value, func(t *testing.T) {
+			_, err := newAlipay(alipayConfig{AppID: "test", SellerID: "test", NotifyURL: "https://api.example.com" + AlipayNotifyPath, ReturnURL: value})
+			if err == nil || !strings.Contains(err.Error(), "return_url") {
+				t.Fatalf("expected return URL rejection, got %v", err)
+			}
+		})
 	}
 }

@@ -29,6 +29,7 @@ type alipayConfig struct {
 	PrivateKeyFile string   `yaml:"private_key_file"`
 	PublicKeyFile  string   `yaml:"public_key_file"`
 	NotifyURL      string   `yaml:"notify_url"`
+	ReturnURL      string   `yaml:"return_url"`
 	Sandbox        bool     `yaml:"sandbox"`
 	APIMethods     []string `yaml:"api_methods"`
 }
@@ -41,6 +42,12 @@ type alipayChannel struct {
 func newAlipay(c alipayConfig) (*alipayChannel, error) {
 	if c.AppID == "" || c.SellerID == "" || !validCallback(c.NotifyURL, AlipayNotifyPath) {
 		return nil, errors.New("app_id, seller_id and an HTTPS payment callback URL are required")
+	}
+	if c.ReturnURL != "" {
+		u, err := url.Parse(c.ReturnURL)
+		if err != nil || u.Scheme != "https" || u.Hostname() == "" || u.User != nil || u.Fragment != "" {
+			return nil, errors.New("return_url must be an HTTPS page URL without credentials or a fragment")
+		}
 	}
 	if len(c.APIMethods) == 0 {
 		c.APIMethods = []string{AlipayPrecreate}
@@ -89,6 +96,13 @@ func (a *alipayChannel) Prepay(ctx context.Context, order, subject string, fen i
 	}
 	if method == AlipayPagePay {
 		trade.ProductCode = "FAST_INSTANT_TRADE_PAY"
+		if a.config.ReturnURL != "" {
+			returnURL, _ := url.Parse(a.config.ReturnURL)
+			query := returnURL.Query()
+			query.Set("payment_order", order)
+			returnURL.RawQuery = query.Encode()
+			trade.ReturnURL = returnURL.String()
+		}
 		checkout, err := a.client.TradePagePay(alipay.TradePagePay{Trade: trade})
 		if err != nil {
 			return Checkout{}, err

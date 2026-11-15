@@ -36,7 +36,7 @@ test("prepaid playground preserves a rejected draft and links to recharge", asyn
   await expect(page.getByRole("status").filter({ hasText: "充值已到账" })).toBeVisible({ timeout: 10000 });
   await expect(page.getByRole("button", { name: "账户余额充值", exact: true })).toHaveCount(0);
   await capture(page, info, page.locator(".payment-workspace"), "consumer-balance-recharge", "Consumer balance recharge", "viewport");
-  await page.getByRole("button", { name: "新建充值订单", exact: true }).click();
+  await page.getByRole("button", { name: "继续充值", exact: true }).click();
   await expect(page.getByRole("button", { name: "创建充值订单", exact: true })).toBeVisible();
 });
 

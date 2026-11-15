@@ -1,5 +1,11 @@
 export const walletTranslations = {
   en: {
+    "查看详情": "View details",
+    "支付完成后自动更新到账结果": "The balance updates automatically after payment.",
+    "返回充值选择": "Back to recharge options",
+    "继续充值": "Recharge again",
+    "继续支付": "Continue payment",
+
     "充值方式": "Recharge method", "在线支付充值": "Online payment", "账户余额充值": "Account balance recharge",
     "团队不存在或已删除，请刷新团队列表": "The team does not exist or was deleted. Refresh the team list.",
     "无权读取钱包，请联系管理员确认权限": "You cannot read this wallet. Contact an administrator to check permissions.",
@@ -31,6 +37,12 @@ export const walletTranslations = {
     "入账失败，请检查信息后重试": "Credit rejected. Check the details and retry.", "余额加载失败，重试": "Balance failed to load; retry",
   },
   ja: {
+    "查看详情": "詳細を表示",
+    "支付完成后自动更新到账结果": "決済後、入金結果を自動更新します。",
+    "返回充值选择": "チャージ選択に戻る",
+    "继续充值": "続けてチャージ",
+    "继续支付": "決済を続ける",
+
     "充值方式": "チャージ方法", "在线支付充值": "オンライン決済", "账户余额充值": "アカウント残高のチャージ",
     "团队不存在或已删除，请刷新团队列表": "チームが存在しないか削除されています。チーム一覧を更新してください。",
     "无权读取钱包，请联系管理员确认权限": "ウォレットの閲覧権限がありません。管理者に権限の確認を依頼してください。",

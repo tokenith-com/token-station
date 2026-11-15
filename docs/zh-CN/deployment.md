@@ -450,6 +450,8 @@ docker inspect --format 'memory={{.HostConfig.Memory}} memory_swap={{.HostConfig
 
 在 YAML 中通过 `alipay.api_methods` 启用 `alipay.trade.page.pay`（支付宝收银台链接）或 `alipay.trade.precreate`（当面付二维码）。第一项是新订单默认方式，省略列表时默认使用当面付。 充值档位接口通过 `alipay_api_methods` 返回已启用的方式。支付宝下单可通过可选字段 `api_method` 选择非默认方式。电脑网站支付返回 `pay_url`，当面付返回 `qr_code`。两种方式都使用配置中的卖家 ID 校验回调。
 
+电脑网站支付请配置 `alipay.return_url` 为公网 HTTPS 充值页，例如 `https://app.example.com/maas/balance-recharge/`。服务端附加 `payment_order`，页面通过登录会话向后端读取订单；浏览器返回参数不能触发钱包入账。为兼容已有配置，该项可省略，但省略后收银台没有返回商户页面的目标。配置更新后需创建新订单，已有收银台链接不会改变。
+
 在所有网关副本上设置 `prepaid_usage: true`，为散客的文本聊天和模型演练场启用钱包扣费。启用前通过 `POST /api/admin/billing/exchange-rates` 发布人民币结算汇率，填写每 1 元人民币对应的美元金额。系统会为每次请求保存汇率快照。散客 API Key 需要绑定明确且有效的所有者。当前支持通过原生 Chat Completions 适配器发送文本聊天。部署前核对各上游模型的上下文窗口和输出上限。启用后，散客的其他计费接口会明确拒绝请求。
 
 钱包 API 的 `available_micros` 以百万分之一元表示扣除退款和请求预留后的可用余额。管理员可用 `GET /api/admin/payment-wallet/usage?status=pending_review` 查询待核对请求。核对上游用量凭证后，通过 `POST /api/admin/payment-wallet/usage/{request_id}/resolve` 提交 `charged_micros` 和核对原因 `reason`。金额为零时释放预留。超过原预留金额的费用需另行对账。

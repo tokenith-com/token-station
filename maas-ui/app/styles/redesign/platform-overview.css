@@ -416,7 +416,9 @@
   box-shadow: 0 10px 30px rgba(35, 45, 67, 0.14);
 }
 
-.console-account-menu button {
+.console-account-menu button,
+.console-account-menu a {
+  text-decoration: none;
   min-height: calc(34 * var(--content-font-unit, 1px));
   border-radius: 4px;
   padding: 0 9px;
@@ -429,7 +431,8 @@
   cursor: pointer;
 }
 
-.console-account-menu button:hover {
+.console-account-menu button:hover,
+.console-account-menu a:hover {
   background: #f3f5f8;
   color: #5f3a8e;
 }

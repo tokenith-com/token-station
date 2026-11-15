@@ -32,4 +32,6 @@ alipay:
   private_key_file: alipay-app-key.pem
   public_key_file: alipay-verification-public-key.pem
   notify_url: https://api.example.com/api/payments/webhooks/alipay
+  # Browser navigation only; settlement still requires verified server notification.
+  return_url: https://app.example.com/maas/balance-recharge/
   sandbox: false

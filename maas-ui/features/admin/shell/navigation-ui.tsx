@@ -377,10 +377,10 @@ function ConsoleTopNav({ activeView, api, user, theme, language, sidebarCollapse
               </span>
             </div>
             {isGuest ? (
-              <button onClick={() => { setAccountOpen(false); onSelectView("balance-recharge"); }} role="menuitem" type="button">
+              <a href={deploymentPath("/balance-recharge/")} role="menuitem">
                 <Wallet size={15} />
                 <span>{tx("余额充值")}</span>
-              </button>
+              </a>
             ) : null}
             <button onClick={onLogout} role="menuitem" type="button">
               <LogOut size={15} />
