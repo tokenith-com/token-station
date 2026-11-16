@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"fmt"
+	"log"
 	"net/http"
 	"strings"
 	"time"
@@ -15,10 +16,8 @@ const (
 	defaultCostCenterCode  = "default-platform"
 )
 
-// RunStartupBootstrap reapplies idempotent startup data on every process start
-// while serializing replicas through a cluster-wide lease. The contextual
-// store makes lease loss cancel the database operations still in progress.
-func RunStartupBootstrap(ctx context.Context, store *GormStore, config Config) error {
+// InitializeDatabase populates application data under a cluster-wide lease.
+func InitializeDatabase(ctx context.Context, store *GormStore, config Config) error {
 	operation := "bootstrap-base"
 	seed := BootstrapBaseDataWithConfig
 	if config.SeedDemo {
@@ -27,11 +26,48 @@ func RunStartupBootstrap(ctx context.Context, store *GormStore, config Config) e
 	}
 	return store.RunClusterOperation(ctx, operation, func(leaseCtx context.Context) error {
 		contextual := store.WithContext(leaseCtx)
+		_, _, _, found, err := contextual.LoadProviderCatalogSnapshot(false)
+		if err != nil {
+			return err
+		}
+		if err := seed(contextual, config); err != nil {
+			return err
+		}
+		if !found {
+			catalog := newProviderCatalogService(contextual, config.ProviderCatalogFile, nil)
+			if _, err := catalog.Initialize(leaseCtx); err != nil {
+				log.Printf("initialize local provider catalog: %v; using built-in catalog", err)
+			}
+		}
+		return nil
+	})
+}
+
+// RepairDatabaseData normalizes existing provider and route data for this release.
+func RepairDatabaseData(ctx context.Context, store *GormStore, config Config) error {
+	runtime := newBuiltinProviderRuntime(builtinProviderRuntimeDependencies{Store: store})
+	plugins, err := bootstrapServerPlugins(config, runtime.adapters)
+	if err != nil {
+		return err
+	}
+	(&Server{store: store}).installServerPluginHandlers(&plugins)
+	return store.RunClusterOperation(ctx, "bootstrap-base", func(leaseCtx context.Context) error {
+		contextual := store.WithContext(leaseCtx)
 		if err := contextual.NormalizeProviderAdapterTypes(leaseCtx); err != nil {
 			return err
 		}
-		return seed(contextual, config)
+		configureProviderResourceTypeDefaults(contextual, plugins.adapterRegistry)
+		contextual.setProviderImageCapabilityRouteProfiles(providerImageCapabilityRouteProfilesFromActions(plugins.pluginActions.List()))
+		repairProviderAndRouteData(contextual, plugins.adapterRegistry)
+		return nil
 	})
+}
+
+func repairProviderAndRouteData(store Store, registry *AdapterRegistry) {
+	reconcileProviderPluginPolicies(store, registry)
+	backfillProviderModelsFromRoutes(store)
+	backfillExternalModelRolesFromRoutes(store)
+	backfillCodexImageRoutes(store)
 }
 
 func SeedDemoData(store Store) error {

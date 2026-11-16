@@ -6,8 +6,8 @@ This page is the repository's normative source for the database evolution lifecy
 
 ## Model
 
-- **Adoption baseline.** Every database carries a migration ledger (`schema_migrations`). Databases created by older releases are adopted on the next start: the frozen schema flow completes them, they are semantically verified against a reference snapshot, and the baseline row is recorded. Fresh databases are created from frozen baseline SQL, not from the ORM flow.
-- **Expand migrations** add compatible structure and run automatically at startup. **Contract migrations** remove old structure and never run at startup; they only run through the maintenance command with verified preconditions.
+- **Adoption baseline.** Every database carries a migration ledger (`schema_migrations`). Databases created by older releases are adopted by `tokenstation db prepare`: the frozen schema flow completes them, they are semantically verified against a reference snapshot, and the baseline row is recorded. Fresh databases are created from frozen baseline SQL, not from the ORM flow.
+- **Expand migrations** add compatible structure and are applied during database preparation. **Contract migrations** remove old structure and require their dedicated maintenance command and verified preconditions.
 - **Checksums and dirty state.** Every applied migration's checksum is verified on each start. A failed non-transactional migration leaves a dirty marker that refuses startup until it is repaired; a failed transactional migration rolls back only its own version.
 - **Data backfills** live in their own ledger (`data_backfills`). Blocking backfills must finish before the instance reports ready; online backfills run in idempotent batches while the service keeps serving, coordinated cluster-wide through leases so a crashed executor's work is resumed by another instance.
 - **Instance heartbeats.** Every running instance publishes its release with a TTL. Contract maintenance refuses to run while instances with fresh heartbeats are live.
@@ -22,24 +22,25 @@ The main binary ships a `db` subcommand:
 ```bash
 tokenstation db status                                  # ledger, backfills, live instances
 tokenstation db verify                                  # ledger checksums + semantic schema check
-tokenstation db prepare                                 # startup-compatible adoption + expands, without serving
+tokenstation db prepare                                 # adoption, expands, and legacy data repairs
+tokenstation db prepare --initialize                    # also populate application defaults and the initial catalog
 tokenstation db migrate                                 # apply pending expand migrations
 tokenstation db repair --version <n>                    # clear a dirty migration (verified repair only)
 tokenstation db contract --dry-run                      # preflight a contract migration
 tokenstation db contract --backup-reference <ref> --maintenance
 ```
 
-The database is resolved from `TOKENHUB_DATABASE_URL` (or the default SQLite path).
+The database is resolved from `TOKENHUB_DATABASE_URL` (or the default SQLite path). Use `db prepare --initialize` for a new database. Use `db prepare` when a release needs schema changes or legacy data repairs. A normal start checks the existing ledger before serving and uses the existing application data and catalog.
 
 `contract` requires all of the following before it executes anything: every data backfill complete, no live instance heartbeats, an operator-verified backup reference, and an explicit maintenance assertion. For SQLite, create the built-in backup first; for PostgreSQL, provide the external backup reference that you verified yourself.
 
 ## Operational notes
 
 - A startup error `checksum_mismatch (version 4)` can result from the historical metering migration checksum regression. Use a release containing the compatibility fix, then run `tokenstation db prepare` and `tokenstation db verify` before restarting normally. It recognizes both the original SQL checksum and the exact intermediate `tokenhub-schema-metering-evidence-v2` value, preserves existing ledger rows, and leaves audit correlation changes in migration 5. Other checksum mismatches still refuse startup; do not delete the database or edit its ledger to bypass verification. `db repair` is for dirty migrations and does not resolve this clean-ledger mismatch.
-- `tokenstation db migrate` on a database without an adoption baseline points you at a normal server start: adoption happens there, inside the serialized schema section.
+- `tokenstation db migrate` on a database without an adoption baseline directs you to `tokenstation db prepare` to record the adoption baseline.
 - A refused contract tells you which precondition failed; nothing was executed.
 - After a rollback to a previous release, the previous release keeps working on the current database; when the newer release returns, it re-verifies the ledger and continues.
-- A managed upgrade runs the target release's own binary against the database first: `db prepare` executes the serialized startup-compatible adoption and expand flow without publishing a serving heartbeat, so supported pre-ledger databases can be prepared before activation; `db verify` then verifies the resulting ledger and schema semantically. The target is activated only after both pass. If the activated release then fails its first boot, the previous release is re-activated automatically once (only when the upgrade ran no contract and the previous release's compatibility record covers the database state); a second failure stops version switching for operator recovery.
+- A managed upgrade runs the target release's own binary against the database first: `db prepare` executes the serialized adoption, expand, and legacy repair flow without publishing a serving heartbeat, so supported pre-ledger databases can be prepared before activation; `db verify` then verifies the resulting ledger and schema semantically. The target is activated only after both pass. If the activated release then fails its first boot, the previous release is re-activated automatically once (only when the upgrade ran no contract and the previous release's compatibility record covers the database state); a second failure stops version switching for operator recovery.
 - The admin console shows the read-only database evolution section (state version, readiness, compatibility range, backfills, live instances); contract and repair operations are CLI-only by design.
 
 ## For developers

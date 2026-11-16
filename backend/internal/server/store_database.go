@@ -135,7 +135,7 @@ func OpenStoreWithConfig(databaseURL string, config Config) (*GormStore, error) 
 	if strings.TrimSpace(databaseURL) == "" {
 		databaseURL = defaultConfigDatabaseURL()
 	}
-	return newStoreWithDialect(databaseURL, config, true)
+	return newStoreWithDialect(databaseURL, config, servePreparedStore)
 }
 
 // OpenStoreForMaintenance opens the store without publishing an instance
@@ -145,7 +145,7 @@ func OpenStoreForMaintenance(databaseURL string, config Config) (*GormStore, err
 	if strings.TrimSpace(databaseURL) == "" {
 		databaseURL = defaultConfigDatabaseURL()
 	}
-	return newStoreWithDialect(databaseURL, config, false)
+	return newStoreWithDialect(databaseURL, config, prepareStore)
 }
 
 func NewSQLiteStore(databaseURL string) (*GormStore, error) {
@@ -155,10 +155,18 @@ func NewSQLiteStore(databaseURL string) (*GormStore, error) {
 // NewStoreWithDialect creates a Store with the appropriate driver based on the database URL.
 // It supports SQLite and PostgreSQL.
 func NewStoreWithDialect(databaseURL string, config Config) (*GormStore, error) {
-	return newStoreWithDialect(databaseURL, config, true)
+	return newStoreWithDialect(databaseURL, config, prepareAndServeStore)
 }
 
-func newStoreWithDialect(databaseURL string, config Config, publishHeartbeat bool) (*GormStore, error) {
+type storeOpenMode int
+
+const (
+	servePreparedStore storeOpenMode = iota
+	prepareStore
+	prepareAndServeStore
+)
+
+func newStoreWithDialect(databaseURL string, config Config, mode storeOpenMode) (*GormStore, error) {
 	driver, dsn, err := parseDatabaseURL(databaseURL)
 	if err != nil {
 		return nil, err
@@ -280,17 +288,29 @@ func newStoreWithDialect(databaseURL string, config Config, publishHeartbeat boo
 	const startupSchemaLockWait = time.Duration(dbschema.DefaultExpandLockTimeoutSeconds) * time.Second
 	schemaLockCtx, cancelSchemaLock := context.WithTimeout(context.Background(), startupSchemaLockWait)
 	schemaErr := runSchemaMigrationLocked(schemaLockCtx, sqlDB, driver, func() error {
-		if err := adoptSchemaLedger(context.Background(), sqlDB, driver, dsn, legacySchemaFlow); err != nil {
-			return err
+		if mode == servePreparedStore {
+			if state := readDatabaseEvolutionStatus(context.Background(), sqlDB, driver, false); !state.Ready {
+				return fmt.Errorf("database is not ready: %s", state.Reason)
+			}
+		} else {
+			if err := adoptSchemaLedger(context.Background(), sqlDB, driver, dsn, legacySchemaFlow); err != nil {
+				return err
+			}
+			if err := legacyDataBackfills(); err != nil {
+				return err
+			}
+			backfills, err := dbschema.NewBackfillExecutor(sqlDB, dbschema.Dialect(driver), nil)
+			if err != nil {
+				return err
+			}
+			if err := backfills.EnsureLedger(context.Background()); err != nil {
+				return err
+			}
+			if err := db.Exec(instanceHeartbeatTableDDL).Error; err != nil {
+				return fmt.Errorf("prepare instance heartbeat table: %w", err)
+			}
 		}
-		// Data repairs keep running on every boot until they become versioned
-		// data backfills; they are idempotent, and legacy-shaped
-		// data can appear after adoption through backup restores or an older
-		// release writing to the same database.
-		if err := legacyDataBackfills(); err != nil {
-			return err
-		}
-		if publishHeartbeat {
+		if mode != prepareStore {
 			// Publish the instance heartbeat before the schema lock is released:
 			// once the lock drops, `tokenhub db contract` may acquire it, and its
 			// no-live-instances preflight must not mistake this booting instance

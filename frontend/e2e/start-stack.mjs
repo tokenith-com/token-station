@@ -1,4 +1,4 @@
-import { spawn } from "node:child_process";
+import { execFileSync, spawn } from "node:child_process";
 import { cp, mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -115,7 +115,7 @@ try {
   });
   await waitForURL("fake upstream", `${upstreamURL}/healthz`);
 
-  start("Go backend", "go", ["run", "./cmd/tokenstation"], {
+  const backendOptions = {
     cwd: backendDirectory,
     env: {
       ...sharedEnvironment,
@@ -138,7 +138,9 @@ try {
       TOKENHUB_GRACEFUL_SHUTDOWN_SECONDS: "1",
       TOKENHUB_SEED_DEMO: "false",
     },
-  });
+  };
+  execFileSync("go", ["run", "./cmd/tokenstation", "db", "prepare", "--initialize"], { ...backendOptions, stdio: "inherit", timeout: 180_000 });
+  start("Go backend", "go", ["run", "./cmd/tokenstation"], backendOptions);
   await waitForURL("Go backend", `${backendURL}/healthz`);
 
   start("Next.js frontend", "npm", ["run", "dev", "--", "--hostname", "127.0.0.1", "--port", String(frontendPort)], {

@@ -105,7 +105,6 @@ func (s *Server) publishServerPluginStoreConfiguration(bootstrap *serverPluginBo
 	if err := configureProviderCredentialRefreshHandlers(s.store, bootstrap.adapterRegistry); err != nil {
 		return err
 	}
-	reconcileProviderPluginPolicies(s.store, bootstrap.adapterRegistry)
 	if store, ok := s.store.(providerImageCapabilityProfileStore); ok {
 		store.setProviderImageCapabilityRouteProfiles(providerImageCapabilityRouteProfilesFromActions(bootstrap.pluginActions.List()))
 	}

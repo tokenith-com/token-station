@@ -20,14 +20,13 @@ import (
 )
 
 // adoptSchemaLedger records or verifies the dbschema adoption baseline around
-// the frozen startup schema flow using the bridge-release semantics documented
+// the frozen schema preparation flow using the bridge-release semantics documented
 // in docs/database-evolution.md. The caller already serializes schema work
 // across processes, so the runner runs
 // under external coordination. Empty databases adopt from the frozen baseline
 // SQL (SQLite and PostgreSQL); databases with business tables run the legacy
 // callback and are semantically verified against the reference snapshot
-// before the baseline is recorded. Ordinary restarts only verify the ledger
-// and checksums. The caller holds the shared schema migration lock for both
+// before the baseline is recorded. The caller holds the shared schema migration lock for both
 // SQLite and PostgreSQL.
 func adoptSchemaLedger(ctx context.Context, db *sql.DB, driver, dsn string, legacy func(ctx context.Context) error) error {
 	reference := func(ctx context.Context) (dbschema.ObjectSet, error) {
@@ -64,7 +63,7 @@ func adoptSchemaLedger(ctx context.Context, db *sql.DB, driver, dsn string, lega
 	return err
 }
 
-// adoptionExecutor names the instance that runs the startup adoption, used to
+// adoptionExecutor names the instance that runs schema preparation, used to
 // stamp migration_attempts rows. The host name distinguishes
 // instances on shared databases without leaking identifiers into logs.
 func adoptionExecutor() string {

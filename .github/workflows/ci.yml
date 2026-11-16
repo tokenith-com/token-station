@@ -246,7 +246,8 @@ jobs:
           # docs/database-evolution.md.
           boot_and_wait "$RUNNER_TEMP/n1-tokenstation" 18581 /healthz "$RUNNER_TEMP/pg-n1-a.log"
           "$RUNNER_TEMP/n1check" "${N1_PG_URL}"
-          # The current release adopts it and reports full readiness.
+          # Prepare the legacy database explicitly before serving the current release.
+          TOKENHUB_DATABASE_URL="${N1_PG_URL}" "$RUNNER_TEMP/current-tokenstation" db prepare
           boot_and_wait "$RUNNER_TEMP/current-tokenstation" 18582 /readyz "$RUNNER_TEMP/pg-cur-b.log"
           TOKENHUB_DATABASE_URL="${N1_PG_URL}" "$RUNNER_TEMP/current-tokenstation" db verify
           # The previous release boots again on the adopted database and runs
@@ -379,8 +380,8 @@ jobs:
           # The immutable N-1 schema fixture pins the legacy shape before the
           # current release adopts it, as specified in docs/database-evolution.md.
           "$RUNNER_TEMP/n1check" "sqlite://${N1_DATABASE}"
-          # The current release adopts it and must report full readiness, not
-          # just liveness: /readyz fails on dirty or unverifiable state.
+          # Prepare the legacy database before requiring full readiness from the current release.
+          TOKENHUB_DATABASE_URL="sqlite://${N1_DATABASE}" "$RUNNER_TEMP/current-tokenstation" db prepare
           boot_and_wait "$RUNNER_TEMP/current-tokenstation" 18082 /readyz "$RUNNER_TEMP/cur-b.log" "sqlite://${N1_DATABASE}"
           TOKENHUB_DATABASE_URL="sqlite://${N1_DATABASE}" "$RUNNER_TEMP/current-tokenstation" db verify
           # The previous release boots again on the adopted database (rollback

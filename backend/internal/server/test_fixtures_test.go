@@ -29,7 +29,11 @@ func newManagedTestServer(t testing.TB, store Store) *Server {
 
 func newManagedTestServerWithConfig(t testing.TB, store Store, config Config) *Server {
 	t.Helper()
-	return newTestServerWithShutdown(t, store, config, false)
+	app := newTestServerWithShutdown(t, store, config, false)
+	// Gateway fixtures can insert legacy routes and provider records directly.
+	// Prepare that data explicitly before the tests begin sending requests.
+	repairProviderAndRouteData(store, app.adapterRegistry)
+	return app
 }
 
 func newTestServerWithClosedDatabase(t testing.TB, store Store, config Config) *Server {
