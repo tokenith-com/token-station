@@ -125,8 +125,7 @@ import { RoleManagementEditModal, RoleManagementView } from "../views/role-manag
 import { EditModal, SettingsView } from "../views/settings-table";
 import { usePagination } from "../shared/pagination";
 import { BillingView, UsageView } from "../views/usage-billing";
-import { scopePortalData, type Portal } from "../core/portal";
-import { PortalContext } from "../core/portal-context";
+import { scopeSupportedAccounts } from "../core/account-roles";
 import { SourceAdminContent } from "../../source-admin/shell/source-admin-content";
 import { useLoginIdentityProviders } from "./use-login-identity-providers";
 
@@ -138,17 +137,15 @@ function usesSourceAdminContent(user: AdminUser, view: ViewKey) {
   return !maasOnlyViews.has(view);
 }
 const apiKeyPageSize = 1000;
-type ConsoleProps = { defaultBaseURL: string; portal?: Portal };
+type ConsoleProps = { defaultBaseURL: string };
 
 export function AdminConsole(props: ConsoleProps) {
   return (
-    <PortalContext.Provider value={props.portal ?? "b"}>
-      <Suspense><AdminConsoleContent {...props} /></Suspense>
-    </PortalContext.Provider>
+    <Suspense><AdminConsoleContent {...props} /></Suspense>
   );
 }
 
-function AdminConsoleContent({ defaultBaseURL, portal = "b" }: ConsoleProps) {
+function AdminConsoleContent({ defaultBaseURL }: ConsoleProps) {
   // 静态部署下浏览器始终直连后端；必须在子组件发出第一个请求之前完成配置（纯赋值、可重复执行）。
   configureBackendBaseURL(defaultBaseURL);
   const pathname = usePathname();
@@ -167,7 +164,7 @@ function AdminConsoleContent({ defaultBaseURL, portal = "b" }: ConsoleProps) {
   const [pendingLoginOTP, setPendingLoginOTP] = useState<{ identity: string; payload: Awaited<ReturnType<typeof loginWithPassword>> } | null>(null);
   const [oauthReturnURL, setOAuthReturnURL] = useState(() => currentOAuthReturnURL());
   const [bootstrapped, setBootstrapped] = useState(false);
-  const loginIdentityProviders = useLoginIdentityProviders(bootstrapped && !currentUser && portal === "b", defaultBaseURL);
+  const loginIdentityProviders = useLoginIdentityProviders(bootstrapped && !currentUser, defaultBaseURL);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [openNavGroups, setOpenNavGroups] = useState<Record<string, boolean>>(() => Object.fromEntries(allNavGroupTitles.map(title => [title, true])));
   const [activeView, setActiveView] = useState<ViewKey>(routeView);
@@ -275,7 +272,7 @@ function AdminConsoleContent({ defaultBaseURL, portal = "b" }: ConsoleProps) {
     async function bootstrapSession() {
       const passwordResetToken = consumePasswordResetToken();
       if (passwordResetToken) {
-        clearSavedSession(portal);
+        clearSavedSession();
         clearOAuthLoginResult();
         clearOAuthAuthorizationResponse();
         clearPendingOAuthLogin();
@@ -286,12 +283,12 @@ function AdminConsoleContent({ defaultBaseURL, portal = "b" }: ConsoleProps) {
       if (readActivationToken()) {
         // An email activation link must reach the activation form even when
         // another account is signed in on this browser.
-        clearSavedSession(portal);
+        clearSavedSession();
         setCurrentUser(null);
         setBootstrapped(true);
         return;
       }
-      const saved = readSavedSession(portal);
+      const saved = readSavedSession();
       const pendingLogin = readPendingOAuthLogin();
       const oauthCallback = resolvePendingOAuthLoginResult(window.location, pendingLogin);
       const oauth = oauthCallback.status === "ready" ? oauthCallback.result : null;
@@ -330,7 +327,7 @@ function AdminConsoleContent({ defaultBaseURL, portal = "b" }: ConsoleProps) {
           setData(emptyData());
           setAdminToken(payload.token);
           setCurrentUser(payload.user);
-          saveSession({ baseURL: sessionBaseURL, token: payload.token, user: payload.user, expiresAt: payload.expires_at }, portal);
+          saveSession({ baseURL: sessionBaseURL, token: payload.token, user: payload.user, expiresAt: payload.expires_at });
           setLoginError("");
           setError("");
         } catch (err) {
@@ -347,7 +344,7 @@ function AdminConsoleContent({ defaultBaseURL, portal = "b" }: ConsoleProps) {
       }
       if (saved) {
         if (saved.token.startsWith("tokenhub-mock:") || saved.baseURL !== defaultBaseURL) {
-          clearSavedSession(portal);
+          clearSavedSession();
         } else {
           setAdminToken(saved.token);
           setCurrentUser(saved.user);
@@ -359,7 +356,7 @@ function AdminConsoleContent({ defaultBaseURL, portal = "b" }: ConsoleProps) {
     return () => {
       cancelled = true;
     };
-  }, [defaultBaseURL, portal]);
+  }, [defaultBaseURL]);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -431,7 +428,7 @@ function AdminConsoleContent({ defaultBaseURL, portal = "b" }: ConsoleProps) {
       if ((event as CustomEvent<string>).detail !== currentToken.current) return;
       loadGeneration.current += 1;
       currentToken.current = "";
-      clearSavedSession(portal);
+      clearSavedSession();
       setAdminToken("");
       setCurrentUser(null);
       setData(emptyData());
@@ -456,7 +453,7 @@ function AdminConsoleContent({ defaultBaseURL, portal = "b" }: ConsoleProps) {
     }
     window.addEventListener(authExpiredEventName, onAuthExpired);
     return () => window.removeEventListener(authExpiredEventName, onAuthExpired);
-  }, [router, portal]);
+  }, [router]);
 
   useEffect(() => {
     if (currentUser && usesSourceAdminContent(currentUser, activeView)) return;
@@ -665,7 +662,7 @@ function AdminConsoleContent({ defaultBaseURL, portal = "b" }: ConsoleProps) {
       }
 
       if (generation !== loadGeneration.current) return;
-      setData(current => scopePortalData(mergeLoadedData(current, loaded), portal));
+      setData(current => scopeSupportedAccounts(mergeLoadedData(current, loaded)));
       if (skippedResources.length > 0) {
         setNotice(permissionPartialLoadMessage(skippedResources));
       } else if (monitoringUnavailable) {
@@ -684,11 +681,11 @@ function AdminConsoleContent({ defaultBaseURL, portal = "b" }: ConsoleProps) {
     setData(emptyData());
     setAdminToken(payload.token);
     setCurrentUser(payload.user);
-    saveSession({ baseURL, token: payload.token, user: payload.user, expiresAt: payload.expires_at }, portal);
+    saveSession({ baseURL, token: payload.token, user: payload.user, expiresAt: payload.expires_at });
   }
 
   function verifyLoginOTPPreview(code: string) {
-    if (process.env.NODE_ENV !== "development" || portal !== "b" || !pendingLoginOTP) return;
+    if (process.env.NODE_ENV !== "development" || !pendingLoginOTP) return;
     if (Date.parse(pendingLoginOTP.payload.expires_at) <= Date.now()) {
       setPendingLoginOTP(null);
       setLoginError(tx("登录已过期，请重新输入账号密码"));
@@ -709,7 +706,7 @@ function AdminConsoleContent({ defaultBaseURL, portal = "b" }: ConsoleProps) {
     try {
       const payload = await loginWithPassword(identity, password);
       const role = appRole(payload.user.role);
-      if (process.env.NODE_ENV === "development" && portal === "b" && (role === "admin" || role === "team_leader")) {
+      if (process.env.NODE_ENV === "development" && (role === "admin" || role === "team_leader")) {
         //! 显示验证码（当前开发演示）：执行 setPendingLoginOTP，保留 return，验证通过后才完成登录。
         //! 不显示验证码并直接登录：注释下一行，启用 completeLogin(payload)，保留 return；两种方式只启用一种。
         //! 不要仅改为 setPendingLoginOTP(null)，否则 return 会阻止完成登录。
@@ -746,7 +743,7 @@ function AdminConsoleContent({ defaultBaseURL, portal = "b" }: ConsoleProps) {
     setIssuedKey("");
     loadGeneration.current += 1;
     const revokeSession = adminToken ? adminFetch(api, "/api/admin/auth/logout", { method: "POST" }).catch(() => undefined) : Promise.resolve();
-    clearSavedSession(portal);
+    clearSavedSession();
     currentToken.current = "";
     setAdminToken("");
     setCurrentUser(null);
@@ -957,7 +954,6 @@ function AdminConsoleContent({ defaultBaseURL, portal = "b" }: ConsoleProps) {
         identityProviders={loginIdentityProviders}
         oauthReturnURL={oauthReturnURL}
         theme={theme}
-        portal={portal}
         otpLogin={
           pendingLoginOTP
             ? {

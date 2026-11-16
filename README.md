@@ -17,23 +17,20 @@
 
 TokenStation brings model discovery, the Playground, API access, and cost visibility into one platform. Enterprise teams can distribute model access through projects and shared wallets, while individual developers can manage personal keys, recharge balances, and review their consumption. Platform operators manage upstream providers, routing, permissions, billing, and audit centrally without distributing provider credentials to users.
 
-The product consists of a Go API backend and a MaaS console with two separately built portals:
-
-- **Enterprise portal (B):** organization and project collaboration, team governance, and platform administration.
-- **Individual portal (C):** self-service registration, model access, personal API keys, usage details, and recharge.
+TokenStation has a Go API backend and a MaaS console with one sign-in page for platform administrators, team users, and individual developers.
 
 The repository also retains the original admin console. It shares the backend but has a different frontend build and deployment path from the MaaS console.
 
-## Portals and Roles
+## Roles
 
-| Role | Portal | Main workflows |
-| --- | --- | --- |
-| Platform administrator | Enterprise; administrative access to individual portal | Configure providers, models, routes, identities, access policies, wallets, and platform operations |
-| Team manager | Enterprise | Manage team projects, members, API keys, usage reports, and shared wallet visibility |
-| Team member | Enterprise | Discover available models, use the Playground, manage permitted keys, and inspect personal usage |
-| Individual developer | Individual | Register and sign in, create personal keys, call models, recharge, and review cost details |
+| Role | Main workflows |
+| --- | --- |
+| Platform administrator | Configure providers, models, routes, identities, access policies, wallets, and platform operations |
+| Team manager | Manage team projects, members, API keys, usage reports, and shared wallet visibility |
+| Team member | Discover available models, use the Playground, manage permitted keys, and inspect personal usage |
+| Individual developer | Register and sign in, create personal keys, call models, recharge, and review cost details |
 
-Menus and API authorization follow the user's role and resource scope. A portal's build configuration does not replace backend access controls.
+Menus and API authorization follow the user's role and resource scope.
 
 ## Core Capabilities
 
@@ -115,30 +112,25 @@ npm ci
 NEXT_PUBLIC_TOKENHUB_API_BASE_URL=http://localhost:8080 npm run dev -- --port 3001
 ```
 
-The default is the enterprise portal. To run the individual portal, set `NEXT_PUBLIC_TOKENHUB_PORTAL=c` before starting Next.js. Configure backend CORS to allow the console origin.
+Configure backend CORS to allow the console origin. Password login, configured single sign-on, and email registration are available from the same entry point.
 
 Existing `TOKENHUB_*` and `NEXT_PUBLIC_TOKENHUB_*` environment names remain compatibility contracts; use the names in the environment templates rather than renaming them to match the product brand.
 
 ## Deployment
 
-### MaaS static portals
+### Static MaaS console
 
 Build from `maas-ui/`, replacing the example API address with your backend URL:
 
 ```bash
-# Enterprise portal
 NEXT_PUBLIC_TOKENHUB_API_BASE_URL=https://api.example.com npm run build
-
-# Individual portal: build separately and publish its output separately
-NEXT_PUBLIC_TOKENHUB_API_BASE_URL=https://api.example.com \
-  NEXT_PUBLIC_TOKENHUB_PORTAL=c npm run build
 ```
 
-Each build produces `out/` and replaces the previous output. Publish the two portal builds to separate hosting locations. API URL and portal selection are fixed at build time. Configure HTTPS, static-route handling, and backend CORS for the deployed origins. See the [MaaS static deployment guide](maas-ui/docs/static-deploy.md).
+The build produces one `out/` directory for all users at that deployment. The API URL and optional path prefix are fixed at build time. Configure HTTPS, static-route handling, and backend CORS for the deployed origin. See the [MaaS static deployment guide](maas-ui/docs/static-deploy.md).
 
 ### Existing managed stack
 
-The current native and Docker deployment paths package the original console, not the MaaS static portals. For the existing Docker stack, from the repository root:
+The current native and Docker deployment paths package the original console, not the MaaS static console. For the existing Docker stack, from the repository root:
 
 ```bash
 cp deploy/.env.example deploy/.env

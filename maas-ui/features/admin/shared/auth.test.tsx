@@ -49,14 +49,14 @@ describe("LoginView", () => {
     expect(onLogin).toHaveBeenCalledWith("preview@example.test", "fixture-password");
   });
 
-  it.each(["b", "c"] as const)("only shows OTP when supplied and delegates verification and return on portal %s", async portal => {
+  it("only shows OTP when supplied and delegates verification and return", async () => {
     window.history.replaceState(null, "", "/?keep=value#section");
     const user = userEvent.setup();
     const onLogin = vi.fn();
     const otpLogin = { identity: "admin@example.com", onVerify: vi.fn(), onBack: vi.fn() };
-    const { rerender } = render(<LoginView {...baseProps} portal={portal} onLogin={onLogin} />);
+    const { rerender } = render(<LoginView {...baseProps} onLogin={onLogin} />);
     await user.type(screen.getByLabelText("密码"), "password");
-    rerender(<LoginView {...baseProps} portal={portal} onLogin={onLogin} otpLogin={otpLogin} />);
+    rerender(<LoginView {...baseProps} onLogin={onLogin} otpLogin={otpLogin} />);
 
     expect(screen.getByRole("form", { name: "手机号验证码认证" })).toBeInTheDocument();
     expect(screen.getByLabelText("账号")).toHaveValue(otpLogin.identity);
@@ -67,7 +67,7 @@ describe("LoginView", () => {
     expect(onLogin).not.toHaveBeenCalled();
     await user.click(screen.getByRole("button", { name: "返回账号密码登录" }));
     expect(otpLogin.onBack).toHaveBeenCalledOnce();
-    rerender(<LoginView {...baseProps} portal={portal} onLogin={onLogin} />);
+    rerender(<LoginView {...baseProps} onLogin={onLogin} />);
 
     expect(screen.getByLabelText("密码")).toHaveValue("");
     expect(window.location.search).toBe("?keep=value");
@@ -83,60 +83,49 @@ describe("LoginView", () => {
     expect(screen.queryByRole("form", { name: "手机号验证码认证" })).not.toBeInTheDocument();
   });
 
-  it("does not change the consumer login when the OTP preview parameter is present", () => {
-    vi.stubEnv("NODE_ENV", "development");
-    window.history.replaceState(null, "", "/?preview=otp");
-    render(<LoginView {...baseProps} portal="c" onLogin={vi.fn()} />);
-
-    expect(screen.getByLabelText("密码")).toBeInTheDocument();
-    expect(screen.queryByRole("form", { name: "手机号验证码认证" })).not.toBeInTheDocument();
-  });
-
   it("uses the shared branded card instead of the old consumer illustration", () => {
-    const { container } = render(<LoginView {...baseProps} portal="c" onLogin={vi.fn()} />);
+    const { container } = render(<LoginView {...baseProps} onLogin={vi.fn()} />);
 
     expect(screen.getByRole("main")).toHaveClass("tc-login");
-    expect(screen.getByRole("main")).toHaveAttribute("data-portal", "c");
     expect(screen.getByRole("heading", { name: "TokenStation" })).toBeInTheDocument();
     expect(screen.getByRole("img", { name: "Logo" })).toHaveAttribute("src", "/brand/tokencube-logo.svg");
     expect(container.querySelector(".login-account-visual")).not.toBeInTheDocument();
   });
 
   it("restores and immediately clears the remembered consumer account on opt out", async () => {
-    window.localStorage.setItem("tokenstation.c.remembered-account", "consumer@example.test");
+    window.localStorage.setItem("tokenstation.remembered-account", "consumer@example.test");
     const user = userEvent.setup();
-    render(<LoginView {...baseProps} portal="c" onLogin={vi.fn()} />);
+    render(<LoginView {...baseProps} onLogin={vi.fn()} />);
     expect(screen.getByLabelText("账号")).toHaveValue("consumer@example.test");
     expect(screen.getByLabelText("密码")).toHaveValue("");
     await user.click(screen.getByRole("checkbox", { name: "记住账号" }));
-    expect(window.localStorage.getItem("tokenstation.c.remembered-account")).toBeNull();
+    expect(window.localStorage.getItem("tokenstation.remembered-account")).toBeNull();
     await user.type(screen.getByLabelText("密码"), "fixture-password");
     await user.click(screen.getByRole("button", { name: "登录" }));
-    expect(window.localStorage.getItem("tokenstation.c.remembered-account")).toBeNull();
+    expect(window.localStorage.getItem("tokenstation.remembered-account")).toBeNull();
   });
 
   it("remembers only the trimmed consumer account on submit", async () => {
     const user = userEvent.setup();
     const onLogin = vi.fn();
-    render(<LoginView {...baseProps} portal="c" onLogin={onLogin} />);
+    render(<LoginView {...baseProps} onLogin={onLogin} />);
+    await user.click(screen.getByRole("checkbox", { name: "记住账号" }));
     await user.type(screen.getByLabelText("账号"), " consumer@example.test ");
     await user.type(screen.getByLabelText("密码"), "fixture-password");
     await user.click(screen.getByRole("button", { name: "登录" }));
-    expect(window.localStorage.getItem("tokenstation.c.remembered-account")).toBe("consumer@example.test");
+    expect(window.localStorage.getItem("tokenstation.remembered-account")).toBe("consumer@example.test");
     expect(onLogin).toHaveBeenCalledWith(" consumer@example.test ", "fixture-password");
   });
 
-  it("keeps consumer account preferences out of the embedded business login", async () => {
-    window.localStorage.setItem("tokenstation.c.remembered-account", "consumer@example.test");
+  it("opens the embedded login without persisting an account by default", async () => {
     const user = userEvent.setup();
     render(<LoginView {...baseProps} embedded onLogin={vi.fn()} />);
     expect(screen.getByRole("main")).toHaveClass("tc-login", "embedded");
-    expect(screen.queryByRole("checkbox", { name: "记住账号" })).not.toBeInTheDocument();
-    expect(screen.getByLabelText("账号")).toHaveValue("");
-    await user.type(screen.getByLabelText("账号"), "business@example.test");
+    expect(screen.getByRole("checkbox", { name: "记住账号" })).not.toBeChecked();
+    await user.type(screen.getByLabelText("账号"), "tester@example.test");
     await user.type(screen.getByLabelText("密码"), "fixture-password");
     await user.click(screen.getByRole("button", { name: "登录" }));
-    expect(window.localStorage.getItem("tokenstation.c.remembered-account")).toBe("consumer@example.test");
+    expect(window.localStorage.getItem("tokenstation.remembered-account")).toBeNull();
   });
 
   it("allows consumer login when persistent storage is unavailable", async () => {
@@ -144,11 +133,11 @@ describe("LoginView", () => {
     vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => { throw new Error("Storage disabled"); });
     const user = userEvent.setup();
     const onLogin = vi.fn();
-    const { rerender } = render(<LoginView {...baseProps} portal="c" error="login 401" loading onLogin={onLogin} />);
+    const { rerender } = render(<LoginView {...baseProps} error="login 401" loading onLogin={onLogin} />);
     expect(screen.getByRole("alert")).toHaveTextContent("login 401");
     expect(screen.getByRole("button", { name: "登录中..." })).toBeDisabled();
     expect(screen.getByRole("button", { name: "邮箱注册" })).toBeDisabled();
-    rerender(<LoginView {...baseProps} portal="c" onLogin={onLogin} />);
+    rerender(<LoginView {...baseProps} onLogin={onLogin} />);
     await user.type(screen.getByLabelText("账号"), "consumer@example.test");
     await user.type(screen.getByLabelText("密码"), "fixture-password");
     await user.click(screen.getByRole("button", { name: "登录" }));
@@ -163,8 +152,8 @@ describe("LoginView", () => {
     expect(container.querySelector(".login-utility-controls")).not.toBeInTheDocument();
   });
 
-  it.each(["b", "c"] as const)("links to the company website on portal %s", portal => {
-    render(<LoginView {...baseProps} portal={portal} onLogin={vi.fn()} />);
+  it("links to the company website", () => {
+    render(<LoginView {...baseProps} onLogin={vi.fn()} />);
 
     const website = screen.getByRole("link", { name: "世纪利通官网" });
     expect(website).toHaveAttribute("href", "https://www.century-lt.com/cn/");
@@ -172,8 +161,8 @@ describe("LoginView", () => {
     expect(website).toHaveAttribute("rel", "noopener noreferrer");
   });
 
-  it.each(["b", "c"] as const)("shows the updated footer copy on portal %s", portal => {
-    render(<LoginView {...baseProps} portal={portal} onLogin={vi.fn()} />);
+  it("shows the updated footer copy", () => {
+    render(<LoginView {...baseProps} onLogin={vi.fn()} />);
 
     expect(screen.getByText("世纪利通 版权所有 2024–2026")).toBeInTheDocument();
     expect(screen.getByText("沪ICP备2023030709号")).toBeInTheDocument();
@@ -182,19 +171,19 @@ describe("LoginView", () => {
     expect(screen.queryByText("沪ICP备15028292-1号")).not.toBeInTheDocument();
   });
 
-  it.each(["b", "c"] as const)("exposes email registration on portal %s", async portal => {
+  it("exposes email registration", async () => {
     const user = userEvent.setup();
-    render(<LoginView {...baseProps} portal={portal} onLogin={vi.fn()} />);
+    render(<LoginView {...baseProps} onLogin={vi.fn()} />);
     await user.click(screen.getByRole("button", { name: "邮箱注册" }));
     expect(screen.getByRole("heading", { name: "注册账号" })).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "已有账号？返回登录" }));
     expect(screen.getByLabelText("账号")).toBeInTheDocument();
   });
 
-  it.each(["b", "c"] as const)("submits the entered identity and password on portal %s", async portal => {
+  it("submits the entered identity and password", async () => {
     const user = userEvent.setup();
     const onLogin = vi.fn();
-    render(<LoginView {...baseProps} portal={portal} onLogin={onLogin} />);
+    render(<LoginView {...baseProps} onLogin={onLogin} />);
 
     await user.type(screen.getByLabelText("账号"), "admin@example.com");
     await user.type(screen.getByLabelText("密码"), "correct-horse");

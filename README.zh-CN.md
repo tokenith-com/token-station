@@ -17,23 +17,20 @@
 
 TokenStation 将模型发现、Playground、API 接入和成本可视化整合到同一平台。企业团队可以通过项目和共享钱包分配模型访问权限，个人开发者则可以管理个人密钥、充值余额并查看消费记录。平台运营人员集中管理上游服务商、路由、权限、计费和审计，无需向用户分发服务商凭证。
 
-产品由 Go API 后端与 MaaS 控制台组成，控制台包含两个独立构建的门户：
-
-- **企业门户（B 端）：** 组织与项目协作、团队治理和平台管理。
-- **个人门户（C 端）：** 自助注册、模型接入、个人 API 密钥、用量明细和充值。
+产品由 Go API 后端与 MaaS 控制台组成。平台管理员、团队用户和个人开发者共用一个登录入口。
 
 仓库同时保留了原有管理控制台。它与 MaaS 控制台共用后端，但前端构建和部署路径不同。
 
-## 门户与角色
+## 用户角色
 
-| 角色 | 门户 | 主要工作流 |
-| --- | --- | --- |
-| 平台管理员 | 企业门户；拥有个人门户的管理权限 | 配置服务商、模型、路由、身份源、访问策略、钱包和平台运营 |
-| 团队负责人 | 企业门户 | 管理团队项目、成员、API 密钥、用量报表，并查看共享钱包 |
-| 团队成员 | 企业门户 | 发现可用模型、使用 Playground、管理权限范围内的密钥，并查看个人用量 |
-| 个人开发者 | 个人门户 | 注册登录、创建个人密钥、调用模型、充值并查看费用明细 |
+| 角色 | 主要工作流 |
+| --- | --- |
+| 平台管理员 | 配置服务商、模型、路由、身份源、访问策略、钱包和平台运营 |
+| 团队负责人 | 管理团队项目、成员、API 密钥、用量报表，并查看共享钱包 |
+| 团队成员 | 发现可用模型、使用 Playground、管理权限范围内的密钥，并查看个人用量 |
+| 个人开发者 | 注册登录、创建个人密钥、调用模型、充值并查看费用明细 |
 
-菜单与 API 授权遵循用户角色和资源范围。门户的构建配置不能替代后端访问控制。
+菜单与 API 授权遵循用户角色和资源范围。
 
 ## 核心能力
 
@@ -115,30 +112,25 @@ npm ci
 NEXT_PUBLIC_TOKENHUB_API_BASE_URL=http://localhost:8080 npm run dev -- --port 3001
 ```
 
-默认启动企业门户。如需运行个人门户，请在启动 Next.js 前设置 `NEXT_PUBLIC_TOKENHUB_PORTAL=c`。配置后端 CORS 以允许控制台来源。
+配置后端 CORS 以允许控制台来源。同一个入口支持账号密码登录、配置好的单点登录和邮箱注册。
 
 现有 `TOKENHUB_*` 和 `NEXT_PUBLIC_TOKENHUB_*` 环境变量名仍是兼容性契约；请使用环境模板中的名称，不要为了匹配产品品牌而重命名。
 
 ## 部署
 
-### MaaS 静态门户
+### MaaS 静态控制台
 
 在 `maas-ui/` 下构建，将示例 API 地址替换为你的后端 URL：
 
 ```bash
-# Enterprise portal
 NEXT_PUBLIC_TOKENHUB_API_BASE_URL=https://api.example.com npm run build
-
-# Individual portal: build separately and publish its output separately
-NEXT_PUBLIC_TOKENHUB_API_BASE_URL=https://api.example.com \
-  NEXT_PUBLIC_TOKENHUB_PORTAL=c npm run build
 ```
 
-每次构建都会生成 `out/` 并替换此前的输出。请将两个门户的构建结果发布到不同的托管位置。API URL 与门户选择在构建时固定。为部署后的来源配置 HTTPS、静态路由处理与后端 CORS。参见 [MaaS 静态部署指南](maas-ui/docs/static-deploy.md)。
+每个部署环境只需构建并发布一份 `out/`。API 地址和可选的站点路径前缀在构建时固定。为部署后的来源配置 HTTPS、静态路由和后端 CORS。参见 [MaaS 静态部署指南](maas-ui/docs/static-deploy.md)。
 
 ### 现有托管技术栈
 
-当前原生部署与 Docker 部署路径打包的是原有控制台，而非 MaaS 静态门户。使用现有 Docker 技术栈时，在仓库根目录执行：
+当前原生部署与 Docker 部署路径打包的是原有控制台，MaaS 控制台按上面的静态方式发布。使用现有 Docker 技术栈时，在仓库根目录执行：
 
 ```bash
 cp deploy/.env.example deploy/.env

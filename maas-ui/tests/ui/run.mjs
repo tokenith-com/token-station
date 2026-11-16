@@ -23,7 +23,6 @@ let originalImport;
 const environment = Object.fromEntries(Object.entries(process.env).filter(([key]) => !key.startsWith("TOKENHUB_") && !key.startsWith("NEXT_PUBLIC_")));
 Object.assign(environment, {
   TOKENHUB_UI_RUN: "1", TOKENHUB_UI_CAPTURE: capture ? "1" : "0",
-  NEXT_PUBLIC_TOKENHUB_PORTAL: process.env.NEXT_PUBLIC_TOKENHUB_PORTAL === "c" ? "c" : "b",
   // 静态部署没有代理，浏览器直连 apiOrigin（由 MockAPI 拦截）。
   NEXT_PUBLIC_TOKENHUB_API_BASE_URL: apiOrigin, TOKENHUB_NEXT_DIST_DIR: distDirectory, NEXT_TELEMETRY_DISABLED: "1",
 });

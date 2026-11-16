@@ -1,5 +1,5 @@
 import type { BrowserContext, Page } from "@playwright/test";
-import { oauthBaseURLStorageKey, sessionStorageKey, type AdminUser } from "../../features/admin/core/types";
+import { maasSessionStorageKey, oauthBaseURLStorageKey, type AdminUser } from "../../features/admin/core/types";
 import configuration from "./config.cjs";
 import { test, expect, capture } from "./harness";
 import type { MockAPI } from "./network";
@@ -13,7 +13,6 @@ const oauthUser: AdminUser = {
 };
 
 test.use({ sessionUser: null });
-test.skip(process.env.NEXT_PUBLIC_TOKENHUB_PORTAL === "c", "OAuth fixtures target the B portal session and overview.");
 
 test.beforeEach(async ({ api }) => {
   api.respond("GET", "/api/admin/auth/identity-providers", { data: [{
@@ -199,7 +198,7 @@ test("oauth-login successful exchange opens the personal console without a provi
   await expect(page.getByRole("dialog")).toHaveCount(0);
   await expect(page.locator(".login-card")).toHaveCount(0);
   expect(api.calls.filter(call => call.path === exchangePath)).toHaveLength(1);
-  expect(await page.evaluate(key => JSON.parse(sessionStorage.getItem(key)!), `${sessionStorageKey}.b`)).toEqual({
+  expect(await page.evaluate(key => JSON.parse(sessionStorage.getItem(key)!), maasSessionStorageKey)).toEqual({
     baseURL: configuration.apiOrigin, token: "ui-oidc-session", user: oauthUser, expiresAt: "2099-01-01T00:00:00Z",
   });
   await capture(page, info, page.locator(".app-shell"), "oauth-personal-console", "SSO 登录成功：进入个人控制台", "viewport");
@@ -211,7 +210,7 @@ test("oauth-login unexpected callback stays visible and does not exchange a code
   await expect(page.locator(".login-error")).toHaveText("OAuth 登录失败");
   await expectCallbackCleared(page);
   expect(api.calls.filter(call => call.path === exchangePath)).toHaveLength(0);
-  expect(await page.evaluate(key => sessionStorage.getItem(key), `${sessionStorageKey}.b`)).toBeNull();
+  expect(await page.evaluate(key => sessionStorage.getItem(key), maasSessionStorageKey)).toBeNull();
 });
 
 test("oauth-login rejected exchange displays its error without opening the console", async ({ context, page, api }) => {
@@ -226,5 +225,5 @@ test("oauth-login rejected exchange displays its error without opening the conso
   await expect(page.locator(".app-shell")).toHaveCount(0);
   await expect(page.getByRole("dialog")).toHaveCount(0);
   expect(api.calls.filter(call => call.path === exchangePath)).toHaveLength(1);
-  expect(await page.evaluate(key => sessionStorage.getItem(key), `${sessionStorageKey}.b`)).toBeNull();
+  expect(await page.evaluate(key => sessionStorage.getItem(key), maasSessionStorageKey)).toBeNull();
 });

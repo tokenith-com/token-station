@@ -18,5 +18,5 @@ export function AdminConsoleBoot() {
     );
   }
 
-  return <AdminConsole defaultBaseURL={config.apiBaseURL} portal={config.portal} />;
+  return <AdminConsole defaultBaseURL={config.apiBaseURL} />;
 }

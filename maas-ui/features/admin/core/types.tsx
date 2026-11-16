@@ -1490,6 +1490,7 @@ export type ConfirmState<T> = {
 export type SettingsTabKey = "settings" | "role-configs" | "identity-providers";
 
 export const sessionStorageKey = "tokenhub.admin.session";
+export const maasSessionStorageKey = `${sessionStorageKey}.b`; // Preserve active MaaS sessions.
 
 export const oauthBaseURLStorageKey = "tokenhub.admin.oauth.base_url";
 export const authExpiredEventName = "tokenhub-admin-auth-expired";
