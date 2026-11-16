@@ -35,6 +35,7 @@ These tests establish UI behavior only. A sample response containing an amount d
 - `fixtures/shell.ts` declares the shell's required reads. Add an endpoint only when the page actually needs it; there is no catch-all successful empty response.
 - `fixtures/billing.ts` uses the existing statement DTOs. Keep IDs, amounts, dates and identities synthetic. Clone data per test and use small, named examples.
 - `scenarios/billing.ts` lists the parameterized statement states. `billing.spec.ts` and `pricing.spec.ts` drive actual controls and assert visible outcomes and relevant outgoing requests.
+- `settlement-settings.spec.ts` covers desktop/mobile exchange-rate configuration and save history, exact decimal PUT payloads, persisted readback, save failure with retained input, failed-load retry, history pagination and long content. Its synthetic exchange-rate state is local to each test and does not establish backend settlement correctness or history persistence.
 - `harness.ts` installs isolation, fixes time/language and provides the shared capture helper. `isolation.spec.ts` verifies the guard itself rejects missing routes, wrong methods, bad payloads and network fallbacks.
 
 For an affected page, cover its normal path and relevant empty, loading, failure, permission or long-content states. Prefer role/label selectors; scope repeated controls to their section. Assert the state before capturing it. Control loading with a releasable response instead of a timing sleep. Never recreate the production billing algorithm inside a fixture.

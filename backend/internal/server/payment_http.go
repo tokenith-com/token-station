@@ -55,7 +55,7 @@ func (s *Server) paymentUser(w http.ResponseWriter, r *http.Request, operator bo
 	role := normalizeAdminRole(user.Role)
 	allowed := role == "consumer"
 	if operator {
-		allowed = role == "admin" || role == "system_admin"
+		allowed = role == "admin"
 	}
 	if !allowed {
 		writeError(w, r, NewHTTPError(403, "payment_forbidden", "This role cannot perform the payment action"))

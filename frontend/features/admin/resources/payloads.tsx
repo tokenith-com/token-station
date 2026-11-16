@@ -523,7 +523,7 @@ export function defaultFormValues<T>(config: ResourceConfig<T>, data: AppData, c
     if (field.key === "project_id") values[field.key] = config.view === "api-keys" ? firstIssueableProject(data, currentUser) : (firstActiveProject(data)?.id ?? "");
     if (field.key === "owner_user_id" && config.view === "api-keys") values[field.key] = currentUser && appRole(currentUser.role) !== "admin" ? currentUser.id : "";
     if (field.key === "team_id") values[field.key] = firstActiveTeam(data)?.id ?? "";
-    if (field.key === "allowed_models") values[field.key] = "";
+    if (field.key === "allowed_models" || field.key === "excluded_models") values[field.key] = "";
     if (field.key === "model_access_mode") values[field.key] = "inherit";
     if (field.key === "daily_requests") values[field.key] = "1000";
     if (field.key === "monthly_requests") values[field.key] = "30000";
@@ -581,6 +581,16 @@ export function defaultFormValues<T>(config: ResourceConfig<T>, data: AppData, c
     if (field.key === "expire_days") values[field.key] = "14";
   }
   return values;
+}
+
+export function projectModelAccessPayload(values: Record<string, string>) {
+  const mode = values.model_access_mode || "inherit";
+  return {
+    ...values,
+    model_access_mode: mode,
+    allowed_models: mode === "restricted" ? splitList(values.allowed_models) : [],
+    excluded_models: mode === "excluded" ? splitList(values.excluded_models) : [],
+  };
 }
 
 export function keyCreatePayload(values: Record<string, string>) {

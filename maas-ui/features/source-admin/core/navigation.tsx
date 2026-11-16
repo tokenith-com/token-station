@@ -126,6 +126,7 @@ export const adminNavGroups: NavGroup[] = [
       { view: "role-configs", label: "角色配置", icon: ShieldCheck },
       { view: "identity-providers", label: "身份源", icon: KeyRound },
       { view: "settings", label: "基础设置", icon: Settings },
+      { view: "settlement-settings", label: "结算配置", icon: WalletCards },
     ],
   },
 ];
@@ -200,6 +201,7 @@ export const standaloneViewMeta: Partial<Record<ViewKey, { title: string; descri
     title: "通知记录",
     description: "查看告警 Webhook 发送结果、目标和失败原因。",
   },
+  "settlement-settings": { title: "结算配置", description: "配置团队钱包结算使用的 USD → CNY 汇率。" },
   "database-status": {
     title: "数据库状态",
     description: "查看数据库类型、连接状态和运行环境信息。",

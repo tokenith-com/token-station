@@ -1,5 +1,6 @@
 export const enTranslations: Record<string, string> = {
-    "请填写此字段": "Please fill out this field",
+    "汇率保存历史": "Exchange Rate Save History", "汇率保存历史加载失败": "Failed to load exchange rate save history", "历史从功能上线后的成功保存开始记录，既有缺失记录无法恢复。": "History records successful saves after this feature launched. Missing earlier records cannot be recovered.", "暂无汇率保存记录": "No exchange rate saves recorded yet", "汇率历史分页": "Exchange rate history pagination", "第 {page} 页，共 {total} 条": "Page {page}, {total} records", "保存时间": "Saved at", "汇率": "Exchange rate",
+"结算配置": "Settlement Settings", "配置团队钱包结算使用的 USD → CNY 汇率。": "Configure the USD → CNY exchange rate for team wallet settlement.", "保存配置": "Save Settings", "结算汇率": "Settlement Exchange Rate", "美元兑人民币汇率": "USD to CNY exchange rate", "汇率已配置": "Exchange rate configured", "汇率未配置": "Exchange rate not configured", "结算汇率加载失败": "Failed to load the settlement exchange rate", "结算汇率保存失败": "Failed to save the settlement exchange rate", "结算汇率已保存": "Settlement exchange rate saved", "配置汇率后，团队仍需有充足的可用余额才能进行付费调用。": "After configuring the exchange rate, teams still need sufficient available balance for paid calls.", "请输入大于零的十进制数，整数部分 1–18 位，小数最多 6 位。": "Enter a positive decimal with 1–18 integer digits and up to 6 fractional digits.", "汇率生效规则": "Exchange Rate Rules", "新汇率仅用于后续调用预扣；进行中的预扣请求继续使用原汇率快照。": "The new rate applies only to subsequent call reservations; active reservations keep their original rate snapshot.", "保存汇率不会重算历史账单，也不会直接改变团队余额。": "Saving the rate does not recalculate historical bills or directly change team balances.", "请填写此字段": "Please fill out this field",
     "继承上级": "Inherit from parent",
     "总览": "Overview",
     "网关概览": "Gateway Overview",
@@ -445,7 +446,6 @@ export const enTranslations: Record<string, string> = {
     "重置已经完成，但最新用量或重置次数刷新失败；旧数据已清除，请点击“刷新用量与重置次数”重试。": "The reset completed, but the latest usage or reset credits could not be refreshed. Stale data was cleared; refresh usage and reset credits to try again.",
     "重新加载": "Reload",
     "全选": "Select all",
-    "清空": "Clear",
     "请选择至少一个统一模型": "Select at least one unified model",
     "确认删除": "Confirm Delete",
     "模型目录已恢复": "Model catalog restored",
@@ -1180,7 +1180,7 @@ export const enTranslations: Record<string, string> = {
     "归属项目": "Project",
     "成本中心、负责人和部门归属配置": "Cost center, owner, and department attribution config",
     "成本优先模式会优先选择该评分更高的线路，分数越高代表越省。": "Cost-first mode prefers routes with higher scores; higher means cheaper.",
-    "成本评分 1-100": "Cost Score 1-100", "缓存写成本 ¥/1M": "Cache-write cost ¥/1M", "5 分钟缓存写成本 ¥/1M": "5-minute cache-write cost ¥/1M", "1 小时缓存写成本 ¥/1M": "1-hour cache-write cost ¥/1M",
+    "成本评分 1-100": "Cost Score 1-100", "缓存写成本 $/1M": "Cache-write cost $/1M", "5 分钟缓存写成本 $/1M": "5-minute cache-write cost $/1M", "1 小时缓存写成本 $/1M": "1-hour cache-write cost $/1M",
     "批量创建时留空，会为每个统一模型使用同名上游模型。": "Leave blank during bulk creation to use the same upstream model name for each unified model.",
     "按模型、项目和日期归集 Token 与成本": "Aggregate tokens and costs by model, project, and date",
     "按项目发放内部 API Key，限制模型白名单、额度、并发和有效期。": "Issue internal API Keys by project and limit model allowlists, quotas, concurrency, and validity.",
@@ -1494,5 +1494,5 @@ export const enTranslations: Record<string, string> = {
     "命中详情": "Findings", "未命中检测项": "No detection items matched",
     "放行": "Allow", "使用独立配置的 Qwen3Guard 服务；未配置或不可用时执行下方策略。": "Uses the separately configured Qwen3Guard service; the behavior below applies when it is unconfigured or unavailable.",
     "Provider 出口模式": "Provider Egress Mode", "继承环境变量代理": "Inherit Environment Proxy", "直接连接": "Direct Connection", "使用统一代理": "Use Global Proxy", "代理协议": "Proxy Protocol", "代理 Host": "Proxy Host", "代理端口": "Proxy Port", "启用代理 Basic 认证": "Enable Proxy Basic Authentication", "代理用户名": "Proxy Username", "代理密码": "Proxy Password", "测试目标 Provider": "Test Target Provider", "正在测试代理": "Testing Proxy", "测试代理连接": "Test Proxy Connection", "代理连接测试通过": "Proxy connection test passed", "代理连接测试失败": "Proxy connection test failed",
-    "适用于 Provider 上游请求；本机与内网目标默认直连。其他目标默认继承 HTTP_PROXY、HTTPS_PROXY 和 NO_PROXY。": "Applies to Provider upstream requests. Local and private targets connect directly by default; other targets inherit HTTP_PROXY, HTTPS_PROXY, and NO_PROXY.",
+    "适用于 Provider 上游请求；本机与内网目标默认直连。其他目标默认继承 HTTP_PROXY、HTTPS_PROXY 和 NO_PROXY。": "Applies to Provider upstream requests. Local and private targets connect directly by default; other targets inherit HTTP_PROXY, HTTPS_PROXY, and NO_PROXY.", "指定模型禁用列表": "Specify Model Blocklist", "项目模型禁用列表": "Project Model Blocklist", "未禁用的已启用模型均可访问，留空表示不禁用任何模型。": "All enabled models not blocked remain accessible; leave empty to block no models.", "未禁用任何模型": "No Models Blocked", "按模型名称搜索": "Search by model name", "已选 {count} 个模型": "{count} models selected", "全选当前搜索结果": "Select all search results", "暂无可选模型": "No selectable models", "项目模型访问规则先于路由执行，项目内 API Key 只能在此范围内进一步收窄。": "Project model access rules apply before routing; project API keys can only further narrow this scope.",
     };

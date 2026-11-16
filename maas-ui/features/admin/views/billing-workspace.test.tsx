@@ -25,9 +25,13 @@ it("preserves unsaved recharge edits while switching billing tabs", async () => 
   expect(screen.getByRole("tab", { name: "充值设置" })).toHaveAttribute("aria-selected", "true");
 });
 
-it("keeps recharge settings unavailable to ordinary administrators", async () => {
+it("shows recharge settings to platform administrators", async () => {
   render(<BillingWorkspace api={api} role="admin"><div>Management fixture</div></BillingWorkspace>);
+  expect(screen.getByRole("tab", { name: "充值设置" })).toBeInTheDocument();
+});
+
+it("keeps recharge settings unavailable to ordinary administrators", async () => {
+  render(<BillingWorkspace api={api} role="team_leader"><div>Management fixture</div></BillingWorkspace>);
   expect(screen.queryByRole("tab", { name: "充值设置" })).not.toBeInTheDocument();
-  await waitFor(() => expect(fetch).toHaveBeenCalled());
   expect(vi.mocked(fetch).mock.calls.some(([url]) => String(url).includes("recharge/settings"))).toBe(false);
 });

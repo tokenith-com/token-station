@@ -52,6 +52,7 @@ import { CustomerOnboardingDialog } from "../../admin/views/customer-onboarding"
 import { EditModal, SettingsView } from "../views/settings-table";
 import { BillingView, UsageView } from "../views/usage-billing";
 import { APIKeyUsageView } from "../views/api-key-usage";
+import { SettlementSettingsView } from "../views/settlement-settings";
 
 type SourceAdminContentProps = {
   baseURL: string;
@@ -761,6 +762,8 @@ export function SourceAdminContent({ baseURL, adminToken, currentUser, language,
             )
           ) : activeView === "plugin-pages" ? (
             <PluginPageView activePageKey={activePluginPageKey} api={api} data={data} onSelectPage={selectPluginPage} />
+          ) : activeView === "settlement-settings" ? (
+            canAccessView(currentUser, "settlement-settings") ? <SettlementSettingsView api={api} /> : null
           ) : activeView === "settings" || activeView === "role-configs" || activeView === "identity-providers" ? (
             <SettingsView
               api={api}

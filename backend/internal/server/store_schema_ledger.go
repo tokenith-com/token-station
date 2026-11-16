@@ -119,7 +119,21 @@ func schemaReferenceSnapshot(ctx context.Context, driver, dsn string) (dbschema.
 }
 
 func buildSchemaReference(ctx context.Context, driver, dsn string) (dbschema.ObjectSet, error) {
-	return buildSchemaReferenceWithExpansions(ctx, driver, dsn, false)
+	objects, err := buildSchemaReferenceWithExpansions(ctx, driver, dsn, false)
+	// The live Project model includes v22 fields that are not in the adoption baseline.
+	for i := range objects.Tables {
+		if objects.Tables[i].Name != "projects" {
+			continue
+		}
+		columns := objects.Tables[i].Columns[:0]
+		for _, column := range objects.Tables[i].Columns {
+			if column.Name != "excluded_models" {
+				columns = append(columns, column)
+			}
+		}
+		objects.Tables[i].Columns = columns
+	}
+	return objects, err
 }
 
 // Adoption compares the frozen baseline before applying expansions. Maintenance

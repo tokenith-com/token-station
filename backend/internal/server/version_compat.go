@@ -20,12 +20,12 @@ type CompatibilityManifest struct {
 
 // CurrentCompatibilityManifest declares the schema required by this release.
 // Versions 12–14 retain the payment branch history; consumer and team wallet
-// expansions follow at versions 15–20. Startup applies all pending expansions.
+// expansions follow at versions 15–21. Startup applies all pending expansions.
 func CurrentCompatibilityManifest() CompatibilityManifest {
 	return CompatibilityManifest{
-		TargetVersion: 20,
-		MinCompatible: 20,
-		MaxCompatible: 20,
+		TargetVersion: 21,
+		MinCompatible: 21,
+		MaxCompatible: 21,
 	}
 }
 

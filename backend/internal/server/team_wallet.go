@@ -308,6 +308,7 @@ func (s *GormStore) creditTeamWallet(teamID, requestID, actorID string, cents in
 }
 
 func (s *Server) registerTeamWalletRoutes() {
+	s.registerSingleMethodRoute(http.MethodGet, "/api/admin/team-wallet/exchange-rate/history", s.handleTeamWalletRateHistory, jsonMethodNotAllowed(http.MethodGet))
 	s.registerSingleMethodRoute(http.MethodGet, "/api/admin/teams/{team_id}/wallet", s.handleTeamWallet, jsonMethodNotAllowed(http.MethodGet))
 	s.registerSingleMethodRoute(http.MethodGet, "/api/admin/teams/{team_id}/wallet/ledger", s.handleTeamWalletLedger, jsonMethodNotAllowed(http.MethodGet))
 	s.registerSingleMethodRoute(http.MethodPost, "/api/admin/teams/{team_id}/wallet/credits", s.handleTeamWalletCredit, jsonMethodNotAllowed(http.MethodPost))
@@ -334,7 +335,7 @@ func (s *Server) handleTeamWallet(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	teamID := r.PathValue("team_id")
-	if !isPlatformAdminRole(user.Role) && !(normalizeAdminRole(user.Role) == "team_leader" && user.TeamID == teamID && s.activeTeamIDSet()[teamID]) {
+	if normalizeAdminRole(user.Role) != "admin" && !(normalizeAdminRole(user.Role) == "team_leader" && user.TeamID == teamID && s.activeTeamIDSet()[teamID]) {
 		writeError(w, r, NewHTTPError(403, "wallet_forbidden", "Wallet is only available to the team's leader or platform administrators"))
 		return
 	}
@@ -360,8 +361,8 @@ func (s *Server) handleTeamWalletCredit(w http.ResponseWriter, r *http.Request) 
 	if !ok {
 		return
 	}
-	if !isPlatformAdminRole(user.Role) {
-		writeError(w, r, NewHTTPError(403, "wallet_forbidden", "Only platform administrators may credit team wallets"))
+	if normalizeAdminRole(user.Role) != "admin" {
+		writeError(w, r, NewHTTPError(403, "wallet_forbidden", "Only admin may credit team wallets"))
 		return
 	}
 	var req struct {
@@ -392,7 +393,12 @@ func (s *Server) handleTeamWalletCredit(w http.ResponseWriter, r *http.Request) 
 }
 
 func (s *Server) handleTeamWalletRate(w http.ResponseWriter, r *http.Request) {
-	if _, ok := s.requireAdmin(w, r, "team_wallet", r.Method); !ok {
+	user, ok := s.requireAdmin(w, r, "team_wallet", r.Method)
+	if !ok {
+		return
+	}
+	if normalizeAdminRole(user.Role) != "admin" {
+		writeError(w, r, NewHTTPError(403, "wallet_forbidden", "Only admin may manage the wallet exchange rate"))
 		return
 	}
 	if r.Method == http.MethodPut {
@@ -407,17 +413,18 @@ func (s *Server) handleTeamWalletRate(w http.ResponseWriter, r *http.Request) {
 			writeError(w, r, err)
 			return
 		}
-		store, ok := s.store.(interface {
-			CreateResourceChecked(string, AdminResource) (AdminResource, error)
-		})
+		store, ok := s.store.(teamWalletRateStore)
 		if !ok {
 			writeError(w, r, NewHTTPError(501, "wallet_unavailable", "Team wallet settings are unavailable"))
 			return
 		}
-		if _, err := store.CreateResourceChecked("settings", AdminResource{ID: teamWalletRateID, Name: "Team wallet exchange rate", Status: StatusActive, Fields: map[string]any{"usd_to_cny": req.Rate}}); err != nil {
+		entry, err := store.SaveTeamWalletRate(req.Rate, user.ID)
+		if err != nil {
 			writeError(w, r, err)
 			return
 		}
+		writeJSON(w, 200, map[string]any{"usd_to_cny": entry.USDToCNY, "configured": true, "paid_calls_enabled": true})
+		return
 	}
 	rate := ""
 	for _, item := range s.store.ListResources("settings") {

@@ -8,9 +8,13 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
+
+	"gorm.io/driver/sqlite"
+	"gorm.io/gorm"
 )
 
 func TestAdminRoutingPolicyCreateBindUnbindAndAudit(t *testing.T) {
@@ -285,6 +289,111 @@ func TestProjectAndAPIKeyModelAccessUsesLeastPrivilege(t *testing.T) {
 	}
 	if _, err := store.StartCall(context.Background(), project, key, "model-a", 0); err != nil {
 		t.Fatalf("inherited key should use project access: %v", err)
+	}
+}
+
+func TestProjectExcludedModelAccess(t *testing.T) {
+	// Exercise storage against the model schema without changing the migration bundle.
+	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	sqlDB, err := db.DB()
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = sqlDB.Close() })
+	if err := db.AutoMigrate(&Project{}, &ProjectTeam{}, &Model{}, &APIKey{}, &AdminResource{}); err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Exec("ALTER TABLE api_keys ADD COLUMN key_ciphertext TEXT").Error; err != nil {
+		t.Fatal(err)
+	}
+	store := &GormStore{db: db, mu: &sync.Mutex{}, dbDriver: "sqlite"}
+	for _, name := range []string{"excluded-a", "excluded-b", "excluded-c"} {
+		if err := db.Create(&Model{ID: name, Name: name, Modality: "chat", Status: StatusActive}).Error; err != nil {
+			t.Fatal(err)
+		}
+	}
+	project, err := store.CreateProjectChecked(Project{
+		Name: "Excluded models", ModelAccessMode: " EXCLUDED ",
+		AllowedModels: []string{"excluded-a"}, ExcludedModels: []string{" excluded-b ", "excluded-b", ""},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if project.ModelAccessMode != ModelAccessModeExcluded || len(project.AllowedModels) != 0 || len(project.ExcludedModels) != 1 || project.ExcludedModels[0] != "excluded-b" {
+		t.Fatalf("normalized project = %+v", project)
+	}
+	key, _, err := store.CreateAPIKey(project.ID, APIKey{Name: "Restricted", ModelAccessMode: ModelAccessModeRestricted, Allowed: []string{"excluded-a", "excluded-b"}}, "thk_excluded_models")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, tc := range []struct {
+		model  string
+		reason string
+	}{
+		{model: "excluded-a"},
+		{model: "excluded-b", reason: "project_model_excluded"},
+		{model: "excluded-c", reason: "api_key_model_not_allowed"},
+	} {
+		t.Run(tc.model, func(t *testing.T) {
+			reasons := modelAccessReasons(project, key, tc.model)
+			allowed := tc.reason == ""
+			if modelAllowedByScopes(project, key, tc.model) != allowed || (len(reasons) == 0) != allowed || (!allowed && !containsString(reasons, tc.reason)) {
+				t.Fatalf("access and diagnostic mismatch: reasons=%v", reasons)
+			}
+		})
+	}
+	persisted, ok := store.GetProject(project.ID)
+	if !ok || len(persisted.ExcludedModels) != 1 || persisted.ExcludedModels[0] != "excluded-b" {
+		t.Fatalf("persisted project = %+v", persisted)
+	}
+	if _, err := store.UpdateProject(project.ID, Project{ModelAccessMode: ModelAccessModeExcluded, ExcludedModels: []string{"missing-model"}}); err == nil || AsHTTPError(err).Code != "model_not_found" {
+		t.Fatalf("unknown excluded model error = %v", err)
+	}
+	project, err = store.UpdateProject(project.ID, Project{ModelAccessMode: ModelAccessModeExcluded, ExcludedModels: []string{}})
+	if err != nil || project.ModelAccessMode != ModelAccessModeExcluded || !modelAllowedByScopes(project, APIKey{}, "excluded-b") {
+		t.Fatalf("empty exclusion list: project=%+v err=%v", project, err)
+	}
+	project, err = store.UpdateProject(project.ID, Project{ExcludedModels: []string{"excluded-a"}})
+	if err != nil || project.ModelAccessMode != ModelAccessModeExcluded || modelAllowedByScopes(project, APIKey{}, "excluded-a") {
+		t.Fatalf("list-only patch: project=%+v err=%v", project, err)
+	}
+	project, err = store.UpdateProject(project.ID, Project{Name: "Unrelated update"})
+	if err != nil || len(project.ExcludedModels) != 1 {
+		t.Fatalf("unrelated update lost exclusions: project=%+v err=%v", project, err)
+	}
+	project, err = store.UpdateProject(project.ID, Project{ModelAccessMode: ModelAccessModeInherit})
+	if err != nil || len(project.ExcludedModels) != 0 || !modelAllowedByScopes(project, APIKey{}, "excluded-a") {
+		t.Fatalf("inherit transition: project=%+v err=%v", project, err)
+	}
+	if _, _, err := store.CreateAPIKey(project.ID, APIKey{ModelAccessMode: ModelAccessModeExcluded}, "thk_invalid_excluded"); err == nil || AsHTTPError(err).Code != "invalid_model_access_mode" {
+		t.Fatalf("API key accepted excluded mode: %v", err)
+	}
+	if _, err := store.UpdateAPIKey(key.ID, APIKey{ModelAccessMode: ModelAccessModeExcluded}); err == nil || AsHTTPError(err).Code != "invalid_model_access_mode" {
+		t.Fatalf("API key update accepted excluded mode: %v", err)
+	}
+}
+
+func TestProjectModelAccessLegacyCompatibility(t *testing.T) {
+	for _, tc := range []struct {
+		name    string
+		project Project
+		allowed bool
+	}{
+		{name: "legacy unrestricted", project: Project{}, allowed: true},
+		{name: "legacy allowlist match", project: Project{AllowedModels: []string{"model-a"}}, allowed: true},
+		{name: "legacy allowlist denial", project: Project{AllowedModels: []string{"model-b"}}},
+		{name: "empty restricted", project: Project{ModelAccessMode: ModelAccessModeRestricted}},
+		{name: "empty excluded", project: Project{ModelAccessMode: ModelAccessModeExcluded}, allowed: true},
+		{name: "invalid mode fails closed", project: Project{ModelAccessMode: "invalid"}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := modelAllowedByScopes(tc.project, APIKey{}, "model-a"); got != tc.allowed {
+				t.Fatalf("model allowed = %v, want %v", got, tc.allowed)
+			}
+		})
 	}
 }
 

@@ -194,6 +194,23 @@ func (s *GormStore) CompleteConsumerActivation(token, password string) (AdminUse
 			}
 			return err
 		}
+		var project Project
+		if err := tx.First(&project, "id = ?", consumerProjectID).Error; err != nil {
+			return err
+		}
+		scoped := &GormStore{db: tx}
+		if _, err := scoped.createResourceLocked("project-members", AdminResource{
+			Name: project.Name + " / " + user.Username,
+			Fields: map[string]any{
+				"project_id":     consumerProjectID,
+				"user_id":        user.ID,
+				"role":           "developer",
+				"can_issue_keys": true,
+				"provisioned_by": "registration",
+			},
+		}, false); err != nil {
+			return err
+		}
 		created = user
 		return nil
 	})

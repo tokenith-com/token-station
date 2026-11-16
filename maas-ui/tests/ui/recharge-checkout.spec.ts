@@ -10,7 +10,7 @@ test.beforeEach(async ({ api }) => {
   api.respond("GET", "/api/admin/recharge/orders", { data: [paid] });
   api.respond("GET", "/api/admin/recharge/orders/TS-receipt-fixture", paid);
 });
-test("avatar recharge entry opens checkout from another page", async ({ page }) => {
+test("avatar recharge entry opens checkout from another page", async ({ page }, info) => {
   await page.goto("/models/");
   await page.getByRole("button", { name: "个人中心", exact: true }).click();
   await page.getByRole("menuitem", { name: "余额充值", exact: true }).click();
@@ -18,6 +18,22 @@ test("avatar recharge entry opens checkout from another page", async ({ page }) 
   await expect(page.getByRole("button", { name: "创建充值订单", exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "支付宝", exact: true })).toBeVisible();
   await expect(page.getByRole("combobox", { name: "支付方式" })).toHaveCount(0);
+  const guide = page.getByRole("complementary", { name: "充值流程" });
+  await expect(guide.getByRole("listitem")).toHaveCount(4);
+  await expect(page.locator(".recharge-summary strong")).toHaveText("¥10.00");
+  await page.getByRole("button", { name: "支付宝", exact: true }).click();
+  await expect(page.getByRole("button", { name: "支付宝", exact: true })).toHaveAttribute("aria-pressed", "true");
+  const main = await page.locator(".payment-checkout-main").boundingBox();
+  const sidebar = await guide.boundingBox();
+  expect(sidebar!.x).toBeGreaterThan(main!.x + main!.width);
+  await capture(page, info, page.locator(".payment-workspace"), "recharge-selection", "Recharge selection and guide", "viewport");
+  await page.getByRole("button", { name: "切换到深色模式", exact: true }).click();
+  await capture(page, info, page.locator(".payment-workspace"), "recharge-selection-dark", "Dark recharge selection", "viewport");
+  await page.getByRole("button", { name: "切换到浅色模式", exact: true }).click();
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+  await expect(page.getByRole("button", { name: "创建充值订单", exact: true })).toBeVisible();
+  await capture(page, info, page.locator(".payment-workspace"), "recharge-selection-mobile", "Mobile recharge selection", "viewport");
 });
 test("merchant return displays a verified receipt and can start another recharge", async ({ page }, info) => {
   await page.goto("/balance-recharge/?payment_order=TS-receipt-fixture");
@@ -32,6 +48,7 @@ test("merchant return displays a verified receipt and can start another recharge
   await page.getByRole("button", { name: "切换到浅色模式", exact: true }).click();
   await page.setViewportSize({ width: 390, height: 844 });
   await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+  await page.locator(".payment-table-scroll").getByRole("button", { name: "查看详情" }).scrollIntoViewIfNeeded();
   await expect(page.locator(".payment-table-scroll").getByRole("button", { name: "查看详情" })).toBeInViewport();
   await expect.poll(() => page.locator(".payment-table-scroll").evaluate(element => element.scrollWidth <= element.clientWidth)).toBe(true);
   await capture(page, info, page.locator(".payment-workspace"), "recharge-paid-mobile", "Mobile recharge receipt", "viewport");

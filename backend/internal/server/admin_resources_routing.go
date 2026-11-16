@@ -90,6 +90,10 @@ func (s *Server) serveAdminResourceCollectionPost(w http.ResponseWriter, r *http
 		writeError(w, r, err)
 		return
 	}
+	if req.ID == teamWalletRateID {
+		writeError(w, r, reservedTeamWalletRateError())
+		return
+	}
 	if req.Name == "" {
 		writeError(w, r, NewHTTPError(400, "invalid_resource", "name is required"))
 		return
@@ -147,6 +151,10 @@ func (s *Server) serveAdminResourceCollectionPost(w http.ResponseWriter, r *http
 }
 
 func (s *Server) serveAdminResourcePatch(w http.ResponseWriter, r *http.Request, user AdminUser, kind string, resourceID string) {
+	if resourceID == teamWalletRateID {
+		writeError(w, r, reservedTeamWalletRateError())
+		return
+	}
 	if kind == "settings" && resourceID == gatewaySettingsID {
 		s.syntheticDNSSetting.Lock()
 		defer s.syntheticDNSSetting.Unlock()
@@ -213,6 +221,10 @@ func (s *Server) serveAdminResourcePatch(w http.ResponseWriter, r *http.Request,
 }
 
 func (s *Server) serveAdminResourceDelete(w http.ResponseWriter, r *http.Request, user AdminUser, kind string, resourceID string) {
+	if resourceID == teamWalletRateID {
+		writeError(w, r, reservedTeamWalletRateError())
+		return
+	}
 	if kind == "quota-policies" && !isPlatformAdminRole(user.Role) {
 		item, err := s.findResource(kind, resourceID)
 		if err != nil {

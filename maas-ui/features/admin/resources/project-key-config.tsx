@@ -5,7 +5,7 @@ import { type AdminResource, type APIKey, type AppData, type FieldConfig, type P
 import { projectKeyDownloadFilename, projectKeyDownloadTemplates } from "../core/project-key-download-templates";
 import { apiKeyCanManage } from "../domain/api-key-management-authz";
 import { apiKeyOwnerSelectOptions, apiKeyOwnerUserID, costCenterLabel, costCenterSelectOptions, ownerUserLabel, projectMemberCanIssueLabel, projectMemberProjectSelectOptions, projectMemberRoleLabel, projectMemberRoleOptions, projectName, projectOwnerLabel, projectSelectOptions, projectTeamLabel, stringifyForm, stringifyValue, teamLabel, teamSelectOptions, truthyValue, userSelectOptions } from "../domain/entities";
-import { countWithUnit, formatTranslationTemplate, tx } from "../i18n/runtime";
+import { countWithUnit, formatTranslationTemplate, languageLocale, tx } from "../i18n/runtime";
 import { openAPIKeyAccess } from "../shared/api-key-access";
 import { APIKeyValue } from "../shared/api-key-value";
 import { adminDelete, adminFetch, adminMutate, keyPatchPayload, projectQuotaSummary, readAdminError, updateAPIKeyStatus } from "./payloads";
@@ -269,6 +269,41 @@ export function apiKeyConfig(): ResourceConfig<APIKey> {
       status: item.status,
     }),
   };
+}
+
+export function ModelAccessList({ label, models, selected, onChange }: {
+  label: string;
+  models: string[];
+  selected: string[];
+  onChange: (models: string[]) => void;
+}) {
+  const [query, setQuery] = useState("");
+  const options = Array.from(new Set(models));
+  const visible = options.filter((name) => name.toLowerCase().includes(query.trim().toLowerCase()));
+  return (
+    <div className="field project-model-access-list">
+      <strong>{tx(label)}</strong>
+      <input className="project-model-access-search" aria-label={tx("按模型名称搜索")} placeholder={tx("按模型名称搜索")} value={query} onChange={(event) => setQuery(event.target.value)} type="search" />
+      <div className="project-model-access-toolbar">
+        <span role="status">{formatTranslationTemplate(tx("已选 {count} 个模型"), { count: new Intl.NumberFormat(languageLocale()).format(selected.length) })}</span>
+        <div>
+          <button className="text-button" type="button" disabled={visible.length === 0} onClick={() => onChange(Array.from(new Set([...selected, ...visible])))}>{tx("全选当前搜索结果")}</button>
+          <button className="text-button" type="button" disabled={selected.length === 0} onClick={() => onChange([])}>{tx("清空")}</button>
+        </div>
+      </div>
+      <div className="project-model-access-options">
+        {visible.length === 0 ? <div className="empty">{tx(options.length === 0 ? "暂无可选模型" : "没有匹配的模型")}</div> : visible.map((name) => {
+          const checked = selected.includes(name);
+          return (
+            <label className={checked ? "project-model-access-option selected" : "project-model-access-option"} key={name}>
+              <input type="checkbox" checked={checked} onChange={() => onChange(checked ? selected.filter((item) => item !== name) : [...selected, name])} />
+              <span><strong>{name}</strong></span>
+            </label>
+          );
+        })}
+      </div>
+    </div>
+  );
 }
 
 function modelAccessSummary(mode: string | undefined, allowed: string[] | undefined) {

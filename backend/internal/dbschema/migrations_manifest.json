@@ -175,6 +175,24 @@
       "checksum": "tokenhub-schema-team-wallet-credit-metadata-v1",
       "lock_timeout_seconds": 30,
       "statement_budget": 8
+    },
+    {
+      "version": 21,
+      "name": "add-team-wallet-rate-history",
+      "phase": "expand",
+      "dialect": "",
+      "checksum": "tokenhub-schema-team-wallet-rate-history-v1",
+      "lock_timeout_seconds": 30,
+      "statement_budget": 2
+    },
+    {
+      "version": 22,
+      "name": "add-project-excluded-models",
+      "phase": "expand",
+      "dialect": "",
+      "checksum": "tokenhub-schema-project-excluded-models-v1",
+      "lock_timeout_seconds": 30,
+      "statement_budget": 3
     }
   ]
 }

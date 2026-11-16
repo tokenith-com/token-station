@@ -56,8 +56,8 @@ func (s *Server) paymentSettings(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	if normalizeAdminRole(user.Role) != "system_admin" {
-		writeError(w, r, NewHTTPError(403, "payment_forbidden", "System administrator required"))
+	if normalizeAdminRole(user.Role) != "admin" {
+		writeError(w, r, NewHTTPError(403, "payment_forbidden", "Admin role required"))
 		return
 	}
 	if r.Method == http.MethodGet {

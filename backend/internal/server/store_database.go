@@ -1348,7 +1348,7 @@ func sqliteDSN(databaseURL string) (string, error) {
 			path = strings.TrimPrefix(parsed.Path, "/")
 		}
 		if path == "" {
-			path = "data/tokenhub.db"
+			path = "data/tokenstation.db"
 		}
 		if parsed.RawQuery != "" {
 			path += "?" + parsed.RawQuery

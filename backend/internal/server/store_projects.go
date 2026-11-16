@@ -30,11 +30,11 @@ func (s *GormStore) CreateProjectChecked(project Project) (Project, error) {
 }
 
 func (s *GormStore) createProject(project Project, requireActiveTeam bool) (Project, error) {
-	mode, allowed, err := normalizeModelAccess(project.ModelAccessMode, project.AllowedModels)
+	mode, allowed, excluded, err := normalizeProjectModelAccess(project.ModelAccessMode, project.AllowedModels, project.ExcludedModels)
 	if err != nil {
 		return Project{}, err
 	}
-	project.ModelAccessMode, project.AllowedModels = mode, allowed
+	project.ModelAccessMode, project.AllowedModels, project.ExcludedModels = mode, allowed, excluded
 	now := time.Now().UTC()
 	if project.ID == "" {
 		project.ID = NewID("prj")
@@ -48,7 +48,7 @@ func (s *GormStore) createProject(project Project, requireActiveTeam bool) (Proj
 	project.UpdatedAt = now
 	project.Teams = nil
 	err = s.db.Transaction(func(tx *gorm.DB) error {
-		if err := validateConfiguredModels(tx, project.AllowedModels); err != nil {
+		if err := validateConfiguredModels(tx, append(append([]string{}, project.AllowedModels...), project.ExcludedModels...)); err != nil {
 			return err
 		}
 		if strings.TrimSpace(project.TeamID) != "" {
@@ -124,15 +124,15 @@ func (s *GormStore) UpdateProject(id string, patch Project) (Project, error) {
 		if patch.Status != "" {
 			project.Status = patch.Status
 		}
-		if patch.ModelAccessMode != "" || patch.AllowedModels != nil {
-			mode, allowed, err := normalizeModelAccess(patch.ModelAccessMode, patch.AllowedModels)
+		if patch.ModelAccessMode != "" || patch.AllowedModels != nil || patch.ExcludedModels != nil {
+			mode, allowed, excluded, err := normalizeProjectModelAccess(patch.ModelAccessMode, patch.AllowedModels, patch.ExcludedModels)
 			if err != nil {
 				return err
 			}
-			if err := validateConfiguredModels(tx, allowed); err != nil {
+			if err := validateConfiguredModels(tx, append(append([]string{}, allowed...), excluded...)); err != nil {
 				return err
 			}
-			project.ModelAccessMode, project.AllowedModels = mode, allowed
+			project.ModelAccessMode, project.AllowedModels, project.ExcludedModels = mode, allowed, excluded
 		}
 		project.DefaultQuotaRef = patch.DefaultQuotaRef
 		project.UpdatedAt = time.Now().UTC()

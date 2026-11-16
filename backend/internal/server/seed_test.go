@@ -188,7 +188,7 @@ func TestRunStartupBootstrapUpgradesV040DatabaseWithDisabledDefaultTeam(t *testi
 	}
 	if _, err := legacyDB.Exec(`INSERT INTO admin_users
 		(id, username, name, email, role, team_id, status, password_hash, created_at, updated_at) VALUES
-		('usr_admin', 'admin', 'Platform Admin', 'admin@tokenhub.local', 'admin', 'team_custom', 'active', 'legacy-password-hash', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`); err != nil {
+		('usr_admin', 'admin', 'Platform Admin', 'admin@tokenstation.local', 'admin', 'team_custom', 'active', 'legacy-password-hash', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`); err != nil {
 		t.Fatal(err)
 	}
 	if err := legacyDB.Close(); err != nil {

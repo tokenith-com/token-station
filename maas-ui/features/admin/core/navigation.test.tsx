@@ -10,7 +10,7 @@ export const expectedMenus: Record<AppRole, string[]> = {
     "billing", "quota-policies", "cost-centers",
     "monitors", "alerts", "alert-events", "notification-channels", "alert-deliveries",
     "security-policies", "sqlite-backups", "database-status", "announcements", "plugins",
-    "users", "role-configs", "identity-providers", "settings",
+    "users", "role-configs", "identity-providers", "settings", "settlement-settings",
   ],
   team_leader: ["overview", "usage", "models", "playground", "api-keys", "gateway", "users", "audit"],
   user: ["overview", "models", "playground", "api-keys", "gateway", "usage", "audit"],
@@ -23,7 +23,7 @@ describe("custom role menus retained during upstream merge", () => {
     expect(views).toEqual(expectedMenus[role]);
     for (const view of views) expect(canAccessView(user, view)).toBe(true);
     if (role !== "admin") {
-      for (const view of ["providers", "routes", "settings"] as const) expect(canAccessView(user, view)).toBe(false);
+      for (const view of ["providers", "routes", "settings", "settlement-settings"] as const) expect(canAccessView(user, view)).toBe(false);
     }
   });
 

@@ -13,7 +13,7 @@ describe("Team wallet summary", () => {
     vi.stubGlobal("fetch", fetch);
     render(<TeamWalletSummary api={api} teamID="team/demo" />);
     const section = screen.getByRole("region", { name: "团队钱包" });
-    expect(await within(section).findByText("付费调用暂不可用")).toBeInTheDocument();
+    expect(await within(section).findByText("结算配置未完成，请联系管理员")).toBeInTheDocument();
     expect(section).toHaveTextContent("123.45");
     expect(fetch.mock.calls[0][0]).toBe("/api/backend/api/admin/teams/team%2Fdemo/wallet");
     expect(fetch.mock.calls[0][1].headers.get("authorization")).toBe("Bearer synthetic-session");

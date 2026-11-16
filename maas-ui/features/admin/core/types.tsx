@@ -38,8 +38,9 @@ export type Project = {
   teams?: ProjectTeam[];
   owner_user_id?: string;
   cost_center?: string;
-  model_access_mode?: "inherit" | "restricted";
+  model_access_mode?: "inherit" | "restricted" | "excluded";
   allowed_models?: string[];
+  excluded_models?: string[];
   status: string;
   default_quota_ref?: string;
   created_at?: string;
@@ -1293,7 +1294,7 @@ export type ViewKey =
   | "database-status"
   | "announcements" | "role-configs"
   | "identity-providers"
-  | "settings";
+  | "settings" | "settlement-settings";
 
 export const viewRoutes: Record<ViewKey, string> = {
   overview: "/overview",
@@ -1330,7 +1331,7 @@ export const viewRoutes: Record<ViewKey, string> = {
   announcements: "/announcements",
   "role-configs": "/role-configs",
   "identity-providers": "/identity-providers",
-  settings: "/settings",
+  settings: "/settings", "settlement-settings": "/settlement-settings",
 };
 
 export const routeViews = Object.fromEntries(

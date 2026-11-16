@@ -3,15 +3,16 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BACKEND_DIR="$ROOT_DIR/backend"
-FRONTEND_DIR="$ROOT_DIR/frontend"
+FRONTEND_DIR="$ROOT_DIR/maas-ui"
 
 # Backend variables with a plain dev default, in NAME=default form. This list is the
 # single source for both the defaults applied below and the environment handed to the
-# backend process, so a new variable is added in one place.
+# backend process, so a new variable is added in one place. The default stack uses
+# the TokenStation MaaS UI, local SQLite, and local mock payments.
 BACKEND_VAR_DEFAULTS=(
   "GOMEMLIMIT=2GiB"
   "TOKENHUB_ENV=dev"
-  "TOKENHUB_HTTP_ADDR=:8080"
+  "TOKENHUB_HTTP_ADDR=127.0.0.1:8080"
   "TOKENHUB_PUBLIC_BASE_URL=http://localhost:8080"
   "TOKENHUB_RELEASE_REPOSITORY=astaxie/TokenHub"
   "TOKENHUB_PLUGIN_DIR=$ROOT_DIR/backend/data/plugins"
@@ -25,10 +26,11 @@ BACKEND_VAR_DEFAULTS=(
   "HTTP_PROXY="
   "HTTPS_PROXY="
   "NO_PROXY="
-  "TOKENHUB_CORS_ALLOWED_ORIGINS=http://localhost:3000"
+  "TOKENHUB_CORS_ALLOWED_ORIGINS=http://localhost:5199"
   "TOKENHUB_ADMIN_TOKEN=dev_admin_token"
   "TOKENHUB_BOOTSTRAP_ADMIN_PASSWORD=admin123456"
-  "TOKENHUB_SECRET_KEY=dev_tokenhub_secret_key"
+  "TOKENHUB_DATABASE_URL=sqlite://$ROOT_DIR/backend/data/tokenstation.db"
+  "TOKENHUB_SECRET_KEY=dev_tokenstation_secret_key"
   "TOKENHUB_UPSTREAM_NON_STREAM_TIMEOUT_SECONDS=120"
   "TOKENHUB_UPSTREAM_STREAM_IDLE_TIMEOUT_SECONDS=300"
   "TOKENHUB_MAX_JSON_REQUEST_BYTES=8388608"
@@ -76,13 +78,14 @@ done
 # is not explicitly set in the shell, backend's godotenv loads it from backend/.env, so
 # PostgreSQL config there can take effect, and passing an empty value would override it.
 # If neither exists, backend falls back to its own default (SQLite).
-TOKENHUB_DATABASE_URL="${TOKENHUB_DATABASE_URL:-}"
-# An unset payment path is also read from backend/.env.
-TOKENHUB_PAYMENT_CONFIG_FILE="${TOKENHUB_PAYMENT_CONFIG_FILE:-}"
+# Always use the local TokenStation database for this development stack.
+TOKENHUB_DATABASE_URL="${TOKENHUB_DATABASE_URL:-sqlite://$ROOT_DIR/backend/data/tokenstation.db}"
+# Use the safe local mock payment configuration by default; callers may override it explicitly.
+TOKENHUB_PAYMENT_CONFIG_FILE="${TOKENHUB_PAYMENT_CONFIG_FILE:-$ROOT_DIR/deploy/payment-local/payment.yaml}"
 # TOKENHUB_API_BASE_URL is derived: it falls back through NEXT_PUBLIC_API_BASE_URL to
 # the public base URL resolved above, so it has to be assigned after the loop.
 TOKENHUB_API_BASE_URL="${TOKENHUB_API_BASE_URL:-${NEXT_PUBLIC_API_BASE_URL:-$TOKENHUB_PUBLIC_BASE_URL}}"
-FRONTEND_PORT="${FRONTEND_PORT:-3000}"
+FRONTEND_PORT="${FRONTEND_PORT:-5199}"
 FRONTEND_HOST="${FRONTEND_HOST:-0.0.0.0}"
 BACKEND_BIN="$ROOT_DIR/.tmp/tokenstation-backend"
 NEXT_BIN="$FRONTEND_DIR/node_modules/.bin/next"

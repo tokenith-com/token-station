@@ -24,6 +24,7 @@ const (
 	RouteStrategyPriorityOnly     = "priority_only"
 	ModelAccessModeInherit        = "inherit"
 	ModelAccessModeRestricted     = "restricted"
+	ModelAccessModeExcluded       = "excluded"
 
 	RouteProjectScopeAll     = "all"
 	RouteProjectScopeInclude = "include"
@@ -107,6 +108,7 @@ type Project struct {
 	CostCenter      string        `json:"cost_center,omitempty" gorm:"index"`
 	ModelAccessMode string        `json:"model_access_mode"`
 	AllowedModels   []string      `json:"allowed_models" gorm:"serializer:json"`
+	ExcludedModels  []string      `json:"excluded_models" gorm:"serializer:json"`
 	Status          string        `json:"status"`
 	CreatedAt       time.Time     `json:"created_at"`
 	UpdatedAt       time.Time     `json:"updated_at"`

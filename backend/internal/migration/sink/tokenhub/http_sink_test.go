@@ -16,6 +16,54 @@ import (
 	"tokenhub/backend/internal/server"
 )
 
+func TestHTTPSinkProjectExcludedModels(t *testing.T) {
+	ts := newHTTPMigrationTestServer(t)
+	defer ts.Close()
+	client, err := NewAdminAPIClient(ts.URL, "test-admin-token", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	sink := NewHTTPSink(client, bundle.StaticResolver{})
+	b := &bundle.CanonicalMigrationBundle{
+		SchemaVersion: bundle.SchemaVersion,
+		Source:        bundle.Source{Adapter: "tokenhub", AdapterVersion: "1.1.0"},
+		GeneratedAt:   time.Now().UTC(),
+		Projects:      []bundle.ProjectRef{{ExternalRef: bundle.ExternalRef{System: "tokenhub", ID: "project/excluded"}, Spec: server.Project{Name: "Excluded Project", Status: server.StatusActive, ModelAccessMode: server.ModelAccessModeExcluded}}},
+	}
+	for _, excluded := range [][]string{{"seeded-test-model"}, {}} {
+		b.Projects[0].Spec.ExcludedModels = excluded
+		if _, err := sink.Apply(context.Background(), b); err != nil {
+			t.Fatal(err)
+		}
+		projects, err := client.ListProjects(context.Background())
+		if err != nil {
+			t.Fatal(err)
+		}
+		found := false
+		for _, project := range projects {
+			if project.Name != "Excluded Project" {
+				continue
+			}
+			found = true
+			if project.ModelAccessMode != server.ModelAccessModeExcluded || len(project.ExcludedModels) != len(excluded) {
+				t.Fatalf("unexpected project: %+v", project)
+			}
+		}
+		if !found {
+			t.Fatal("imported project not found")
+		}
+		result, err := sink.Apply(context.Background(), b)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, change := range result.Changes {
+			if change.Action != ActionSkip {
+				t.Fatalf("reapply changed %s: %s", change.Resource, change.Action)
+			}
+		}
+	}
+}
+
 func writeTestCatalog(t *testing.T) string {
 	t.Helper()
 	dir := t.TempDir()

@@ -1,6 +1,8 @@
 package server
 
 import (
+	"context"
+	"database/sql"
 	"errors"
 	"fmt"
 	"path/filepath"
@@ -8,6 +10,33 @@ import (
 
 	"tokenhub/backend/internal/dbschema"
 )
+
+func TestProjectExcludedModelsMigration(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "legacy.db")
+	db, err := sql.Open("sqlite3", path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+	if _, err := db.Exec(`CREATE TABLE projects (id text PRIMARY KEY, name text); INSERT INTO projects (id, name) VALUES ('legacy', 'Legacy')`); err != nil {
+		t.Fatal(err)
+	}
+	for range 2 {
+		if err := addProjectExcludedModels(context.Background(), directSQLMigrationExecer{DB: db}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if _, err := db.Exec(`UPDATE projects SET excluded_models = '["model-a"]' WHERE id = 'legacy'`); err != nil {
+		t.Fatal(err)
+	}
+	var name, models string
+	if err := db.QueryRow(`SELECT name, excluded_models FROM projects WHERE id = 'legacy'`).Scan(&name, &models); err != nil {
+		t.Fatal(err)
+	}
+	if name != "Legacy" || models != `["model-a"]` {
+		t.Fatalf("unexpected migrated row: %q %q", name, models)
+	}
+}
 
 func TestSchemaLedgerBaselineAdoptedAndVerified(t *testing.T) {
 	databasePath := filepath.Join(t.TempDir(), "schema-ledger.db")

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"image/png"
 	"io"
 	"mime"
@@ -16,6 +17,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"gorm.io/gorm"
 )
 
 func TestConsumerCaptchaGlyphsFillImage(t *testing.T) {
@@ -49,6 +52,7 @@ func TestConsumerCaptchaGlyphsFillImage(t *testing.T) {
 func newConsumerRegistrationTestServer(t *testing.T) (*GormStore, *Server, <-chan string) {
 	t.Helper()
 	store := NewMemoryStore()
+	store.CreateProject(Project{ID: consumerProjectID, Name: "C端普通用户项目", Status: StatusActive})
 	messages := configureTestSMTPChannel(t, store)
 	server := NewWithConfig(store, Config{CORSAllowedOrigins: []string{"https://portal.tokenhub.example"}})
 	t.Cleanup(func() { _ = server.Shutdown(t.Context()) })
@@ -206,6 +210,10 @@ func TestConsumerRegistrationActivationFlowCreatesGuestUser(t *testing.T) {
 	if user.Role != "consumer" || user.Status != StatusActive {
 		t.Fatalf("activated user role=%q status=%q", user.Role, user.Status)
 	}
+	member, ok := findProjectMember(store.ListResources("project-members"), consumerProjectID, user.ID)
+	if !ok || stringField(member.Fields, "role") != "developer" || member.Fields["can_issue_keys"] != true || stringField(member.Fields, "provisioned_by") != "registration" {
+		t.Fatalf("activated user project membership = %+v", member)
+	}
 
 	reused := consumerRegistrationRequest(t, server, http.MethodPost, "/api/admin/auth/activation/complete", map[string]any{
 		"token": token, "password": "Passw0rdOK", "confirm_password": "Passw0rdOK",
@@ -217,6 +225,39 @@ func TestConsumerRegistrationActivationFlowCreatesGuestUser(t *testing.T) {
 	again := registerWithEmail(t, server, "new.user@example.com")
 	if again.Code != http.StatusConflict || errorCode(t, again) != "email_already_registered" {
 		t.Fatalf("registered email status = %d body=%s", again.Code, again.Body.String())
+	}
+}
+
+func TestConsumerRegistrationActivationRollsBackMembershipFailure(t *testing.T) {
+	store := NewMemoryStore()
+	store.CreateProject(Project{ID: consumerProjectID, Name: "C端普通用户项目", Status: StatusActive})
+	callback := "test:consumer-registration-member-failure"
+	if err := store.db.Callback().Create().Before("gorm:create").Register(callback, func(tx *gorm.DB) {
+		if resource, ok := tx.Statement.Dest.(*AdminResource); ok && resource.Kind == "project-members" {
+			tx.AddError(errors.New("injected membership failure"))
+		}
+	}); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = store.db.Callback().Create().Remove(callback) })
+
+	token, _, err := store.CreateConsumerActivation("rollback@example.com", time.Hour, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := store.CompleteConsumerActivation(token, "Passw0rdOK"); err == nil {
+		t.Fatal("expected membership failure")
+	}
+
+	var users int64
+	if err := store.db.Model(&AdminUser{}).Where("email = ?", "rollback@example.com").Count(&users).Error; err != nil {
+		t.Fatal(err)
+	}
+	if users != 0 || len(store.ListResources("project-members")) != 0 {
+		t.Fatalf("registration rollback left users=%d members=%d", users, len(store.ListResources("project-members")))
+	}
+	if _, err := store.LookupConsumerActivation(token); err != nil {
+		t.Fatalf("activation token was consumed after rollback: %v", err)
 	}
 }
 

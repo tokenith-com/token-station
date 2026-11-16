@@ -61,7 +61,7 @@ describe("APIKeyWizardModal", () => {
     }));
   });
 
-  it("only offers models allowed by a restricted project", async () => {
+  it.each(["restricted", "excluded"] as const)("only offers models permitted by a %s project", async (mode) => {
     const user = userEvent.setup();
     const onCreate = vi.fn();
     const currentUser = {
@@ -83,8 +83,9 @@ describe("APIKeyWizardModal", () => {
       name: "Restricted Project",
       owner_user_id: currentUser.id,
       status: "active",
-      model_access_mode: "restricted",
+      model_access_mode: mode,
       allowed_models: ["deepseek-v4-flash-0731"],
+      excluded_models: ["gpt-5.4-mini"],
     }];
 
     render(

@@ -175,7 +175,7 @@ func seedBootstrapAdmin(store Store, password string) error {
 		ID:       "usr_admin",
 		Username: "admin",
 		Name:     "Platform Admin",
-		Email:    "admin@tokenhub.local",
+		Email:    "admin@tokenstation.local",
 		Role:     "admin",
 		TeamID:   "team_platform",
 		Status:   StatusActive,
@@ -369,11 +369,13 @@ func seedDefaultOrgResources(store Store) error {
 			"team_claim":     "department",
 		},
 	})
-	seedDefaultRoleConfigs(store)
+	if err := seedDefaultRoleConfigs(store); err != nil {
+		return fmt.Errorf("seed role configs: %w", err)
+	}
 	return nil
 }
 
-func seedDefaultRoleConfigs(store Store) {
+func seedDefaultRoleConfigs(store Store) error {
 	roles := []AdminResource{
 		{
 			ID:          "role_user",
@@ -424,23 +426,42 @@ func seedDefaultRoleConfigs(store Store) {
 			},
 		},
 	}
+	resources, err := store.ListResourcesChecked("role-configs")
+	if err != nil {
+		return err
+	}
 	for _, role := range roles {
-		if stringField(role.Fields, "role_key") == "consumer" {
-			for _, existing := range store.ListResources("role-configs") {
-				key := stringField(existing.Fields, "role_key")
-				if key != "guest" && key != "consumer" {
-					continue
-				}
-				if key == "guest" {
-					existing.Fields["role_key"] = "consumer"
-					_, _ = store.UpdateResource("role-configs", existing.ID, existing)
-				}
-				role.ID = existing.ID
+		var existing *AdminResource
+		for index := range resources {
+			candidate := &resources[index]
+			key := stringField(candidate.Fields, "role_key")
+			if candidate.ID == role.ID || key == stringField(role.Fields, "role_key") || (key == "guest" && stringField(role.Fields, "role_key") == "consumer") {
+				existing = candidate
 				break
 			}
 		}
-		seedResourceIfMissing(store, "role-configs", role)
+		if existing == nil {
+			if _, err := store.CreateResourceChecked("role-configs", role); err != nil {
+				return err
+			}
+			continue
+		}
+
+		fields := cloneFields(existing.Fields)
+		fields["display_name"] = role.Fields["display_name"]
+		if stringField(role.Fields, "role_key") == "consumer" {
+			fields["role_key"] = "consumer"
+		}
+		if existing.Name != role.Name || stringField(existing.Fields, "display_name") != stringField(role.Fields, "display_name") || stringField(existing.Fields, "role_key") != stringField(fields, "role_key") {
+			patch := *existing
+			patch.Name = role.Name
+			patch.Fields = fields
+			if _, err := store.UpdateResource("role-configs", existing.ID, patch); err != nil {
+				return err
+			}
+		}
 	}
+	return nil
 }
 
 func seedResourceIfMissing(store Store, kind string, resource AdminResource) {

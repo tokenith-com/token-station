@@ -311,8 +311,10 @@ func TestModelPricingSourceDoesNotExposeReferenceToScopedUsers(t *testing.T) {
 	model := linkedPricingModel(source)
 	store.AddModel(model)
 	store.AddRoute(ModelRoute{ModelName: model.Name, ProviderID: source.ProviderID, ProviderModel: source.UpstreamModel, Status: StatusActive})
+	user := AdminUser{ID: "pricing-user", Role: "user"}
+	store.CreateProject(Project{Name: "Pricing project", OwnerUserID: user.ID})
 	server := newManagedTestServer(t, store)
-	models := server.accessibleModelsForAdminUser(AdminUser{Role: "user"})
+	models := server.accessibleModelsForAdminUser(user)
 	if len(models) != 1 || models[0].Metadata[modelPricingProviderKey] != "" || models[0].InputPriceUSDPer1M != 2 {
 		t.Fatalf("scoped model pricing not sanitized: %+v", models)
 	}

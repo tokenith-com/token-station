@@ -574,6 +574,7 @@ func (s *Server) accessibleModelsForAdminUser(user AdminUser) []Model {
 	if s.canViewGlobalOperations(user) {
 		return s.store.ListModels()
 	}
+	projects := s.filterProjectsForUser(user, s.store.ListProjects())
 	routed := s.activeRoutedModelNameSet()
 	models := s.store.ListModels()
 	out := make([]Model, 0, len(models))
@@ -581,8 +582,14 @@ func (s *Server) accessibleModelsForAdminUser(user AdminUser) []Model {
 		if model.Status != StatusActive {
 			continue
 		}
-		if routed[model.Name] || routed[model.ID] {
-			out = append(out, model)
+		if !routed[model.Name] && !routed[model.ID] {
+			continue
+		}
+		for _, project := range projects {
+			if modelAllowedByScopes(project, APIKey{}, model.Name) {
+				out = append(out, model)
+				break
+			}
 		}
 	}
 	return publicPricedModels(s.store, out)

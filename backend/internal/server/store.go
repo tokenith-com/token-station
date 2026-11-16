@@ -15,7 +15,7 @@ import (
 )
 
 const (
-	defaultSQLiteDatabaseURL = "sqlite://data/tokenhub.db"
+	defaultSQLiteDatabaseURL = "sqlite://data/tokenstation.db"
 	adaptiveRoutingWindow    = 15 * time.Minute
 )
 

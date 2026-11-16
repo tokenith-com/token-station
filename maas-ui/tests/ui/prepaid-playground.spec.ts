@@ -40,6 +40,34 @@ test("prepaid playground preserves a rejected draft and links to recharge", asyn
   await expect(page.getByRole("button", { name: "创建充值订单", exact: true })).toBeVisible();
 });
 
+for (const theme of ["light", "dark"] as const) {
+  test(`consumer balance recharge supports ${theme} theme`, async ({ context, page, api }, info) => {
+    await context.addInitScript(value => localStorage.setItem("tokenhub.theme", value), theme);
+    api.respond("GET", "/api/admin/consumer/wallet", { balance_cents: 5000, packages_cents: [1000, 5000, 10000], min_amount_cents: 100, max_amount_cents: 5000000, simulated_payment: true });
+    api.respond("POST", "/api/admin/consumer/recharge-orders", { order: { id: "ui-recharge", amount_cents: 2500, payment_method: "wechat", status: "pending" }, qr_code: "ui-simulated-checkout" });
+    await page.goto("/balance-recharge/");
+    await expect(page.locator(".app-shell")).toHaveAttribute("data-theme", theme);
+    await expect(page.locator(".recharge-packages button")).toHaveCount(3);
+    const card = page.locator(".recharge-card").first();
+    if (theme === "dark") await expect(card).toHaveCSS("background-color", "rgb(20, 20, 25)");
+    await page.locator(".recharge-packages button").first().click();
+    await expect(page.locator(".recharge-packages button").first()).toHaveAttribute("aria-pressed", "true");
+    await page.getByPlaceholder("输入 1 - 50000 元").fill("25");
+    await expect(page.locator(".recharge-custom")).toHaveClass(/selected/);
+    await page.getByRole("radio", { name: "微信支付" }).check();
+    await expect(page.locator(".recharge-method.wechat")).toHaveClass(/selected/);
+    await capture(page, info, page.locator(".recharge-view"), `recharge-${theme}-desktop`, `账户充值：${theme}`, "viewport");
+    await page.getByRole("button", { name: "生成支付二维码" }).click();
+    await expect(page.getByRole("dialog", { name: "请扫码支付" })).toBeVisible();
+    await capture(page, info, page.locator(".recharge-qr-modal"), `recharge-${theme}-checkout`, `充值弹窗：${theme}`);
+    await page.getByRole("button", { name: "取消", exact: true }).click();
+    await page.setViewportSize({ width: 390, height: 844 });
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+    await page.locator(".recharge-summary").scrollIntoViewIfNeeded();
+    await capture(page, info, page.locator(".recharge-view"), `recharge-${theme}-mobile`, `移动端充值：${theme}`, "viewport");
+  });
+}
+
 test("consumer cost cards adapt without project costs", async ({ page, api }, info) => {
   const report = usageReport("30d");
   report.breakdown.api_keys = [{ id: "key_ui_cost", ...report.summary }];

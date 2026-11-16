@@ -14,6 +14,7 @@ const routeModel = { id: "layout-route", model_name: model.name, provider_id: pr
 
 async function installLayoutFixtures(page: Page, role: AppRole, signedIn = true) {
   const responses = shellResponses();
+  responses.set("GET /api/admin/team-wallet/exchange-rate/history", { entries: [], total: 0, limit: 50, offset: 0 });
   responses.set("GET /api/admin/wallet", { balance_micros: 0, available_micros: 0, prepaid_usage: false });
   responses.set("GET /api/admin/recharge/plans", { data: [], channels: [] });
   responses.set("GET /api/admin/wallet/usage", { data: [] });
