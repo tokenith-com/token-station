@@ -15,7 +15,7 @@ beforeEach(() => {
 });
 
 it("preserves unsaved recharge edits while switching billing tabs", async () => {
-  render(<BillingWorkspace api={api} role="system_admin"><div>Management fixture</div></BillingWorkspace>);
+  render(<BillingWorkspace api={api} role="admin"><div>Management fixture</div></BillingWorkspace>);
   fireEvent.click(screen.getByRole("tab", { name: "充值设置" }));
   fireEvent.change(await screen.findByLabelText("档位名称"), { target: { value: "Edited draft" } });
   fireEvent.click(screen.getByRole("tab", { name: "支付与钱包对账" }));

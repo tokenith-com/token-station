@@ -54,13 +54,18 @@ func (s *GormStore) TeamWalletLedger(teamID, requestID string, limit, offset int
 		0 AS reserved_cents, 0 AS settled_cents, '' AS exchange_rate, NULL AS settled_at
 		FROM team_wallet_entries WHERE team_id = ?
 		UNION ALL
-		SELECT request_id AS id, team_id, request_id,
-		CASE WHEN status = 'reserved' THEN -reserved_cents ELSE -settled_cents END AS amount_cents,
-		'' AS actor_user_id, created_at, '' AS credit_type, '' AS remark,
-		NULL AS before_balance_cents, NULL AS after_balance_cents, '' AS actor_name, '' AS team_name,
-		'call' AS kind, status, -settled_cents AS actual_amount_cents,
-		reserved_cents, settled_cents, exchange_rate, settled_at
-		FROM team_wallet_calls WHERE team_id = ?`
+		SELECT calls.request_id AS id, calls.team_id, calls.request_id,
+		CASE WHEN calls.status = 'reserved' THEN -calls.reserved_cents ELSE -calls.settled_cents END AS amount_cents,
+		COALESCE(NULLIF(calls.actor_user_id, ''), logs.attributed_user_id, '') AS actor_user_id, calls.created_at, '' AS credit_type, '' AS remark,
+		CASE WHEN calls.status = 'reserved' THEN calls.reserved_before_balance_cents ELSE calls.finalized_before_balance_cents END AS before_balance_cents,
+		CASE WHEN calls.status = 'reserved' THEN calls.reserved_after_balance_cents ELSE calls.finalized_after_balance_cents END AS after_balance_cents,
+		COALESCE(NULLIF(calls.actor_name, ''), NULLIF(users.name, ''), users.username, '') AS actor_name, '' AS team_name,
+		'call' AS kind, calls.status, -calls.settled_cents AS actual_amount_cents,
+		calls.reserved_cents, calls.settled_cents, calls.exchange_rate, calls.settled_at
+		FROM team_wallet_calls AS calls
+		LEFT JOIN request_logs AS logs ON logs.request_id = calls.request_id
+		LEFT JOIN admin_users AS users ON users.id = COALESCE(NULLIF(calls.actor_user_id, ''), logs.attributed_user_id)
+		WHERE calls.team_id = ?`
 	args := []any{teamID, teamID}
 	if requestID != "" {
 		query = `SELECT * FROM (` + query + `) AS filtered_ledger WHERE request_id = ?`

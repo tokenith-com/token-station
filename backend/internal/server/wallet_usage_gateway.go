@@ -46,29 +46,15 @@ func (s *Server) reserveChatWallet(ctx context.Context, call CallContext, reques
 	if call.walletPayer == "" {
 		return nil
 	}
-	if call.Model.ID == "" || call.Model.Status != StatusActive || call.Model.ContextWindow <= 0 ||
+	if call.Model.ID == "" || call.Model.Status != StatusActive ||
 		call.Model.pricingUnavailable || (call.Model.Modality != "" && call.Model.Modality != "chat") {
 		return walletUsageError()
 	}
-	limit := call.Model.ContextWindow
-	if configured := modelMaxOutputTokens(call.Model); configured > 0 {
-		limit = minInt64(limit, configured)
-	}
-	output := request.requestedMaxTokens()
-	if output <= 0 {
-		output = minInt64(defaultOutputTokenReservation, limit)
-	}
-	if output > limit {
-		return walletUsageError()
-	}
-	request.raw = cloneRawJSON(request.raw, 1)
-	delete(request.raw, "max_completion_tokens")
-	request.MaxTokens = int(output)
 	resolved := modelPriceAt(call.Model, call.StartedAt)
 	if (resolved.InputPriceUSDPer1M <= 0 || resolved.OutputPriceUSDPer1M <= 0) && resolved.Metadata["pricing_status"] != "configured" {
 		return walletUsageError()
 	}
-	return s.payments.store.reserveWalletUsage(ctx, call, call.Model.ContextWindow, output)
+	return s.payments.store.reserveWalletUsage(ctx, call, 0, 0)
 }
 
 // Called with the final payload after any gateway request transformations.
@@ -102,12 +88,12 @@ func (s *Server) validatePrepaidChatRoute(call CallContext, route RouteSelection
 	_, streamBridge := s.streamChatRouteBridge(route)
 	if chatBridge || streamBridge || routeSupportsProviderProtocol(s.adapterRegistry, route, providerRouteProtocolCodexResponses) ||
 		len(s.gatewayProviderCallHooksForRoute(call, route, providerRouteProtocolChatCompletions, req.Stream)) != 0 ||
-		req.Tools != nil || req.ToolChoice != nil || req.MaxTokens <= 0 || len(req.raw["max_completion_tokens"]) != 0 {
+		req.Tools != nil || req.ToolChoice != nil {
 		return walletUsageError()
 	}
 	for field := range req.raw {
 		switch field {
-		case "model", "messages", "stream", "stream_options", "max_tokens", "temperature", "top_p",
+		case "model", "messages", "stream", "stream_options", "max_tokens", "max_completion_tokens", "temperature", "top_p",
 			"presence_penalty", "frequency_penalty", "min_p", "top_k", "stop", "response_format",
 			"reasoning_effort", "metadata", "prompt_cache_key", "user":
 		default:
@@ -130,7 +116,7 @@ func (s *Server) validatePrepaidChatRoute(call CallContext, route RouteSelection
 }
 
 func walletUsageCharge(entry walletUsage, usage Usage) (string, int64) {
-	if usage.MeteringInvalid || usage.InputAudioTokens != 0 || usage.OutputAudioTokens != 0 || usage.PromptTokens <= 0 || usage.PromptTokens > entry.InputBound || usage.CompletionTokens > entry.OutputBound {
+	if usage.MeteringInvalid || usage.InputAudioTokens != 0 || usage.OutputAudioTokens != 0 || usage.PromptTokens <= 0 || (entry.SettlementMode != "postpaid" && (usage.PromptTokens > entry.InputBound || usage.CompletionTokens > entry.OutputBound)) {
 		return "pending_review", 0
 	}
 	units, err := meteringUnits(usage)
@@ -149,7 +135,7 @@ func walletUsageCharge(entry walletUsage, usage Usage) (string, int64) {
 		return "pending_review", 0
 	}
 	amount, err := walletMicros(charge.USD, entry.Rate, false)
-	if err != nil || amount > entry.ReservedMicros {
+	if err != nil || (entry.SettlementMode != "postpaid" && amount > entry.ReservedMicros) {
 		return "pending_review", 0
 	}
 	return "settled", amount

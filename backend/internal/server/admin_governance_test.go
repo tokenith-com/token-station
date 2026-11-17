@@ -208,15 +208,17 @@ func TestUserCreatesPersonalAPIKeyWithoutProjectMembership(t *testing.T) {
 func TestUserCanReadRoutedAdminModels(t *testing.T) {
 	store := newTestMemoryStore(t)
 	store.CreateResource("teams", AdminResource{ID: "team_platform", Name: "Platform Team", Status: StatusActive})
-	if _, err := store.CreateAdminUser(AdminUser{
+	user, err := store.CreateAdminUser(AdminUser{
 		Username: "model.viewer",
 		Email:    "model.viewer@tokenhub.local",
 		Role:     "user",
 		TeamID:   "team_platform",
 		Status:   StatusActive,
-	}, "viewer123456"); err != nil {
+	}, "viewer123456")
+	if err != nil {
 		t.Fatal(err)
 	}
+	store.CreateProject(Project{Name: "Model Viewer Project", OwnerUserID: user.ID, Status: StatusActive})
 	store.AddModel(Model{Name: "gpt-4.1-mini", Modality: "chat", Status: StatusActive})
 	store.AddModel(Model{Name: "text-embedding-3-small", Modality: "embedding", Status: StatusActive})
 	store.AddRoute(ModelRoute{ModelName: "gpt-4.1-mini", ProviderID: "provider_mock", ProviderModel: "mock-chat", Status: StatusActive})

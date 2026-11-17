@@ -2,7 +2,7 @@
   "schema_version": 1,
   "baselines": {
     "postgres": "39778256e5e0c25c1c708d8ede7269d16f906e245db55a2125124f3d93c8290d",
-    "sqlite": "868083cd5191efa1bfcebd5dc37e152aa0d9955d4e427015dba17e51d87edb07"
+    "sqlite": "740dae071397b80e2a3cf8811684d085473cd862016087a24219c9b698d7da92"
   },
   "migrations": [
     {
@@ -193,6 +193,15 @@
       "checksum": "tokenhub-schema-project-excluded-models-v1",
       "lock_timeout_seconds": 30,
       "statement_budget": 3
+    },
+    {
+      "version": 23,
+      "name": "allow-postpaid-wallet-settlement",
+      "phase": "expand",
+      "dialect": "",
+      "checksum": "tokenhub-schema-wallet-postpaid-v1",
+      "lock_timeout_seconds": 30,
+      "statement_budget": 40
     }
   ]
 }

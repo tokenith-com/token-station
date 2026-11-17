@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
@@ -33,10 +34,7 @@ func TestPrepaidRechargeChatPlaygroundAndRefund(t *testing.T) {
 	model := store.AddModel(Model{Name: "wallet-chat", Modality: "chat", ContextWindow: 100, InputPriceUSDPer1M: 1, OutputPriceUSDPer1M: 2, Status: StatusActive})
 	provider := store.AddProvider(Provider{Name: "Wallet mock", Type: ProviderMock, Status: StatusActive, Healthy: true})
 	store.AddRoute(ModelRoute{ModelName: model.Name, ProviderModel: model.Name, ProviderID: provider.ID, Status: StatusActive, Weight: 100})
-	_, err = store.PublishMeteringExchangeRate(meteringExchangeRate{Currency: "CNY", Rate: "0.125", Source: "Test fixture"})
-	if err != nil {
-		t.Fatal(err)
-	}
+	store.CreateResource("settings", AdminResource{ID: teamWalletRateID, Status: StatusActive, Fields: map[string]any{"usd_to_cny": "8"}})
 	adapter := &paymentTestChannel{}
 	app := New(store)
 	store.prepaidUsage = true
@@ -58,7 +56,7 @@ func TestPrepaidRechargeChatPlaygroundAndRefund(t *testing.T) {
 	}
 	chat := `{"model":"wallet-chat","max_tokens":50,"messages":[{"role":"user","content":"Hello"}]}`
 	playground := strings.TrimSuffix(chat, "}") + `,"api_key_id":"` + key.ID + `"}`
-	request(http.MethodPost, "/v1/chat/completions", secret, chat, 402)
+	request(http.MethodPost, "/v1/chat/completions", secret, chat, 200)
 	request(http.MethodPost, "/api/admin/playground/chat/stream", session.Token, playground, 402)
 	created := request(http.MethodPost, "/api/admin/recharge/orders", session.Token, `{"plan_id":"small","channel":"wechat"}`, 201)
 	var order paymentOrder
@@ -78,8 +76,8 @@ func TestPrepaidRechargeChatPlaygroundAndRefund(t *testing.T) {
 		t.Fatal(err)
 	}
 	var paid int64
-	if len(entries) != 2 {
-		t.Fatalf("want two charges, got %+v", entries)
+	if len(entries) != 3 {
+		t.Fatalf("want three charges, got %+v", entries)
 	}
 	for _, entry := range entries {
 		if entry.Status != "settled" || entry.ChargedMicros <= 0 || entry.ChargedMicros >= walletMicrosPerFen {
@@ -169,9 +167,7 @@ func TestConsumerProjectUsesPersonalWalletEvenWithLegacyTeamWallet(t *testing.T)
 		t.Fatal(err)
 	}
 	store.AddModel(Model{Name: "consumer-wallet-chat", Modality: "chat", Status: StatusActive, ContextWindow: 1000, InputPriceUSDPer1M: 1, OutputPriceUSDPer1M: 1})
-	if _, err := store.PublishMeteringExchangeRate(meteringExchangeRate{Currency: "CNY", Rate: "0.125", Source: "Test fixture"}); err != nil {
-		t.Fatal(err)
-	}
+	store.CreateResource("settings", AdminResource{ID: teamWalletRateID, Status: StatusActive, Fields: map[string]any{"usd_to_cny": "8"}})
 	if err := store.db.Create(&teamWallet{TeamID: project.TeamID, BalanceCents: 100, UpdatedAt: time.Now().UTC()}).Error; err != nil {
 		t.Fatal(err)
 	}
@@ -200,10 +196,7 @@ func testPrepaidReservations(t *testing.T, store *GormStore) {
 	t.Cleanup(func() { _ = store.Close() })
 	ctx := context.Background()
 	now := time.Now().UTC()
-	_, err := store.PublishMeteringExchangeRate(meteringExchangeRate{Currency: "CNY", Rate: "0.125", Source: "Test fixture"})
-	if err != nil {
-		t.Fatal(err)
-	}
+	store.CreateResource("settings", AdminResource{ID: teamWalletRateID, Status: StatusActive, Fields: map[string]any{"usd_to_cny": "8"}})
 	now = time.Now().UTC()
 	order := paymentOrder{OrderNo: "test-order", UserID: "test-user", PlanID: "test", AmountFen: 1, Currency: payment.Currency, Status: payment.Pending}
 	if err := store.db.Create(&order).Error; err != nil {
@@ -212,7 +205,7 @@ func testPrepaidReservations(t *testing.T, store *GormStore) {
 	if err := store.settlePayment(ctx, order, payment.OrderResult{OrderNo: order.OrderNo, TradeNo: "trade", AmountFen: 1, Status: payment.Succeeded}); err != nil {
 		t.Fatal(err)
 	}
-	order, err = store.paymentOrder(ctx, order.OrderNo, order.UserID)
+	order, err := store.paymentOrder(ctx, order.OrderNo, order.UserID)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -220,11 +213,11 @@ func testPrepaidReservations(t *testing.T, store *GormStore) {
 	first := CallContext{RequestID: "first", walletPayer: order.UserID, Model: model, StartedAt: now}
 	second := first
 	second.RequestID = "second"
-	if err := store.reserveWalletUsage(ctx, first, 100, 10); err != nil {
+	if err := store.db.Create(&walletUsage{RequestID: first.RequestID, UserID: order.UserID, Model: model.Name, Rates: `{"input":10,"output":1}`, RateID: "test-rate", Rate: "0.125", InputBound: 100, OutputBound: 10, ReservedMicros: 10, SettlementMode: "prepaid", Status: "reserved", CreatedAt: now.Unix(), UpdatedAt: now.Unix()}).Error; err != nil {
 		t.Fatal(err)
 	}
-	if err := store.reserveWalletUsage(ctx, second, 100, 10); err == nil || AsHTTPError(err).Code != "wallet_insufficient_balance" {
-		t.Fatalf("second request should be blocked: %v", err)
+	if err := store.db.Model(&userWallet{}).Where("user_id = ?", order.UserID).Update("reserved_usage_micros", 10).Error; err != nil {
+		t.Fatal(err)
 	}
 	if _, err := store.reservePaymentRefund(ctx, order, "operator", "test"); err == nil || AsHTTPError(err).Code != "insufficient_balance" {
 		t.Fatalf("refund should respect request reservation: %v", err)
@@ -250,6 +243,167 @@ func testPrepaidReservations(t *testing.T, store *GormStore) {
 	}
 }
 
+func TestPostpaidWalletUsageAllowsNegativeSettlementAndIsIdempotent(t *testing.T) {
+	testPostpaidWalletUsage(t, newTestMemoryStore(t))
+}
+
+func testPostpaidWalletUsage(t *testing.T, store *GormStore) {
+	t.Helper()
+	t.Cleanup(func() { _ = store.Close() })
+	userID := "postpaid-user"
+	if err := store.db.Create(&userWallet{UserID: userID, Currency: payment.Currency, BalanceMicros: 0, BalanceFen: 0, UpdatedAt: time.Now().Unix()}).Error; err != nil {
+		t.Fatal(err)
+	}
+	store.CreateResource("settings", AdminResource{ID: teamWalletRateID, Status: StatusActive, Fields: map[string]any{"usd_to_cny": "8"}})
+	now := time.Now().UTC()
+	call := CallContext{RequestID: "postpaid-request", walletPayer: userID, Model: Model{Name: "test-chat", ContextWindow: 0, InputPriceUSDPer1M: 10, OutputPriceUSDPer1M: 1}, StartedAt: now}
+	if err := store.reserveWalletUsage(t.Context(), call, 1, 1); err != nil {
+		t.Fatal(err)
+	}
+	var admitted walletUsage
+	if err := store.db.Take(&admitted, "request_id = ?", call.RequestID).Error; err != nil {
+		t.Fatal(err)
+	}
+	if admitted.SettlementMode != "postpaid" || admitted.ReservedMicros != 0 || admitted.Status != "reserved" {
+		t.Fatalf("invalid postpaid admission record: %+v", admitted)
+	}
+	if err := store.dispatchWalletUsage(t.Context(), call, RouteSelection{Provider: Provider{Type: ProviderMock}}, 1); err != nil {
+		t.Fatal(err)
+	}
+	usage := Usage{PromptTokens: 100, CompletionTokens: 100}
+	if err := store.db.Transaction(func(tx *gorm.DB) error { return finishWalletUsage(tx, call.RequestID, usage, time.Now().Unix()) }); err != nil {
+		t.Fatal(err)
+	}
+	var entry walletUsage
+	if err := store.db.Take(&entry, "request_id = ?", call.RequestID).Error; err != nil {
+		t.Fatal(err)
+	}
+	if entry.Status != "settled" || entry.ChargedMicros <= 0 {
+		t.Fatalf("postpaid usage was not settled: %+v", entry)
+	}
+	var wallet userWallet
+	if err := store.db.Take(&wallet, "user_id = ?", userID).Error; err != nil {
+		t.Fatal(err)
+	}
+	if wallet.BalanceMicros != -entry.ChargedMicros || wallet.BalanceFen != -entry.ChargedMicros/walletMicrosPerFen {
+		t.Fatalf("postpaid settlement did not debit below zero: %+v amount=%d", wallet, entry.ChargedMicros)
+	}
+	balanceAfterFirst := wallet.BalanceMicros
+	if err := store.db.Transaction(func(tx *gorm.DB) error { return finishWalletUsage(tx, call.RequestID, usage, time.Now().Unix()) }); err != nil {
+		t.Fatal(err)
+	}
+	if err := store.db.Take(&wallet, "user_id = ?", userID).Error; err != nil {
+		t.Fatal(err)
+	}
+	if wallet.BalanceMicros != balanceAfterFirst {
+		t.Fatalf("repeated finish changed wallet balance: before=%d after=%d", balanceAfterFirst, wallet.BalanceMicros)
+	}
+}
+
+func TestPostpaidWalletUsageBalanceBoundariesAndPendingReview(t *testing.T) {
+	store := newTestMemoryStore(t)
+	userID := "wallet-boundary-user"
+	for _, micros := range []int64{-1, 0, 1} {
+		id := fmt.Sprintf("%s-%d", userID, micros)
+		if err := store.db.Create(&userWallet{UserID: id, Currency: payment.Currency, BalanceMicros: micros, BalanceFen: 0, UpdatedAt: time.Now().Unix()}).Error; err != nil {
+			t.Fatal(err)
+		}
+		err := store.db.Transaction(func(tx *gorm.DB) error { return checkPersonalWalletBalance(tx, id) })
+		if micros < 0 && (err == nil || AsHTTPError(err).Code != "wallet_insufficient_balance") {
+			t.Fatalf("negative sub-fen balance should be rejected: %d, %v", micros, err)
+		}
+		if micros >= 0 && err != nil {
+			t.Fatalf("non-negative balance should be admitted: %d, %v", micros, err)
+		}
+	}
+	entry := walletUsage{RequestID: "postpaid-review", SettlementMode: "postpaid", Rates: `{"input":"10","output":"1"}`, Rate: "0.125", Status: "pending_review", InputBound: 1, OutputBound: 1}
+	if status, amount := walletUsageCharge(entry, Usage{PromptTokens: 100, CompletionTokens: 100, MeteringInvalid: true}); status != "pending_review" || amount != 0 {
+		t.Fatalf("invalid postpaid usage should remain pending review: %s %d", status, amount)
+	}
+	prepaid := entry
+	prepaid.SettlementMode, prepaid.ReservedMicros = "prepaid", 1
+	if status, amount := walletUsageCharge(prepaid, Usage{PromptTokens: 100, CompletionTokens: 100}); status != "pending_review" || amount != 0 {
+		t.Fatalf("prepaid usage over reservation should remain pending review: %s %d", status, amount)
+	}
+}
+
+func TestPostpaidWalletUsageSettlesPreparedRecordsAndIgnoresRouteWindow(t *testing.T) {
+	store := newTestMemoryStore(t)
+	userID := "postpaid-prepared-user"
+	if err := store.db.Create(&userWallet{UserID: userID, Currency: payment.Currency, BalanceMicros: 0, BalanceFen: 0, UpdatedAt: time.Now().Unix()}).Error; err != nil {
+		t.Fatal(err)
+	}
+	store.CreateResource("settings", AdminResource{ID: teamWalletRateID, Status: StatusActive, Fields: map[string]any{"usd_to_cny": "8"}})
+	now := time.Now().UTC()
+	model := Model{Name: "prepared-chat", ContextWindow: 0, InputPriceUSDPer1M: 10, OutputPriceUSDPer1M: 1}
+	for _, requestID := range []string{"prepared-a", "prepared-b"} {
+		call := CallContext{RequestID: requestID, walletPayer: userID, Model: model, StartedAt: now}
+		if err := store.reserveWalletUsage(t.Context(), call, 1, 1); err != nil {
+			t.Fatal(err)
+		}
+		if err := store.dispatchWalletUsage(t.Context(), call, RouteSelection{Provider: Provider{Type: ProviderOpenAICompatible}}, 999999); err != nil {
+			t.Fatal(err)
+		}
+	}
+	for _, requestID := range []string{"prepared-a", "prepared-b"} {
+		if err := store.db.Transaction(func(tx *gorm.DB) error {
+			return finishWalletUsage(tx, requestID, Usage{PromptTokens: 100, CompletionTokens: 100}, time.Now().Unix())
+		}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	var wallet userWallet
+	if err := store.db.Take(&wallet, "user_id = ?", userID).Error; err != nil {
+		t.Fatal(err)
+	}
+	if wallet.BalanceMicros >= 0 {
+		t.Fatalf("prepared postpaid requests should both debit the wallet: %+v", wallet)
+	}
+}
+
+func TestPostpaidPreparationPreservesTokenParametersWithoutContextWindow(t *testing.T) {
+	store := newTestMemoryStore(t)
+	store.CreateResource("settings", AdminResource{ID: teamWalletRateID, Status: StatusActive, Fields: map[string]any{"usd_to_cny": "8"}})
+	app := &Server{payments: &paymentService{store: store}}
+	for i, raw := range []string{`{"model":"postpaid-chat","messages":[]}`, `{"model":"postpaid-chat","messages":[],"max_completion_tokens":16}`} {
+		var request ChatCompletionRequest
+		if err := json.Unmarshal([]byte(raw), &request); err != nil {
+			t.Fatal(err)
+		}
+		call := CallContext{RequestID: fmt.Sprintf("prepare-%d", i), walletPayer: "prepare-user", StartedAt: time.Now().UTC(), Model: Model{ID: "postpaid-model", Name: "postpaid-chat", Status: StatusActive, InputPriceUSDPer1M: 1, OutputPriceUSDPer1M: 2}}
+		if err := app.reserveChatWallet(t.Context(), call, &request); err != nil {
+			t.Fatal(err)
+		}
+		if request.MaxTokens != 0 || len(request.raw["max_tokens"]) != 0 {
+			t.Fatalf("preparation injected a token limit: %+v", request)
+		}
+		if i == 1 && string(request.raw["max_completion_tokens"]) != "16" {
+			t.Fatalf("preparation changed max_completion_tokens: %+v", request.raw)
+		}
+	}
+}
+
+func TestPostpaidRechargeUsesMicrosForBalanceFen(t *testing.T) {
+	store := newTestMemoryStore(t)
+	order := paymentOrder{OrderNo: "recharge-postpaid", UserID: "recharge-user", PlanID: "test", AmountFen: 1, Currency: payment.Currency, Status: payment.Pending}
+	if err := store.db.Create(&order).Error; err != nil {
+		t.Fatal(err)
+	}
+	if err := store.db.Create(&userWallet{UserID: order.UserID, Currency: order.Currency, BalanceMicros: -1, BalanceFen: 0, UpdatedAt: time.Now().Unix()}).Error; err != nil {
+		t.Fatal(err)
+	}
+	if err := store.settlePayment(t.Context(), order, payment.OrderResult{OrderNo: order.OrderNo, TradeNo: "postpaid-recharge-trade", AmountFen: 1, Status: payment.Succeeded}); err != nil {
+		t.Fatal(err)
+	}
+	var wallet userWallet
+	if err := store.db.Take(&wallet, "user_id = ?", order.UserID).Error; err != nil {
+		t.Fatal(err)
+	}
+	if wallet.BalanceMicros != walletMicrosPerFen-1 || wallet.BalanceFen != 0 {
+		t.Fatalf("recharge used fen addition instead of micros balance: %+v", wallet)
+	}
+}
+
 func TestSQLiteWalletUsageMigration(t *testing.T) {
 	testWalletUsageMigration(t, "sqlite://"+filepath.Join(t.TempDir(), "wallet-v13.db"))
 }
@@ -261,11 +415,8 @@ func testWalletUsageMigration(t *testing.T, dsn string) {
 		t.Fatal(err)
 	}
 	for _, stmt := range []string{
-		"DROP TABLE wallet_usage",
-		"ALTER TABLE user_wallets DROP COLUMN balance_micros",
-		"ALTER TABLE user_wallets DROP COLUMN reserved_usage_micros",
-		"DELETE FROM schema_migrations WHERE version = 14",
-		"INSERT INTO user_wallets (user_id, currency, balance_fen, frozen_fen, updated_at) VALUES ('legacy-wallet','CNY',321,21,0)",
+		"DELETE FROM schema_migrations WHERE version = 23",
+		"INSERT INTO user_wallets (user_id, currency, balance_fen, frozen_fen, balance_micros, reserved_usage_micros, updated_at) VALUES ('legacy-wallet','CNY',321,21,3210000,0,0)",
 	} {
 		if err := store.db.Exec(stmt).Error; err != nil {
 			_ = store.Close()

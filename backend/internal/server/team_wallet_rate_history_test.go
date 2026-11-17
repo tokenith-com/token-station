@@ -78,8 +78,15 @@ func TestTeamWalletRateHistoryPersistenceAndRollback(t *testing.T) {
 }
 
 func TestTeamWalletRateHistoryHTTP(t *testing.T) {
-	store := NewMemoryStore()
-	actor, admin := rateHistoryActor(t, store, "system_admin")
+	config := Config{Environment: "test", BootstrapAdminPassword: "rate-history-bootstrap-password"}
+	store := newTestMemoryStoreWithConfig(t, config)
+	if err := seedDefaultOrgResources(store); err != nil {
+		t.Fatal(err)
+	}
+	if err := seedBootstrapAdmin(store, config.BootstrapAdminPassword); err != nil {
+		t.Fatal(err)
+	}
+	actor, admin := rateHistoryActor(t, store, "admin")
 	_, leader := rateHistoryActor(t, store, "team_leader")
 	_, security := rateHistoryActor(t, store, "security_admin")
 	_, member := rateHistoryActor(t, store, "user")

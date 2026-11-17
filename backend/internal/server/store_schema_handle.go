@@ -102,7 +102,9 @@ func SchemaMigrationRegistry() []dbschema.Migration {
 		apiKeyCiphertextMigration(),
 		teamWalletMigration(),
 		teamWalletLedgerMigration(),
+		teamWalletCallSnapshotMigration(),
 		teamWalletRateHistoryMigration(),
+		walletPostpaidMigration(),
 		projectExcludedModelsMigration(),
 		{Version: 19, Name: "add-team-wallet-exchange-rate", Go: addTeamWalletExchangeRate, ChecksumOverride: "tokenhub-schema-team-wallet-rate-v1", StatementBudget: 3},
 		{

@@ -26,7 +26,7 @@ func TestAdminAPIRequiresToken(t *testing.T) {
 func TestAdminLoginAndUserManagement(t *testing.T) {
 	app := newTestServer(t)
 	login := doJSON(t, app, http.MethodPost, "/api/admin/auth/login", map[string]any{
-		"identity": "admin@tokenhub.local",
+		"identity": "admin@tokenstation.local",
 		"password": "admin123456",
 	}, "")
 	if login.Code != http.StatusOK {
@@ -39,7 +39,7 @@ func TestAdminLoginAndUserManagement(t *testing.T) {
 	if err := json.Unmarshal([]byte(login.Body), &payload); err != nil {
 		t.Fatal(err)
 	}
-	if payload.Token == "" || payload.User.Email != "admin@tokenhub.local" {
+	if payload.Token == "" || payload.User.Email != "admin@tokenstation.local" {
 		t.Fatalf("unexpected login payload: %s", login.Body)
 	}
 
@@ -47,7 +47,7 @@ func TestAdminLoginAndUserManagement(t *testing.T) {
 	if users.Code != http.StatusOK {
 		t.Fatalf("expected users 200, got %d: %s", users.Code, users.Body)
 	}
-	if !strings.Contains(users.Body, `"email":"admin@tokenhub.local"`) || strings.Contains(users.Body, "PasswordHash") {
+	if !strings.Contains(users.Body, `"email":"admin@tokenstation.local"`) || strings.Contains(users.Body, "PasswordHash") {
 		t.Fatalf("unexpected users payload: %s", users.Body)
 	}
 }
@@ -410,7 +410,7 @@ func TestRolePermissionsForDeveloperAndTeamLeaderWorkspaces(t *testing.T) {
 func TestRegularUserModelsComeFromActiveRoutesNotKeys(t *testing.T) {
 	store := newTestMemoryStore(t)
 	store.CreateResource("teams", AdminResource{ID: "team_platform", Name: "Platform Team", Status: StatusActive})
-	_, err := store.CreateAdminUser(AdminUser{
+	user, err := store.CreateAdminUser(AdminUser{
 		Username: "model-viewer",
 		Name:     "Model Viewer",
 		Email:    "model-viewer@tokenhub.local",
@@ -421,6 +421,7 @@ func TestRegularUserModelsComeFromActiveRoutesNotKeys(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	store.CreateProject(Project{Name: "Model Viewer Project", OwnerUserID: user.ID, Status: StatusActive})
 	store.AddModel(Model{Name: "routed-chat", Modality: "chat", Status: StatusActive})
 	store.AddModel(Model{Name: "unrouted-chat", Modality: "chat", Status: StatusActive})
 	store.AddModel(Model{Name: "disabled-routed-chat", Modality: "chat", Status: StatusDisabled})

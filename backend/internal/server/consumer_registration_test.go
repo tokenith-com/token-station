@@ -234,7 +234,7 @@ func TestConsumerRegistrationActivationRollsBackMembershipFailure(t *testing.T) 
 	callback := "test:consumer-registration-member-failure"
 	if err := store.db.Callback().Create().Before("gorm:create").Register(callback, func(tx *gorm.DB) {
 		if resource, ok := tx.Statement.Dest.(*AdminResource); ok && resource.Kind == "project-members" {
-			tx.AddError(errors.New("injected membership failure"))
+			_ = tx.AddError(errors.New("injected membership failure"))
 		}
 	}); err != nil {
 		t.Fatal(err)

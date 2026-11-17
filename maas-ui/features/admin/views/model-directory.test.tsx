@@ -35,8 +35,8 @@ describe("native model directory", () => {
     ]);
     const row = screen.getByRole("row", { name: /authorized-model/ });
     expect(row).toHaveTextContent("当前账号可用");
-    expect(row).toHaveTextContent("¥2");
-    expect(row).toHaveTextContent("¥6");
+    expect(row).toHaveTextContent("$2.00/Mt");
+    expect(row).toHaveTextContent("$6.00/Mt");
     expect(screen.queryByText("官方价")).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "新建对外模型" })).not.toBeInTheDocument();
     expect(screen.queryByRole("group", { name: "发布状态" })).not.toBeInTheDocument();

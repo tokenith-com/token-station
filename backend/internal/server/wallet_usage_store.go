@@ -3,11 +3,13 @@ package server
 import (
 	"context"
 	"errors"
+	"math"
 	"math/big"
 	"net/http"
 	"time"
 
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 	"tokenhub/backend/internal/dbschema"
 	"tokenhub/backend/internal/metering"
 	"tokenhub/backend/internal/payment"
@@ -27,6 +29,7 @@ type walletUsage struct {
 	ReservedMicros int64  `json:"reserved_micros"`
 	ChargedMicros  int64  `json:"charged_micros"`
 	Status         string `json:"status"`
+	SettlementMode string `json:"settlement_mode"`
 	CreatedAt      int64  `gorm:"autoCreateTime:false" json:"created_at"`
 	UpdatedAt      int64  `gorm:"autoUpdateTime:false" json:"updated_at"`
 }
@@ -52,6 +55,20 @@ func walletUsageMigration() dbschema.Migration {
 
 func walletUsageError() error {
 	return NewHTTPError(http.StatusBadRequest, "prepaid_route_unsupported", "This model or request is unavailable for prepaid usage")
+}
+
+func checkPersonalWalletBalance(tx *gorm.DB, userID string) error {
+	wallet := userWallet{UserID: userID, Currency: payment.Currency}
+	if err := tx.Clauses(clause.OnConflict{DoNothing: true}).Create(&wallet).Error; err != nil {
+		return err
+	}
+	if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Take(&wallet, "user_id = ? AND currency = ?", userID, payment.Currency).Error; err != nil {
+		return err
+	}
+	if wallet.BalanceMicros < 0 {
+		return insufficientWalletBalance()
+	}
+	return nil
 }
 
 func insufficientWalletBalance() error {
@@ -82,61 +99,79 @@ func walletMicros(usd, usdPerCNY string, roundUp bool) (int64, error) {
 	return quotient.Int64(), nil
 }
 
+func loadWalletSettlementFX(tx *gorm.DB) (*meteringExchangeRate, error) {
+	var setting AdminResource
+	if err := tx.Where("id = ? AND kind = ? AND status = ?", teamWalletRateID, "settings", StatusActive).First(&setting).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	rate, ok := setting.Fields["usd_to_cny"].(string)
+	if !ok {
+		return nil, nil
+	}
+	usdToCNY, err := metering.Decimal(rate)
+	if err != nil || usdToCNY.Sign() <= 0 {
+		return nil, nil
+	}
+	return &meteringExchangeRate{
+		ID:            setting.ID,
+		Currency:      payment.Currency,
+		Rate:          new(big.Rat).Inv(usdToCNY).FloatString(12),
+		Source:        "team_wallet_settlement",
+		EffectiveFrom: setting.UpdatedAt,
+	}, nil
+}
+
 func (s *GormStore) reserveWalletUsage(ctx context.Context, call CallContext, inputBound, outputBound int64) error {
 	rates := legacyMeteringPrice(call.Model, call.StartedAt, false).Rates
-	maximum, err := metering.Reserve(rates, inputBound, outputBound)
-	if err != nil {
-		return walletUsageError()
-	}
 	encoded, err := encodeMetering(rates)
 	if err != nil {
 		return err
 	}
 	return s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		fx, err := loadMeteringFX(tx, payment.Currency, call.StartedAt)
+		fx, err := loadWalletSettlementFX(tx)
 		if err != nil {
 			return err
 		}
 		if fx == nil {
 			return NewHTTPError(503, "wallet_exchange_rate_unavailable", "CNY settlement rate is unavailable")
 		}
-		amount, err := walletMicros(maximum, fx.Rate, true)
-		if err != nil {
+		if _, err := walletMicros("0", fx.Rate, false); err != nil {
 			return err
 		}
 		now := time.Now().Unix()
-		if amount > 0 {
-			result := tx.Model(&userWallet{}).
-				Where("user_id = ? AND currency = ? AND balance_micros - frozen_fen * ? - reserved_usage_micros >= ?", call.walletPayer, payment.Currency, walletMicrosPerFen, amount).
-				Updates(map[string]any{"reserved_usage_micros": gorm.Expr("reserved_usage_micros + ?", amount), "updated_at": now})
-			if result.Error != nil {
-				return result.Error
-			}
-			if result.RowsAffected != 1 {
-				return insufficientWalletBalance()
-			}
-		}
-		return tx.Create(&walletUsage{RequestID: call.RequestID, UserID: call.walletPayer, Model: call.Model.Name, Rates: encoded, RateID: fx.ID, Rate: fx.Rate, InputBound: inputBound, OutputBound: outputBound, ReservedMicros: amount, Status: "reserved", CreatedAt: now, UpdatedAt: now}).Error
+		return tx.Create(&walletUsage{RequestID: call.RequestID, UserID: call.walletPayer, Model: call.Model.Name, Rates: encoded, RateID: fx.ID, Rate: fx.Rate, SettlementMode: "postpaid", Status: "reserved", CreatedAt: now, UpdatedAt: now}).Error
 	})
 }
 
 func (s *GormStore) dispatchWalletUsage(ctx context.Context, call CallContext, route RouteSelection, outputBound int64) error {
-	var upstream ProviderModel
-	err := s.db.WithContext(ctx).Select("context_window", "metadata").Take(&upstream, "provider_id = ? AND upstream_model = ?", route.Provider.ID, route.ProviderModel).Error
-	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+	var entry walletUsage
+	if err := s.db.WithContext(ctx).Take(&entry, "request_id = ?", call.RequestID).Error; err != nil {
 		return err
 	}
-	// The published provider window bounds accepted prompt tokens. A route
-	// with unknown limits cannot make a reliable reservation.
-	if route.Provider.Type != ProviderMock && (upstream.ContextWindow <= 0 || upstream.ContextWindow > call.Model.ContextWindow) {
-		return walletUsageError()
+	if entry.SettlementMode != "postpaid" {
+		var upstream ProviderModel
+		err := s.db.WithContext(ctx).Select("context_window", "metadata").Take(&upstream, "provider_id = ? AND upstream_model = ?", route.Provider.ID, route.ProviderModel).Error
+		if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+			return err
+		}
+		// The published provider window bounds accepted prompt tokens. A route
+		// with unknown limits cannot make a reliable reservation.
+		if route.Provider.Type != ProviderMock && (upstream.ContextWindow <= 0 || upstream.ContextWindow > call.Model.ContextWindow) {
+			return walletUsageError()
+		}
+		if configured := modelMaxOutputTokens(Model{Metadata: upstream.Metadata}); configured > 0 && outputBound > configured {
+			return walletUsageError()
+		}
 	}
-	if configured := modelMaxOutputTokens(Model{Metadata: upstream.Metadata}); configured > 0 && outputBound > configured {
-		return walletUsageError()
+	query := s.db.WithContext(ctx).Model(&walletUsage{}).
+		Where("request_id = ? AND status = ?", call.RequestID, "reserved")
+	if entry.SettlementMode != "postpaid" {
+		query = query.Where("output_bound >= ?", outputBound)
 	}
-
-	result := s.db.WithContext(ctx).Model(&walletUsage{}).
-		Where("request_id = ? AND status = ? AND output_bound >= ?", call.RequestID, "reserved", outputBound).
+	result := query.
 		Updates(map[string]any{"status": "dispatched", "updated_at": time.Now().Unix()})
 	if result.Error != nil {
 		return result.Error
@@ -175,11 +210,20 @@ func updateWalletUsage(tx *gorm.DB, entry walletUsage, status string, amount, no
 	if result.Error != nil || result.RowsAffected != 1 {
 		return result.Error
 	}
-	if status == "pending_review" || entry.ReservedMicros == 0 {
+	if status == "pending_review" || entry.SettlementMode != "postpaid" && entry.ReservedMicros == 0 {
 		return nil
 	}
-	updated := tx.Model(&userWallet{}).
-		Where("user_id = ? AND currency = ? AND reserved_usage_micros >= ? AND balance_micros >= ?", entry.UserID, payment.Currency, entry.ReservedMicros, amount).
+	if amount < 0 {
+		return errors.New("invalid wallet charge")
+	}
+	query := tx.Model(&userWallet{}).
+		Where("user_id = ? AND currency = ? AND reserved_usage_micros >= ?", entry.UserID, payment.Currency, entry.ReservedMicros)
+	if entry.SettlementMode == "postpaid" {
+		query = query.Where("balance_micros >= ?", int64(math.MinInt64)+amount)
+	} else {
+		query = query.Where("balance_micros >= ?", amount)
+	}
+	updated := query.
 		Updates(map[string]any{
 			"balance_micros":        gorm.Expr("balance_micros - ?", amount),
 			"balance_fen":           gorm.Expr("(balance_micros - ?) / ?", amount, walletMicrosPerFen),

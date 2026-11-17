@@ -70,9 +70,9 @@ export function LoginDesignPreview({ theme, language, onThemeToggle, onLanguageC
       <div className="tc-login-preview-content">
         <section className="tc-login-preview-hero" aria-labelledby="tc-login-preview-title">
           <div className="tc-login-preview-intro">
-            <p className="tc-login-preview-eyebrow">{tx("企业 AI 的统一入口")}</p>
+            <p className="tc-login-preview-eyebrow">{tx("AI 的统一入口")}</p>
             <h1 id="tc-login-preview-title">
-              <span>{tx("统一企业模型接入")}</span>
+              <span>{tx("多样化模型统一接入")}</span>
               <span>{tx("释放每一枚 Token 的价值")}</span>
             </h1>
             <p className="tc-login-preview-subtitle">{tx("一个入口连接多种模型，让团队专注创造，让用量与成本清晰可见。")}</p>

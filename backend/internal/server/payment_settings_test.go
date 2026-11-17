@@ -11,7 +11,12 @@ import (
 )
 
 func TestRechargeSettingsAndCustomOrder(t *testing.T) {
-	testRechargeSettings(t, newTestMemoryStore(t))
+	config := Config{Environment: "test", BootstrapAdminPassword: "recharge-bootstrap-password"}
+	store := newTestMemoryStoreWithConfig(t, config)
+	if err := seedDefaultOrgResources(store); err != nil {
+		t.Fatal(err)
+	}
+	testRechargeSettings(t, store)
 }
 
 func testRechargeSettings(t *testing.T, store *GormStore) {
@@ -19,8 +24,8 @@ func testRechargeSettings(t *testing.T, store *GormStore) {
 	adapter := &paymentTestChannel{}
 	app.payments = &paymentService{store: store, config: &payment.Service{Plans: []payment.Plan{{ID: "legacy", Name: "Legacy", AmountFen: 1}}, Channels: map[string]payment.Channel{payment.Wechat: adapter}}}
 	t.Cleanup(func() { app.payments = nil; _ = app.Shutdown(context.Background()) })
-	session := func(role string) string {
-		u, err := store.CreateAdminUser(AdminUser{Username: role, Email: role + "@example.test", Role: role, Status: StatusActive}, "test-password-123")
+	session := func(username, role string) string {
+		u, err := store.CreateAdminUser(AdminUser{Username: username, Email: username + "@example.test", Role: role, Status: StatusActive}, "test-password-123")
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -30,7 +35,7 @@ func testRechargeSettings(t *testing.T, store *GormStore) {
 		}
 		return s.Token
 	}
-	root, buyer, operator := session("system_admin"), session("consumer"), session("admin")
+	root, buyer, operator := session("root", "admin"), session("buyer", "consumer"), session("operator", "system_admin")
 	req := func(method, path, token, body, key string, status int) *httptest.ResponseRecorder {
 		r := httptest.NewRequest(method, path, strings.NewReader(body))
 		r.Header.Set("Authorization", "Bearer "+token)

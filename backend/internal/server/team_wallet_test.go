@@ -173,7 +173,12 @@ func TestTeamWalletCreditAtomicAndIdempotent(t *testing.T) {
 }
 
 func TestTeamWalletHTTPPermissionsAndSettings(t *testing.T) {
-	store := NewMemoryStore()
+	config := Config{Environment: "test", BootstrapAdminPassword: "team-wallet-bootstrap-password"}
+	store := NewMemoryStoreWithConfig(config)
+	if err := seedDefaultOrgResources(store); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = store.Close() })
 	store.CreateResource("teams", AdminResource{ID: "wallet-team"})
 	store.CreateResource("teams", AdminResource{ID: "other-wallet-team"})
 	session := func(role string) string {
@@ -187,7 +192,7 @@ func TestTeamWalletHTTPPermissionsAndSettings(t *testing.T) {
 		}
 		return token.Token
 	}
-	admin, leader, member, security := session("system_admin"), session("team_leader"), session("user"), session("security_admin")
+	admin, leader, member, security := session("admin"), session("team_leader"), session("user"), session("security_admin")
 	server := NewWithConfig(store, Config{Environment: "test"})
 	t.Cleanup(func() { _ = server.Shutdown(t.Context()) })
 	app := server.Handler()
