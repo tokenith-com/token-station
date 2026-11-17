@@ -155,6 +155,38 @@ func (s *GormStore) LookupConsumerActivation(token string) (consumerEmailActivat
 	return record, err
 }
 
+func ensureBuiltinConsumerProject(tx *gorm.DB) (Project, error) {
+	var project Project
+	err := tx.First(&project, "id = ?", consumerProjectID).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		project = Project{
+			ID:          consumerProjectID,
+			Name:        "C端普通用户项目",
+			OwnerUserID: "usr_admin",
+			CostCenter:  consumerCostCenterCode,
+			Status:      StatusActive,
+		}
+		if err := tx.Create(&project).Error; err != nil {
+			return Project{}, err
+		}
+		return project, nil
+	}
+	if err != nil {
+		return Project{}, err
+	}
+	project.TeamID = ""
+	project.CostCenter = consumerCostCenterCode
+	project.Status = StatusActive
+	project.UpdatedAt = time.Now().UTC()
+	if err := tx.Save(&project).Error; err != nil {
+		return Project{}, err
+	}
+	if err := tx.Where("project_id = ?", consumerProjectID).Delete(&ProjectTeam{}).Error; err != nil {
+		return Project{}, err
+	}
+	return project, nil
+}
+
 func (s *GormStore) CompleteConsumerActivation(token, password string) (AdminUser, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -194,8 +226,8 @@ func (s *GormStore) CompleteConsumerActivation(token, password string) (AdminUse
 			}
 			return err
 		}
-		var project Project
-		if err := tx.First(&project, "id = ?", consumerProjectID).Error; err != nil {
+		project, err := ensureBuiltinConsumerProject(tx)
+		if err != nil {
 			return err
 		}
 		scoped := &GormStore{db: tx}

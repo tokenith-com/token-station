@@ -160,7 +160,9 @@ func BootstrapBaseDataWithConfig(store Store, config Config) error {
 	}
 	seedDefaultProject(store)
 	seedConsumerCostCenter(store)
-	seedConsumerProject(store)
+	if err := seedConsumerProject(store); err != nil {
+		return err
+	}
 	if err := seedBuiltinProviderCatalog(store); err != nil {
 		return err
 	}
@@ -211,27 +213,12 @@ func seedDefaultProject(store Store) {
 
 // seedConsumerProject creates the dedicated project that holds API keys of
 // consumer (guest) accounts, keeping them separate from the default project.
-func seedConsumerProject(store Store) {
-	if existing, ok := store.GetProject(consumerProjectID); ok {
-		// Earlier builds seeded the consumer project under the platform team and
-		// cost center. Keep the project, keys, and access rules, but remove the
-		// legacy team association so consumer calls cannot inherit team billing.
-		changed := false
-		if existing.CostCenter == "AI-PLATFORM" {
-			existing.CostCenter = consumerCostCenterCode
-			changed = true
+func seedConsumerProject(store Store) error {
+	if _, ok := store.GetProject(consumerProjectID); ok {
+		if repairable, ok := store.(interface{ RepairBuiltinConsumerProject() error }); ok {
+			return repairable.RepairBuiltinConsumerProject()
 		}
-		if existing.TeamID != "" {
-			existing.TeamID = ""
-			changed = true
-			if clearable, ok := store.(interface{ ClearProjectTeamAssociation(string) error }); ok {
-				_ = clearable.ClearProjectTeamAssociation(consumerProjectID)
-			}
-		}
-		if changed && existing.TeamID == "" {
-			_, _ = store.UpdateProject(consumerProjectID, existing)
-		}
-		return
+		return nil
 	}
 	store.CreateProject(Project{
 		ID:          consumerProjectID,
@@ -240,6 +227,7 @@ func seedConsumerProject(store Store) {
 		CostCenter:  consumerCostCenterCode,
 		Status:      StatusActive,
 	})
+	return nil
 }
 
 // seedConsumerCostCenter ensures a cost center with the consumer code exists,

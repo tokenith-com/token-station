@@ -19,7 +19,9 @@ func TestSeedConsumerProjectRemovesLegacyTeamWithoutChangingKeys(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	seedConsumerProject(store)
+	if err := seedConsumerProject(store); err != nil {
+		t.Fatal(err)
+	}
 
 	project, ok := store.GetProject(consumerProjectID)
 	if !ok || project.TeamID != "" || project.CostCenter != consumerCostCenterCode {
@@ -31,6 +33,28 @@ func TestSeedConsumerProjectRemovesLegacyTeamWithoutChangingKeys(t *testing.T) {
 	links, total, err := store.ListProjectTeams(consumerProjectID, 0, 10)
 	if err != nil || total != 0 || len(links) != 0 {
 		t.Fatalf("legacy project team links were not removed: total=%d links=%+v err=%v", total, links, err)
+	}
+}
+
+func TestBuiltinConsumerProjectCannotBeDeletedOrReassigned(t *testing.T) {
+	store := newTestMemoryStore(t)
+	store.CreateResource("teams", AdminResource{ID: "team_consumer_test", Name: "Consumer Test Team", Status: StatusActive})
+	store.CreateProject(Project{ID: consumerProjectID, Name: "C端普通用户项目", Status: StatusActive, CostCenter: consumerCostCenterCode})
+
+	if _, err := store.UpdateProject(consumerProjectID, Project{Name: "Renamed Consumer Project"}); err != nil {
+		t.Fatalf("consumer project name should remain editable: %v", err)
+	}
+	if _, err := store.UpdateProject(consumerProjectID, Project{Status: StatusDisabled}); AsHTTPError(err).Code != "builtin_consumer_project" {
+		t.Fatalf("expected disabled consumer project update to be rejected, got %v", err)
+	}
+	if _, err := store.UpdateProject(consumerProjectID, Project{CostCenter: defaultCostCenterCode}); AsHTTPError(err).Code != "builtin_consumer_project" {
+		t.Fatalf("expected consumer cost center update to be rejected, got %v", err)
+	}
+	if _, err := store.AddProjectTeam(ProjectTeam{ProjectID: consumerProjectID, TeamID: "team_consumer_test", Role: "viewer"}); AsHTTPError(err).Code != "builtin_consumer_project" {
+		t.Fatalf("expected consumer team link to be rejected, got %v", err)
+	}
+	if err := store.DeleteProject(consumerProjectID); AsHTTPError(err).Code != "builtin_consumer_project" {
+		t.Fatalf("expected consumer project deletion to be rejected, got %v", err)
 	}
 }
 
