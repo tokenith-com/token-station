@@ -213,10 +213,22 @@ func seedDefaultProject(store Store) {
 // consumer (guest) accounts, keeping them separate from the default project.
 func seedConsumerProject(store Store) {
 	if existing, ok := store.GetProject(consumerProjectID); ok {
-		// Earlier builds seeded the consumer project under the platform cost
-		// center; move it to the consumer cost center once.
+		// Earlier builds seeded the consumer project under the platform team and
+		// cost center. Keep the project, keys, and access rules, but remove the
+		// legacy team association so consumer calls cannot inherit team billing.
+		changed := false
 		if existing.CostCenter == "AI-PLATFORM" {
 			existing.CostCenter = consumerCostCenterCode
+			changed = true
+		}
+		if existing.TeamID != "" {
+			existing.TeamID = ""
+			changed = true
+			if clearable, ok := store.(interface{ ClearProjectTeamAssociation(string) error }); ok {
+				_ = clearable.ClearProjectTeamAssociation(consumerProjectID)
+			}
+		}
+		if changed && existing.TeamID == "" {
 			_, _ = store.UpdateProject(consumerProjectID, existing)
 		}
 		return
@@ -224,7 +236,6 @@ func seedConsumerProject(store Store) {
 	store.CreateProject(Project{
 		ID:          consumerProjectID,
 		Name:        "C端普通用户项目",
-		TeamID:      "team_platform",
 		OwnerUserID: "usr_admin",
 		CostCenter:  consumerCostCenterCode,
 		Status:      StatusActive,
@@ -357,7 +368,7 @@ func seedDefaultOrgResources(store Store) error {
 		Fields: map[string]any{
 			"provider_type":  "oidc",
 			"issuer_url":     "https://sso.example.com",
-			"client_id":      "tokenhub-admin",
+			"client_id":      "tokenstation-admin",
 			"client_secret":  "",
 			"authorize_url":  "https://sso.example.com/oauth2/authorize",
 			"token_url":      "https://sso.example.com/oauth2/token",
@@ -688,7 +699,7 @@ func seedMockData(store Store) error {
 				TokenLimitTPM:  int64(90000 + i*1500),
 				MaxConcurrency: int64(10 + (i % 12)),
 				Headers: map[string]string{
-					"x-tokenhub-resource-region": mockRegion(i + resourceIndex),
+					"x-tokenstation-resource-region": mockRegion(i + resourceIndex),
 				},
 				Options: map[string]string{
 					"owner": fmt.Sprintf("team_mock_%02d", ((i-1)%24)+1),
@@ -746,7 +757,7 @@ func seedMockData(store Store) error {
 			ID:           fmt.Sprintf("usr_mock_%03d", i),
 			Username:     fmt.Sprintf("mock.user%03d", i),
 			Name:         fmt.Sprintf("Mock User %03d", i),
-			Email:        fmt.Sprintf("mock.user%03d@tokenhub.local", i),
+			Email:        fmt.Sprintf("mock.user%03d@tokenstation.local", i),
 			Role:         mockRole(i),
 			TeamID:       mockActiveTeamID(i),
 			Status:       activeEvery(i, 16),

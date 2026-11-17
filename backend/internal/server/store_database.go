@@ -274,7 +274,10 @@ func newStoreWithDialect(databaseURL string, config Config, publishHeartbeat boo
 		if err := backfillQuotaBucketAttribution(db); err != nil {
 			return err
 		}
-		return backfillRoutingPolicyBindingKeys(db)
+		if err := backfillRoutingPolicyBindingKeys(db); err != nil {
+			return err
+		}
+		return backfillBrandDefaults(db)
 	}
 	var instanceHeartbeatID string
 	const startupSchemaLockWait = time.Duration(dbschema.DefaultExpandLockTimeoutSeconds) * time.Second

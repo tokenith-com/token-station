@@ -321,6 +321,24 @@ func (s *GormStore) UpdateProjectTeam(projectID string, teamID string, role stri
 	return link, nil
 }
 
+func (s *GormStore) ClearProjectTeamAssociation(projectID string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	return s.db.Transaction(func(tx *gorm.DB) error {
+		var project Project
+		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).First(&project, "id = ?", projectID).Error; err != nil {
+			return notFound(err, "project_not_found", "Project not found")
+		}
+		project.TeamID = ""
+		project.UpdatedAt = time.Now().UTC()
+		if err := tx.Save(&project).Error; err != nil {
+			return err
+		}
+		return tx.Where("project_id = ?", projectID).Delete(&ProjectTeam{}).Error
+	})
+}
+
 func (s *GormStore) RemoveProjectTeam(projectID string, teamID string) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()

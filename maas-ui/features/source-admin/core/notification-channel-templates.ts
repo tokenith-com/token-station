@@ -13,7 +13,7 @@ export const notificationChannelTemplates: NotificationChannelTemplate[] = [
     type: "webhook",
     label: "Webhook",
     description: "通用 Webhook 告警通知",
-    urlPlaceholder: "http://localhost:8081/tokenhub-alert",
+    urlPlaceholder: "http://localhost:8081/tokenstation-alert",
     owner: "core_extension",
   },
   {

@@ -229,7 +229,7 @@ func (s *GormStore) admitCallTransaction(ctx context.Context, tx *gorm.DB, key A
 	teamWalletReservedCents := int64(0)
 	// A call has one payer: a configured team wallet takes precedence over a
 	// personal prepaid wallet for calls billed to that team.
-	if strings.TrimSpace(privateProject.TeamID) != "" {
+	if privateProject.ID != consumerProjectID && strings.TrimSpace(privateProject.TeamID) != "" {
 		var wallet teamWallet
 		if err := tx.First(&wallet, "team_id = ?", privateProject.TeamID).Error; err == nil {
 			teamWalletEnabled = true

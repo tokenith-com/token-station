@@ -266,7 +266,7 @@ export function notificationChannelDescription(type: string) {
 }
 
 export function notificationChannelURLPlaceholder(type: string) {
-  return notificationChannelTemplate(type)?.urlPlaceholder ?? notificationChannelTemplates.find((template) => template.type === notificationChannelDefaultType)?.urlPlaceholder ?? "http://localhost:8081/tokenhub-alert";
+  return notificationChannelTemplate(type)?.urlPlaceholder ?? notificationChannelTemplates.find((template) => template.type === notificationChannelDefaultType)?.urlPlaceholder ?? "http://localhost:8081/tokenstation-alert";
 }
 
 export function notificationChannelTargetSummary(item: AdminResource) {

@@ -10,6 +10,30 @@ import (
 	"time"
 )
 
+func TestSeedConsumerProjectRemovesLegacyTeamWithoutChangingKeys(t *testing.T) {
+	store := newTestMemoryStore(t)
+	store.CreateResource("teams", AdminResource{ID: "team_platform", Name: "Platform", Status: StatusActive})
+	store.CreateProject(Project{ID: consumerProjectID, Name: "C端普通用户项目", TeamID: "team_platform", CostCenter: "AI-PLATFORM", Status: StatusActive})
+	key, _, err := store.CreateAPIKey(consumerProjectID, APIKey{Name: "consumer-key", Status: StatusActive}, "seed-test-secret")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	seedConsumerProject(store)
+
+	project, ok := store.GetProject(consumerProjectID)
+	if !ok || project.TeamID != "" || project.CostCenter != consumerCostCenterCode {
+		t.Fatalf("legacy consumer project was not detached: %+v", project)
+	}
+	if _, ok := store.GetAPIKey(key.ID); !ok {
+		t.Fatal("consumer API key was not preserved")
+	}
+	links, total, err := store.ListProjectTeams(consumerProjectID, 0, 10)
+	if err != nil || total != 0 || len(links) != 0 {
+		t.Fatalf("legacy project team links were not removed: total=%d links=%+v err=%v", total, links, err)
+	}
+}
+
 func TestRunStartupBootstrapReloadsCatalogOnEveryStart(t *testing.T) {
 	store := newTestMemoryStore(t)
 	catalogPath := filepath.Join(t.TempDir(), "model-catalog.yaml")

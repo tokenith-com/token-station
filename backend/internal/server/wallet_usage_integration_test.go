@@ -156,6 +156,41 @@ func TestPrepaidTeamWalletUsesSinglePayer(t *testing.T) {
 	}
 }
 
+func TestConsumerProjectUsesPersonalWalletEvenWithLegacyTeamWallet(t *testing.T) {
+	store := newTestMemoryStore(t)
+	user, err := store.CreateAdminUser(AdminUser{Username: "consumer-wallet-user", Email: "consumer-wallet@example.test", Role: "consumer", Status: StatusActive}, "test-password-123")
+	if err != nil {
+		t.Fatal(err)
+	}
+	store.CreateResource("teams", AdminResource{ID: "legacy-consumer-team", Name: "Legacy consumer team", Status: StatusActive})
+	project := store.CreateProject(Project{ID: consumerProjectID, Name: "Consumer Project", TeamID: "legacy-consumer-team", Status: StatusActive})
+	key, _, err := store.CreateAPIKey(project.ID, APIKey{Name: "Consumer key", OwnerUserID: user.ID, Status: StatusActive}, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	store.AddModel(Model{Name: "consumer-wallet-chat", Modality: "chat", Status: StatusActive, ContextWindow: 1000, InputPriceUSDPer1M: 1, OutputPriceUSDPer1M: 1})
+	if _, err := store.PublishMeteringExchangeRate(meteringExchangeRate{Currency: "CNY", Rate: "0.125", Source: "Test fixture"}); err != nil {
+		t.Fatal(err)
+	}
+	if err := store.db.Create(&teamWallet{TeamID: project.TeamID, BalanceCents: 100, UpdatedAt: time.Now().UTC()}).Error; err != nil {
+		t.Fatal(err)
+	}
+	store.CreateResource("settings", AdminResource{ID: teamWalletRateID, Status: StatusActive, Fields: map[string]any{"usd_to_cny": "7.2"}})
+	store.prepaidUsage = true
+	var call CallContext
+	prepaidContext := context.WithValue(t.Context(), prepaidChatContextKey{}, true)
+	if err := store.db.Transaction(func(tx *gorm.DB) error {
+		admission, err := store.admitCallTransaction(prepaidContext, tx, key, "consumer-wallet-chat", 100, "consumer-personal-payer")
+		call = admission.call
+		return err
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if call.TeamWalletEnabled || call.walletPayer != user.ID {
+		t.Fatalf("expected personal consumer wallet payer, got %+v", call)
+	}
+}
+
 func TestPrepaidReservationsProtectRefundAndRecover(t *testing.T) {
 	testPrepaidReservations(t, NewMemoryStore())
 }

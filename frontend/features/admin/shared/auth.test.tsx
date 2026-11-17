@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
-import { applyIdentityProviderTemplate, identityProviderEndpointDefaults, identityProviderTemplateOptionsFromData, identityProviderTemplatesFromData, LoginView } from "./auth";
+import { applyIdentityProviderTemplate, identityProviderInitialFormValues, identityProviderEndpointDefaults, identityProviderTemplateOptionsFromData, identityProviderTemplatesFromData, LoginView } from "./auth";
 
 const baseProps = {
   loading: false,
@@ -58,6 +58,19 @@ describe("LoginView", () => {
     expect(sso).toHaveTextContent("Company Google");
     expect(sso).toHaveAttribute("href", expect.stringContaining("/api/admin/auth/oauth/start"));
     expect(sso).toHaveAttribute("href", expect.stringContaining("id=idp_google"));
+  });
+});
+
+describe("identity provider initial values", () => {
+  it.each(["tokenstation-admin", "tokenhub-admin"])("clears the %s example only when creating", (clientID) => {
+    const values = { provider_type: "oidc", issuer_url: "https://sso.example.com", client_id: clientID };
+    expect(identityProviderInitialFormValues(values, true)).toMatchObject({ issuer_url: "", client_id: "" });
+    expect(identityProviderInitialFormValues(values, false)).toMatchObject(values);
+    expect(values.client_id).toBe(clientID);
+  });
+
+  it("preserves custom client IDs when creating", () => {
+    expect(identityProviderInitialFormValues({ client_id: "company-admin" }, true).client_id).toBe("company-admin");
   });
 });
 

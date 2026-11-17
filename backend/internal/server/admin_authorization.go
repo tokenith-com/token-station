@@ -17,7 +17,7 @@ func (s *Server) authorizeAdminUser(w http.ResponseWriter, r *http.Request) (Adm
 		if len(users) > 0 {
 			return users[0], true
 		}
-		return AdminUser{ID: "dev_admin", Username: "dev_admin", Name: "开发管理员", Email: "admin@tokenhub.local", Role: "admin", Status: StatusActive}, true
+		return AdminUser{ID: "dev_admin", Username: "dev_admin", Name: "开发管理员", Email: "admin@tokenstation.local", Role: "admin", Status: StatusActive}, true
 	}
 	user, ok := s.store.ValidateAdminSession(token)
 	if !ok {
