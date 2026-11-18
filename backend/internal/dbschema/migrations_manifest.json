@@ -211,6 +211,15 @@
       "checksum": "tokenhub-schema-team-wallet-call-snapshots-v1",
       "lock_timeout_seconds": 30,
       "statement_budget": 7
+    },
+    {
+      "version": 25,
+      "name": "add-team-wallet-micros",
+      "phase": "expand",
+      "dialect": "",
+      "checksum": "tokenhub-schema-team-wallet-micros-v1",
+      "lock_timeout_seconds": 30,
+      "statement_budget": 24
     }
   ]
 }

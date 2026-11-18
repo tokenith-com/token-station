@@ -13,7 +13,7 @@ test.describe("team-wallet report overview", () => {
     test(`team-wallet report ${mobile ? "mobile" : "desktop"} hierarchy`, async ({ page, api }, info) => {
       if (mobile) await page.setViewportSize({ width: 390, height: 844 });
       api.define("GET", "/api/admin/api-keys", () => ({ json: { data: [] } }), query => { expect(Object.fromEntries(query)).toEqual({ page: "1", page_size: "1000", limit: "1000" }); });
-      api.respond("GET", walletPath, { wallet: { team_id: team.id, balance_cents: 400000 }, currency: "CNY", paid_calls_enabled: false });
+      api.respond("GET", walletPath, { wallet: { team_id: team.id, balance_micros: 4_000_000_000 }, currency: "CNY", paid_calls_enabled: false });
       api.define("GET", `${walletPath}/ledger`, () => ({ json: { entries: [], total: 0, limit: 20, offset: 0, currency: "CNY" } }), query => {
         expect(Object.fromEntries(query)).toEqual({ limit: "20", offset: "0" });
       });
@@ -47,8 +47,8 @@ test.beforeEach(async ({ context, api }) => {
 });
 
 test("team-wallet funding posts once and displays the immutable ledger", async ({ page, api }, testInfo) => {
-  let balance = 12345;
-  api.define("GET", walletPath, () => ({ json: { wallet: { team_id: team.id, balance_cents: balance, updated_at: fixedTime }, currency: "CNY", paid_calls_enabled: true } }));
+  let balance = 12_345_000;
+  api.define("GET", walletPath, () => ({ json: { wallet: { team_id: team.id, balance_micros: balance, updated_at: fixedTime }, currency: "CNY", paid_calls_enabled: true } }));
   await enterTeams(page);
   await page.getByRole("button", { name: "入账", exact: true }).click();
   const dialog = page.getByRole("dialog");
@@ -65,15 +65,15 @@ test("team-wallet funding posts once and displays the immutable ledger", async (
   let recorded: Record<string, unknown> | undefined;
   api.define("POST", `${walletPath}/credits`, (call: MockRequest) => {
     recorded = call.body as Record<string, unknown>;
-    balance += Number(recorded.amount_cents);
-    return { json: { currency: "CNY", entry: { id: "credit_ui_1", team_id: team.id, ...recorded, actor_user_id: user.id, before_balance_cents: 12345, after_balance_cents: balance, created_at: fixedTime } } };
+    balance += Number(recorded.amount_micros);
+    return { json: { currency: "CNY", entry: { id: "credit_ui_1", team_id: team.id, ...recorded, actor_user_id: user.id, before_balance_micros: 12_345_000, after_balance_micros: balance, created_at: fixedTime } } };
   });
   await dialog.getByRole("button", { name: "确认入账", exact: true }).click();
   await expect(dialog).toHaveCount(0);
-  expect(recorded).toMatchObject({ amount_cents: 2550, credit_type: "offline_receipt", remark: "Synthetic offline receipt UI-001" });
+  expect(recorded).toMatchObject({ amount_micros: 25_500_000, credit_type: "offline_receipt", remark: "Synthetic offline receipt UI-001" });
   expect(recorded?.request_id).toEqual(expect.any(String));
   expect(api.calls.filter(call => call.method === "POST" && call.path === `${walletPath}/credits`)).toHaveLength(1);
-  api.define("GET", `${walletPath}/ledger`, () => ({ json: { entries: [{ id: "credit_ui_1", kind: "credit", status: "credited", team_id: team.id, ...recorded, actor_user_id: user.id, before_balance_cents: 12345, after_balance_cents: balance, created_at: fixedTime }], total: 1, limit: 20, offset: 0, currency: "CNY" } }), query => { expect(query.get("limit")).toBe("20"); expect(query.get("offset")).toBe("0"); });
+  api.define("GET", `${walletPath}/ledger`, () => ({ json: { entries: [{ id: "credit_ui_1", kind: "credit", status: "credited", team_id: team.id, ...recorded, actor_user_id: user.id, before_balance_micros: 12_345_000, after_balance_micros: balance, created_at: fixedTime }], total: 1, limit: 20, offset: 0, currency: "CNY" } }), query => { expect(query.get("limit")).toBe("20"); expect(query.get("offset")).toBe("0"); });
   await page.getByRole("button", { name: "资金流水", exact: true }).click();
   await expect(page.getByRole("dialog").getByText("Synthetic offline receipt UI-001", { exact: true })).toBeVisible();
   const ledgerLayout = await page.getByRole("dialog").locator("table").evaluate(table => ({ width: table.getBoundingClientRect().width, cellWhiteSpace: getComputedStyle(table.querySelector("td")!).whiteSpace }));
@@ -83,7 +83,7 @@ test("team-wallet funding posts once and displays the immutable ledger", async (
 });
 
 test("team-wallet ledger failure retries to a genuine empty state", async ({ page, api }, testInfo) => {
-  api.respond("GET", walletPath, { wallet: { team_id: team.id, balance_cents: 0 }, currency: "CNY" });
+  api.respond("GET", walletPath, { wallet: { team_id: team.id, balance_micros: 0 }, currency: "CNY" });
   let reads = 0;
   api.define("GET", `${walletPath}/ledger`, () => ++reads === 1 ? { status: 404, json: { error: { code: "route_not_found" } } } : { json: { entries: [], total: 0, limit: 20, offset: 0, currency: "CNY" } }, query => { expect(query.get("limit")).toBe("20"); expect(query.get("offset")).toBe("0"); });
   await enterTeams(page);
@@ -99,7 +99,7 @@ test("team-wallet ledger failure retries to a genuine empty state", async ({ pag
 
 test("team-wallet balance recovery enables a confirmed credit with zero balance", async ({ page, api }, testInfo) => {
   let recovered = false;
-  api.define("GET", walletPath, () => recovered ? { json: { wallet: { team_id: team.id, balance_cents: 0 }, currency: "CNY" } } : { status: 503, json: { error: "Synthetic balance failure" } });
+  api.define("GET", walletPath, () => recovered ? { json: { wallet: { team_id: team.id, balance_micros: 0 }, currency: "CNY" } } : { status: 503, json: { error: "Synthetic balance failure" } });
   await enterTeams(page);
   await page.getByRole("button", { name: "入账", exact: true }).click();
   const dialog = page.getByRole("dialog");
@@ -117,10 +117,10 @@ test("team-wallet balance recovery enables a confirmed credit with zero balance"
 });
 
 test("team-wallet uncertain response reconciles the original request after reopening", async ({ page, api }) => {
-  api.respond("GET", walletPath, { wallet: { team_id: team.id, balance_cents: 10000, updated_at: fixedTime }, currency: "CNY", paid_calls_enabled: true });
+  api.respond("GET", walletPath, { wallet: { team_id: team.id, balance_micros: 1_000_000, updated_at: fixedTime }, currency: "CNY", paid_calls_enabled: true });
   let recorded: Record<string, unknown> | undefined;
   api.define("POST", `${walletPath}/credits`, (call: MockRequest) => { recorded = call.body as Record<string, unknown>; return { status: 503, json: { error: "Synthetic uncertain response" } }; });
-  api.define("GET", `${walletPath}/ledger`, () => ({ json: { entries: recorded ? [{ id: "credit_ui_reconciled", kind: "credit", status: "credited", team_id: team.id, ...recorded, actor_user_id: user.id, before_balance_cents: 10000, after_balance_cents: 10100, created_at: fixedTime }] : [], total: recorded ? 1 : 0, limit: 20, offset: 0, currency: "CNY" } }), query => { expect(query.get("request_id")).toEqual(recorded?.request_id); expect(query.get("limit")).toBe("20"); expect(query.get("offset")).toBe("0"); });
+  api.define("GET", `${walletPath}/ledger`, () => ({ json: { entries: recorded ? [{ id: "credit_ui_reconciled", kind: "credit", status: "credited", team_id: team.id, ...recorded, actor_user_id: user.id, before_balance_micros: 1_000_000, after_balance_micros: 2_000_000, created_at: fixedTime }] : [], total: recorded ? 1 : 0, limit: 20, offset: 0, currency: "CNY" } }), query => { expect(query.get("request_id")).toEqual(recorded?.request_id); expect(query.get("limit")).toBe("20"); expect(query.get("offset")).toBe("0"); });
   await enterTeams(page);
   await page.getByRole("button", { name: "入账", exact: true }).click();
   let dialog = page.getByRole("dialog");

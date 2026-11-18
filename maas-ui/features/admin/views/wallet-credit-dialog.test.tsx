@@ -5,7 +5,7 @@ import { setActiveLanguage as setAdminLanguage, tx as adminTx } from "../i18n/ru
 import { setActiveLanguage as setSourceLanguage, tx as sourceTx } from "../../source-admin/i18n/runtime";
 import { WalletCreditDialog } from "./wallet-credit-dialog";
 import { WalletLedger } from "./wallet-ledger";
-import { loadWalletBalance, pendingWalletKey, WalletReadError, yuanToCents } from "./wallet-contract";
+import { loadWalletBalance, pendingWalletKey, WalletReadError, yuanToMicros } from "./wallet-contract";
 
 const api = { baseURL: "http://example.test", adminToken: "synthetic-session" };
 const copy = { tx: (key: string) => key, locale: "en-US" };
@@ -17,16 +17,16 @@ function fill() {
 }
 describe("Wallet credit confirmation", () => {
   beforeEach(() => { sessionStorage.clear(); vi.clearAllMocks(); });
-  it.each(["0", "-1", "1.001", "1e3", "NaN", "90071992547409.92", "", " 1"])("rejects unsafe amount %s", value => { expect(yuanToCents(value)).toBeUndefined(); });
-  it("converts decimal strings without floating point rounding", () => { expect(yuanToCents("12.34")).toBe(1234); expect(yuanToCents("0.01")).toBe(1); expect(yuanToCents("90071992547409.91")).toBe(Number.MAX_SAFE_INTEGER); });
-  it("requires explicit confirmation and sends exact cents", async () => {
+  it.each(["0", "-1", "1.0000001", "1e3", "NaN", "90071992547409.92", "", " 1"])("rejects unsafe amount %s", value => { expect(yuanToMicros(value)).toBeUndefined(); });
+  it("converts decimal strings without floating point rounding", () => { expect(yuanToMicros("12.34")).toBe(12_340_000); expect(yuanToMicros("0.000001")).toBe(1); expect(yuanToMicros("9007199254.740991")).toBe(Number.MAX_SAFE_INTEGER); });
+  it("requires explicit confirmation and sends exact micros", async () => {
     const fetch = vi.fn().mockImplementation(async (_url, init) => { const payload = JSON.parse(init.body); return Response.json({ currency: "CNY", entry: { ...payload, team_id: props.teamID, actor_user_id: "admin" } }); });
     vi.stubGlobal("fetch", fetch);
     render(<WalletCreditDialog {...props} />);
     expect(screen.getByRole("button", { name: "确认入账" })).toBeDisabled();
     fill(); fireEvent.click(screen.getByRole("button", { name: "确认入账" }));
     await waitFor(() => expect(props.onSaved).toHaveBeenCalledOnce());
-    expect(JSON.parse(fetch.mock.calls[0][1].body)).toMatchObject({ amount_cents: 1234, credit_type: "offline_receipt", remark: "Receipt 42" });
+    expect(JSON.parse(fetch.mock.calls[0][1].body)).toMatchObject({ amount_micros: 12_340_000, credit_type: "offline_receipt", remark: "Receipt 42" });
     expect(sessionStorage.getItem(pendingWalletKey(api, "admin", props.teamID))).toBeNull();
   });
   it("restores an ambiguous operation and reconciles the same request after remount", async () => {
@@ -55,7 +55,7 @@ describe("Wallet credit confirmation", () => {
   });
   it("scopes pending operations by API base, operator, and team", () => {
     const key = pendingWalletKey(api, "other-admin", props.teamID);
-    sessionStorage.setItem(key, JSON.stringify({ amount_cents: 500, request_id: "other-operation", credit_type: "approved_credit", remark: "Other operator" }));
+    sessionStorage.setItem(key, JSON.stringify({ amount_micros: 5_000_000, request_id: "other-operation", credit_type: "approved_credit", remark: "Other operator" }));
     render(<WalletCreditDialog {...props} />);
     expect(screen.getByLabelText("入账金额（元）")).toHaveValue("");
     expect(screen.getByLabelText("入账金额（元）")).not.toBeDisabled();
@@ -63,14 +63,14 @@ describe("Wallet credit confirmation", () => {
     expect(pendingWalletKey(api, "other-admin", "another-team")).not.toBe(key);
     expect(sessionStorage.getItem(key)).toContain("other-operation");
   });
-  it.each(["broken", "", "null", '{"amount_cents":100,"request_id":7,"credit_type":"offline_receipt","remark":"Receipt"}'])("retains malformed pending session data on retry: %s", raw => {
+  it.each(["broken", "", "null", '{"amount_micros":100,"request_id":7,"credit_type":"offline_receipt","remark":"Receipt"}'])("retains malformed pending session data on retry: %s", raw => {
     const key = pendingWalletKey(api, "admin", props.teamID); sessionStorage.setItem(key, raw);
     render(<WalletCreditDialog {...props} />);
     fireEvent.click(screen.getByRole("button", { name: "重新读取待确认操作" }));
     expect(screen.getByRole("button", { name: "确认入账" })).toBeDisabled(); expect(sessionStorage.getItem(key)).toBe(raw);
   });
   it.each([false, true])("recovers a transient storage read failure with pending=%s", hasPending => {
-    const payload = { amount_cents: 500, request_id: "original-uuid", credit_type: "approved_credit", remark: "Receipt" };
+    const payload = { amount_micros: 5_000_000, request_id: "original-uuid", credit_type: "approved_credit", remark: "Receipt" };
     const key = pendingWalletKey(api, "admin", props.teamID);
     if (hasPending) sessionStorage.setItem(key, JSON.stringify(payload));
     const read = vi.spyOn(Storage.prototype, "getItem").mockImplementationOnce(() => { throw new Error("Storage unavailable"); });
@@ -168,7 +168,7 @@ describe("Wallet ledger lifecycle", () => {
     expect(String(fetch.mock.calls[2][0])).toContain("limit=20&offset=0");
   });
   it("separates held reservations from actual charged amounts", async () => {
-    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(Response.json({ currency: "CNY", total: 1, entries: [{ id: "call", request_id: "call", kind: "call", status: "reserved", amount_cents: -500, actual_amount_cents: 0, reserved_cents: 500, created_at: "2026-11-14T00:00:00Z" }] })));
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(Response.json({ currency: "CNY", total: 1, entries: [{ id: "call", request_id: "call", kind: "call", status: "reserved", amount_micros: -5_000_000, actual_amount_micros: 0, reserved_micros: 5_000_000, created_at: "2026-11-14T00:00:00Z" }] })));
     render(<WalletLedger api={api} teamID="demo" copy={copy} />);
     expect(await screen.findByText("预留中")).toBeInTheDocument(); expect(screen.getByText("CN¥0.00")).toBeInTheDocument(); expect(screen.getByText("CN¥5.00")).toBeInTheDocument();
   });

@@ -24,44 +24,45 @@ func teamWalletLedgerMigration() dbschema.Migration {
 }
 
 type teamWalletLedgerEntry struct {
-	ID                 string     `json:"id"`
-	TeamID             string     `json:"team_id"`
-	RequestID          string     `json:"request_id"`
-	AmountCents        int64      `json:"amount_cents"`
-	ActorUserID        string     `json:"actor_user_id"`
-	CreatedAt          time.Time  `json:"created_at"`
-	CreditType         string     `json:"credit_type"`
-	Remark             string     `json:"remark"`
-	BeforeBalanceCents *int64     `json:"before_balance_cents"`
-	AfterBalanceCents  *int64     `json:"after_balance_cents"`
-	ActorName          string     `json:"actor_name"`
-	TeamName           string     `json:"team_name"`
-	Kind               string     `json:"kind"`
-	Status             string     `json:"status"`
-	ActualAmountCents  int64      `json:"actual_amount_cents"`
-	ReservedCents      int64      `json:"reserved_cents"`
-	SettledCents       int64      `json:"settled_cents"`
-	ExchangeRate       string     `json:"exchange_rate"`
-	SettledAt          *time.Time `json:"settled_at"`
+	ID                  string     `json:"id"`
+	TeamID              string     `json:"team_id"`
+	RequestID           string     `json:"request_id"`
+	AmountMicros        int64      `json:"amount_micros"`
+	ActorUserID         string     `json:"actor_user_id"`
+	CreatedAt           time.Time  `json:"created_at"`
+	CreditType          string     `json:"credit_type"`
+	Remark              string     `json:"remark"`
+	BeforeBalanceMicros *int64     `json:"before_balance_micros"`
+	AfterBalanceMicros  *int64     `json:"after_balance_micros"`
+	ActorName           string     `json:"actor_name"`
+	TeamName            string     `json:"team_name"`
+	Kind                string     `json:"kind"`
+	Status              string     `json:"status"`
+	ActualAmountMicros  int64      `json:"actual_amount_micros"`
+	ReservedMicros      int64      `json:"reserved_micros"`
+	SettledMicros       int64      `json:"settled_micros"`
+	ExchangeRate        string     `json:"exchange_rate"`
+	SettledAt           *time.Time `json:"settled_at"`
 }
 
-// Each call is one lifecycle row. amount_cents is its current net wallet effect;
-// actual_amount_cents excludes outstanding reservations and is signed consumption.
+// Each call is one lifecycle row. amount_micros is its current net wallet
+// effect; actual_amount_micros excludes outstanding reservations and is signed
+// consumption.
 func (s *GormStore) TeamWalletLedger(teamID, requestID string, limit, offset int) ([]teamWalletLedgerEntry, int64, error) {
-	query := `SELECT id, team_id, request_id, amount_cents, actor_user_id, created_at,
-		credit_type, remark, before_balance_cents, after_balance_cents, actor_name, team_name,
-		'credit' AS kind, 'credited' AS status, amount_cents AS actual_amount_cents,
-		0 AS reserved_cents, 0 AS settled_cents, '' AS exchange_rate, NULL AS settled_at
+	query := `SELECT id, team_id, request_id, amount_micros, actor_user_id, created_at,
+		credit_type, remark, before_balance_micros, after_balance_micros, actor_name, team_name,
+		'credit' AS kind, 'credited' AS status, amount_micros AS actual_amount_micros,
+		0 AS reserved_micros, 0 AS settled_micros, '' AS exchange_rate, NULL AS settled_at
 		FROM team_wallet_entries WHERE team_id = ?
 		UNION ALL
 		SELECT calls.request_id AS id, calls.team_id, calls.request_id,
-		CASE WHEN calls.status = 'reserved' THEN -calls.reserved_cents ELSE -calls.settled_cents END AS amount_cents,
+		CASE WHEN calls.status = 'reserved' THEN -calls.reserved_micros ELSE -calls.settled_micros END AS amount_micros,
 		COALESCE(NULLIF(calls.actor_user_id, ''), logs.attributed_user_id, '') AS actor_user_id, calls.created_at, '' AS credit_type, '' AS remark,
-		CASE WHEN calls.status = 'reserved' THEN calls.reserved_before_balance_cents ELSE calls.finalized_before_balance_cents END AS before_balance_cents,
-		CASE WHEN calls.status = 'reserved' THEN calls.reserved_after_balance_cents ELSE calls.finalized_after_balance_cents END AS after_balance_cents,
+		CASE WHEN calls.status = 'reserved' THEN calls.reserved_before_balance_micros ELSE calls.finalized_before_balance_micros END AS before_balance_micros,
+		CASE WHEN calls.status = 'reserved' THEN calls.reserved_after_balance_micros ELSE calls.finalized_after_balance_micros END AS after_balance_micros,
 		COALESCE(NULLIF(calls.actor_name, ''), NULLIF(users.name, ''), users.username, '') AS actor_name, '' AS team_name,
-		'call' AS kind, calls.status, -calls.settled_cents AS actual_amount_cents,
-		calls.reserved_cents, calls.settled_cents, calls.exchange_rate, calls.settled_at
+		'call' AS kind, calls.status, -calls.settled_micros AS actual_amount_micros,
+		calls.reserved_micros, calls.settled_micros, calls.exchange_rate, calls.settled_at
 		FROM team_wallet_calls AS calls
 		LEFT JOIN request_logs AS logs ON logs.request_id = calls.request_id
 		LEFT JOIN admin_users AS users ON users.id = COALESCE(NULLIF(calls.actor_user_id, ''), logs.attributed_user_id)
