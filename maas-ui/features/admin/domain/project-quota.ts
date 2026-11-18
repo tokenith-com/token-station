@@ -18,7 +18,7 @@ export const projectQuotaFields: Array<{ key: keyof ProjectQuotaValues; label: s
   { key: "monthly_requests", label: "月请求" },
   { key: "daily_tokens", label: "日 Token" },
   { key: "monthly_tokens", label: "月 Token" },
-  { key: "daily_cost_usd", label: "日成本", suffix: "¥" },
-  { key: "monthly_cost_usd", label: "月成本", suffix: "¥" },
+  { key: "daily_cost_usd", label: "日成本", suffix: "$" },
+  { key: "monthly_cost_usd", label: "月成本", suffix: "$" },
   { key: "max_concurrency", label: "最大并发" },
 ];

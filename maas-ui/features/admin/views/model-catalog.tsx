@@ -397,7 +397,7 @@ export function ModelCatalogPriceTable({
                     <span>{row.contextDetail}</span>
                   </div>
                 </td>
-                <td><strong className="model-monthly-cost">{row.monthlyCost > 0 ? `¥${modelCatalogMoney(row.monthlyCost)}` : "-"}</strong></td>
+                <td><strong className="model-monthly-cost">{row.monthlyCost > 0 ? `$${modelCatalogMoney(row.monthlyCost)}` : "-"}</strong></td>
                 <td>
                   <div className="model-price-index">
                     <span>

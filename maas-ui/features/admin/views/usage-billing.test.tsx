@@ -36,18 +36,23 @@ describe("UsageView project attribution", () => {
     vi.stubGlobal("fetch", vi.fn(async (input: string) => input.endsWith("/exchange-rate") ? Response.json({ configured: false, usd_to_cny: "", paid_calls_enabled: false }) : Response.json(report)));
     render(<UsageView api={{ baseURL: "http://example.test", adminToken: "synthetic-session" }} data={data} user={user} />);
 
+    if (role === "team_leader") {
+      // Project attribution is a platform-level view that team leaders do not get.
+      await screen.findByRole("heading", { name: "模型用量" });
+      expect(screen.queryByRole("heading", { name: "项目归因" })).not.toBeInTheDocument();
+      const members = screen.getByRole("heading", { name: "成员用量" }).closest("section")!;
+      expect(within(members).getByRole("cell", { name: "Usage Reviewer / reviewer@example.test" })).toBeInTheDocument();
+      return;
+    }
+
     const projectSection = (await screen.findByRole("heading", { name: "项目归因" })).closest("section")!;
     const projects = within(projectSection);
-    const cost = new Intl.NumberFormat("zh-CN", { style: "currency", currency: "CNY", currencyDisplay: "narrowSymbol" }).format(0.25);
+    const cost = new Intl.NumberFormat("zh-CN", { style: "currency", currency: "USD", currencyDisplay: "narrowSymbol" }).format(0.25);
     expect(projects.getByRole("row", { name: `Design Platform 2 150 20 ${cost}` })).toBeInTheDocument();
     expect(projects.queryByRole("cell", { name: "prj_design" })).not.toBeInTheDocument();
     expect(projects.getByRole("cell", { name: "prj_archived" })).toBeInTheDocument();
     expect(projects.getByRole("cell", { name: "unknown" })).toBeInTheDocument();
     expect(projects.getByRole("cell", { name: "默认项目空间" })).toBeInTheDocument();
-    if (role === "team_leader") {
-      const members = screen.getByRole("heading", { name: "成员用量" }).closest("section")!;
-      expect(within(members).getByRole("cell", { name: "Usage Reviewer / reviewer@example.test" })).toBeInTheDocument();
-    }
   });
 });
 
@@ -101,7 +106,8 @@ describe("Usage aligned with the master report page", () => {
     expect(Boolean(screen.queryByRole("heading", { name: "成员用量" }))).toBe(role === "team_leader");
     expect(Boolean(screen.queryByRole("heading", { name: "供应商用量" }))).toBe(role === "admin");
     expect(Boolean(screen.queryByRole("heading", { name: "资源账号用量" }))).toBe(role === "admin");
-    expect(Boolean(screen.queryByRole("heading", { name: "成本中心用量" }))).toBe(["admin", "team_leader"].includes(role));
+    expect(Boolean(screen.queryByRole("heading", { name: "成本中心用量" }))).toBe(role === "admin");
+    expect(Boolean(screen.queryByRole("heading", { name: "项目归因" }))).toBe(role === "admin");
     expect(Boolean(screen.queryByText("部门与成员报告"))).toBe(role === "admin");
     expect(screen.getByRole("heading", { name: "API Key 用量" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Token 类型" })).toBeInTheDocument();

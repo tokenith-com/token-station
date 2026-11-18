@@ -26,7 +26,7 @@ export function TeamWalletSummary({ api, teamID }: { api: ApiContext; teamID?: s
           if (active) setState({ rate });
         } else {
           const wallet = payload as TeamWalletResponse;
-          if (wallet.currency !== "CNY" || wallet.wallet?.team_id !== teamID || !Number.isSafeInteger(wallet.wallet?.balance_micros) || wallet.wallet.balance_micros < 0 || typeof wallet.paid_calls_enabled !== "boolean") throw new Error(tx("团队钱包加载失败"));
+          if (wallet.currency !== "USD" || wallet.wallet?.team_id !== teamID || !Number.isSafeInteger(wallet.wallet?.balance_micros) || wallet.wallet.balance_micros < 0 || typeof wallet.paid_calls_enabled !== "boolean") throw new Error(tx("团队钱包加载失败"));
           if (active) setState({ wallet });
         }
       } catch (reason) {
@@ -44,7 +44,7 @@ export function TeamWalletSummary({ api, teamID }: { api: ApiContext; teamID?: s
       <span>{tx("团队钱包加载失败")} · {state.error}</span>
       <button className="secondary-button" type="button" onClick={() => { setState(undefined); setRevision(value => value + 1); }}>{tx("重试")}</button>
     </div> : !state ? <span role="status">{tx("正在加载团队钱包…")}</span> : <>
-      {state.wallet ? <span className="team-wallet-balance">{tx("团队余额（CNY）")} <strong>{walletMoney(state.wallet.wallet.balance_micros, languageLocale())}</strong></span> : null}
+      {state.wallet ? <span className="team-wallet-balance">{tx("团队余额（USD）")} <strong>{walletMoney(state.wallet.wallet.balance_micros, languageLocale())}</strong></span> : null}
       {state.rate ? <span>{state.rate.configured ? formatTranslationTemplate(tx("钱包汇率：1 USD = {rate} CNY"), { rate: state.rate.usd_to_cny }) : tx("钱包汇率未配置")}</span> : null}
       <span className={`team-wallet-status ${paidCallsEnabled ? "is-enabled" : "is-unavailable"}`}><i aria-hidden="true" />{paidCallsEnabled ? tx("付费调用可用") : state.wallet?.wallet.balance_micros === 0 ? tx("余额不足，请充值后继续") : tx("结算配置未完成，请联系管理员")}</span>
     </>}

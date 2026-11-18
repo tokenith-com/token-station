@@ -48,7 +48,7 @@ export function DailyUsageSection({ data, user }: { data: AppData; user: AdminUs
       <div className="executive-kpi-grid">
         <ExecutiveKPI label="今日 Token 消耗" value={compactNumber(summary.total_tokens)} detail={tokenDetail} />
         <ExecutiveKPI label="今日请求" value={formatNumber(summary.request_count)} detail={countWithUnit(summary.usage_record_count ?? summary.request_count, "条用量记录", "usage record", "件の利用記録")} />
-        <ExecutiveKPI label="今日估算成本" value={`¥${formatMoney(summary.estimated_cost_usd)}`} detail={tx("按当前可见记录汇总")} />
+        <ExecutiveKPI label="今日估算成本" value={`$${formatMoney(summary.estimated_cost_usd)}`} detail={tx("按当前可见记录汇总")} />
         <ExecutiveKPI label="今日缓存读" value={compactNumber(summary.cached_input_tokens ?? 0)} detail={cacheHitRate(summary.cached_input_tokens ?? 0, summary.input_tokens)} />
       </div>
 
@@ -104,7 +104,7 @@ function DailyUsageTable({ title, label, rows, nameForRow, paginationKey }: { ti
           formatNumber(row.request_count),
           compactNumber(row.total_tokens),
           compactNumber(row.cached_input_tokens ?? 0),
-          `¥${formatMoney(row.estimated_cost_usd)}`,
+          `$${formatMoney(row.estimated_cost_usd)}`,
         ])}
       />
     </article>
@@ -189,7 +189,7 @@ export function PersonalUsageSummary({ data }: { data: AppData }) {
       <div className="executive-kpi-grid">
         <ExecutiveKPI label="总 Token 消耗" value={compactNumber(data.summary.total_tokens)} detail={`${tx("输入")} ${compactNumber(data.summary.input_tokens)} / ${tx("缓存读")} ${compactNumber(data.summary.cached_input_tokens ?? 0)} / ${tx("输出")} ${compactNumber(data.summary.output_tokens)}`} />
         <ExecutiveKPI label="请求数" value={formatNumber(data.summary.request_count)} detail={countWithUnit(data.summary.usage_record_count ?? 0, "条用量记录", "usage record", "件の利用記録")} />
-        <ExecutiveKPI label="估算成本" value={`¥${formatMoney(data.summary.estimated_cost_usd)}`} detail={countWithUnit(data.summary.errors, "个错误", "error", "件のエラー")} />
+        <ExecutiveKPI label="估算成本" value={`$${formatMoney(data.summary.estimated_cost_usd)}`} detail={countWithUnit(data.summary.errors, "个错误", "error", "件のエラー")} />
         <ExecutiveKPI label="可见项目" value={formatNumber(data.projects.length)} detail={tx("按当前账号权限汇总")} />
       </div>
     </section>
@@ -247,7 +247,7 @@ export function ExecutiveUsageReport({ data, periodLabel = tx("全部") }: { dat
         <ExecutiveKPI label="总 Token 消耗" value={compactNumber(totalTokens)} detail={tokenDetail} />
         <ExecutiveKPI label="覆盖部门" value={formatNumber(departments.length)} detail={departmentDetail} />
         <ExecutiveKPI label="活跃成员" value={formatNumber(activeMembers)} detail={generatedDetail} />
-        <ExecutiveKPI label="估算成本" value={`¥${formatMoney(data.summary.estimated_cost_usd)}`} detail={requestDetail} />
+        <ExecutiveKPI label="估算成本" value={`$${formatMoney(data.summary.estimated_cost_usd)}`} detail={requestDetail} />
       </div>
 
       <div className="executive-grid">
@@ -411,7 +411,7 @@ export function ExecutiveMemberTable({ rows, totalTokens }: { rows: ExecutiveMem
                 <td>{compactNumber(row.output_tokens)}</td>
                 <td><strong>{compactNumber(row.total_tokens)}</strong></td>
                 <td>{percent.toFixed(percent >= 10 ? 0 : 1)}%</td>
-                <td>¥{formatMoney(row.estimated_cost_usd)}</td>
+                <td>${formatMoney(row.estimated_cost_usd)}</td>
               </tr>
             );
           })}
@@ -545,7 +545,7 @@ export function BillingView({
           row.id,
           formatNumber(row.request_count),
           compactNumber(row.total_tokens),
-          `¥${formatMoney(row.estimated_cost_usd)}`,
+          `$${formatMoney(row.estimated_cost_usd)}`,
         ])}
       />
     </DataSection>
@@ -559,7 +559,7 @@ export function BillingView({
           usageMemberLabel(data, row.id),
           formatNumber(row.request_count),
           compactNumber(row.total_tokens),
-          `¥${formatMoney(row.estimated_cost_usd)}`,
+          `$${formatMoney(row.estimated_cost_usd)}`,
         ])}
       />
     </DataSection>
@@ -587,7 +587,7 @@ export function BillingView({
               row.id,
               formatNumber(row.request_count),
               compactNumber(row.total_tokens),
-              `¥${formatMoney(row.estimated_cost_usd)}`,
+              `$${formatMoney(row.estimated_cost_usd)}`,
             ])}
           />
         </DataSection>
@@ -599,7 +599,7 @@ export function BillingView({
               row.id,
               formatNumber(row.request_count),
               compactNumber(row.total_tokens),
-              `¥${formatMoney(row.estimated_cost_usd)}`,
+              `$${formatMoney(row.estimated_cost_usd)}`,
             ])}
           />
         </DataSection>

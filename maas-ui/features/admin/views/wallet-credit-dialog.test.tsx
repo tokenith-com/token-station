@@ -11,7 +11,7 @@ const api = { baseURL: "http://example.test", adminToken: "synthetic-session" };
 const copy = { tx: (key: string) => key, locale: "en-US" };
 const props = { api, userID: "admin", teamID: "team/demo", teamName: "Demo", owner: "Owner", balance: 100, copy, onClose: vi.fn(), onSaved: vi.fn() };
 function fill() {
-  fireEvent.change(screen.getByLabelText("入账金额（元）"), { target: { value: "12.34" } });
+  fireEvent.change(screen.getByLabelText("入账金额（USD）"), { target: { value: "12.34" } });
   fireEvent.change(screen.getByLabelText("备注（必填，最多1000字）"), { target: { value: "Receipt 42" } });
   fireEvent.click(screen.getByRole("checkbox"));
 }
@@ -20,7 +20,7 @@ describe("Wallet credit confirmation", () => {
   it.each(["0", "-1", "1.0000001", "1e3", "NaN", "90071992547409.92", "", " 1"])("rejects unsafe amount %s", value => { expect(yuanToMicros(value)).toBeUndefined(); });
   it("converts decimal strings without floating point rounding", () => { expect(yuanToMicros("12.34")).toBe(12_340_000); expect(yuanToMicros("0.000001")).toBe(1); expect(yuanToMicros("9007199254.740991")).toBe(Number.MAX_SAFE_INTEGER); });
   it("requires explicit confirmation and sends exact micros", async () => {
-    const fetch = vi.fn().mockImplementation(async (_url, init) => { const payload = JSON.parse(init.body); return Response.json({ currency: "CNY", entry: { ...payload, team_id: props.teamID, actor_user_id: "admin" } }); });
+    const fetch = vi.fn().mockImplementation(async (_url, init) => { const payload = JSON.parse(init.body); return Response.json({ currency: "USD", entry: { ...payload, team_id: props.teamID, actor_user_id: "admin" } }); });
     vi.stubGlobal("fetch", fetch);
     render(<WalletCreditDialog {...props} />);
     expect(screen.getByRole("button", { name: "确认入账" })).toBeDisabled();
@@ -35,15 +35,15 @@ describe("Wallet credit confirmation", () => {
     await screen.findByRole("button", { name: "使用原请求重试" });
     const payload = JSON.parse(sessionStorage.getItem(pendingWalletKey(api, "admin", props.teamID))!);
     view.unmount(); render(<WalletCreditDialog {...props} />);
-    expect(screen.getByLabelText("入账金额（元）")).toBeDisabled();
-    fetch.mockResolvedValueOnce(Response.json({ currency: "CNY", total: 1, limit: 20, offset: 0, entries: [{ ...payload, kind: "credit", team_id: props.teamID, actor_user_id: "admin" }] }));
+    expect(screen.getByLabelText("入账金额（USD）")).toBeDisabled();
+    fetch.mockResolvedValueOnce(Response.json({ currency: "USD", total: 1, limit: 20, offset: 0, entries: [{ ...payload, kind: "credit", team_id: props.teamID, actor_user_id: "admin" }] }));
     fireEvent.click(screen.getByRole("button", { name: "使用原请求重试" }));
     await waitFor(() => expect(props.onSaved).toHaveBeenCalledOnce());
     expect(fetch).toHaveBeenCalledTimes(2);
     expect(String(fetch.mock.calls[1][0])).toContain(`request_id=${payload.request_id}`);
   });
   it("retries a failed operation with the original UUID and locked payload", async () => {
-    const fetch = vi.fn().mockResolvedValueOnce(Response.json({}, { status: 503 })).mockResolvedValueOnce(Response.json({ currency: "CNY", entries: [], total: 0 })).mockResolvedValueOnce(Response.json({}, { status: 503 }));
+    const fetch = vi.fn().mockResolvedValueOnce(Response.json({}, { status: 503 })).mockResolvedValueOnce(Response.json({ currency: "USD", entries: [], total: 0 })).mockResolvedValueOnce(Response.json({}, { status: 503 }));
     vi.stubGlobal("fetch", fetch);
     render(<WalletCreditDialog {...props} />); fill(); fireEvent.click(screen.getByRole("button", { name: "确认入账" }));
     await screen.findByRole("button", { name: "使用原请求重试" });
@@ -51,14 +51,14 @@ describe("Wallet credit confirmation", () => {
     await waitFor(() => expect(fetch).toHaveBeenCalledTimes(3));
     expect(fetch.mock.calls[2][1].body).toBe(fetch.mock.calls[0][1].body);
     await waitFor(() => expect(screen.getByRole("button", { name: "使用原请求重试" })).not.toBeDisabled());
-    expect(screen.getByLabelText("入账金额（元）")).toBeDisabled();
+    expect(screen.getByLabelText("入账金额（USD）")).toBeDisabled();
   });
   it("scopes pending operations by API base, operator, and team", () => {
     const key = pendingWalletKey(api, "other-admin", props.teamID);
     sessionStorage.setItem(key, JSON.stringify({ amount_micros: 5_000_000, request_id: "other-operation", credit_type: "approved_credit", remark: "Other operator" }));
     render(<WalletCreditDialog {...props} />);
-    expect(screen.getByLabelText("入账金额（元）")).toHaveValue("");
-    expect(screen.getByLabelText("入账金额（元）")).not.toBeDisabled();
+    expect(screen.getByLabelText("入账金额（USD）")).toHaveValue("");
+    expect(screen.getByLabelText("入账金额（USD）")).not.toBeDisabled();
     expect(pendingWalletKey({ ...api, baseURL: "http://another.test" }, "other-admin", props.teamID)).not.toBe(key);
     expect(pendingWalletKey(api, "other-admin", "another-team")).not.toBe(key);
     expect(sessionStorage.getItem(key)).toContain("other-operation");
@@ -79,7 +79,7 @@ describe("Wallet credit confirmation", () => {
     fireEvent.click(screen.getByRole("button", { name: "重新读取待确认操作" }));
     if (hasPending) {
       expect(screen.getByRole("button", { name: "使用原请求重试" })).toBeEnabled();
-      expect(screen.getByLabelText("入账金额（元）")).toHaveValue("5.00");
+      expect(screen.getByLabelText("入账金额（USD）")).toHaveValue("5.00");
       expect(sessionStorage.getItem(key)).toBe(JSON.stringify(payload));
     } else { fill(); expect(screen.getByRole("button", { name: "确认入账" })).toBeEnabled(); }
     read.mockRestore();
@@ -131,7 +131,7 @@ describe("Wallet ledger lifecycle", () => {
     const fetch = vi.fn().mockImplementationOnce(async () => {
       if (status === 0) throw new Error("secret upstream diagnostics");
       return Response.json({ error: "secret upstream diagnostics" }, { status: Number(status) });
-    }).mockResolvedValueOnce(Response.json({ currency: "CNY", entries: [], total: 0 }));
+    }).mockResolvedValueOnce(Response.json({ currency: "USD", entries: [], total: 0 }));
     vi.stubGlobal("fetch", fetch); render(<WalletLedger api={api} teamID="demo" copy={copy} />);
     expect(await screen.findByRole("alert")).toHaveTextContent(String(message));
     expect(screen.queryByText("暂无资金流水")).not.toBeInTheDocument();
@@ -145,7 +145,7 @@ describe("Wallet ledger lifecycle", () => {
     render(<WalletLedger api={api} teamID="demo" copy={copy} />);
     expect(await screen.findByRole("alert")).toHaveTextContent(structured ? "团队不存在或已删除，请刷新团队列表" : "钱包接口不可用，请确认后端已升级并启用钱包功能");
   });
-  it.each([null, { currency: "CNY", entries: [null], total: 1 }, { currency: "CNY", entries: [{ created_at: "invalid" }], total: 1 }])("rejects malformed ledger data %j", async payload => {
+  it.each([null, { currency: "USD", entries: [null], total: 1 }, { currency: "USD", entries: [{ created_at: "invalid" }], total: 1 }])("rejects malformed ledger data %j", async payload => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(Response.json(payload)));
     render(<WalletLedger api={api} teamID="demo" copy={copy} />);
     expect(await screen.findByRole("alert")).toHaveTextContent("钱包响应格式异常");
@@ -155,7 +155,7 @@ describe("Wallet ledger lifecycle", () => {
     await expect(loadWalletBalance(api, "demo")).rejects.toEqual(new WalletReadError(kind as "permission" | "unavailable" | "request" | "malformed"));
   });
   it("paginates with an explicit limit and offset", async () => {
-    const fetch = vi.fn().mockImplementation(async () => Response.json({ currency: "CNY", total: 21, entries: [] })); vi.stubGlobal("fetch", fetch);
+    const fetch = vi.fn().mockImplementation(async () => Response.json({ currency: "USD", total: 21, entries: [] })); vi.stubGlobal("fetch", fetch);
     render(<WalletLedger api={api} teamID="demo" copy={copy} />);
     await screen.findByText("暂无资金流水");
     expect(screen.getByRole("button", { name: "上一页" })).toBeDisabled();
@@ -168,8 +168,8 @@ describe("Wallet ledger lifecycle", () => {
     expect(String(fetch.mock.calls[2][0])).toContain("limit=20&offset=0");
   });
   it("separates held reservations from actual charged amounts", async () => {
-    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(Response.json({ currency: "CNY", total: 1, entries: [{ id: "call", request_id: "call", kind: "call", status: "reserved", amount_micros: -5_000_000, actual_amount_micros: 0, reserved_micros: 5_000_000, created_at: "2026-11-14T00:00:00Z" }] })));
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(Response.json({ currency: "USD", total: 1, entries: [{ id: "call", request_id: "call", kind: "call", status: "reserved", amount_micros: -5_000_000, actual_amount_micros: 0, reserved_micros: 5_000_000, created_at: "2026-11-14T00:00:00Z" }] })));
     render(<WalletLedger api={api} teamID="demo" copy={copy} />);
-    expect(await screen.findByText("预留中")).toBeInTheDocument(); expect(screen.getByText("CN¥0.00")).toBeInTheDocument(); expect(screen.getByText("CN¥5.00")).toBeInTheDocument();
+    expect(await screen.findByText("预留中")).toBeInTheDocument(); expect(screen.getByText("$0.00")).toBeInTheDocument(); expect(screen.getByText("$5.00")).toBeInTheDocument();
   });
 });

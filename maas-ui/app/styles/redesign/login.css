@@ -498,7 +498,6 @@ textarea:focus-visible {
 .field select,
 .field textarea,
 .playground-field textarea,
-.playground-field select,
 .playground-slider input[type="number"],
 .provider-model-tools input,
 .provider-template-search,
@@ -528,7 +527,6 @@ textarea:focus-visible {
 .field select:focus,
 .field textarea:focus,
 .playground-field textarea:focus,
-.playground-field select:focus,
 .playground-slider input[type="number"]:focus {
   border-color: var(--accent);
   background: var(--surface);

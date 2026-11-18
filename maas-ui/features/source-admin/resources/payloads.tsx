@@ -461,8 +461,8 @@ export function projectQuotaSummary(data: AppData, project: Project) {
     quotaSummaryPart(quota, "monthly_requests", "月请求"),
     quotaSummaryPart(quota, "daily_tokens", "日 Token"),
     quotaSummaryPart(quota, "monthly_tokens", "月 Token"),
-    quotaSummaryPart(quota, "daily_cost_usd", "日成本", "¥"),
-    quotaSummaryPart(quota, "monthly_cost_usd", "月成本", "¥"),
+    quotaSummaryPart(quota, "daily_cost_usd", "日成本", "$"),
+    quotaSummaryPart(quota, "monthly_cost_usd", "月成本", "$"),
     quotaSummaryPart(quota, "max_concurrency", "并发"),
   ].filter(Boolean);
   return parts.slice(0, 2).join(" · ") || "不限额";

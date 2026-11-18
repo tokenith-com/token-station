@@ -11,7 +11,7 @@ export type WalletEntry = {
   kind?: "credit" | "call"; status?: string; actual_amount_micros?: number;
   reserved_micros?: number; settled_micros?: number; exchange_rate?: string; settled_at?: string | null;
 };
-export type WalletLedgerResponse = { entries: WalletEntry[]; total: number; limit: number; offset: number; currency: "CNY" };
+export type WalletLedgerResponse = { entries: WalletEntry[]; total: number; limit: number; offset: number; currency: "USD" };
 export function walletPath(teamID: string) { return `/api/admin/teams/${encodeURIComponent(teamID)}/wallet`; }
 export function yuanToMicros(value: string): number | undefined {
   if (!/^\d+(?:\.\d{1,6})?$/.test(value)) return undefined;
@@ -23,7 +23,7 @@ export function yuanToMicros(value: string): number | undefined {
 // sub-cent ledger amount renders as a rounded figure that no longer reconciles
 // with the wallet balance above it.
 export function walletMoney(micros: number | null | undefined, locale: string) {
-  return micros == null ? "—" : new Intl.NumberFormat(locale, { style: "currency", currency: "CNY", minimumFractionDigits: 2, maximumFractionDigits: 6 }).format(micros / 1_000_000);
+  return micros == null ? "—" : new Intl.NumberFormat(locale, { style: "currency", currency: "USD", minimumFractionDigits: 2, maximumFractionDigits: 6 }).format(micros / 1_000_000);
 }
 // yuanFromMicros renders an amount back into the credit input, keeping at least
 // two decimals so restored drafts look like money rather than integers.
@@ -72,14 +72,14 @@ async function readWallet(api: ApiContext, path: string) {
 }
 export async function loadWalletBalance(api: ApiContext, teamID: string) {
   const payload = await readWallet(api, walletPath(teamID));
-  if (payload.currency !== "CNY" || payload.wallet?.team_id !== teamID || !Number.isSafeInteger(payload.wallet.balance_micros) || payload.wallet.balance_micros < 0) throw new WalletReadError("malformed");
+  if (payload.currency !== "USD" || payload.wallet?.team_id !== teamID || !Number.isSafeInteger(payload.wallet.balance_micros) || payload.wallet.balance_micros < 0) throw new WalletReadError("malformed");
   return payload.wallet.balance_micros as number;
 }
 export async function loadWalletLedger(api: ApiContext, teamID: string, offset = 0, requestID?: string): Promise<WalletLedgerResponse> {
   const query = new URLSearchParams({ limit: "20", offset: String(offset) });
   if (requestID) query.set("request_id", requestID);
   const payload = await readWallet(api, `${walletPath(teamID)}/ledger?${query}`);
-  if (payload.currency !== "CNY" || !Array.isArray(payload.entries) || !Number.isSafeInteger(payload.total) || payload.total < 0 || !payload.entries.every(validLedgerEntry)) throw new WalletReadError("malformed");
+  if (payload.currency !== "USD" || !Array.isArray(payload.entries) || !Number.isSafeInteger(payload.total) || payload.total < 0 || !payload.entries.every(validLedgerEntry)) throw new WalletReadError("malformed");
   return payload;
 }
 function validLedgerEntry(entry: WalletEntry) {

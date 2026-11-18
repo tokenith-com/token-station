@@ -1479,6 +1479,7 @@ export const jaTranslations: Record<string, string> = {
     "选择 API Key": "API キー選択",
     "暂无可用 API Key": "利用できる API キーはありません",
     "请先创建 API Key 才能使用模型演练场，演练产生的用量将计入所选 Key。": "Playground を使うには先に API キーを作成してください。Playground の利用量は選択したキーに計上されます。",
+    "还没有可用的 API Key": "利用できる API キーがありません",
     "去创建 API Key": "API キーを作成",
     "演练产生的用量和费用将计入所选 API Key。": "Playground の利用量と費用は選択した API キーに計上されます。",
     "请输入测试内容": "テスト内容を入力してください",

@@ -277,7 +277,7 @@ export function pageHeaderChips(view: ViewKey, data: AppData, user: AdminUser) {
     case "billing":
       return [
         { label: "请求", value: formatNumber(data.summary.request_count) },
-        { label: "成本", value: `¥${formatMoney(data.summary.estimated_cost_usd)}` },
+        { label: "成本", value: `$${formatMoney(data.summary.estimated_cost_usd)}` },
       ];
     case "audit":
       return [

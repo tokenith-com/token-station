@@ -143,7 +143,7 @@ function formatPlaygroundUSD(value?: number) {
     ? "-"
     : playgroundNumberFormatter(playgroundUSDFormatters, {
       style: "currency",
-      currency: "CNY",
+      currency: "USD",
       currencyDisplay: "narrowSymbol",
       minimumFractionDigits: 6,
       maximumFractionDigits: 6,

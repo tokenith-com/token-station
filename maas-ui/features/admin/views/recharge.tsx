@@ -6,7 +6,7 @@ import { Check, CreditCard, ListChecks, QrCode, WalletCards } from "lucide-react
 import type { ApiContext } from "../core/types";
 import { uniqueUIID } from "../domain/formatting";
 import { languageLocale, tx } from "../i18n/runtime";
-import { formatWalletMicros, walletRequest, type Wallet } from "../resources/wallet";
+import { formatRechargeFen, formatWalletMicros, walletRequest, type Wallet } from "../resources/wallet";
 
 type Order = { order_no: string; status: string; qr_code?: string; pay_url?: string; amount_fen?: number; channel?: string; created_at?: number };
 type Plans = { custom_enabled?: boolean; min_fen?: number; max_fen?: number; data: { id: string; name: string; amount_fen: number }[]; channels: string[] };
@@ -160,7 +160,9 @@ export function RechargeView({ api }: { api: ApiContext }) {
     window.history.replaceState(window.history.state, "", url);
   }
   const channelLabel = (value?: string) => value === "wechat" ? tx("微信支付") : value === "alipay" ? tx("支付宝") : "—";
-  const amountLabel = (value?: number) => typeof value === "number" ? formatWalletMicros(value * 10000) : "—";
+  // Recharge amounts are paid in CNY; the credited balance and usage charges are
+  // denominated in the wallet currency.
+  const amountLabel = (value?: number) => typeof value === "number" ? formatRechargeFen(value) : "—";
 
   const payURL = checkoutURL(order?.pay_url);
   const statusLabel = (status: string) => {
@@ -193,11 +195,11 @@ export function RechargeView({ api }: { api: ApiContext }) {
             <fieldset className="payment-amounts payment-panel" disabled={busy || Boolean(attempt) || Boolean(order)}>
               <legend><ListChecks aria-hidden="true" />{tx("选择充值规格")}</legend>
               <div className="payment-amount-options">
-                {plans.data.map((item) => <button key={item.id} type="button" className="payment-amount-option" aria-pressed={plan === item.id} onClick={() => setPlan(item.id)}>{formatWalletMicros(item.amount_fen * 10_000)}</button>)}
+                {plans.data.map((item) => <button key={item.id} type="button" className="payment-amount-option" aria-pressed={plan === item.id} onClick={() => setPlan(item.id)}>{formatRechargeFen(item.amount_fen)}</button>)}
                 {plans.custom_enabled && <button type="button" className="payment-amount-option" aria-pressed={!plan} onClick={() => setPlan("")}>{tx("自定义金额")}</button>}
               </div>
             </fieldset>
-            {!plan && plans.custom_enabled && <label>{tx("自定义金额")}<input aria-label={tx("自定义金额")} type="number" required min={(plans.min_fen ?? 1) / 100} max={(plans.max_fen ?? 0) / 100} step="0.01" value={custom} disabled={busy || Boolean(attempt) || Boolean(order)} onChange={event => setCustom(event.target.value)} /><small>{formatWalletMicros((plans.min_fen ?? 1) * 10000)} – {formatWalletMicros((plans.max_fen ?? 0) * 10000)}</small></label>}
+            {!plan && plans.custom_enabled && <label>{tx("自定义金额")}<input aria-label={tx("自定义金额")} type="number" required min={(plans.min_fen ?? 1) / 100} max={(plans.max_fen ?? 0) / 100} step="0.01" value={custom} disabled={busy || Boolean(attempt) || Boolean(order)} onChange={event => setCustom(event.target.value)} /><small>{formatRechargeFen(plans.min_fen ?? 1)} – {formatRechargeFen(plans.max_fen ?? 0)}</small></label>}
             <fieldset className="payment-amounts payment-panel" disabled={busy || Boolean(attempt)}>
               <legend><CreditCard aria-hidden="true" />{tx("支付方式")}</legend>
               <div className="payment-channel-options">

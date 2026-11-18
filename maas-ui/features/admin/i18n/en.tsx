@@ -1479,6 +1479,7 @@ export const enTranslations: Record<string, string> = {
     "选择 API Key": "API key",
     "暂无可用 API Key": "No API keys available",
     "请先创建 API Key 才能使用模型演练场，演练产生的用量将计入所选 Key。": "Create an API key before using the playground. Playground usage is billed to the selected key.",
+    "还没有可用的 API Key": "No API keys available yet",
     "去创建 API Key": "Create API key",
     "演练产生的用量和费用将计入所选 API Key。": "Playground usage and cost are billed to the selected API key.",
     "请输入测试内容": "Enter test content",
