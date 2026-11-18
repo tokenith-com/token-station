@@ -126,7 +126,7 @@ NEXT_PUBLIC_TOKENHUB_API_BASE_URL=http://localhost:8080 npm run dev -- --port 30
 NEXT_PUBLIC_TOKENHUB_API_BASE_URL=https://api.example.com npm run build
 ```
 
-每个部署环境只需构建并发布一份 `out/`。API 地址和可选的站点路径前缀在构建时固定。为部署后的来源配置 HTTPS、静态路由和后端 CORS。参见 [MaaS 静态部署指南](maas-ui/docs/static-deploy.md)。
+每个部署环境只需构建并发布一份 `out/`。API 地址和可选的站点路径前缀在构建时固定。为部署后的来源配置 HTTPS、静态路由和后端 CORS。参见 [MaaS 静态部署指南](maas-ui/docs/static-DEPLOY.md)。
 
 ### 现有托管技术栈
 
@@ -152,7 +152,7 @@ SQLite 适合单实例安装。PostgreSQL 支持多实例部署的共享持久�
 - [管理员指南](docs/zh-CN/administrator-guide.md)
 - [架构](docs/zh-CN/architecture.md)
 - [计费与定价](docs/zh-CN/billing-pricing.md)
-- [MaaS 静态部署](maas-ui/docs/static-deploy.md)
+- [MaaS 静态部署](maas-ui/docs/static-DEPLOY.md)
 - [开发与贡献指南](CONTRIBUTING.zh-CN.md)
 
 ## 许可证

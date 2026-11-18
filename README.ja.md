@@ -126,7 +126,7 @@ NEXT_PUBLIC_TOKENHUB_API_BASE_URL=http://localhost:8080 npm run dev -- --port 30
 NEXT_PUBLIC_TOKENHUB_API_BASE_URL=https://api.example.com npm run build
 ```
 
-環境ごとに 1 つの `out/` をビルドして公開します。API URL と任意のパスプレフィックスはビルド時に固定されます。デプロイ先のオリジンに合わせて、HTTPS、静的ルートの処理、バックエンドの CORS を設定してください。[MaaS 静的デプロイガイド](maas-ui/docs/static-deploy.md)を参照してください。
+環境ごとに 1 つの `out/` をビルドして公開します。API URL と任意のパスプレフィックスはビルド時に固定されます。デプロイ先のオリジンに合わせて、HTTPS、静的ルートの処理、バックエンドの CORS を設定してください。[MaaS 静的デプロイガイド](maas-ui/docs/static-DEPLOY.md)を参照してください。
 
 ### 既存のマネージド構成
 
@@ -152,7 +152,7 @@ SQLite は単一インスタンスのインストールに適しています。P
 - [管理者ガイド](docs/ja/administrator-guide.md)
 - [アーキテクチャ](docs/ja/architecture.md)
 - [課金と価格設定](docs/ja/billing-pricing.md)
-- [MaaS 静的デプロイ](maas-ui/docs/static-deploy.md)
+- [MaaS 静的デプロイ](maas-ui/docs/static-DEPLOY.md)
 - [開発・コントリビューションガイド](CONTRIBUTING.ja.md)
 
 ## ライセンス
