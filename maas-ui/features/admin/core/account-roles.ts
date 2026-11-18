@@ -3,7 +3,7 @@ import type { AppData, AppRole } from "./types";
 // Unknown backend roles must not silently become team members.
 export function supportedAccountRole(role: string): AppRole | null {
   const value = String(role || "").trim().toLowerCase();
-  if (["admin", "system_admin"].includes(value)) return "admin";
+  if (value === "admin") return "admin";
   if (["team_leader", "teamlead", "project_admin"].includes(value)) return "team_leader";
   if (["guest", "individual", "consumer", "retail_user"].includes(value)) return "consumer";
   if (["user", "member", "viewer", "readonly", "read_only"].includes(value)) return "user";

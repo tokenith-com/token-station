@@ -161,7 +161,7 @@ func TestNotificationChannelTestFailuresAreRecordedAndRedacted(t *testing.T) {
 func TestNotificationChannelTestAuthorizationAndMethods(t *testing.T) {
 	store, app := newMethodRoutingAdminServer(t, "notification-test-password")
 	channel := store.CreateResource("notification-channels", AdminResource{Name: "Missing target", Status: StatusActive, Fields: map[string]any{"type": "webhook"}})
-	for _, role := range []string{"admin", "system_admin", "security_admin", "team_leader", "user"} {
+	for _, role := range []string{"admin", "security_admin", "team_leader", "user"} {
 		token := createAdminOperationMethodRoutingSession(t, store, "notification-test-"+role, role)
 		for _, method := range []string{http.MethodPost, http.MethodGet, http.MethodPut, http.MethodPatch, http.MethodDelete, http.MethodHead} {
 			t.Run(role+"/"+method, func(t *testing.T) {
@@ -183,8 +183,8 @@ func TestNotificationChannelTestAuthorizationAndMethods(t *testing.T) {
 	}
 	response := methodRoutingRequest(app, http.MethodPost, notificationTestPath("missing"), "dev_admin_token")
 	assertJSONError(t, response, http.StatusNotFound, "resource_not_found")
-	if got := len(store.ListAlertDeliveries()); got != 3 {
-		t.Fatalf("unauthorized or invalid requests created deliveries: got %d, want 3", got)
+	if got := len(store.ListAlertDeliveries()); got != 2 {
+		t.Fatalf("unauthorized or invalid requests created deliveries: got %d, want 2", got)
 	}
 }
 

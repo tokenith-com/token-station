@@ -194,7 +194,7 @@ export function roleSelectOptions(data: AppData) {
         label: roleDisplayName(role) || roleLabel(value),
       };
     })
-    .filter((option) => option.value);
+    .filter((option) => option.value && option.value.trim().toLowerCase() !== "system_admin");
   if (configured.length > 0) {
     return configured;
   }

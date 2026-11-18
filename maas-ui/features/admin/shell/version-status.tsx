@@ -206,7 +206,7 @@ export function ResponsiveVersionStatus({ api, user }: { api: ApiContext; user: 
 }
 
 export function VersionStatus({ api, user }: { api: ApiContext; user: AdminUser }) {
-  const canInspectVersions = ["admin", "system_admin"].includes(user.role.trim().toLowerCase());
+  const canInspectVersions = user.role.trim().toLowerCase() === "admin";
   const [info, setInfo] = useState<SystemVersionInfo>(fallbackVersionInfo);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(canInspectVersions);

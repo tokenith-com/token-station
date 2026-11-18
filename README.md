@@ -126,7 +126,7 @@ Build from `maas-ui/`, replacing the example API address with your backend URL:
 NEXT_PUBLIC_TOKENHUB_API_BASE_URL=https://api.example.com npm run build
 ```
 
-The build produces one `out/` directory for all users at that deployment. The API URL and optional path prefix are fixed at build time. Configure HTTPS, static-route handling, and backend CORS for the deployed origin. See the [MaaS static deployment guide](maas-ui/docs/static-deploy.md).
+The build produces one `out/` directory for all users at that deployment. The API URL and optional path prefix are fixed at build time. Configure HTTPS, static-route handling, and backend CORS for the deployed origin. See the [MaaS static deployment guide](maas-ui/docs/static-DEPLOY.md).
 
 ### Existing managed stack
 
@@ -152,7 +152,7 @@ Before upgrading an existing database, back it up and verify its migration histo
 - [Administrator guide](docs/administrator-guide.md)
 - [Architecture](docs/architecture.md)
 - [Billing and pricing](docs/billing-pricing.md)
-- [MaaS static deployment](maas-ui/docs/static-deploy.md)
+- [MaaS static deployment](maas-ui/docs/static-DEPLOY.md)
 - [Development and contribution guide](CONTRIBUTING.md)
 
 ## License

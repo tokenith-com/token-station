@@ -35,7 +35,7 @@ func testRechargeSettings(t *testing.T, store *GormStore) {
 		}
 		return s.Token
 	}
-	root, buyer, operator := session("root", "admin"), session("buyer", "consumer"), session("operator", "system_admin")
+	root, buyer, operator := session("root", "admin"), session("buyer", "consumer"), session("operator", "security_admin")
 	req := func(method, path, token, body, key string, status int) *httptest.ResponseRecorder {
 		r := httptest.NewRequest(method, path, strings.NewReader(body))
 		r.Header.Set("Authorization", "Bearer "+token)

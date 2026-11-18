@@ -30,7 +30,6 @@ func TestAdminOverviewModelsRespectProjectAccess(t *testing.T) {
 		{name: "inactive membership", access: "inactive", mode: ModelAccessModeInherit, want: []string{}},
 		{name: "no accessible project", mode: ModelAccessModeInherit, want: []string{}},
 		{name: "platform admin unchanged", role: "admin", want: []string{"disabled", "inactive-route", "model-a", "model-b", "unrouted"}},
-		{name: "system admin unchanged", role: "system_admin", want: []string{"disabled", "inactive-route", "model-a", "model-b", "unrouted"}},
 		{name: "global operations unchanged", role: "security_admin", want: []string{"disabled", "inactive-route", "model-a", "model-b", "unrouted"}},
 	} {
 		t.Run(tc.name, func(t *testing.T) {

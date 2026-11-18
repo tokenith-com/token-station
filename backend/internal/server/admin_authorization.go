@@ -47,7 +47,7 @@ func canAdmin(role string, resource string, method string) bool {
 	resource = strings.ToLower(strings.TrimSpace(resource))
 	write := method != http.MethodGet
 	switch role {
-	case "admin", "system_admin":
+	case "admin":
 		return true
 	case "security_admin":
 		if resource == "backup" {
@@ -83,7 +83,7 @@ func canAdmin(role string, resource string, method string) bool {
 func adminRoleMatches(actual string, required string) bool {
 	actual = normalizeAdminRole(actual)
 	required = normalizeAdminRole(required)
-	if actual == "admin" || actual == "system_admin" {
+	if actual == "admin" {
 		return true
 	}
 	return actual == required
@@ -92,6 +92,8 @@ func adminRoleMatches(actual string, required string) bool {
 func normalizeAdminRole(role string) string {
 	role = strings.ToLower(strings.TrimSpace(role))
 	switch role {
+	case "system_admin":
+		return "admin"
 	case "guest":
 		return "consumer"
 	case "security":
@@ -112,8 +114,7 @@ func isConsumerRole(role string) bool {
 }
 
 func isPlatformAdminRole(role string) bool {
-	role = normalizeAdminRole(role)
-	return role == "admin" || role == "system_admin"
+	return normalizeAdminRole(role) == "admin"
 }
 
 func (s *Server) canViewGlobalOperations(user AdminUser) bool {

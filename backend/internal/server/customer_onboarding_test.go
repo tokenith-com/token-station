@@ -18,7 +18,7 @@ func onboardingRequest() CustomerOnboardingRequest {
 }
 
 func TestCustomerOnboardingHTTP(t *testing.T) {
-	for _, role := range []string{"admin", "system_admin", "team_leader", "security_admin", "user", "guest"} {
+	for _, role := range []string{"admin", "team_leader", "security_admin", "user", "guest"} {
 		t.Run(role, func(t *testing.T) {
 			store := NewMemoryStore()
 			actor, err := store.CreateAdminUser(AdminUser{Username: "actor", Email: "actor@example.test", Role: role}, "actor-password")

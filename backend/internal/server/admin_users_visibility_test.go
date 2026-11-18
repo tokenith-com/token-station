@@ -9,7 +9,7 @@ func TestTeamLeaderUserListHidesPlatformAdmins(t *testing.T) {
 		leader,
 		{ID: "usr_member", Role: "user", TeamID: "team_a"},
 		{ID: "usr_admin", Role: "admin", TeamID: "team_a"},
-		{ID: "usr_sysadmin", Role: "system_admin", TeamIDs: []string{"team_a"}},
+		{ID: "usr_other_admin", Role: "admin", TeamIDs: []string{"team_a"}},
 		{ID: "usr_other", Role: "user", TeamID: "team_b"},
 	}
 

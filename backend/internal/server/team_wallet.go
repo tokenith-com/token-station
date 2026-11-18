@@ -429,7 +429,7 @@ func (s *Server) handleTeamWallet(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	teamID := r.PathValue("team_id")
-	if normalizeAdminRole(user.Role) != "admin" && !(normalizeAdminRole(user.Role) == "team_leader" && user.TeamID == teamID && s.activeTeamIDSet()[teamID]) {
+	if !isPlatformAdminRole(user.Role) && !(normalizeAdminRole(user.Role) == "team_leader" && user.TeamID == teamID && s.activeTeamIDSet()[teamID]) {
 		writeError(w, r, NewHTTPError(403, "wallet_forbidden", "Wallet is only available to the team's leader or platform administrators"))
 		return
 	}

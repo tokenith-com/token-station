@@ -55,3 +55,11 @@ test("clears transient and legacy administrator sessions", () => {
   assert.equal(tab.value(storageKey), null);
   assert.equal(persistent.value(storageKey), null);
 });
+
+test("upgrades an existing tab session to the canonical administrator role", () => {
+  const legacy = { ...validSession, user: { ...validSession.user, role: " SYSTEM_ADMIN " } };
+  const tab = memoryStorage({ [storageKey]: JSON.stringify(legacy) });
+  const expected = { ...validSession, user: { ...validSession.user, role: "admin" } };
+  assert.deepEqual(readTransientAdminSession(storageKey, tab, memoryStorage(), 0), expected);
+  assert.deepEqual(JSON.parse(tab.value(storageKey)), expected);
+});

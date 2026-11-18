@@ -31,7 +31,7 @@ func TestTeamWalletRateHistoryPersistenceAndRollback(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	actor, _ := rateHistoryActor(t, store, "system_admin")
+	actor, _ := rateHistoryActor(t, store, "admin")
 	for range 2 {
 		entry, err := store.SaveTeamWalletRate("007.123450", actor.ID)
 		if err != nil || entry.USDToCNY != "007.123450" || entry.ActorUserID != actor.ID || entry.ActorName != actor.Name || entry.CreatedAt.Location() != time.UTC {
@@ -170,7 +170,7 @@ func TestTeamWalletRateHistoryHTTP(t *testing.T) {
 
 func TestTeamWalletRateHistoryConcurrentSaves(t *testing.T) {
 	store := NewMemoryStore()
-	actor, _ := rateHistoryActor(t, store, "system_admin")
+	actor, _ := rateHistoryActor(t, store, "admin")
 	var wg sync.WaitGroup
 	for i := range 12 {
 		wg.Go(func() {
@@ -193,7 +193,7 @@ func TestTeamWalletRateHistoryConcurrentSaves(t *testing.T) {
 
 func TestTeamWalletRateSavePreservesReservationSnapshot(t *testing.T) {
 	store := NewMemoryStore()
-	actor, _ := rateHistoryActor(t, store, "system_admin")
+	actor, _ := rateHistoryActor(t, store, "admin")
 	if _, err := store.SaveTeamWalletRate("7", actor.ID); err != nil {
 		t.Fatal(err)
 	}

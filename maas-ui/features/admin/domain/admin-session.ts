@@ -22,6 +22,13 @@ export function readTransientAdminSession<TUser>(
       sessionStore.removeItem(storageKey);
       return null;
     }
+    const user = parsed.user;
+    if (typeof user === "object" && "role" in user && typeof user.role === "string" && user.role.trim().toLowerCase() === "system_admin") {
+      // Upgrade browser sessions saved before the backend standardized the role.
+      const upgraded = { ...parsed, user: { ...user, role: "admin" } };
+      sessionStore.setItem(storageKey, JSON.stringify(upgraded));
+      return upgraded;
+    }
     return parsed;
   } catch {
     sessionStore.removeItem(storageKey);

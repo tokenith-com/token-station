@@ -236,6 +236,7 @@ func TestTeamWalletHTTPPermissionsAndSettings(t *testing.T) {
 		{admin, http.MethodPost, walletPath + "/credits", map[string]any{"amount_micros": 5_000_000, "request_id": "missing-metadata"}, 400},
 		{security, http.MethodPost, walletPath + "/credits", nil, 403},
 		{member, http.MethodPost, walletPath + "/credits", nil, 403},
+		{admin, http.MethodGet, walletPath, nil, 200},
 		{leader, http.MethodGet, walletPath, nil, 200},
 		{member, http.MethodGet, walletPath, nil, 403},
 		{security, http.MethodGet, walletPath, nil, 403},
