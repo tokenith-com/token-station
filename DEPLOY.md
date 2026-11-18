@@ -88,8 +88,8 @@ ECS 上的 `payment.yaml` 中，`prepaid_usage` 控制是否对符合条件的�
 
 | 变量 | 必填与默认值 | 含义与 ECS 对应值 |
 | --- | --- | --- |
-| **`NEXT_PUBLIC_TOKENHUB_BASE_PATH`** | **本部署必填** `/maas`。程序默认空，即部署在站点根路径。 | MaaS 页面和静态资源挂载的 URL 路径前缀。此 ECS 为 `/maas`，对应 nginx 的页面入口。 |
-| **`NEXT_PUBLIC_TOKENHUB_API_BASE_URL`** | **本部署必填** MaaS API 地址。仓库的 `maas-ui/.env.production` 预设 `https://hub.centlt.com`，构建此 ECS 的静态包时须覆盖。未提供任何值时程序默认空。 | 浏览器调用后端 API 时使用的基础地址。此 ECS 为 `https://tokenstation-test.centlt.com/maas-api`，nginx 会去掉 `/maas-api` 前缀后把请求转到后端监听地址。 |
+| **`NEXT_PUBLIC_TOKENHUB_BASE_PATH`** | **本部署必填** 空字符串。程序默认空，即部署在站点根路径。 | MaaS 页面和静态资源挂载的 URL 路径前缀。此 ECS 使用站点根路径。 |
+| **`NEXT_PUBLIC_TOKENHUB_API_BASE_URL`** | **本部署必填** MaaS API 地址。仓库的 `maas-ui/.env.production` 预设 `https://hub.centlt.com`，构建此 ECS 的静态包时须覆盖。未提供任何值时程序默认空。 | 浏览器调用后端 API 时使用的基础地址。此 ECS 为 `https://tokenstation-test.centlt.com`，Nginx 保留 `/api/` 和 `/v1/` 的完整路径并转发到 TokenStation。 |
 
 ## 1. 在本地构建并打包
 
@@ -120,11 +120,11 @@ printf '%s\n' "$release_sha" > "$package/backend/VERSION"
 (
   cd maas-ui
   npm ci
-  NEXT_PUBLIC_TOKENHUB_BASE_PATH=/maas \
-    NEXT_PUBLIC_TOKENHUB_API_BASE_URL=https://tokenstation-test.centlt.com/maas-api \
+  NEXT_PUBLIC_TOKENHUB_BASE_PATH="" \
+    NEXT_PUBLIC_TOKENHUB_API_BASE_URL=https://tokenstation-test.centlt.com \
     npm run build
-  grep -qF '/maas/_next/' out/index.html
-  grep -qF 'https://tokenstation-test.centlt.com/maas-api' out/index.html
+  grep -qF '/_next/' out/index.html
+  grep -qF 'https://tokenstation-test.centlt.com' out/index.html
   cp -R out/. "$package/frontend/maas/"
 )
 
@@ -277,3 +277,21 @@ curl -fsS --max-time 10 "$site/maas-api/api/admin/auth/identity-providers" | pyt
 常规 systemd 启动只校验迁移状态。迁移 25 应用后，若要回退到只支持版本 20 的旧后端，需要先按备份恢复方案处理数据库，再切回旧版本目录。恢复发布前备份可能丢失切换后发生的写入，需先评估影响。应用迁移 26 后，回退前也要确认旧二进制能识别迁移 26；仅支持版本 25 的二进制无法通过账本校验。
 
 相关文档：[数据库演进](docs/zh-CN/database-evolution.md)、[通用部署](docs/zh-CN/deployment.md)、[MaaS 静态构建](maas-ui/docs/static-DEPLOY.md)。
+
+## 根路径与模型网关切换
+
+前端根路径为 `/`，构建 API 地址为 `https://tokenstation-test.centlt.com`。
+将 `deploy/native/maas-root.http.conf` 放入 Nginx 的 http 层，
+将 `deploy/native/maas-root.locations.conf` 引入本域名的 HTTPS server。
+替换原有 `location /`、`location /api/admin/auth`，并移除旧 MaaS 首页、
+静态文件和支付回调 include。保留现有支付宝日志格式及其依赖的 map。
+`/api/` 与 `/v1/` 原样转发到 `127.0.0.1:18080`。
+如使用 Gemini 原生客户端，`/v1beta/` 同样转给 TokenStation。
+
+仅合并 `deploy/native/payment-return.override.yaml` 中的支付宝返回地址字段
+到 ECS 支付配置。三个支付通知 URL 保持现有值。旧充值返回路径携带查询参数
+跳转到 `/balance-recharge/`，兼容切换前已创建的订单。
+
+切换前保存旧 Nginx 配置、支付配置及版本链接用于回滚，执行 `nginx -t`，
+重载后检查根页面、认证、模型列表、聊天与流式响应。确认后停用旧 TokenHub
+前后端的 systemd 服务，并复查端口与公网请求。全部编译在本地完成。
