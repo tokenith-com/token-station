@@ -128,7 +128,6 @@ func TestPrepaidTeamWalletUsesSinglePayer(t *testing.T) {
 	if err := store.db.Create(&teamWallet{TeamID: project.TeamID, BalanceMicros: 1_000_000, UpdatedAt: time.Now().UTC()}).Error; err != nil {
 		t.Fatal(err)
 	}
-	store.CreateResource("settings", AdminResource{ID: teamWalletRateID, Status: StatusActive, Fields: map[string]any{"usd_to_cny": "7.2"}})
 	store.prepaidUsage = true
 	var call CallContext
 	if err := store.db.Transaction(func(tx *gorm.DB) error {
@@ -145,7 +144,7 @@ func TestPrepaidTeamWalletUsesSinglePayer(t *testing.T) {
 		store.FinishCall(call, RouteSelection{}, Usage{CostUSD: 0.0001, TotalTokens: 100}, http.StatusOK, "", "", "")
 	}
 	wallet, err := store.TeamWallet(project.TeamID)
-	if err != nil || wallet.BalanceMicros != 999_280 {
+	if err != nil || wallet.BalanceMicros != 999_900 {
 		t.Fatalf("expected one team wallet charge: %+v, %v", wallet, err)
 	}
 	var count int64
@@ -171,7 +170,6 @@ func TestConsumerProjectUsesPersonalWalletEvenWithLegacyTeamWallet(t *testing.T)
 	if err := store.db.Create(&teamWallet{TeamID: project.TeamID, BalanceMicros: 1_000_000, UpdatedAt: time.Now().UTC()}).Error; err != nil {
 		t.Fatal(err)
 	}
-	store.CreateResource("settings", AdminResource{ID: teamWalletRateID, Status: StatusActive, Fields: map[string]any{"usd_to_cny": "7.2"}})
 	store.prepaidUsage = true
 	var call CallContext
 	prepaidContext := context.WithValue(t.Context(), prepaidChatContextKey{}, true)

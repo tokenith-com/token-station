@@ -25,6 +25,19 @@ func rateHistoryActor(t *testing.T, store *GormStore, role string) (AdminUser, s
 	return user, session.Token
 }
 
+// storedTeamWalletRate reads the exchange rate recorded on the settlement
+// settings page. Charging does not apply it, so tests assert on the stored
+// setting rather than on teamWalletRate, which always returns the fixed
+// settlement rate.
+func storedTeamWalletRate(store *GormStore) (string, error) {
+	var setting AdminResource
+	if err := store.db.Where("id = ? AND kind = ? AND status = ?", teamWalletRateID, "settings", StatusActive).First(&setting).Error; err != nil {
+		return "", err
+	}
+	rate, _ := setting.Fields["usd_to_cny"].(string)
+	return rate, nil
+}
+
 func TestTeamWalletRateHistoryPersistenceAndRollback(t *testing.T) {
 	url := "sqlite://" + filepath.Join(t.TempDir(), "history.db")
 	store, err := NewSQLiteStore(url)
@@ -47,8 +60,8 @@ func TestTeamWalletRateHistoryPersistenceAndRollback(t *testing.T) {
 	if _, err := store.SaveTeamWalletRate("8", actor.ID); err == nil {
 		t.Fatal("history failure did not abort save")
 	}
-	if got, err := teamWalletRate(store.db); err != nil || got != "007.123450" {
-		t.Fatalf("current rate changed after rollback: %s %v", got, err)
+	if got, err := storedTeamWalletRate(store); err != nil || got != "007.123450" {
+		t.Fatalf("saved rate changed after rollback: %s %v", got, err)
 	}
 	if err := store.db.Exec("DROP TRIGGER reject_rate_history").Error; err != nil {
 		t.Fatal(err)
@@ -159,7 +172,7 @@ func TestTeamWalletRateHistoryHTTP(t *testing.T) {
 			}
 		}
 	}
-	if rate, err := teamWalletRate(store.db); err != nil || rate != "7.120000" {
+	if rate, err := storedTeamWalletRate(store); err != nil || rate != "7.120000" {
 		t.Fatalf("bypass changed rate: %s %v", rate, err)
 	}
 	_, total, err := store.TeamWalletRateHistory(50, 0)
@@ -186,12 +199,12 @@ func TestTeamWalletRateHistoryConcurrentSaves(t *testing.T) {
 	if err != nil || total != 12 || len(entries) != 12 {
 		t.Fatalf("concurrent history: %+v %d %v", entries, total, err)
 	}
-	if rate, err := teamWalletRate(store.db); err != nil || rate != entries[0].USDToCNY {
-		t.Fatalf("latest history differs from current: %s %v", rate, err)
+	if rate, err := teamWalletRate(store.db); err != nil || rate != walletSettlementRate {
+		t.Fatalf("settlement rate = %s %v, want the fixed identity rate", rate, err)
 	}
 }
 
-func TestTeamWalletRateSavePreservesReservationSnapshot(t *testing.T) {
+func TestTeamWalletRateSaveDoesNotChangeSettlement(t *testing.T) {
 	store := NewMemoryStore()
 	actor, _ := rateHistoryActor(t, store, "system_admin")
 	if _, err := store.SaveTeamWalletRate("7", actor.ID); err != nil {
@@ -223,22 +236,21 @@ func TestTeamWalletRateSavePreservesReservationSnapshot(t *testing.T) {
 		t.Fatal("saving rate changed balance")
 	}
 	reserve("new")
-	for _, tc := range []struct {
-		id, rate string
-		charge   int64
-	}{{"old", "7", 7_000_000}, {"new", "8", 8_000_000}} {
+	// Settlement charges the recorded cost directly, so the recorded rate does
+	// not change what either reservation settles for.
+	for _, id := range []string{"old", "new"} {
 		if err := store.db.Transaction(func(tx *gorm.DB) error {
-			return settleTeamWalletCall(tx, CallContext{RequestID: tc.id, TeamWalletEnabled: true}, Usage{CostUSD: 1}, true, now)
+			return settleTeamWalletCall(tx, CallContext{RequestID: id, TeamWalletEnabled: true}, Usage{CostUSD: 1}, true, now)
 		}); err != nil {
 			t.Fatal(err)
 		}
 		var call teamWalletCall
-		if err := store.db.First(&call, "request_id = ?", tc.id).Error; err != nil || call.ExchangeRate != tc.rate || call.SettledMicros != tc.charge {
-			t.Fatalf("reservation snapshot: %+v %v", call, err)
+		if err := store.db.First(&call, "request_id = ?", id).Error; err != nil || call.ExchangeRate != walletSettlementRate || call.SettledMicros != 1_000_000 {
+			t.Fatalf("settlement of %q: %+v %v", id, call, err)
 		}
 	}
 	wallet, err := store.TeamWallet("team")
-	if err != nil || wallet.BalanceMicros != 85_000_000 {
+	if err != nil || wallet.BalanceMicros != 98_000_000 {
 		t.Fatalf("settled balance: %+v %v", wallet, err)
 	}
 }

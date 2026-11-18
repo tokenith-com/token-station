@@ -127,5 +127,5 @@ func (s *Server) handleTeamWalletLedger(w http.ResponseWriter, r *http.Request) 
 		writeError(w, r, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"entries": entries, "total": total, "limit": limit, "offset": offset, "currency": "CNY"})
+	writeJSON(w, http.StatusOK, map[string]any{"entries": entries, "total": total, "limit": limit, "offset": offset, "currency": walletCurrency})
 }

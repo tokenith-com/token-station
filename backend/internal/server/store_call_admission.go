@@ -257,7 +257,7 @@ func (s *GormStore) admitCallTransaction(ctx context.Context, tx *gorm.DB, key A
 			return admission, NewHTTPError(409, "team_wallet_reservation_unavailable", "Call token reservation is not a reliable wallet upper bound")
 		}
 		usdUpper := float64(tokenReservation) * (model.InputPriceUSDPer1M + model.OutputPriceUSDPer1M) / 1000000
-		teamWalletReservedMicros, err = ConvertUSDToCNYMicros(fmt.Sprintf("%.6f", usdUpper), rate, true)
+		teamWalletReservedMicros, err = ConvertUSDToMicros(fmt.Sprintf("%.6f", usdUpper), true)
 		if err != nil || teamWalletReservedMicros <= 0 {
 			return admission, NewHTTPError(409, "team_wallet_reservation_unavailable", "Call token reservation is not a reliable wallet upper bound")
 		}
