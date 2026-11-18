@@ -4,6 +4,8 @@ Language: [English](../deployment.md) | [简体中文](../zh-CN/deployment.md) |
 
 TokenStation は、Go バックエンド、Next.js 管理コンソール、SQLite 永続化で構成されるプライベートデプロイ向けのサービスです。
 
+新しいデータベースはサーバーの起動前に準備します。ソースから実行する場合は、対象のデータベース設定で `backend/` から `go run ./cmd/tokenstation db prepare --initialize` を実行します。Compose ではデプロイ時と同じ Compose ファイルと環境設定を使用し、`docker compose run --rm -e TOKENHUB_RUN_MODE=backend tokenstation-backend db prepare --initialize` を実行します。既存のデータベースにスキーマ変更や補正が必要な場合は `db prepare` を実行します。詳細は[データベースの進化](database-evolution.md)を参照してください。
+
 ## データベースの選択
 
 TokenStation は 2 種類のデータベースバックエンドをサポートしています。

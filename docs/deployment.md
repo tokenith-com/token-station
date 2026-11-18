@@ -4,6 +4,8 @@ Language: English | [简体中文](zh-CN/deployment.md) | [日本語](ja/deploym
 
 TokenStation is designed for private deployment with a Go backend, a Next.js admin console, and support for SQLite or PostgreSQL persistence.
 
+Prepare a new database before starting the server. With a source checkout, run `go run ./cmd/tokenstation db prepare --initialize` from `backend/` using the intended database settings. With Compose, use the deployment’s Compose files and environment to run `docker compose run --rm -e TOKENHUB_RUN_MODE=backend tokenstation-backend db prepare --initialize`. For an existing database that needs a schema update or repair, use `db prepare`. See [Database Evolution](database-evolution.md).
+
 ## Database Selection
 
 TokenStation supports two database backends:

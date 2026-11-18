@@ -202,6 +202,15 @@
       "checksum": "tokenhub-schema-wallet-postpaid-v1",
       "lock_timeout_seconds": 30,
       "statement_budget": 40
+    },
+    {
+      "version": 24,
+      "name": "add-team-wallet-call-snapshots",
+      "phase": "expand",
+      "dialect": "",
+      "checksum": "tokenhub-schema-team-wallet-call-snapshots-v1",
+      "lock_timeout_seconds": 30,
+      "statement_budget": 7
     }
   ]
 }

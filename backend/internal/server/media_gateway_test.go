@@ -30,6 +30,7 @@ func newMediaGatewayFixture(t *testing.T, upstream http.HandlerFunc, modality st
 	store.AddModel(Model{Name: "public-media", Modality: modality, Status: StatusActive})
 	store.AddRoute(ModelRoute{ID: "media-route", ModelName: "public-media", ProviderID: provider.ID, ProviderModel: "vendor-media", Status: StatusActive, Priority: 1, Weight: 100})
 	server := NewWithConfig(store, Config{AdminToken: "media-admin", SecretKey: "media-secret", ImageStorageDir: t.TempDir()})
+	repairProviderAndRouteData(store, server.adapterRegistry)
 	t.Cleanup(func() { _ = server.Shutdown(context.Background()) })
 	return server, store, secret
 }

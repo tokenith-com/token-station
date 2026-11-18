@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"os"
@@ -592,7 +593,14 @@ func TestReconcileProviderPluginPoliciesPersistsBuiltinProviderPolicy(t *testing
 		t.Fatal(err)
 	}
 
-	newManagedTestServerWithConfig(t, store, Config{AdminToken: "dev_admin_token"})
+	config := Config{AdminToken: "dev_admin_token"}
+	newTestServerWithShutdown(t, store, config, false)
+	if current, _ := store.GetProvider(provider.ID); current.Options[providerRouteRequiresResourceOption] != "" {
+		t.Fatal("starting a server changed the stored provider policy")
+	}
+	if err := RepairDatabaseData(context.Background(), store, config); err != nil {
+		t.Fatal(err)
+	}
 
 	stored, ok := store.GetProvider(provider.ID)
 	if !ok {

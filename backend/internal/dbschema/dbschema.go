@@ -415,13 +415,9 @@ func NormalizeMigrations(migrations []Migration) ([]Migration, error) {
 	return registry, nil
 }
 
-// Status ensures the ledger tables exist and reports the current migration
-// state, including pending expand and contract migrations.
+// Status reports the current migration state, including pending migrations.
 func (r *Runner) Status(ctx context.Context) (Status, error) {
-	if err := r.ensureLedger(ctx); err != nil {
-		return Status{}, err
-	}
-	applied, err := r.loadApplied(ctx)
+	applied, err := r.inspectApplied(ctx)
 	if err != nil {
 		return Status{}, err
 	}
@@ -469,10 +465,7 @@ func (r *Runner) pendingByPhase(applied []Applied, phase Phase) []Migration {
 // and no unknown versions or dirty state may exist. An empty ledger is a
 // missing baseline, not a clean one.
 func (r *Runner) Verify(ctx context.Context) error {
-	if err := r.ensureLedger(ctx); err != nil {
-		return err
-	}
-	applied, err := r.loadApplied(ctx)
+	applied, err := r.inspectApplied(ctx)
 	if err != nil {
 		return err
 	}

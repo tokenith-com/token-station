@@ -211,6 +211,11 @@ func (e *BackfillExecutor) Status(ctx context.Context) ([]BackfillState, error) 
 	if err := e.EnsureLedger(ctx); err != nil {
 		return nil, err
 	}
+	return e.ReadStatus(ctx)
+}
+
+// ReadStatus reads the existing ledger without creating or populating it.
+func (e *BackfillExecutor) ReadStatus(ctx context.Context) ([]BackfillState, error) {
 	query := "SELECT id, mode, state, remaining, lease_owner, lease_expires_at, updated_at FROM data_backfills ORDER BY id"
 	rows, err := e.db.QueryContext(ctx, query)
 	if err != nil {

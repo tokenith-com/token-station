@@ -1,4 +1,4 @@
-import { spawn } from "node:child_process";
+import { execFileSync, spawn } from "node:child_process";
 import { cp, mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -129,7 +129,7 @@ try {
   // Run the standalone binary in the scratch directory so local .env files are outside its search path.
   const backendBinary = path.join(temporaryDirectory, process.platform === "win32" ? "tokenstation.exe" : "tokenstation");
   await buildBackend(backendBinary);
-  start("Go backend", backendBinary, [], {
+  const backendOptions = {
     cwd: temporaryDirectory,
     env: {
       ...sharedEnvironment,
@@ -152,7 +152,9 @@ try {
       TOKENHUB_GRACEFUL_SHUTDOWN_SECONDS: "1",
       TOKENHUB_SEED_DEMO: "false",
     },
-  });
+  };
+  execFileSync(backendBinary, ["db", "prepare", "--initialize"], { ...backendOptions, stdio: "inherit", timeout: 180_000 });
+  start("Go backend", backendBinary, [], backendOptions);
   await waitForURL("Go backend", `${backendURL}/healthz`);
 
   start("Next.js frontend", "npm", ["run", "dev", "--", "--hostname", "127.0.0.1", "--port", String(frontendPort)], {

@@ -1,4 +1,4 @@
-import { languageStorageKey, sessionStorageKey } from "../../features/admin/core/types";
+import { languageStorageKey, maasSessionStorageKey, sessionStorageKey } from "../../features/admin/core/types";
 import { capture, expect, test } from "./harness";
 import { fixedTime, user } from "./fixtures/shell";
 import { installUsageFixtures, usageCalls, usageCounts, usageReport } from "./fixtures/global-usage";
@@ -161,7 +161,7 @@ test.describe("global-usage personal scope", () => {
   test("excludes provider dimensions", async ({ page, api }, info) => {
     installUsageFixtures(api);
     await page.goto("/usage");
-    expect(await page.evaluate(key => JSON.parse(sessionStorage.getItem(key)!).user.role, `${sessionStorageKey}.b`)).toBe("user");
+    expect(await page.evaluate(key => JSON.parse(sessionStorage.getItem(key)!).user.role, maasSessionStorageKey)).toBe("user");
     const usage = page.locator(".global-usage");
     await expect(usage.locator(".global-usage-stats")).toBeVisible();
     await usage.getByRole("button", { name: "全部", exact: true }).click();

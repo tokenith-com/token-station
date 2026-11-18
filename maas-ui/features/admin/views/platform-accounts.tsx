@@ -4,7 +4,6 @@ import { type AdminUser, type AppData } from "../core/types";
 import { firstActiveTeam, roleDisplayLabel, roleSelectOptions, userTeamIDs, userTeamLabels } from "../domain/entities";
 import { tx } from "../i18n/runtime";
 import { usePagination } from "./settings-table";
-import { usePortal } from "../core/portal-context";
 import { CustomerOnboardingDialog } from "./customer-onboarding";
 
 export type PlatformAccountValues = Record<string, string>;
@@ -44,8 +43,7 @@ export function PlatformAccountsView({
   const [scopeFilter, setScopeFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState(() => isTeamView ? "active" : "all");
   const [dialog, setDialog] = useState<AccountDialogState | null>(null);
-  const portal = usePortal();
-  const roles = useMemo(() => roleSelectOptions(data, portal), [data, portal]);
+  const roles = useMemo(() => roleSelectOptions(data), [data]);
   const filteredUsers = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
     return data.users.filter((user) => {
@@ -234,8 +232,7 @@ function PlatformAccountDialog({
   const isEdit = state.mode === "edit";
   const isTeamView = variant === "team";
   const user = state.mode === "create" ? null : state.user;
-  const portal = usePortal();
-  const roles = roleSelectOptions(data, portal);
+  const roles = roleSelectOptions(data);
   const defaultTeamID = firstActiveTeam(data)?.id || (isTeamView ? userTeamIDs(currentUser)[0] ?? "" : "");
   const [values, setValues] = useState<PlatformAccountValues>(() => ({
     name: user?.name ?? "",

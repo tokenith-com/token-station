@@ -28,6 +28,7 @@ func (s *Server) reloadPluginRuntime(ctx context.Context) error {
 		if err := s.publishServerPluginStoreConfiguration(&bootstrap); err != nil {
 			return err
 		}
+		reconcileProviderPluginPolicies(s.store, bootstrap.adapterRegistry)
 		s.pluginRegistry = bootstrap.pluginRegistry
 		s.gatewayChain = bootstrap.gatewayChain
 		s.gatewayHooks = bootstrap.gatewayHooks

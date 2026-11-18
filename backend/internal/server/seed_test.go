@@ -58,7 +58,7 @@ func TestBuiltinConsumerProjectCannotBeDeletedOrReassigned(t *testing.T) {
 	}
 }
 
-func TestRunStartupBootstrapReloadsCatalogOnEveryStart(t *testing.T) {
+func TestInitializeDatabaseRefreshesModelCatalog(t *testing.T) {
 	store := newTestMemoryStore(t)
 	catalogPath := filepath.Join(t.TempDir(), "model-catalog.yaml")
 	config := Config{
@@ -84,7 +84,7 @@ func TestRunStartupBootstrapReloadsCatalogOnEveryStart(t *testing.T) {
 	}
 
 	writeCatalog("first-start")
-	if err := RunStartupBootstrap(context.Background(), store, config); err != nil {
+	if err := InitializeDatabase(context.Background(), store, config); err != nil {
 		t.Fatal(err)
 	}
 	if got := modelCategory(); got != "first-start" {
@@ -92,11 +92,11 @@ func TestRunStartupBootstrapReloadsCatalogOnEveryStart(t *testing.T) {
 	}
 
 	writeCatalog("second-start")
-	if err := RunStartupBootstrap(context.Background(), store, config); err != nil {
+	if err := InitializeDatabase(context.Background(), store, config); err != nil {
 		t.Fatal(err)
 	}
 	if got := modelCategory(); got != "second-start" {
-		t.Fatalf("catalog edit was not applied on restart: category=%q", got)
+		t.Fatalf("catalog edit was not applied during initialization: category=%q", got)
 	}
 }
 
@@ -194,7 +194,7 @@ func TestSeedDefaultModelCatalogReportsLegacyNameConflict(t *testing.T) {
 	}
 }
 
-func TestRunStartupBootstrapUpgradesV040DatabaseWithDisabledDefaultTeam(t *testing.T) {
+func TestInitializeDatabaseUpgradesV040DatabaseWithDisabledDefaultTeam(t *testing.T) {
 	databasePath := filepath.Join(t.TempDir(), "v0.4.0.db")
 	legacyDB, err := sql.Open("sqlite3", databasePath)
 	if err != nil {
@@ -255,7 +255,7 @@ func TestRunStartupBootstrapUpgradesV040DatabaseWithDisabledDefaultTeam(t *testi
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := RunStartupBootstrap(context.Background(), store, config); err != nil {
+	if err := InitializeDatabase(context.Background(), store, config); err != nil {
 		t.Fatalf("v0.4.0 database upgrade should preserve the existing admin assignment: %v", err)
 	}
 	users := store.ListAdminUsers()
@@ -269,7 +269,7 @@ func TestRunStartupBootstrapUpgradesV040DatabaseWithDisabledDefaultTeam(t *testi
 	}
 }
 
-func TestRunStartupBootstrapPreservesExistingModelPrices(t *testing.T) {
+func TestInitializeDatabasePreservesExistingModelPrices(t *testing.T) {
 	store := newTestMemoryStore(t)
 	catalogPath := filepath.Join(t.TempDir(), "model-catalog.yaml")
 	config := Config{
@@ -308,7 +308,7 @@ models:
     output_price_usd_per_1m: 2
     embedding_price_usd_per_1m: 0.2
 `)
-	if err := RunStartupBootstrap(context.Background(), store, config); err != nil {
+	if err := InitializeDatabase(context.Background(), store, config); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := store.UpdateModel("startup-priced-model", Model{
@@ -350,7 +350,7 @@ models:
     output_price_usd_per_1m: 22
     embedding_price_usd_per_1m: 2.2
 `)
-	if err := RunStartupBootstrap(context.Background(), store, config); err != nil {
+	if err := InitializeDatabase(context.Background(), store, config); err != nil {
 		t.Fatal(err)
 	}
 

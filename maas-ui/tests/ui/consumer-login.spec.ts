@@ -2,21 +2,20 @@ import type { Page } from "@playwright/test";
 import { capture, expect, test } from "./harness";
 import type { MockAPI } from "./network";
 
-const rememberedAccountKey = "tokenstation.c.remembered-account";
+const rememberedAccountKey = "tokenstation.remembered-account";
 const account = "ui-consumer@example.test";
 const password = "UiFixturePassword123!";
 const loginPath = "/api/admin/auth/login";
 const loginError = "账号或密码错误";
 
 test.use({ sessionUser: null });
-test.skip(process.env.NEXT_PUBLIC_TOKENHUB_PORTAL !== "c", "Consumer login fixtures require the C portal build.");
 
 test.beforeEach(async ({ api }) => {
   api.respond("GET", "/api/admin/auth/identity-providers", { data: [] });
 });
 
 async function showLogin(page: Page) {
-  await expect(page.locator('.tc-login[data-portal="c"]')).toBeVisible();
+  await expect(page.locator('.tc-login')).toBeVisible();
   await expect(page.getByRole("heading", { name: "欢迎回来", exact: true })).toBeVisible();
 }
 
@@ -59,7 +58,7 @@ async function expectBrand(page: Page) {
 test("consumer-login unified branding and password visibility", async ({ page }, info) => {
   await openLogin(page);
   await expectBrand(page);
-  await expect(page.getByRole("checkbox", { name: "记住账号" })).toBeChecked();
+  await expect(page.getByRole("checkbox", { name: "记住账号" })).not.toBeChecked();
   const secret = page.getByLabel("密码", { exact: true });
   await secret.fill(password);
   await expect(secret).toHaveAttribute("type", "password");
@@ -68,12 +67,13 @@ test("consumer-login unified branding and password visibility", async ({ page },
   await page.getByRole("button", { name: "隐藏密码", exact: true }).click();
   await expect(secret).toHaveAttribute("type", "password");
   await secret.fill("");
-  await capture(page, info, page.locator(".tc-login"), "consumer-login-desktop", "C 端登录：居中品牌与账号表单", "viewport");
+  await capture(page, info, page.locator(".tc-login"), "consumer-login-desktop", "统一登录：居中品牌与账号表单", "viewport");
 });
 
 test("consumer-login remembers only the account and supports opting out", async ({ page, api }) => {
   rejectLogin(api);
   await openLogin(page);
+  await page.getByRole("checkbox", { name: "记住账号" }).check();
   await submitLogin(page);
   expect(await page.evaluate(key => localStorage.getItem(key), rememberedAccountKey)).toBe(account);
   await page.reload();
@@ -101,10 +101,10 @@ test("consumer-login registration preserves branding and returns to login", asyn
   await expect(page.getByRole("textbox", { name: "邮箱", exact: true })).toBeVisible();
   await expect(page.getByRole("img", { name: "验证码", exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "发送激活邮件", exact: true })).toBeVisible();
-  await capture(page, info, page.locator(".tc-login"), "consumer-login-registration", "C 端注册：保留品牌并可返回登录", "viewport");
+  await capture(page, info, page.locator(".tc-login"), "consumer-login-registration", "邮箱注册：保留品牌并可返回登录", "viewport");
   await page.getByRole("button", { name: "已有账号？返回登录", exact: true }).click();
   await expect(page.getByRole("heading", { name: "欢迎回来", exact: true })).toBeVisible();
-  await expect(page.getByRole("checkbox", { name: "记住账号" })).toBeChecked();
+  await expect(page.getByRole("checkbox", { name: "记住账号" })).not.toBeChecked();
   expect(api.calls.filter(call => call.path === "/api/admin/auth/register/captcha")).toHaveLength(1);
 });
 
@@ -116,7 +116,7 @@ test("consumer-login rejected credentials keep the branded login visible", async
   await expect(page.locator(".tc-login-form").getByRole("button", { name: "登录", exact: true })).toBeEnabled();
   await expect(page.locator(".app-shell")).toHaveCount(0);
   expect(api.calls.filter(call => call.path === loginPath)).toHaveLength(1);
-  await capture(page, info, page.locator(".tc-login"), "consumer-login-error", "C 端登录：错误反馈与重试入口", "viewport");
+  await capture(page, info, page.locator(".tc-login"), "consumer-login-error", "统一登录：错误反馈与重试入口", "viewport");
 });
 
 test("consumer-login mobile keeps branding and actions within the viewport", async ({ page }, info) => {
@@ -128,7 +128,7 @@ test("consumer-login mobile keeps branding and actions within the viewport", asy
     await expect(control).toBeInViewport();
   }
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
-  await capture(page, info, page.locator(".tc-login"), "consumer-login-mobile", "C 端登录：移动端品牌与操作", "viewport");
+  await capture(page, info, page.locator(".tc-login"), "consumer-login-mobile", "统一登录：移动端品牌与操作", "viewport");
 });
 
 test("consumer-login short viewport keeps all actions reachable", async ({ page }) => {
@@ -144,9 +144,9 @@ test("consumer-login short viewport keeps all actions reachable", async ({ page 
 test("consumer-login dark theme retains the shared branding", async ({ context, page }, info) => {
   await context.addInitScript(() => localStorage.setItem("tokenhub.theme", "dark"));
   await openLogin(page);
-  await expect(page.locator('.tc-login[data-portal="c"]')).toHaveAttribute("data-theme", "dark");
+  await expect(page.locator('.tc-login')).toHaveAttribute("data-theme", "dark");
   await expectBrand(page);
-  await capture(page, info, page.locator(".tc-login"), "consumer-login-dark", "C 端登录：深色主题品牌", "viewport");
+  await capture(page, info, page.locator(".tc-login"), "consumer-login-dark", "统一登录：深色主题品牌", "viewport");
 });
 
 

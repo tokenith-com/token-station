@@ -1,7 +1,6 @@
 import { deploymentPath } from "@/lib/deployment-path";
 import { Eye, EyeOff, Fingerprint, KeyRound, Lock, LockKeyhole, LogIn, Mail, Moon, ShieldCheck, Sun, UserRoundCheck, Users } from "lucide-react";
 import { type FormEvent, useEffect, useState } from "react";
-import { type Portal } from "../core/portal";
 import { ConsumerActivation, readActivationToken } from "./consumer-activation";
 import { ConsumerRegistration } from "./consumer-registration";
 import { LoginOTPPreview } from "./login-otp-preview";
@@ -740,6 +739,8 @@ export function LoginUtilityActions({
   );
 }
 
+const rememberedAccountKey = "tokenstation.remembered-account";
+
 export function LoginView({
   loading,
   error,
@@ -747,7 +748,6 @@ export function LoginView({
   identityProviders,
   oauthReturnURL,
   theme,
-  portal = "b",
   otpLogin,
   embedded = false,
   onLoginModeChange,
@@ -761,7 +761,6 @@ export function LoginView({
   identityProviders: LoginIdentityProvider[];
   oauthReturnURL: string;
   theme: "light" | "dark";
-  portal?: Portal;
   // 仅为类型声明；实际显示由父组件传入的 otpLogin 值控制：对象显示验证码页，undefined 显示登录页，当前仅用于开发演示。
   otpLogin?: { identity: string; onVerify: (code: string) => void; onBack: () => void };
   onLoginModeChange?: () => void;
@@ -770,7 +769,7 @@ export function LoginView({
 }) {
   const [identity, setIdentity] = useState(() => {
     try {
-      return portal === "c" ? window.localStorage.getItem("tokenstation.c.remembered-account") || "" : "";
+      return window.localStorage.getItem(rememberedAccountKey) || "";
     } catch {
       return "";
     }
@@ -783,7 +782,7 @@ export function LoginView({
     setActivationToken(readActivationToken());
   }, []);
   const [registrationNotice, setRegistrationNotice] = useState("");
-  const [remember, setRemember] = useState(true);
+  const [remember, setRemember] = useState(() => Boolean(identity));
   function startRegistration() {
     setRegistering(true);
     setRegistrationNotice("");
@@ -808,13 +807,11 @@ export function LoginView({
 
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (portal === "c") {
-      try {
-        if (remember) window.localStorage.setItem("tokenstation.c.remembered-account", identity.trim());
-        else window.localStorage.removeItem("tokenstation.c.remembered-account");
-      } catch {
-        /* Login remains available when persistent storage is disabled. */
-      }
+    try {
+      if (remember) window.localStorage.setItem(rememberedAccountKey, identity.trim());
+      else window.localStorage.removeItem(rememberedAccountKey);
+    } catch {
+      /* Login remains available when persistent storage is disabled. */
     }
     onLogin(identity, password);
   }
@@ -864,7 +861,7 @@ export function LoginView({
   ) : null;
 
   return (
-      <main className={embedded ? "tc-login embedded" : "tc-login"} data-theme={theme} data-portal={portal}>
+      <main className={embedded ? "tc-login embedded" : "tc-login"} data-theme={theme}>
         {embedded ? null : (
           <div className="tc-login-bg" aria-hidden="true">
             <span className="tc-login-orb one" />
@@ -925,25 +922,23 @@ export function LoginView({
                       </button>
                     </span>
                   </label>
-                  {portal === "c" ? (
-                    <label className="tc-login-remember">
-                      <input
-                        checked={remember}
-                        onChange={event => {
-                          setRemember(event.target.checked);
-                          if (!event.target.checked) {
-                            try {
-                              window.localStorage.removeItem("tokenstation.c.remembered-account");
-                            } catch {
-                              /* Optional preference. */
-                            }
+                  <label className="tc-login-remember">
+                    <input
+                      checked={remember}
+                      onChange={event => {
+                        setRemember(event.target.checked);
+                        if (!event.target.checked) {
+                          try {
+                            window.localStorage.removeItem(rememberedAccountKey);
+                          } catch {
+                            /* Optional preference. */
                           }
-                        }}
-                        type="checkbox"
-                      />
-                      <span>{tx("记住账号")}</span>
-                    </label>
-                  ) : null}
+                        }
+                      }}
+                      type="checkbox"
+                    />
+                    <span>{tx("记住账号")}</span>
+                  </label>
                   {registrationNotice ? (
                     <p className="consumer-form-note" role="status">
                       {registrationNotice}

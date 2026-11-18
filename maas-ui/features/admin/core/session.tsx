@@ -1,5 +1,5 @@
 import { deploymentStorageKey } from "@/lib/deployment-path";
-import { type AdminUser, oauthBaseURLStorageKey, sessionStorageKey } from "./types";
+import { type AdminUser, maasSessionStorageKey, oauthBaseURLStorageKey, sessionStorageKey } from "./types";
 import { clearTransientAdminSession, readTransientAdminSession, saveTransientAdminSession, type StoredAdminSession } from "../domain/admin-session";
 import {
   parseOAuthLoginResult,
@@ -9,7 +9,6 @@ import {
   type PendingOAuthLogin,
 } from "../domain/oauth-login";
 import { consumePasswordResetTokenFromURL } from "../domain/password-reset";
-import type { Portal } from "./portal";
 
 export type SavedSession = StoredAdminSession<AdminUser>;
 
@@ -329,18 +328,18 @@ export function clearPendingOAuthLogin() {
   window.sessionStorage.removeItem(deploymentStorageKey(oauthBaseURLStorageKey));
 }
 
-export function readSavedSession(portal: Portal = "b"): SavedSession | null {
+export function readSavedSession(): SavedSession | null {
   if (typeof window === "undefined") return null;
   clearTransientAdminSession(deploymentStorageKey(sessionStorageKey), window.sessionStorage, window.localStorage);
-  return readTransientAdminSession<AdminUser>(deploymentStorageKey(`${sessionStorageKey}.${portal}`), window.sessionStorage, window.localStorage);
+  return readTransientAdminSession<AdminUser>(deploymentStorageKey(maasSessionStorageKey), window.sessionStorage, window.localStorage);
 }
 
-export function saveSession(session: SavedSession, portal: Portal = "b") {
+export function saveSession(session: SavedSession) {
   if (typeof window === "undefined") return;
-  saveTransientAdminSession(deploymentStorageKey(`${sessionStorageKey}.${portal}`), session, window.sessionStorage, window.localStorage);
+  saveTransientAdminSession(deploymentStorageKey(maasSessionStorageKey), session, window.sessionStorage, window.localStorage);
 }
 
-export function clearSavedSession(portal: Portal = "b") {
+export function clearSavedSession() {
   if (typeof window === "undefined") return;
-  clearTransientAdminSession(deploymentStorageKey(`${sessionStorageKey}.${portal}`), window.sessionStorage, window.localStorage);
+  clearTransientAdminSession(deploymentStorageKey(maasSessionStorageKey), window.sessionStorage, window.localStorage);
 }

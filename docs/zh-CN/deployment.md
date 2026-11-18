@@ -4,6 +4,8 @@ Language: [English](../deployment.md) | 简体中文 | [日本語](../ja/deploym
 
 TokenStation 面向私有化部署，由 Go 后端、Next.js 管理后台和 SQLite 持久化组成。
 
+启动服务前先准备新库。从源码运行时，在 `backend/` 下使用目标库配置执行 `go run ./cmd/tokenstation db prepare --initialize`。使用 Compose 时，沿用部署的 Compose 文件和环境配置执行 `docker compose run --rm -e TOKENHUB_RUN_MODE=backend tokenstation-backend db prepare --initialize`。已有库需要更新表结构或修复数据时，执行 `db prepare`。详见[数据库演进](database-evolution.md)。
+
 ## 数据库选择
 
 TokenStation 支持两种数据库后端：

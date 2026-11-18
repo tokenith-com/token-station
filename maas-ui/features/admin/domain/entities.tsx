@@ -1,7 +1,7 @@
 
 
 import { appRole } from "../core/navigation";
-import { portalAllowsRole, type Portal } from "../core/portal";
+import { supportedAccountRole } from "../core/account-roles";
 import { type AdminResource, type AdminUser, type APIKey, type AppData, DEFAULT_PROJECT_ID, type Model, type ModelRoute, type Project, type Provider, type ProviderResource, type RequestLog, type RouteAttemptLog, type UsageBreakdownRow } from "../core/types";
 import { imageCapabilityProfileForModel, type ImageCapabilityProfile, providerImageCapabilityProfilesFromActions } from "./provider-image-capability";
 import { modelCategory, modelCategoryLabel } from "./catalog";
@@ -186,7 +186,7 @@ export function providerDisplayBaseURL(provider: Provider, _resources: ProviderR
   return provider.base_url || tx("本地服务");
 }
 
-export function roleSelectOptions(data: AppData, portal?: Portal) {
+export function roleSelectOptions(data: AppData) {
   const configured = (data.resources["role-configs"] ?? [])
     .filter((role) => role.status === "active" && roleConfigAssignable(role))
     .map((role) => {
@@ -199,10 +199,9 @@ export function roleSelectOptions(data: AppData, portal?: Portal) {
     })
     .filter((option) => option.value);
   if (configured.length > 0) {
-    return portal ? configured.filter(option => portalAllowsRole(portal, option.value)) : configured;
+    return configured.filter(option => supportedAccountRole(option.value) !== null);
   }
   return ["user", "team_leader", "admin", "consumer"]
-    .filter(role => !portal || portalAllowsRole(portal, role))
     .map((role) => ({ value: role, label: roleLabel(role) }));
 }
 

@@ -33,7 +33,7 @@ func TestPrintInitialAdminPassword(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := server.RunStartupBootstrap(context.Background(), store, config); err != nil {
+	if err := server.InitializeDatabase(context.Background(), store, config); err != nil {
 		t.Fatal(err)
 	}
 	want, available, err := store.InitialAdminPassword()
@@ -58,14 +58,14 @@ func TestPrintInitialAdminPassword(t *testing.T) {
 	if driver != "sqlite" {
 		t.Fatalf("driver = %q, want sqlite", driver)
 	}
-	var heartbeatTables int
-	if err := rawDB.QueryRow("SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = 'instance_heartbeats'").Scan(&heartbeatTables); err != nil {
+	var heartbeatRows int
+	if err := rawDB.QueryRow("SELECT COUNT(*) FROM instance_heartbeats").Scan(&heartbeatRows); err != nil {
 		t.Fatal(err)
 	}
 	if err := rawDB.Close(); err != nil {
 		t.Fatal(err)
 	}
-	if heartbeatTables != 0 {
+	if heartbeatRows != 0 {
 		t.Fatalf("read-only password command published an instance heartbeat")
 	}
 

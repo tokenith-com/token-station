@@ -296,9 +296,6 @@ func newWithConfig(store Store, config Config, dependencies ApplicationDependenc
 	if gormStore, ok := store.(*GormStore); ok {
 		s.stopHeartbeat = gormStore.StartInstanceHeartbeat(config.AppVersion)
 	}
-	backfillProviderModelsFromRoutes(store)
-	backfillExternalModelRolesFromRoutes(store)
-	backfillCodexImageRoutes(store)
 	if config.MetricsEnabled {
 		s.metrics = NewGatewayMetrics(config.MetricsProjectLabel)
 		// Assert against the narrow MetricsSink interface rather than *GormStore, and

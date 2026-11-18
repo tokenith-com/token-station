@@ -195,9 +195,8 @@ func testPrepaidReservations(t *testing.T, store *GormStore) {
 	t.Helper()
 	t.Cleanup(func() { _ = store.Close() })
 	ctx := context.Background()
-	now := time.Now().UTC()
 	store.CreateResource("settings", AdminResource{ID: teamWalletRateID, Status: StatusActive, Fields: map[string]any{"usd_to_cny": "8"}})
-	now = time.Now().UTC()
+	now := time.Now().UTC()
 	order := paymentOrder{OrderNo: "test-order", UserID: "test-user", PlanID: "test", AmountFen: 1, Currency: payment.Currency, Status: payment.Pending}
 	if err := store.db.Create(&order).Error; err != nil {
 		t.Fatal(err)

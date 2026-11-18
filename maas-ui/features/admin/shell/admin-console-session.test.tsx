@@ -30,21 +30,15 @@ beforeEach(() => {
 });
 
 describe("console session restoration", () => {
-  it.each(["b", "c"] as const)("loads public enterprise login providers only for portal %s", async portal => {
+  it("offers configured SSO and email registration on the same login page", async () => {
     const fetcher = vi.fn().mockResolvedValue(Response.json({ data: [{ id: "enterprise", name: "Enterprise SSO", provider_type: "oidc", login_label: "Enterprise SSO" }] }));
     vi.stubGlobal("fetch", fetcher);
-    render(<AdminConsole defaultBaseURL={baseURL} portal={portal} />);
-    if (portal === "b") {
-      await openLoginForm(userEvent.setup());
-      expect(await screen.findByRole("link", { name: /Enterprise SSO/ })).toHaveAttribute("href", expect.stringContaining("/api/admin/auth/oauth/start?id=enterprise&return_url="));
-      expect(fetcher).toHaveBeenCalledWith(`${baseURL}/api/admin/auth/identity-providers`, expect.objectContaining({ credentials: "omit", headers: { accept: "application/json" } }));
-      expect(fetcher.mock.calls.every(([path]) => path === `${baseURL}/api/admin/auth/identity-providers`)).toBe(true);
-    } else {
-      await screen.findByLabelText("密码");
-      expect(document.querySelector(".tc-login-preview")).toBeInTheDocument();
-      expect(screen.queryByText(/Enterprise SSO/)).not.toBeInTheDocument();
-      expect(fetcher).not.toHaveBeenCalled();
-    }
+    render(<AdminConsole defaultBaseURL={baseURL} />);
+    await openLoginForm(userEvent.setup());
+    expect(await screen.findByRole("link", { name: /Enterprise SSO/ })).toHaveAttribute("href", expect.stringContaining("/api/admin/auth/oauth/start?id=enterprise&return_url="));
+    expect(screen.getByRole("button", { name: "邮箱注册" })).toBeInTheDocument();
+    expect(fetcher).toHaveBeenCalledWith(`${baseURL}/api/admin/auth/identity-providers`, expect.objectContaining({ credentials: "omit", headers: { accept: "application/json" } }));
+    expect(fetcher.mock.calls.every(([path]) => path === `${baseURL}/api/admin/auth/identity-providers`)).toBe(true);
   });
 
   it.each(["http", "network"])("keeps password login available when provider discovery fails with %s errors", async failure => {
@@ -54,32 +48,47 @@ describe("console session restoration", () => {
     expect(screen.getByLabelText("密码")).toBeInTheDocument();
     expect(screen.queryByText(/Enterprise SSO/)).not.toBeInTheDocument();
   });
-  it.each(["b", "c"] as const)("preserves invalid-credential feedback on portal %s", async portal => {
+  it("preserves invalid-credential feedback", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(Response.json({ error: { message: "账号或密码错误" } }, { status: 401 })));
-    render(<AdminConsole defaultBaseURL={baseURL} portal={portal} />);
+    render(<AdminConsole defaultBaseURL={baseURL} />);
     const browser = userEvent.setup();
     const form = await openLoginForm(browser);
-    await browser.type(form.getByLabelText(portal === "b" ? "账号 / 邮箱" : "账号"), "account@example.com");
+    await browser.type(form.getByRole("textbox", { name: "账号" }), "account@example.com");
     await browser.type(form.getByLabelText("密码"), "wrong-password");
     await browser.click(form.getByRole("button", { name: "登录" }));
     expect(await screen.findByRole("alert")).toHaveTextContent("账号或密码错误");
-    expect(readSavedSession(portal)).toBeNull();
+    expect(readSavedSession()).toBeNull();
   });
 
-  it.each(["b", "c"] as const)("restores portal %s across page mounts without requiring auth/me", async portal => {
-    saveSession(session, portal);
+  it.each(["admin", "team_leader", "user", "consumer"])("signs in role %s through the shared form", async role => {
+    const account = { ...user, role };
+    const fetcher = vi.fn().mockImplementation(async (path: string) => Response.json(path.endsWith("/auth/login")
+      ? { token: session.token, user: account, expires_at: session.expiresAt } : { data: [] }));
+    vi.stubGlobal("fetch", fetcher);
+    render(<AdminConsole defaultBaseURL={baseURL} />);
+    const browser = userEvent.setup();
+    const form = await openLoginForm(browser);
+    await browser.type(form.getByRole("textbox", { name: "账号" }), account.email);
+    await browser.type(form.getByLabelText("密码"), "fixture-password");
+    await browser.click(form.getByRole("button", { name: "登录" }));
+    expect(await screen.findByText(account.name)).toBeInTheDocument();
+    expect(readSavedSession()?.user.role).toBe(role);
+  });
+
+  it("restores the session across page mounts without requiring auth/me", async () => {
+    saveSession(session);
     const fetcher = vi.fn().mockImplementation(async (path: string) => path.endsWith("/auth/me")
       ? new Response("redirected", { status: 302 }) : Response.json({ data: [] }));
     vi.stubGlobal("fetch", fetcher);
-    const firstPage = render(<StrictMode><AdminConsole defaultBaseURL={baseURL} portal={portal} /></StrictMode>);
+    const firstPage = render(<StrictMode><AdminConsole defaultBaseURL={baseURL} /></StrictMode>);
     expect(await screen.findByText(user.name)).toBeInTheDocument();
     await waitFor(() => expect(fetcher).toHaveBeenCalledWith(`${baseURL}/api/admin/users`, expect.anything()));
     firstPage.unmount();
 
-    render(<StrictMode><AdminConsole defaultBaseURL={baseURL} portal={portal} /></StrictMode>);
+    render(<StrictMode><AdminConsole defaultBaseURL={baseURL} /></StrictMode>);
     expect(await screen.findByText(user.name)).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "登录" })).not.toBeInTheDocument();
-    expect(readSavedSession(portal)?.token).toBe(session.token);
+    expect(readSavedSession()?.token).toBe(session.token);
     expect(fetcher.mock.calls.some(([path]) => path.endsWith("/auth/me"))).toBe(false);
   });
 
@@ -106,7 +115,7 @@ describe("console session restoration", () => {
 
     const browserUser = userEvent.setup();
     const form = await openLoginForm(browserUser);
-    await browserUser.type(form.getByLabelText("账号 / 邮箱"), user.username);
+    await browserUser.type(form.getByRole("textbox", { name: "账号" }), user.username);
     await browserUser.type(form.getByLabelText("密码"), "password");
     await browserUser.click(form.getByRole("button", { name: "登录" }));
     expect(await screen.findByText(user.name)).toBeInTheDocument();

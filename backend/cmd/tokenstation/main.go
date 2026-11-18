@@ -126,28 +126,13 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	if err := server.RunStartupBootstrap(context.Background(), store, config); err != nil {
-		log.Fatal(err)
-	}
-	// The target release completed both the schema flow and the startup
-	// bootstrap; settle the pending upgrade so a later boot never auto-rolls
-	// back a healthy release. Settling only after bootstrap keeps the
-	// one-shot rollback armed for boots that fail before serving.
-	if err := server.RecordStartupGuardSuccess(config); err != nil {
-		log.Fatalf("record startup guard success: %v", err)
-	}
-
 	dependencies := server.ApplicationDependenciesForStore(store)
 	dependencies.Payment = payments
 	app := server.NewWithConfigAndDependencies(store, config, dependencies)
-	app.StartBillingScheduler()
-	catalogInitCtx, cancelCatalogInit := context.WithTimeout(context.Background(), 30*time.Second)
-	if initialized, initErr := app.InitializeProviderCatalog(catalogInitCtx); initErr != nil {
-		log.Printf("[TokenStation] provider catalog initialization failed; using database snapshot: %v", initErr)
-	} else if initialized {
-		log.Printf("[TokenStation] provider catalog database snapshot refreshed from local catalog")
+	if err := server.RecordStartupGuardSuccess(config); err != nil {
+		log.Fatalf("record startup guard success: %v", err)
 	}
-	cancelCatalogInit()
+	app.StartBillingScheduler()
 	srv := &http.Server{
 		Addr:              addr,
 		Handler:           app.Handler(),

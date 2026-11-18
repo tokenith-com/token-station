@@ -114,7 +114,7 @@ func TestSemanticRoutingSurvivesCatalogReloadAndStaleModelEdits(t *testing.T) {
 	if err := os.WriteFile(catalog, []byte(content), 0600); err != nil {
 		t.Fatal(err)
 	}
-	if err := RunStartupBootstrap(context.Background(), store, Config{ModelCatalogFile: catalog, BootstrapAdminPassword: "synthetic-test-password"}); err != nil {
+	if err := InitializeDatabase(context.Background(), store, Config{ModelCatalogFile: catalog, BootstrapAdminPassword: "synthetic-test-password"}); err != nil {
 		t.Fatal(err)
 	}
 	read := func() Model {

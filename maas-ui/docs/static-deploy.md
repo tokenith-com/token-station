@@ -1,6 +1,6 @@
-# TokenStation B 端 · 纯静态部署手册
+# TokenStation MaaS 控制台静态部署手册
 
-> 适用：当前分支的 B 端产物（门户固定为 `b`：平台超管 / 团队管理者 / 团队普通用户）。
+> 平台管理员、团队用户和个人开发者共用同一个入口。登录后按角色展示对应功能。
 > 产物：一份纯静态文件（`out/`），由 nginx 直接托管，**运行时不依赖 Node**。
 > 后端地址在**构建时**固化进产物，部署动作就是「把新包放上去」。
 
@@ -15,8 +15,8 @@
 
 - 没有 BFF、没有 Node 进程、没有 `/api/backend` 转发。
 - 后端必须放行本站 Origin 的 CORS（见第 8 节）。
-- 前端只保存 token（localStorage），不使用 Cookie。
-- B 端门户在构建期固定为 `b`，不会出现 C 端的短信注册、散客计费等入口。
+- 前端在当前标签页的会话存储中保存登录 token。
+- 每个环境只构建一份前端，统一提供密码登录、已配置的单点登录和邮箱注册。
 
 ---
 
@@ -24,7 +24,7 @@
 
 要求：Node ≥ 20.9（推荐 22 LTS）、npm。
 
-后端地址写在仓库根目录的 `.env.production` 里（随分支提交），`next build` 会自动加载，命令行不用再传：
+后端地址写在 `maas-ui/.env.production` 里（随分支提交），`next build` 会自动加载，命令行不用再传：
 
 ```bash
 npm ci
@@ -34,8 +34,8 @@ npm run build
 
 | 变量 | 位置 | 说明 |
 |---|---|---|
-| `NEXT_PUBLIC_TOKENHUB_API_BASE_URL` | `.env.production` | 后端地址，带 `https://`，不能带路径。**改地址必须重新构建** |
-| `NEXT_PUBLIC_TOKENHUB_PORTAL` | `.env.production` | 门户类型，默认 `b`；设为 `c` 发布 C 端（邮箱激活注册） |
+| `NEXT_PUBLIC_TOKENHUB_API_BASE_URL` | `.env.production` | 后端 API 地址，可包含反向代理的路径前缀。**改地址必须重新构建** |
+| `NEXT_PUBLIC_TOKENHUB_BASE_PATH` | 构建环境 | 可选的静态站点路径前缀，例如 `/maas` |
 
 加载优先级（Next.js 规则）：`.env.production.local` > `.env.local` > `.env.production` > `.env`。
 所以**临时构建测试环境不要改 `.env.production`**，用被 git 忽略的 `.env.production.local` 覆盖：
@@ -253,12 +253,12 @@ curl -i -X OPTIONS https://hub.centlt.com/api/admin/users \
 | 配置 | 容器环境变量 | 构建期环境变量（固化进产物） |
 | 发布 | 换镜像 / 重启容器 | 换软链（或覆盖目录） |
 | CSP nonce | middleware 每次生成 | 无 nonce，`script-src 'unsafe-inline'` |
-| 门户校验 | 服务端 `portal-proxy` | 仅客户端过滤，需后端兜底 |
+| API 鉴权 | 后端角色与资源权限 | 后端角色与资源权限 |
 
 ### 已知取舍
 
 1. **后端地址与产物绑定**：测试/生产各一份产物，改地址要重新构建。这是「部署只替换包」的代价与前提。
 2. **CSP 无法使用 nonce**：静态 HTML 无法逐请求生成 nonce，`script-src` 只能退到 `'unsafe-inline'`。
-3. **门户隔离**：原来由 `lib/portal-proxy.ts` 在服务端强制，静态化后不再存在。前端仍通过 `scopePortalData` 过滤列表与角色下拉，但**这不是安全边界**；跨门户越权需要后端按 token 中的门户信息拦截。
+3. **角色权限**：用户通过同一个页面登录。后端按账号角色与资源范围授权，前端根据这些权限展示菜单与操作。
 4. **`/api/health` 不存在**：健康检查改为 `curl -fsS https://站点/`。
 5. **旧深链**：`/plugins/{id}`、`/api-keys/{id}/usage` 已无对应页面，nginx 301 回列表页。

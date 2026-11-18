@@ -1,5 +1,5 @@
 import { test as base, expect, type Locator, type Page, type TestInfo } from "@playwright/test";
-import { languageStorageKey, sessionStorageKey, type AdminUser } from "../../features/admin/core/types";
+import { languageStorageKey, maasSessionStorageKey, type AdminUser } from "../../features/admin/core/types";
 import type { AppLanguage } from "../../features/admin/i18n/runtime";
 import configuration from "./config.cjs";
 import { fixedTime, shellResponses, user } from "./fixtures/shell";
@@ -18,13 +18,13 @@ export const test = base.extend<{ api: MockAPI; sessionUser: AdminUser | null; s
     await api.install(context);
     await page.clock.setFixedTime(new Date(fixedTime));
     await page.emulateMedia({ reducedMotion: "reduce" });
-    await context.addInitScript(({ sessionKey, languageKey, session, language, origin, portal }) => {
+    await context.addInitScript(({ sessionKey, languageKey, session, language, origin }) => {
       if (window.location.origin !== origin) return;
-      if (session.user) window.sessionStorage.setItem(`${sessionKey}.${portal}`, JSON.stringify(session));
-      else window.sessionStorage.removeItem(`${sessionKey}.${portal}`);
+      if (session.user) window.sessionStorage.setItem(sessionKey, JSON.stringify(session));
+      else window.sessionStorage.removeItem(sessionKey);
       window.localStorage.setItem(languageKey, language);
       window.localStorage.setItem(`${languageKey}.default-version`, "zh-CN-v1");
-    }, { portal: process.env.NEXT_PUBLIC_TOKENHUB_PORTAL === "c" ? "c" : "b", sessionKey: sessionStorageKey, languageKey: languageStorageKey, language: sessionLanguage, origin: frontendOrigin, session: { baseURL: apiOrigin, token: "ui-fixture-session", user: sessionUser, expiresAt: "2099-01-01T00:00:00Z" } });
+    }, { sessionKey: maasSessionStorageKey, languageKey: languageStorageKey, language: sessionLanguage, origin: frontendOrigin, session: { baseURL: apiOrigin, token: "ui-fixture-session", user: sessionUser, expiresAt: "2099-01-01T00:00:00Z" } });
     const pageErrors: string[] = [];
     context.on("page", opened => opened.on("pageerror", error => pageErrors.push(error.message)));
     page.on("pageerror", error => pageErrors.push(error.message));

@@ -1,14 +1,7 @@
 import type { AppData, AppRole } from "./types";
 
-export type Portal = "b" | "c";
-
-export const portalRoles: Record<Portal, AppRole[]> = {
-  b: ["admin", "team_leader", "user"],
-  c: ["admin", "consumer"],
-};
-
 // Unknown backend roles must not silently become team members.
-export function portalRole(role: string): AppRole | null {
+export function supportedAccountRole(role: string): AppRole | null {
   const value = String(role || "").trim().toLowerCase();
   if (["admin", "system_admin"].includes(value)) return "admin";
   if (["team_leader", "teamlead", "project_admin"].includes(value)) return "team_leader";
@@ -17,19 +10,14 @@ export function portalRole(role: string): AppRole | null {
   return null;
 }
 
-export function portalAllowsRole(portal: Portal, role: string) {
-  const normalized = portalRole(role);
-  return normalized !== null && portalRoles[portal].includes(normalized);
-}
-
-export function scopePortalData(data: AppData, portal: Portal): AppData {
+export function scopeSupportedAccounts(data: AppData): AppData {
   return {
     ...data,
-    users: data.users.filter(user => portalAllowsRole(portal, user.role)),
+    users: data.users.filter(user => supportedAccountRole(user.role) !== null),
     resources: {
       ...data.resources,
       "role-configs": (data.resources["role-configs"] ?? []).filter(role =>
-        portalAllowsRole(portal, String(role.fields?.role_key || role.id))),
+        supportedAccountRole(String(role.fields?.role_key || role.id)) !== null),
     },
   };
 }
