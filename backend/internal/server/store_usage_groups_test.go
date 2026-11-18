@@ -63,6 +63,14 @@ func TestUsageGroupsMatchLegacyBreakdown(t *testing.T) {
 				expected := server.usageBreakdownFromRecords(visible, projects)
 				expected["members"] = server.aggregateUsageByMember(user, visible, projects)
 				expected["api_keys"] = aggregateUsage(visible, func(record UsageRecord) string { return record.APIKeyID })
+				// Project and cost center attribution are platform-level views;
+				// only platform administrators receive them.
+				if !isPlatformAdminRole(user.Role) {
+					delete(expected, "projects")
+					delete(expected, "cost_centers")
+					delete(expected, "providers")
+					delete(expected, "provider_resources")
+				}
 				actual, err := server.usageBreakdownForScope(t.Context(), user, scope, true, false)
 				if err != nil {
 					t.Fatal(err)

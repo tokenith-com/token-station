@@ -12,13 +12,21 @@ func (s *Server) usageBreakdownForUser(ctx context.Context, user AdminUser) (map
 	return s.usageBreakdownForScope(ctx, user, s.usageSummaryQueryForUser(user).UsageRecords, true, false)
 }
 
+// usageBreakdownForScope builds the usage report breakdown. Project and cost
+// center attribution are platform-level accounting views, so only platform
+// administrators receive them; team leaders see the same spend grouped by
+// model, member and key instead.
 func (s *Server) usageBreakdownForScope(ctx context.Context, user AdminUser, scope UsageSummaryScope, includeAPIKeys, redactProviders bool) (map[string]any, error) {
+	adminView := isPlatformAdminRole(user.Role)
 	aggregate := s.newUsageReportAggregate(user, "all", time.Time{}, time.UTC)
-	dimensions := []string{"projects", "models", "members"}
+	dimensions := []string{"models", "members"}
+	if adminView {
+		dimensions = append(dimensions, "projects")
+	}
 	if includeAPIKeys {
 		dimensions = append(dimensions, "api_keys")
 	}
-	if !redactProviders || isPlatformAdminRole(user.Role) {
+	if !redactProviders || adminView {
 		dimensions = append(dimensions, "providers", "provider_resources")
 	}
 	if err := s.store.StreamUsageGroups(ctx, scope, dimensions, aggregate.addGroup); err != nil {
@@ -27,6 +35,10 @@ func (s *Server) usageBreakdownForScope(ctx context.Context, user AdminUser, sco
 	breakdown := aggregate.breakdownForVisibility(redactProviders)
 	if !includeAPIKeys {
 		delete(breakdown, "api_keys")
+	}
+	if !adminView {
+		delete(breakdown, "projects")
+		delete(breakdown, "cost_centers")
 	}
 	return breakdown, nil
 }
