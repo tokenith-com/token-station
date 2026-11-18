@@ -14,8 +14,8 @@ test("prepaid playground preserves a rejected draft and links to recharge", asyn
     status: 402, json: { error: { code: "wallet_insufficient_balance", message: "Insufficient wallet balance" } },
   }));
   api.respond("GET", "/api/admin/recharge/plans", { data: [{ id: "test", name: "Test recharge", amount_fen: 1000 }], channels: ["wechat"] });
-  api.respond("GET", "/api/admin/wallet/usage", { data: [] });
-  api.respond("GET", "/api/admin/recharge/orders", { data: [] });
+  api.define("GET", "/api/admin/wallet/usage", () => ({ json: { data: [] } }), query => { expect(Object.fromEntries(query)).toEqual({ limit: "20", offset: "0" }); });
+  api.define("GET", "/api/admin/recharge/orders", () => ({ json: { data: [] } }), query => { expect(Object.fromEntries(query)).toEqual({ limit: "20", offset: "0" }); });
   api.define("POST", "/api/admin/recharge/orders", ({ body }) => {
     expect(body).toEqual({ plan_id: "test", channel: "wechat" });
     return { status: 201, json: { order_no: "test-order", status: "pending", qr_code: "weixin://test/checkout" } };
@@ -43,28 +43,32 @@ test("prepaid playground preserves a rejected draft and links to recharge", asyn
 for (const theme of ["light", "dark"] as const) {
   test(`consumer balance recharge supports ${theme} theme`, async ({ context, page, api }, info) => {
     await context.addInitScript(value => localStorage.setItem("tokenhub.theme", value), theme);
-    api.respond("GET", "/api/admin/consumer/wallet", { balance_cents: 5000, packages_cents: [1000, 5000, 10000], min_amount_cents: 100, max_amount_cents: 5000000, simulated_payment: true });
-    api.respond("POST", "/api/admin/consumer/recharge-orders", { order: { id: "ui-recharge", amount_cents: 2500, payment_method: "wechat", status: "pending" }, qr_code: "ui-simulated-checkout" });
+    api.respond("GET", "/api/admin/wallet", { balance_micros: 50000000, available_micros: 50000000 });
+    api.respond("GET", "/api/admin/recharge/plans", { data: [{ id: "ten", amount_fen: 1000 }, { id: "fifty", amount_fen: 5000 }, { id: "hundred", amount_fen: 10000 }], custom_enabled: true, min_fen: 1, max_fen: 500000, channels: ["wechat", "alipay"] });
+    for (const path of ["/api/admin/wallet/usage", "/api/admin/recharge/orders"]) {
+      api.define("GET", path, () => ({ json: { data: [], total: 0 } }), query => expect(Object.fromEntries(query)).toEqual({ limit: "20", offset: "0" }));
+    }
+    api.define("POST", "/api/admin/recharge/orders", ({ body }) => {
+      expect(body).toEqual({ plan_id: "", channel: "wechat", amount_fen: 2500 });
+      return { json: { order_no: "theme-order", amount_fen: 2500, channel: "wechat", status: "pending", qr_code: "weixin://synthetic-theme-checkout" } };
+    });
+    api.respond("GET", "/api/admin/recharge/orders/theme-order", { order_no: "theme-order", amount_fen: 2500, channel: "wechat", status: "pending", qr_code: "weixin://synthetic-theme-checkout" });
     await page.goto("/balance-recharge/");
     await expect(page.locator(".app-shell")).toHaveAttribute("data-theme", theme);
-    await expect(page.locator(".recharge-packages button")).toHaveCount(3);
-    const card = page.locator(".recharge-card").first();
-    if (theme === "dark") await expect(card).toHaveCSS("background-color", "rgb(20, 20, 25)");
-    await page.locator(".recharge-packages button").first().click();
-    await expect(page.locator(".recharge-packages button").first()).toHaveAttribute("aria-pressed", "true");
-    await page.getByPlaceholder("输入 1 - 50000 元").fill("25");
-    await expect(page.locator(".recharge-custom")).toHaveClass(/selected/);
-    await page.getByRole("radio", { name: "微信支付" }).check();
-    await expect(page.locator(".recharge-method.wechat")).toHaveClass(/selected/);
-    await capture(page, info, page.locator(".recharge-view"), `recharge-${theme}-desktop`, `账户充值：${theme}`, "viewport");
-    await page.getByRole("button", { name: "生成支付二维码" }).click();
-    await expect(page.getByRole("dialog", { name: "请扫码支付" })).toBeVisible();
-    await capture(page, info, page.locator(".recharge-qr-modal"), `recharge-${theme}-checkout`, `充值弹窗：${theme}`);
-    await page.getByRole("button", { name: "取消", exact: true }).click();
+    await expect(page.locator(".payment-amount-options button")).toHaveCount(4);
+    await page.getByRole("button", { name: "自定义金额", exact: true }).click();
+    await page.getByRole("spinbutton", { name: "自定义金额", exact: true }).fill("25");
+    await page.getByRole("button", { name: "微信支付", exact: true }).click();
+    await expect(page.getByRole("button", { name: "微信支付", exact: true })).toHaveAttribute("aria-pressed", "true");
+    await capture(page, info, page.locator(".payment-workspace"), `recharge-${theme}-desktop`, `Recharge ${theme} theme`, "viewport");
+    await page.getByRole("button", { name: "创建充值订单", exact: true }).click();
+    await expect(page.locator("canvas[title='支付二维码']")).toBeVisible();
+    await capture(page, info, page.locator(".payment-workspace"), `recharge-${theme}-checkout`, `Recharge ${theme} checkout`, "viewport");
+    await page.getByRole("button", { name: "返回充值选择", exact: true }).click();
     await page.setViewportSize({ width: 390, height: 844 });
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
     await page.locator(".recharge-summary").scrollIntoViewIfNeeded();
-    await capture(page, info, page.locator(".recharge-view"), `recharge-${theme}-mobile`, `移动端充值：${theme}`, "viewport");
+    await capture(page, info, page.locator(".payment-workspace"), `recharge-${theme}-mobile`, `Mobile recharge ${theme}`, "viewport");
   });
 }
 
@@ -76,8 +80,10 @@ test("consumer cost cards adapt without project costs", async ({ page, api }, in
   });
   api.respond("GET", "/api/admin/consumer/wallet", { balance_cents: 5000 });
   api.respond("GET", "/api/admin/wallet", { balance_micros: 50000000, available_micros: 50000000 });
-  api.respond("GET", "/api/admin/consumer/recharge-orders", { orders: [] });
+  api.define("GET", "/api/admin/recharge/orders", () => ({ json: { data: [{ order_no: "real-payment", amount_fen: 1234, channel: "alipay", status: "succeeded", created_at: 1794700800 }], total: 1 } }), query => { expect(Object.fromEntries(query)).toEqual({ limit: "20", offset: "0" }); });
   await page.goto("/billing/");
+  await expect(page.locator(".cost-details").getByText("¥12.34", { exact: true })).toBeVisible();
+  await expect(page.locator(".cost-details").getByText("已支付", { exact: true })).toBeVisible();
   await expect(page.getByRole("heading", { name: "项目成本", exact: true })).toHaveCount(0);
   await expect(page.locator(".cost-details-grid .cost-panel")).toHaveCount(2);
   await expect(page.getByText(report.breakdown.models[0].id, { exact: true })).toBeVisible();

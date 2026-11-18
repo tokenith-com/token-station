@@ -494,3 +494,15 @@
   .payment-orders-table td[data-label]::before { content: attr(data-label); display: block; color: var(--muted, #737784); font-size: 11px; margin-bottom: 4px; }
   .payment-orders-table td:last-child { align-self: end; text-align: right; }
 }
+
+.payment-workspace .payment-custom-amount {
+  width: min(calc(100% - 40px), 320px);
+  margin: 0 20px 20px;
+  min-width: 0;
+  justify-self: start;
+}
+.payment-workspace .payment-custom-amount input { width: 100%; }
+.payment-workspace .payment-custom-amount > small {
+  position: static;
+  line-height: 1.5;
+}

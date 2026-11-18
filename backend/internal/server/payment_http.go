@@ -215,15 +215,20 @@ func (s *Server) listAdminPaymentOrders(w http.ResponseWriter, r *http.Request) 
 func (s *Server) listPaymentOrders(w http.ResponseWriter, r *http.Request, userID string) {
 	limit, offset := paymentPage(r)
 	orders := make([]paymentOrder, 0)
-	query := s.payments.store.db.WithContext(r.Context()).Omit("qr_code", "pay_url")
+	query := s.payments.store.db.WithContext(r.Context()).Model(&paymentOrder{}).Omit("qr_code", "pay_url")
 	if userID != "" {
 		query = query.Where("user_id = ?", userID)
+	}
+	var total int64
+	if err := query.Count(&total).Error; err != nil {
+		paymentWriteError(w, r, err)
+		return
 	}
 	if err := query.Order("created_at DESC, order_no DESC").Limit(limit).Offset(offset).Find(&orders).Error; err != nil {
 		paymentWriteError(w, r, err)
 		return
 	}
-	writeJSON(w, 200, map[string]any{"data": orders, "limit": limit, "offset": offset})
+	writeJSON(w, 200, map[string]any{"data": orders, "limit": limit, "offset": offset, "total": total})
 }
 
 func (s *Server) getOwnPaymentOrder(w http.ResponseWriter, r *http.Request) {

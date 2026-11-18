@@ -7,7 +7,7 @@ it("uses the prepaid wallet in checkout and the top bar without a simulated entr
   const fetch = vi.fn(async (url: string) => {
     if (url.endsWith("/recharge/plans")) return Response.json({ data: [{ id: "plan", amount_fen: 100 }], channels: ["alipay"] });
     if (url.endsWith("/wallet")) return Response.json({ balance_micros: 12500000, available_micros: 12500000 });
-    if (url.endsWith("/wallet/usage") || url.endsWith("/recharge/orders")) return Response.json({ data: [] });
+    if (url.includes("/wallet/usage?") || url.includes("/recharge/orders?")) return Response.json({ data: [] });
     throw new Error("Unexpected request: " + url);
   });
   vi.stubGlobal("fetch", fetch);
@@ -15,7 +15,7 @@ it("uses the prepaid wallet in checkout and the top bar without a simulated entr
   render(<><ConsumerRechargeView api={api} /><BalanceCard api={api} activeView="balance-recharge" onSelectView={() => {}} /></>);
   expect(await screen.findByRole("button", { name: "创建充值订单" })).toBeEnabled();
   expect(screen.queryByRole("button", { name: "账户余额充值" })).not.toBeInTheDocument();
-  expect(screen.getByText("暂无数据")).toBeInTheDocument();
+  expect(screen.getAllByText("暂无数据").length).toBeGreaterThan(0);
   expect(await screen.findByRole("button", { name: /账户余额.*12.50/ })).toBeInTheDocument();
   expect(fetch.mock.calls.some(([url]) => url.includes("/consumer/"))).toBe(false);
 });
@@ -30,7 +30,7 @@ it("opens Alipay from the user gesture and navigates after checkout resolves", a
     if (url.endsWith("/recharge/plans")) return Response.json({ data: [{ id: "plan", amount_fen: 100 }], channels: ["alipay"] });
     if (url.endsWith("/wallet")) return Response.json({ balance_micros: 0, available_micros: 0 });
     if (url.endsWith("/recharge/orders") && init?.method === "POST") return new Promise<Response>(resolve => { complete = resolve; });
-    if (url.endsWith("/wallet/usage") || url.endsWith("/recharge/orders")) return Response.json({ data: [] });
+    if (url.includes("/wallet/usage?") || url.includes("/recharge/orders?")) return Response.json({ data: [] });
     throw new Error("Unexpected request: " + url);
   }));
   render(<ConsumerRechargeView api={{ baseURL: "http://example.test", adminToken: "synthetic-session" }} />);
@@ -55,7 +55,7 @@ it("retries a transient polling failure and removes payment controls after settl
       if (++reads === 1) throw new Error("Temporary connection failure");
       return Response.json({ order_no: "poll", status: "succeeded", channel: "wechat", amount_fen: 100 });
     }
-    if (url.endsWith("/wallet/usage") || url.endsWith("/recharge/orders")) return Response.json({ data: [] });
+    if (url.includes("/wallet/usage?") || url.includes("/recharge/orders?")) return Response.json({ data: [] });
     throw new Error("Unexpected request: " + url);
   }));
   render(<ConsumerRechargeView api={{ baseURL: "http://example.test", adminToken: "synthetic-session" }} />);
@@ -74,7 +74,7 @@ it("does not trust a returned status or display an inaccessible order as paid", 
     if (url.endsWith("/recharge/plans")) return Response.json({ data: [], channels: [] });
     if (url.endsWith("/wallet")) return Response.json({ balance_micros: 0, available_micros: 0 });
     if (url.endsWith("/recharge/orders/foreign")) return Response.json({ error: { message: "Order not found" } }, { status: 404 });
-    if (url.endsWith("/wallet/usage") || url.endsWith("/recharge/orders")) return Response.json({ data: [] });
+    if (url.includes("/wallet/usage?") || url.includes("/recharge/orders?")) return Response.json({ data: [] });
     throw new Error("Unexpected request: " + url);
   }));
   try {

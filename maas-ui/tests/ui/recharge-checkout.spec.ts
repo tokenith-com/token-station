@@ -3,11 +3,21 @@ import { user } from "./fixtures/shell";
 
 test.use({ sessionUser: { ...user, role: "consumer" } });
 const paid = { order_no: "TS-receipt-fixture", status: "succeeded", amount_fen: 1000, channel: "alipay", created_at: 1794700800 };
-test.beforeEach(async ({ api }) => {
+test.beforeEach(async ({ api }, info) => {
   api.respond("GET", "/api/admin/wallet", { balance_micros: 10000000, available_micros: 10000000 });
-  api.respond("GET", "/api/admin/wallet/usage", { data: [] });
+  const paged = info.title.startsWith("recharge history pages");
+  const histories = [
+    ["/api/admin/recharge/orders", paged ? Array.from({ length: 25 }, (_, index) => ({ ...paid, order_no: `order-${index}` })) : [paid]],
+    ["/api/admin/wallet/usage", paged ? Array.from({ length: 23 }, (_, index) => ({ request_id: `request-${index}`, model: "fixture-model", status: "settled", charged_micros: 10000 })) : []],
+  ] as const;
+  for (const [path, rows] of histories) {
+    api.define("GET", path, ({ query }) => ({ json: { data: rows.slice(Number(query.get("offset")), Number(query.get("offset")) + Number(query.get("limit"))), total: rows.length } }), query => {
+      expect([...query.keys()].sort()).toEqual(["limit", "offset"]);
+      expect(Number(query.get("limit"))).toBe(20);
+      expect([0, 20]).toContain(Number(query.get("offset")));
+    });
+  }
   api.respond("GET", "/api/admin/recharge/plans", { data: [{ id: "ten", amount_fen: 1000 }], channels: ["wechat", "alipay"] });
-  api.respond("GET", "/api/admin/recharge/orders", { data: [paid] });
   api.respond("GET", "/api/admin/recharge/orders/TS-receipt-fixture", paid);
 });
 test("avatar recharge entry opens checkout from another page", async ({ page }, info) => {
@@ -55,4 +65,32 @@ test("merchant return displays a verified receipt and can start another recharge
   await page.getByRole("button", { name: "继续充值", exact: true }).click();
   await expect(page).not.toHaveURL(/payment_order/);
   await expect(page.getByRole("button", { name: "创建充值订单" })).toBeVisible();
+});
+
+test("recharge history pages independently and custom amount stays inside the form", async ({ page, api }, info) => {
+  api.replaceResponse("GET", "/api/admin/recharge/plans", { data: [], custom_enabled: true, min_fen: 1, max_fen: 500000, channels: ["alipay"] });
+  await page.goto("/balance-recharge/");
+  const input = page.getByRole("spinbutton", { name: "自定义金额" });
+  await expect(input).toBeVisible();
+  const label = page.locator(".payment-custom-amount");
+  const inputBox = await input.boundingBox();
+  const hintBox = await label.locator("small").boundingBox();
+  const methodsBox = await page.locator(".payment-channel-options").boundingBox();
+  expect(inputBox!.width).toBeLessThanOrEqual(320);
+  expect(hintBox!.y).toBeGreaterThanOrEqual(inputBox!.y + inputBox!.height);
+  expect(hintBox!.y + hintBox!.height).toBeLessThan(methodsBox!.y);
+  await capture(page, info, page.locator(".payment-workspace"), "recharge-custom-layout", "Custom amount and payment method spacing", "viewport");
+  const orders = page.getByRole("region", { name: "充值订单", exact: true });
+  const usage = page.getByRole("region", { name: "消费流水", exact: true });
+  await expect(orders.locator("tbody tr")).toHaveCount(20);
+  await expect(usage.locator("tbody tr")).toHaveCount(20);
+  await orders.getByRole("button", { name: "下一页", exact: true }).click();
+  await expect(orders.locator("tbody tr")).toHaveCount(5);
+  await expect(usage.locator("tbody tr")).toHaveCount(20);
+  await usage.getByRole("button", { name: "下一页", exact: true }).click();
+  await expect(usage.locator("tbody tr")).toHaveCount(3);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await input.scrollIntoViewIfNeeded();
+  await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await capture(page, info, page.locator(".payment-workspace"), "recharge-custom-mobile", "Mobile custom amount spacing", "viewport");
 });

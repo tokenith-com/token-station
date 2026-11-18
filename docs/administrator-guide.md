@@ -548,3 +548,5 @@ behavior is preserved; only `starttls` and `ssl` write the field.
 ## Screenshot
 
 ![Routing policies](assets/screenshots/admin-management/routes.png)
+
+Recharge history uses payment orders. Recharge orders and personal usage transactions use server pagination with 20 rows by default and selectable page sizes.

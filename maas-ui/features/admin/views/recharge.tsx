@@ -8,7 +8,9 @@ import { uniqueUIID } from "../domain/formatting";
 import { languageLocale, tx } from "../i18n/runtime";
 import { formatWalletMicros, walletRequest, type Wallet } from "../resources/wallet";
 
-type Order = { order_no: string; status: string; qr_code?: string; pay_url?: string; amount_fen?: number; channel?: string; created_at?: number };
+import { usePaymentHistory, type PaymentOrder as Order } from "../resources/payment-history";
+import { PaginationControls } from "../shared/pagination";
+import { SimpleTable } from "../shared/ui";
 type Plans = { custom_enabled?: boolean; min_fen?: number; max_fen?: number; data: { id: string; name: string; amount_fen: number }[]; channels: string[] };
 type Usage = { request_id: string; model: string; status: string; charged_micros: number };
 type CheckoutAttempt = { plan_id: string; amount_fen?: number; channel: string; key: string };
@@ -30,10 +32,13 @@ export function ConsumerRechargeView({ api }: { api: ApiContext }) {
 export function RechargeView({ api }: { api: ApiContext }) {
   const [plans, setPlans] = useState<Plans>();
   const [wallet, setWallet] = useState<Wallet>();
-  const [usage, setUsage] = useState<Usage[]>([]);
+  const usageHistory = usePaymentHistory<Usage>(api, "/api/admin/wallet/usage");
+  const usage = usageHistory.rows;
+  const refreshUsage = usageHistory.refresh;
   const [attempt, setAttempt] = useState<CheckoutAttempt>();
   const [order, setOrder] = useState<Order>();
-  const [orders, setOrders] = useState<Order[]>([]);
+  const orderHistory = usePaymentHistory<Order>(api, "/api/admin/recharge/orders");
+  const { rows: orders, setRows: setOrders } = orderHistory;
   const [plan, setPlan] = useState("");
   const [custom, setCustom] = useState("");
   const [channel, setChannel] = useState("");
@@ -48,16 +53,12 @@ export function RechargeView({ api }: { api: ApiContext }) {
     void Promise.all([
       walletRequest<Plans>(context, "/api/admin/recharge/plans", options),
       walletRequest<Wallet>(context, "/api/admin/wallet", options),
-      walletRequest<{ data: Usage[] }>(context, "/api/admin/wallet/usage", options),
-      walletRequest<{ data: Order[] }>(context, "/api/admin/recharge/orders", options),
-    ]).then(([options, balance, history, checkoutHistory]) => {
+    ]).then(([options, balance]) => {
       if (controller.signal.aborted) return;
       setPlans(options);
       setPlan(options.data[0]?.id ?? "");
       setChannel(options.channels[0] ?? "");
       setWallet(balance);
-      setUsage(history.data);
-      setOrders(checkoutHistory.data);
       const returnedOrder = new URLSearchParams(window.location.search).get("payment_order");
       if (returnedOrder) {
         return walletRequest<Order>(context, `/api/admin/recharge/orders/${encodeURIComponent(returnedOrder)}`, { signal: controller.signal }).then(async result => {
@@ -100,7 +101,8 @@ export function RechargeView({ api }: { api: ApiContext }) {
         else checkoutTab.close();
       }
       setOrder(next);
-      setOrders((current) => [next, ...current.filter((item) => item.order_no !== next.order_no)]);
+      orderHistory.pagination.setPage(1);
+      orderHistory.refresh();
     } catch (err) {
       checkoutTab?.close();
       setError(err instanceof Error ? err.message : tx("请求失败"));
@@ -117,6 +119,7 @@ export function RechargeView({ api }: { api: ApiContext }) {
       setOrder(next);
       setOrders((current) => current.map((item) => item.order_no === next.order_no ? next : item));
       setWallet(await walletRequest<Wallet>(api, "/api/admin/wallet"));
+      usageHistory.refresh();
       window.dispatchEvent(new Event("tokenstation-wallet-updated"));
     } catch (err) {
       setError(err instanceof Error ? err.message : tx("请求失败"));
@@ -137,6 +140,7 @@ export function RechargeView({ api }: { api: ApiContext }) {
           const balance = await walletRequest<Wallet>(api, "/api/admin/wallet", { signal: controller.signal });
           if (controller.signal.aborted) return;
           setWallet(balance);
+          refreshUsage();
           window.dispatchEvent(new Event("tokenstation-wallet-updated"));
         }
         setError("");
@@ -151,7 +155,7 @@ export function RechargeView({ api }: { api: ApiContext }) {
     };
     timer = window.setTimeout(poll, 3000);
     return () => { window.clearTimeout(timer); controller.abort(); };
-  }, [api, order]);
+  }, [api, order, setOrders, refreshUsage]);
 
   function newOrder() {
     setAttempt(undefined); setOrder(undefined); setError("");
@@ -176,6 +180,7 @@ export function RechargeView({ api }: { api: ApiContext }) {
   return (
     <section className="guest-cost-view payment-workspace">
       <header className="guest-cost-heading payment-heading"><h1>{tx("余额充值")}</h1><p>{tx("为您的账户充值，享受更多服务")}</p></header>
+      {(orderHistory.error || usageHistory.error) && <p className="recharge-alert error" role="alert">{orderHistory.error || usageHistory.error}</p>}
       {error && <p className="recharge-alert error" role="alert">{error}</p>}
       <div className="payment-checkout-layout">
       <div className="payment-checkout-main">
@@ -196,8 +201,8 @@ export function RechargeView({ api }: { api: ApiContext }) {
                 {plans.data.map((item) => <button key={item.id} type="button" className="payment-amount-option" aria-pressed={plan === item.id} onClick={() => setPlan(item.id)}>{formatWalletMicros(item.amount_fen * 10_000)}</button>)}
                 {plans.custom_enabled && <button type="button" className="payment-amount-option" aria-pressed={!plan} onClick={() => setPlan("")}>{tx("自定义金额")}</button>}
               </div>
+            {!plan && plans.custom_enabled && <label className="payment-custom-amount">{tx("自定义金额")}<input aria-label={tx("自定义金额")} type="number" required min={(plans.min_fen ?? 1) / 100} max={(plans.max_fen ?? 0) / 100} step="0.01" value={custom} disabled={busy || Boolean(attempt) || Boolean(order)} onChange={event => setCustom(event.target.value)} /><small>{formatWalletMicros((plans.min_fen ?? 1) * 10000)} – {formatWalletMicros((plans.max_fen ?? 0) * 10000)}</small></label>}
             </fieldset>
-            {!plan && plans.custom_enabled && <label>{tx("自定义金额")}<input aria-label={tx("自定义金额")} type="number" required min={(plans.min_fen ?? 1) / 100} max={(plans.max_fen ?? 0) / 100} step="0.01" value={custom} disabled={busy || Boolean(attempt) || Boolean(order)} onChange={event => setCustom(event.target.value)} /><small>{formatWalletMicros((plans.min_fen ?? 1) * 10000)} – {formatWalletMicros((plans.max_fen ?? 0) * 10000)}</small></label>}
             <fieldset className="payment-amounts payment-panel" disabled={busy || Boolean(attempt)}>
               <legend><CreditCard aria-hidden="true" />{tx("支付方式")}</legend>
               <div className="payment-channel-options">
@@ -248,9 +253,9 @@ export function RechargeView({ api }: { api: ApiContext }) {
         </ol>
       </aside>
       </div>
-      {<section className="section payment-history">
+      {<section className="section payment-history" aria-label={tx("充值订单")} aria-busy={orderHistory.loading}>
         <h2>{tx("充值订单")}</h2>
-        {orders.length === 0 && <p className="muted">{tx("暂无数据")}</p>}
+        {!orderHistory.loading && orders.length === 0 && <p className="muted">{tx("暂无数据")}</p>}
         {orders.length > 0 && <div className="payment-table-scroll"><table className="payment-orders-table">
           <thead><tr><th>{tx("充值金额")}</th><th>{tx("支付方式")}</th><th>{tx("时间")}</th><th>{tx("状态")}</th><th>{tx("操作")}</th></tr></thead>
           <tbody>{orders.map(item => <tr key={item.order_no}>
@@ -261,12 +266,18 @@ export function RechargeView({ api }: { api: ApiContext }) {
             <td><button type="button" className="text-button" disabled={busy} onClick={() => void refreshOrder(item)}>{item.status === "pending" ? tx("继续支付") : tx("查看详情")}</button></td>
           </tr>)}</tbody>
         </table></div>}
+        <PaginationControls pagination={orderHistory.pagination} totalItems={orderHistory.total} />
 
       </section>}
-      {usage.length > 0 && <section className="section">
+      <section className="section" aria-label={tx("消费流水")} aria-busy={usageHistory.loading}>
         <h2>{tx("消费流水")}</h2>
-        <ul>{usage.map((entry) => <li key={entry.request_id}>{entry.model} · {entry.request_id} · {entry.status === "settled" ? formatWalletMicros(entry.charged_micros) : entry.status === "released" ? tx("未扣费") : tx("待结算")}</li>)}</ul>
-      </section>}
+        <SimpleTable columns={[tx("模型"), tx("请求 ID"), tx("金额"), tx("状态")]} rows={usage.map(entry => [
+          entry.model, entry.request_id,
+          entry.status === "settled" ? formatWalletMicros(entry.charged_micros) : "—",
+          entry.status === "settled" ? tx("已结算") : entry.status === "released" ? tx("未扣费") : tx("待结算"),
+        ])} />
+        <PaginationControls pagination={usageHistory.pagination} totalItems={usageHistory.total} />
+      </section>
     </section>
   );
 }

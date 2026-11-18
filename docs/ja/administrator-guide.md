@@ -535,3 +535,5 @@ API：`POST /api/admin/resources/notification-channels/{channel_id}/test`。管�
 ## スクリーンショット
 
 ![Routing policies](../assets/screenshots/admin-management/routes.png)
+
+チャージ履歴には決済注文を表示します。チャージ注文と個人の利用明細はサーバー側でページ分割し、既定は 20 件で、表示件数を変更できます。

@@ -35,12 +35,17 @@ func (s *Server) listWalletUsage(w http.ResponseWriter, r *http.Request, userID 
 	if status := r.URL.Query().Get("status"); status != "" {
 		db = db.Where("status = ?", status)
 	}
+	var total int64
+	if err := db.Count(&total).Error; err != nil {
+		paymentWriteError(w, r, err)
+		return
+	}
 	rows := make([]walletUsage, 0)
 	if err := db.Order("created_at DESC, request_id DESC").Limit(limit).Offset(offset).Find(&rows).Error; err != nil {
 		paymentWriteError(w, r, err)
 		return
 	}
-	writeJSON(w, 200, map[string]any{"data": rows, "limit": limit, "offset": offset})
+	writeJSON(w, 200, map[string]any{"data": rows, "limit": limit, "offset": offset, "total": total})
 }
 
 func (s *Server) resolveOperatorWalletUsage(w http.ResponseWriter, r *http.Request) {

@@ -535,3 +535,5 @@ API：`POST /api/admin/resources/notification-channels/{channel_id}/test`，使�
 ## 截图
 
 ![Routing policies](../assets/screenshots/admin-management/routes.png)
+
+充值记录读取真实支付订单。充值订单与个人消费流水采用服务端分页，默认每页 20 条，可调整每页条数。

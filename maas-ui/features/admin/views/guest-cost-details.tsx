@@ -6,18 +6,11 @@ import type { UsageRange } from "../core/usage-report-types";
 import { apiKeyAuditLabel } from "../domain/entities";
 import { compactNumber, formatNumber } from "../domain/formatting";
 import { languageLocale, tx } from "../i18n/runtime";
-import { adminFetch, readAdminError } from "../resources/payloads";
+import { usePaymentHistory, type PaymentOrder } from "../resources/payment-history";
+import { PaginationControls } from "../shared/pagination";
 import { formatWalletMicros, walletRequest, type Wallet as WalletData } from "../resources/wallet";
 import { SimpleTable } from "../shared/ui";
 import { useUsageReport } from "./use-usage-report";
-
-type RechargeOrder = {
-  id: string;
-  amount_cents: number;
-  payment_method: "alipay" | "wechat";
-  status: string;
-  created_at: string;
-};
 
 const ranges: UsageRange[] = ["today", "7d", "30d", "all"];
 
@@ -37,9 +30,9 @@ function formatPercent(value: number) {
   return new Intl.NumberFormat(languageLocale(), { style: "percent", maximumFractionDigits: 1 }).format(value);
 }
 
-function formatDate(value: string | undefined) {
+function formatDate(value: number | undefined) {
   if (!value) return "—";
-  return new Intl.DateTimeFormat(languageLocale(), { dateStyle: "medium", timeStyle: "short" }).format(new Date(value));
+  return new Intl.DateTimeFormat(languageLocale(), { dateStyle: "medium", timeStyle: "short" }).format(new Date(value * 1000));
 }
 
 export function GuestCostDetailsView({ api, data }: { api: ApiContext; data: AppData }) {
@@ -47,8 +40,8 @@ export function GuestCostDetailsView({ api, data }: { api: ApiContext; data: App
   const { report, error, refreshing, refresh } = useUsageReport(api, range);
   const [wallet, setWallet] = useState<WalletData | null>(null);
   const [walletError, setWalletError] = useState("");
-  const [orders, setOrders] = useState<RechargeOrder[]>([]);
-  const [ordersError, setOrdersError] = useState("");
+  const orderHistory = usePaymentHistory<PaymentOrder>(api, "/api/admin/recharge/orders");
+  const { rows: orders, error: ordersError, refresh: loadOrders } = orderHistory;
 
   const loadWallet = useCallback(async () => {
     setWalletError("");
@@ -61,21 +54,9 @@ export function GuestCostDetailsView({ api, data }: { api: ApiContext; data: App
     }
   }, [api]);
 
-  const loadOrders = useCallback(async () => {
-    setOrdersError("");
-    try {
-      const resp = await adminFetch(api, "/api/admin/consumer/recharge-orders");
-      if (!resp.ok) throw new Error(await readAdminError(resp, tx("充值记录加载失败")));
-      setOrders(((await resp.json()) as { orders: RechargeOrder[] }).orders ?? []);
-    } catch (reason) {
-      setOrdersError(reason instanceof Error ? reason.message : tx("充值记录加载失败"));
-    }
-  }, [api]);
-
   useEffect(() => {
     void loadWallet();
-    void loadOrders();
-  }, [loadWallet, loadOrders]);
+  }, [loadWallet]);
 
   const refreshAll = useCallback(() => {
     refresh();
@@ -120,12 +101,13 @@ export function GuestCostDetailsView({ api, data }: { api: ApiContext; data: App
 
       <CostPanel title={tx("充值记录")}>
         {ordersError ? <div className="recharge-alert error" role="alert">{ordersError}</div> : null}
-        <SimpleTable columns={[tx("充值时间"), tx("支付方式"), tx("金额"), tx("状态")]} paginationKey="cost-orders" rows={orders.map(order => [
+        <SimpleTable columns={[tx("充值时间"), tx("支付方式"), tx("金额"), tx("状态")]} rows={orders.map(order => [
           formatDate(order.created_at),
-          tx(order.payment_method === "alipay" ? "支付宝" : "微信支付"),
-          <span key="amount" className="cost-money">{formatCNY(order.amount_cents)}</span>,
-          order.status === "paid" ? <span className="cost-status is-paid">{tx("已支付")}</span> : <span className="cost-status is-pending">{tx("待支付")}</span>,
+          tx(order.channel === "alipay" ? "支付宝" : "微信支付"),
+          <span key="amount" className="cost-money">{formatCNY(order.amount_fen ?? 0)}</span>,
+          order.status === "succeeded" ? <span className="cost-status is-paid">{tx("已支付")}</span> : <span className="cost-status is-pending">{tx(order.status === "closed" ? "订单已关闭" : order.status === "refunded" ? "已退款" : order.status === "refund_pending" ? "退款处理中" : "待支付")}</span>,
         ])} />
+        <PaginationControls pagination={orderHistory.pagination} totalItems={orderHistory.total} />
       </CostPanel>
     </section>
   );
