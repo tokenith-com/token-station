@@ -207,6 +207,7 @@ export function roleConfigAssignable(role: AdminResource) {
 }
 
 export function roleDisplayName(role: AdminResource) {
+  if ((stringifyValue(role.fields?.role_key) || role.id).trim().toLowerCase() === "admin") return roleLabel("admin");
   return stringifyValue(role.fields?.display_name) || role.name;
 }
 

@@ -1,0 +1,3 @@
+# Merge this field into the existing ECS payment.yaml.
+alipay:
+  return_url: https://tokenstation-test.centlt.com/balance-recharge/

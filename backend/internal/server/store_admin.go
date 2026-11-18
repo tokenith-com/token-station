@@ -45,6 +45,11 @@ func (s *GormStore) createResourceLocked(kind string, resource AdminResource, up
 		resource.Fields = map[string]any{}
 	}
 	resource.Kind = kind
+	if kind == "role-configs" {
+		if err := prepareRoleConfig(&resource); err != nil {
+			return AdminResource{}, err
+		}
+	}
 	resource.RoutingPolicyBindingKey = nil
 	if kind == routingPolicyResourceKind {
 		resource.RoutingPolicyBindingKey = routingPolicyBindingKey(resource.Fields)
@@ -96,6 +101,11 @@ func (s *GormStore) UpdateResource(kind string, id string, patch AdminResource) 
 	}
 	if patch.Fields != nil {
 		resource.Fields = patch.Fields
+	}
+	if kind == "role-configs" {
+		if err := prepareRoleConfig(&resource); err != nil {
+			return AdminResource{}, err
+		}
 	}
 	resource.RoutingPolicyBindingKey = nil
 	if kind == routingPolicyResourceKind {

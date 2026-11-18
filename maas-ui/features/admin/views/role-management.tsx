@@ -1,7 +1,7 @@
 import { ChevronLeft, ChevronRight, Search, X } from "lucide-react";
 import { type FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { type AdminResource, type AppData, type ModalState, type ResourceConfig } from "../core/types";
-import { stringifyValue } from "../domain/entities";
+import { roleDisplayName, stringifyValue } from "../domain/entities";
 import { tx } from "../i18n/runtime";
 import { roleConfig } from "../resources/settings-config";
 
@@ -26,7 +26,7 @@ export function RoleManagementView({
     const normalizedQuery = query.trim().toLowerCase();
     return config.list(data).filter((item) => {
       if (!normalizedQuery) return true;
-      return [roleName(item), item.description, stringifyValue(item.fields?.role_key)]
+      return [roleDisplayName(item), item.description, stringifyValue(item.fields?.role_key)]
         .some((value) => String(value ?? "").toLowerCase().includes(normalizedQuery));
     });
   }, [config, data, query]);
@@ -69,7 +69,7 @@ export function RoleManagementView({
               const isBuiltInAdmin = stringifyValue(item.fields?.role_key) === "admin";
               return (
                 <tr key={item.id}>
-                  <td>{roleName(item)}</td>
+                  <td>{roleDisplayName(item)}</td>
                   <td>{item.description || "-"}</td>
                   <td>
                     {!isBuiltInAdmin ? (
@@ -146,7 +146,7 @@ export function RoleManagementEditModal({
 }) {
   const item = state.item;
   const originalValues = useMemo(() => item && state.config.toForm ? state.config.toForm(item) : {}, [item, state.config]);
-  const name = item ? roleName(item) : "";
+  const name = item ? roleDisplayName(item) : "";
   const [description, setDescription] = useState(() => item?.description ?? "");
   const descriptionRef = useRef<HTMLTextAreaElement>(null);
 
@@ -218,10 +218,6 @@ export function RoleManagementEditModal({
       </form>
     </div>
   );
-}
-
-function roleName(item: AdminResource) {
-  return stringifyValue(item.fields?.display_name) || item.name;
 }
 
 function resizeDescription(textarea: HTMLTextAreaElement) {

@@ -450,12 +450,12 @@ func seedDefaultRoleConfigs(store Store) error {
 		},
 		{
 			ID:          "role_admin",
-			Name:        "平台超管",
+			Name:        platformAdminDisplayName,
 			Description: "Manages platform settings, Providers, model routes, users, and governance policies.",
 			Status:      StatusActive,
 			Fields: map[string]any{
 				"role_key":     "admin",
-				"display_name": "平台超管",
+				"display_name": platformAdminDisplayName,
 				"data_scope":   "global",
 				"assignable":   true,
 			},

@@ -16,6 +16,8 @@ This guide is for platform administrators, security operators, and infrastructur
 | Plugin Management | Install and inspect external packages, manage lifecycle state, and operate supported built-in or declarative capabilities |
 | Security and Audit | Review request logs, admin events, key rotation, and policy changes |
 
+The platform administrator role key is `admin`. Its display name is Platform Super Admin. Role configuration rejects the retired `system_admin` key.
+
 ## Team Wallet Funding
 
 Team wallets use offline funding only: a platform administrator records an offline receipt or approved credit, the team shares the resulting CNY balance, and paid API calls deduct from that balance automatically. Approved credit adds spendable balance; it does not create an overdraft or debt account. Consumer wallets remain separate.
