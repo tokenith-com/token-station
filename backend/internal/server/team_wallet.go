@@ -69,14 +69,21 @@ type teamWalletEntry struct {
 }
 
 type teamWalletCall struct {
-	RequestID     string     `gorm:"primaryKey" json:"request_id"`
-	TeamID        string     `json:"team_id"`
-	ReservedCents int64      `json:"reserved_cents"`
-	ExchangeRate  string     `json:"exchange_rate"`
-	SettledCents  int64      `json:"settled_cents"`
-	Status        string     `json:"status"`
-	CreatedAt     time.Time  `json:"created_at"`
-	SettledAt     *time.Time `json:"settled_at,omitempty"`
+	RequestID                   string     `gorm:"primaryKey" json:"request_id"`
+	TeamID                      string     `json:"team_id"`
+	ReservedCents               int64      `json:"reserved_cents"`
+	ExchangeRate                string     `json:"exchange_rate"`
+	SettledCents                int64      `json:"settled_cents"`
+	Status                      string     `json:"status"`
+	CreatedAt                   time.Time  `json:"created_at"`
+	SettledAt                   *time.Time `json:"settled_at,omitempty"`
+	ReservedBeforeBalanceCents  *int64     `json:"reserved_before_balance_cents"`
+	ReservedAfterBalanceCents   *int64     `json:"reserved_after_balance_cents"`
+	FinalizedBeforeBalanceCents *int64     `json:"finalized_before_balance_cents"`
+	FinalizedAfterBalanceCents  *int64     `json:"finalized_after_balance_cents"`
+	ActorUserID                 string     `json:"actor_user_id"`
+	ActorName                   string     `json:"actor_name"`
+	APIKeyID                    string     `json:"api_key_id"`
 }
 
 const (
@@ -92,6 +99,18 @@ func teamWalletMigration() dbschema.Migration {
 		`CREATE TABLE IF NOT EXISTS team_wallet_entries (id text PRIMARY KEY, team_id text NOT NULL, request_id text NOT NULL, amount_cents bigint NOT NULL CHECK (amount_cents > 0), actor_user_id text NOT NULL, created_at timestamp NOT NULL, UNIQUE (team_id, request_id))`,
 		`CREATE TABLE IF NOT EXISTS team_wallet_calls (request_id text PRIMARY KEY, team_id text NOT NULL, reserved_cents bigint NOT NULL CHECK (reserved_cents > 0), settled_cents bigint NOT NULL DEFAULT 0 CHECK (settled_cents >= 0), status text NOT NULL, created_at timestamp NOT NULL, settled_at timestamp)`,
 		`CREATE INDEX IF NOT EXISTS idx_team_wallet_entries_team_id ON team_wallet_entries (team_id)`,
+	}}
+}
+
+func teamWalletCallSnapshotMigration() dbschema.Migration {
+	return dbschema.Migration{Version: 24, Name: "add-team-wallet-call-snapshots", ChecksumOverride: "tokenhub-schema-team-wallet-call-snapshots-v1", StatementBudget: 7, Statements: []string{
+		`ALTER TABLE team_wallet_calls ADD COLUMN reserved_before_balance_cents bigint`,
+		`ALTER TABLE team_wallet_calls ADD COLUMN reserved_after_balance_cents bigint`,
+		`ALTER TABLE team_wallet_calls ADD COLUMN finalized_before_balance_cents bigint`,
+		`ALTER TABLE team_wallet_calls ADD COLUMN finalized_after_balance_cents bigint`,
+		`ALTER TABLE team_wallet_calls ADD COLUMN actor_user_id text NOT NULL DEFAULT ''`,
+		`ALTER TABLE team_wallet_calls ADD COLUMN actor_name text NOT NULL DEFAULT ''`,
+		`ALTER TABLE team_wallet_calls ADD COLUMN api_key_id text NOT NULL DEFAULT ''`,
 	}}
 }
 
@@ -116,7 +135,14 @@ func teamWalletRate(tx *gorm.DB) (string, error) {
 	return rate, nil
 }
 
-func reserveTeamWalletCall(tx *gorm.DB, teamID, requestID, rate string, cents int64, now time.Time) error {
+func reserveTeamWalletCall(tx *gorm.DB, teamID, requestID, rate string, cents int64, now time.Time, identity ...string) error {
+	apiKeyID, actorUserID := "", ""
+	if len(identity) > 0 {
+		apiKeyID = identity[0]
+	}
+	if len(identity) > 1 {
+		actorUserID = identity[1]
+	}
 	if strings.TrimSpace(teamID) == "" || strings.TrimSpace(requestID) == "" || cents <= 0 {
 		return NewHTTPError(409, "team_wallet_reservation_unavailable", "Team wallet call reservation is unavailable")
 	}
@@ -135,6 +161,10 @@ func reserveTeamWalletCall(tx *gorm.DB, teamID, requestID, rate string, cents in
 	if err := tx.Clauses(clause.OnConflict{DoNothing: true}).Create(&wallet).Error; err != nil {
 		return err
 	}
+	var beforeBalance teamWallet
+	if err := tx.First(&beforeBalance, "team_id = ?", teamID).Error; err != nil {
+		return err
+	}
 	result := tx.Model(&teamWallet{}).Where("team_id = ? AND balance_cents >= ?", teamID, cents).Updates(map[string]any{"balance_cents": gorm.Expr("balance_cents - ?", cents), "updated_at": now})
 	if result.Error != nil {
 		return result.Error
@@ -142,7 +172,13 @@ func reserveTeamWalletCall(tx *gorm.DB, teamID, requestID, rate string, cents in
 	if result.RowsAffected != 1 {
 		return NewHTTPError(409, "team_wallet_insufficient_balance", "Team wallet balance is insufficient")
 	}
-	return tx.Create(&teamWalletCall{RequestID: requestID, TeamID: teamID, ReservedCents: cents, ExchangeRate: rate, Status: teamWalletCallReserved, CreatedAt: now}).Error
+	afterBalance := beforeBalance.BalanceCents - cents
+	return tx.Create(&teamWalletCall{
+		RequestID: requestID, TeamID: teamID, ReservedCents: cents, ExchangeRate: rate,
+		Status: teamWalletCallReserved, CreatedAt: now,
+		ReservedBeforeBalanceCents: &beforeBalance.BalanceCents, ReservedAfterBalanceCents: &afterBalance,
+		ActorUserID: actorUserID, APIKeyID: apiKeyID,
+	}).Error
 }
 
 func releaseTeamWalletCall(tx *gorm.DB, requestID string, now time.Time) error {
@@ -156,11 +192,19 @@ func releaseTeamWalletCall(tx *gorm.DB, requestID string, now time.Time) error {
 	if call.Status != teamWalletCallReserved {
 		return nil
 	}
+	var wallet teamWallet
+	if err := tx.First(&wallet, "team_id = ?", call.TeamID).Error; err != nil {
+		return err
+	}
+	beforeBalance := wallet.BalanceCents
 	if err := tx.Model(&teamWallet{}).Where("team_id = ?", call.TeamID).Updates(map[string]any{"balance_cents": gorm.Expr("balance_cents + ?", call.ReservedCents), "updated_at": now}).Error; err != nil {
 		return err
 	}
+	afterBalance := beforeBalance + call.ReservedCents
 	call.Status = teamWalletCallReleased
 	call.SettledAt = &now
+	call.FinalizedBeforeBalanceCents = &beforeBalance
+	call.FinalizedAfterBalanceCents = &afterBalance
 	return tx.Save(&call).Error
 }
 
@@ -191,12 +235,28 @@ func settleTeamWalletCall(tx *gorm.DB, call CallContext, usage Usage, success bo
 		}
 	}
 	refund := reservation.ReservedCents - settled
+	var finalizedBefore int64
+	var finalizedAfter int64
 	if refund > 0 {
+		var wallet teamWallet
+		if err := tx.First(&wallet, "team_id = ?", reservation.TeamID).Error; err != nil {
+			return err
+		}
+		finalizedBefore = wallet.BalanceCents
 		if err := tx.Model(&teamWallet{}).Where("team_id = ?", reservation.TeamID).Updates(map[string]any{"balance_cents": gorm.Expr("balance_cents + ?", refund), "updated_at": now}).Error; err != nil {
 			return err
 		}
+		finalizedAfter = finalizedBefore + refund
+	} else {
+		var wallet teamWallet
+		if err := tx.First(&wallet, "team_id = ?", reservation.TeamID).Error; err != nil {
+			return err
+		}
+		finalizedBefore, finalizedAfter = wallet.BalanceCents, wallet.BalanceCents
 	}
 	reservation.SettledCents = settled
+	reservation.FinalizedBeforeBalanceCents = &finalizedBefore
+	reservation.FinalizedAfterBalanceCents = &finalizedAfter
 	reservation.Status = teamWalletCallSettled
 	if !success {
 		reservation.Status = teamWalletCallReleased
@@ -308,6 +368,7 @@ func (s *GormStore) creditTeamWallet(teamID, requestID, actorID string, cents in
 }
 
 func (s *Server) registerTeamWalletRoutes() {
+	s.registerSingleMethodRoute(http.MethodGet, "/api/admin/team-wallet/exchange-rate/history", s.handleTeamWalletRateHistory, jsonMethodNotAllowed(http.MethodGet))
 	s.registerSingleMethodRoute(http.MethodGet, "/api/admin/teams/{team_id}/wallet", s.handleTeamWallet, jsonMethodNotAllowed(http.MethodGet))
 	s.registerSingleMethodRoute(http.MethodGet, "/api/admin/teams/{team_id}/wallet/ledger", s.handleTeamWalletLedger, jsonMethodNotAllowed(http.MethodGet))
 	s.registerSingleMethodRoute(http.MethodPost, "/api/admin/teams/{team_id}/wallet/credits", s.handleTeamWalletCredit, jsonMethodNotAllowed(http.MethodPost))
@@ -334,7 +395,7 @@ func (s *Server) handleTeamWallet(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	teamID := r.PathValue("team_id")
-	if !isPlatformAdminRole(user.Role) && !(normalizeAdminRole(user.Role) == "team_leader" && user.TeamID == teamID && s.activeTeamIDSet()[teamID]) {
+	if normalizeAdminRole(user.Role) != "admin" && !(normalizeAdminRole(user.Role) == "team_leader" && user.TeamID == teamID && s.activeTeamIDSet()[teamID]) {
 		writeError(w, r, NewHTTPError(403, "wallet_forbidden", "Wallet is only available to the team's leader or platform administrators"))
 		return
 	}
@@ -360,8 +421,8 @@ func (s *Server) handleTeamWalletCredit(w http.ResponseWriter, r *http.Request) 
 	if !ok {
 		return
 	}
-	if !isPlatformAdminRole(user.Role) {
-		writeError(w, r, NewHTTPError(403, "wallet_forbidden", "Only platform administrators may credit team wallets"))
+	if normalizeAdminRole(user.Role) != "admin" {
+		writeError(w, r, NewHTTPError(403, "wallet_forbidden", "Only admin may credit team wallets"))
 		return
 	}
 	var req struct {
@@ -392,7 +453,12 @@ func (s *Server) handleTeamWalletCredit(w http.ResponseWriter, r *http.Request) 
 }
 
 func (s *Server) handleTeamWalletRate(w http.ResponseWriter, r *http.Request) {
-	if _, ok := s.requireAdmin(w, r, "team_wallet", r.Method); !ok {
+	user, ok := s.requireAdmin(w, r, "team_wallet", r.Method)
+	if !ok {
+		return
+	}
+	if normalizeAdminRole(user.Role) != "admin" {
+		writeError(w, r, NewHTTPError(403, "wallet_forbidden", "Only admin may manage the wallet exchange rate"))
 		return
 	}
 	if r.Method == http.MethodPut {
@@ -407,17 +473,18 @@ func (s *Server) handleTeamWalletRate(w http.ResponseWriter, r *http.Request) {
 			writeError(w, r, err)
 			return
 		}
-		store, ok := s.store.(interface {
-			CreateResourceChecked(string, AdminResource) (AdminResource, error)
-		})
+		store, ok := s.store.(teamWalletRateStore)
 		if !ok {
 			writeError(w, r, NewHTTPError(501, "wallet_unavailable", "Team wallet settings are unavailable"))
 			return
 		}
-		if _, err := store.CreateResourceChecked("settings", AdminResource{ID: teamWalletRateID, Name: "Team wallet exchange rate", Status: StatusActive, Fields: map[string]any{"usd_to_cny": req.Rate}}); err != nil {
+		entry, err := store.SaveTeamWalletRate(req.Rate, user.ID)
+		if err != nil {
 			writeError(w, r, err)
 			return
 		}
+		writeJSON(w, 200, map[string]any{"usd_to_cny": entry.USDToCNY, "configured": true, "paid_calls_enabled": true})
+		return
 	}
 	rate := ""
 	for _, item := range s.store.ListResources("settings") {

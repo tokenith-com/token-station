@@ -1,12 +1,13 @@
 import { CircleAlert, FolderKanban, Gauge, KeyRound, Pencil, Plus, ShieldCheck, Trash2, UsersRound, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { type AdminResource, type ApiContext, type AppData, type Project, type ProjectTeam, type ResourceAction } from "../core/types";
-import { costCenterLabel, costCenterSelectOptions, ownerUserLabel, projectMembersForProject, teamLabel, teamSelectOptions, userSelectOptions } from "../domain/entities";
+import { costCenterLabel, costCenterSelectOptions, modelIsInDirectory, ownerUserLabel, projectMembersForProject, teamLabel, teamSelectOptions, userSelectOptions } from "../domain/entities";
 import { formatNumber } from "../domain/formatting";
 import { approvalTriggerLabel } from "../domain/labels";
 import { countWithUnit, tx } from "../i18n/runtime";
 import { adminFetch, pendingProjectQuotaApproval, projectQuotaIssue, projectQuotaPolicy, projectQuotaValues, readAdminError, requestProjectQuotaIncrease, saveProjectQuota } from "../resources/payloads";
 import { StatusPill } from "../shared/ui";
+import { ModelAccessList } from "../resources/project-key-config";
 import { projectQuotaFields, type ProjectQuotaValues } from "../domain/project-quota";
 import { ProjectMemberRow } from "./crud-projects";
 
@@ -23,8 +24,9 @@ export type ProjectWorkspaceDraft = {
   status: string;
   owner_user_id: string;
   cost_center: string;
-  model_access_mode: "inherit" | "restricted";
+  model_access_mode: "inherit" | "restricted" | "excluded";
   allowed_models: string[];
+  excluded_models: string[];
   primary_team_id: string;
   primary_role: ProjectTeam["role"];
   additional_teams: ProjectTeamDraftRow[];
@@ -48,8 +50,9 @@ export function projectWorkspaceDraft(project?: Project): ProjectWorkspaceDraft 
     status: project?.status || "active",
     owner_user_id: project?.owner_user_id ?? "",
     cost_center: project?.cost_center ?? "",
-    model_access_mode: project?.model_access_mode || ((project?.allowed_models ?? []).length > 0 ? "restricted" : "inherit"),
+    model_access_mode: project?.model_access_mode || ((project?.excluded_models ?? []).length > 0 ? "excluded" : (project?.allowed_models ?? []).length > 0 ? "restricted" : "inherit"),
     allowed_models: project?.allowed_models ?? [],
+    excluded_models: project?.excluded_models ?? [],
     primary_team_id: primaryTeamID,
     primary_role: primaryLink?.role ?? "team_leader",
     additional_teams: project ? additionalTeams : [teamDraftRow()],
@@ -78,6 +81,7 @@ export async function saveProjectWorkspaceDraft(
     cost_center: draft.cost_center,
     model_access_mode: draft.model_access_mode,
     allowed_models: draft.model_access_mode === "restricted" ? draft.allowed_models : [],
+    excluded_models: draft.model_access_mode === "excluded" ? draft.excluded_models : [],
     team_id: draft.primary_team_id,
   };
   const saved = await projectJSON<Project>(
@@ -334,36 +338,36 @@ export function ProjectWorkspace({
             icon={<Gauge size={18} />}
             index="04"
             title="模型访问"
-            description="项目允许列表先于路由执行，项目内 API Key 只能在此范围内进一步收窄。"
+            description="项目模型访问规则先于路由执行，项目内 API Key 只能在此范围内进一步收窄。"
           >
             {editable ? (
-              <div className="project-basics-grid">
-                <label className="field">
+              <div className="project-model-access">
+                <label className="field project-model-access-mode">
                   <span>{tx("模型访问模式")}</span>
-                  <select value={draft.model_access_mode} onChange={(event) => setDraft((current) => ({ ...current, model_access_mode: event.target.value as "inherit" | "restricted" }))}>
+                  <select value={draft.model_access_mode} onChange={(event) => setDraft((current) => ({ ...current, model_access_mode: event.target.value as ProjectWorkspaceDraft["model_access_mode"] }))}>
                     <option value="inherit">{tx("继承全部已启用模型")}</option>
                     <option value="restricted">{tx("指定模型允许列表")}</option>
+                    <option value="excluded">{tx("指定模型禁用列表")}</option>
                   </select>
                   <small>{tx("Key 的允许列表会与项目范围取交集，不能扩大项目权限。")}</small>
                 </label>
-                {draft.model_access_mode === "restricted" ? (
-                  <label className="field">
-                    <span>{tx("项目模型允许列表")}</span>
-                    <select
-                      multiple
-                      value={draft.allowed_models}
-                      onChange={(event) => setDraft((current) => ({ ...current, allowed_models: Array.from(event.target.selectedOptions, (option) => option.value) }))}
-                    >
-                      {data.models.filter((model) => model.status === "active").map((model) => <option key={model.name} value={model.name}>{model.name}</option>)}
-                    </select>
-                    <small>{tx("不选择任何模型表示禁止项目访问全部模型。")}</small>
-                  </label>
+                {draft.model_access_mode !== "inherit" ? (
+                  <div>
+                    <ModelAccessList
+                      key={draft.model_access_mode}
+                      label={draft.model_access_mode === "excluded" ? "项目模型禁用列表" : "项目模型允许列表"}
+                      models={data.models.filter((model) => model.status === "active" && modelIsInDirectory(model, data)).map((model) => model.name)}
+                      selected={draft.model_access_mode === "excluded" ? draft.excluded_models : draft.allowed_models}
+                      onChange={(models) => setDraft((current) => ({ ...current, [current.model_access_mode === "excluded" ? "excluded_models" : "allowed_models"]: models }))}
+                    />
+                    <small>{tx(draft.model_access_mode === "excluded" ? "未禁用的已启用模型均可访问，留空表示不禁用任何模型。" : "不选择任何模型表示禁止项目访问全部模型。")}</small>
+                  </div>
                 ) : null}
               </div>
             ) : (
               <div className="project-readonly-grid">
-                <ProjectSummaryField label="模型访问模式" value={draft.model_access_mode === "inherit" ? tx("继承全部已启用模型") : tx("指定模型允许列表")} />
-                <ProjectSummaryField label="模型允许列表" value={draft.model_access_mode === "inherit" ? tx("继承上级范围") : draft.allowed_models.join(", ") || tx("禁止全部模型")} />
+                <ProjectSummaryField label="模型访问模式" value={tx(draft.model_access_mode === "inherit" ? "继承全部已启用模型" : draft.model_access_mode === "excluded" ? "指定模型禁用列表" : "指定模型允许列表")} />
+                <ProjectSummaryField label={draft.model_access_mode === "excluded" ? "项目模型禁用列表" : "模型允许列表"} value={draft.model_access_mode === "inherit" ? tx("继承上级范围") : draft.model_access_mode === "excluded" ? draft.excluded_models.join(", ") || tx("未禁用任何模型") : draft.allowed_models.join(", ") || tx("禁止全部模型")} />
               </div>
             )}
           </ProjectSection>

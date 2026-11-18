@@ -1146,6 +1146,45 @@ tr.selected-row td:first-child {
   color: var(--accent);
 }
 
+.settlement-history-table { min-width: 0; width: 100%; table-layout: fixed; border-collapse: collapse; margin-top: 16px; }
+.settlement-history-table th, .settlement-history-table td { padding: 12px 8px; text-align: start; vertical-align: top; border-bottom: 1px solid var(--border); overflow-wrap: anywhere; white-space: normal; min-width: 0; }
+.settlement-history-table th { color: var(--ink-3); font-weight: 500; }
+.settlement-history-pagination { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 12px; margin-top: 16px; }
+@media (max-width: 600px) {
+  .settlement-history-table thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+  .settlement-history-table, .settlement-history-table tbody, .settlement-history-table tr, .settlement-history-table td { display: block; width: 100%; }
+  .settlement-history-table tr { padding-block: 12px; border-bottom: 1px solid var(--border); }
+  .settlement-history-table td { padding: 4px 0; border: 0; }
+  .settlement-history-table td::before { content: attr(data-label); display: block; color: var(--ink-3); font-size: 12px; margin-bottom: 4px; }
+  .settlement-history-pagination { justify-content: space-between; }
+}
+
+.settlement-rules-body {
+  display: grid;
+  gap: 16px;
+}
+
+.settlement-rules-note.system-settings-note {
+  margin: 0;
+  padding: 16px;
+  align-items: flex-start;
+  flex-wrap: nowrap;
+  gap: 12px;
+  line-height: 1.7;
+}
+
+.settlement-rules-note svg {
+  margin-top: 2px;
+}
+
+.settlement-rules-footnote {
+  margin: 0;
+  padding-inline: 16px;
+  color: var(--ink-3);
+  font-size: calc(12.5 * var(--content-font-unit, 1px));
+  line-height: 1.7;
+}
+
 .resource-empty {
   min-height: 220px;
   border: 1px dashed var(--border-strong);

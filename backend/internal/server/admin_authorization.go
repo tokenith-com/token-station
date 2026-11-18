@@ -17,7 +17,7 @@ func (s *Server) authorizeAdminUser(w http.ResponseWriter, r *http.Request) (Adm
 		if len(users) > 0 {
 			return users[0], true
 		}
-		return AdminUser{ID: "dev_admin", Username: "dev_admin", Name: "开发管理员", Email: "admin@tokenhub.local", Role: "admin", Status: StatusActive}, true
+		return AdminUser{ID: "dev_admin", Username: "dev_admin", Name: "开发管理员", Email: "admin@tokenstation.local", Role: "admin", Status: StatusActive}, true
 	}
 	user, ok := s.store.ValidateAdminSession(token)
 	if !ok {
@@ -574,6 +574,7 @@ func (s *Server) accessibleModelsForAdminUser(user AdminUser) []Model {
 	if s.canViewGlobalOperations(user) {
 		return s.store.ListModels()
 	}
+	projects := s.filterProjectsForUser(user, s.store.ListProjects())
 	routed := s.activeRoutedModelNameSet()
 	models := s.store.ListModels()
 	out := make([]Model, 0, len(models))
@@ -581,8 +582,14 @@ func (s *Server) accessibleModelsForAdminUser(user AdminUser) []Model {
 		if model.Status != StatusActive {
 			continue
 		}
-		if routed[model.Name] || routed[model.ID] {
-			out = append(out, model)
+		if !routed[model.Name] && !routed[model.ID] {
+			continue
+		}
+		for _, project := range projects {
+			if modelAllowedByScopes(project, APIKey{}, model.Name) {
+				out = append(out, model)
+				break
+			}
 		}
 	}
 	return publicPricedModels(s.store, out)

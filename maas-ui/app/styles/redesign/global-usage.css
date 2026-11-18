@@ -1,3 +1,27 @@
+.team-wallet-overview:empty { display: none; }
+.team-wallet-overview { min-width: 0; margin-bottom: 24px; border: 1px solid var(--border); border-radius: 14px; background: var(--surface); overflow: hidden; }
+.team-wallet-summary { display: flex; align-items: center; flex-wrap: wrap; gap: 20px 32px; padding: 24px; color: var(--muted); font-size: calc(13 * var(--content-font-unit, 1px)); }
+.team-wallet-heading { display: flex; align-items: center; gap: 12px; color: var(--text); }
+.team-wallet-heading strong { font-size: calc(14 * var(--content-font-unit, 1px)); font-weight: 600; }
+.team-wallet-icon { display: grid; place-items: center; width: 42px; height: 42px; border-radius: 12px; color: var(--accent); background: color-mix(in srgb, var(--accent) 9%, var(--surface)); }
+.team-wallet-balance { display: grid; gap: 6px; min-width: 0; padding-left: 32px; border-left: 1px solid var(--border); }
+.team-wallet-balance strong { color: var(--text); font-size: calc(30 * var(--content-font-unit, 1px)); font-weight: 650; line-height: 1.2; letter-spacing: -.6px; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.team-wallet-status { display: inline-flex; align-items: center; gap: 8px; margin-left: auto; padding: 6px 12px; border: 1px solid color-mix(in srgb, currentColor 20%, transparent); border-radius: 999px; background: color-mix(in srgb, currentColor 7%, var(--surface)); font-size: calc(12 * var(--content-font-unit, 1px)); line-height: 1.5; }
+.team-wallet-status i { width: 6px; height: 6px; flex-shrink: 0; border-radius: 50%; background: currentColor; }
+.team-wallet-status.is-enabled { color: var(--green); }
+.team-wallet-status.is-unavailable { color: var(--amber); }
+.team-wallet-summary [role="alert"] { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; color: var(--red); overflow-wrap: anywhere; }
+.team-wallet-overview > section + section { padding: 20px 24px; border-top: 1px solid var(--border); }
+.team-wallet-overview > section + section h3 { margin: 0 0 16px; color: var(--text); font-size: calc(14 * var(--content-font-unit, 1px)); font-weight: 600; }
+.team-wallet-overview > section + section > p { margin: 0; padding: 20px 16px; border-radius: 8px; background: var(--surface-soft); color: var(--muted); font-size: calc(13 * var(--content-font-unit, 1px)); text-align: center; }
+.team-wallet-overview .modal-actions { flex-wrap: wrap; gap: 12px; padding: 16px 0 0; }
+@media (max-width: 600px) {
+  .team-wallet-summary { gap: 20px; padding: 20px; }
+  .team-wallet-heading { width: 100%; }
+  .team-wallet-balance { flex: 1 1 100%; padding-left: 0; border-left: 0; }
+  .team-wallet-status { margin-left: 0; }
+  .team-wallet-overview > section + section { padding: 20px; }
+}
 .global-usage { display: grid; min-width: 0; gap: 18px; }
 .global-usage > [aria-busy] { display: grid; min-width: 0; gap: 18px; }
 .global-usage-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }

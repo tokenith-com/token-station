@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { QRCodeCanvas } from "qrcode.react";
+import { Check, CreditCard, ListChecks, QrCode, WalletCards } from "lucide-react";
 
 import type { ApiContext } from "../core/types";
 import { uniqueUIID } from "../domain/formatting";
@@ -174,29 +175,43 @@ export function RechargeView({ api }: { api: ApiContext }) {
   };
   return (
     <section className="guest-cost-view payment-workspace">
-      <header className="guest-cost-heading payment-heading"><h1>{tx("余额充值")}</h1></header>
-      {wallet && <p>{tx("可用余额")} {formatWalletMicros(wallet.available_micros)}
-        {wallet.balance_micros > wallet.available_micros && <> · {tx("冻结金额")} {formatWalletMicros(wallet.balance_micros - wallet.available_micros)}</>}
-      </p>}
-      {error && <p role="alert">{error}</p>}
+      <header className="guest-cost-heading payment-heading"><h1>{tx("余额充值")}</h1><p>{tx("为您的账户充值，享受更多服务")}</p></header>
+      {error && <p className="recharge-alert error" role="alert">{error}</p>}
+      <div className="payment-checkout-layout">
+      <div className="payment-checkout-main">
+      <section className="payment-panel payment-balance-panel">
+        <h2><WalletCards aria-hidden="true" />{tx("账户余额")}</h2>
+        <div className="recharge-balance">
+          <span>{tx("当前余额")}</span>
+          <strong>{wallet ? formatWalletMicros(wallet.available_micros) : "—"}</strong>
+          {wallet && wallet.balance_micros > wallet.available_micros && <small>{tx("冻结金额")} {formatWalletMicros(wallet.balance_micros - wallet.available_micros)}</small>}
+        </div>
+      </section>
       {plans && (
-        <section className="section">
+        <section className="payment-checkout">
           {!order && <form className="payment-form" onSubmit={(event) => { event.preventDefault(); void createOrder(); }}>
-            <fieldset className="payment-amounts" disabled={busy || Boolean(attempt) || Boolean(order)}>
-              <legend>{tx("充值金额")}</legend>
+            <fieldset className="payment-amounts payment-panel" disabled={busy || Boolean(attempt) || Boolean(order)}>
+              <legend><ListChecks aria-hidden="true" />{tx("选择充值规格")}</legend>
               <div className="payment-amount-options">
                 {plans.data.map((item) => <button key={item.id} type="button" className="payment-amount-option" aria-pressed={plan === item.id} onClick={() => setPlan(item.id)}>{formatWalletMicros(item.amount_fen * 10_000)}</button>)}
                 {plans.custom_enabled && <button type="button" className="payment-amount-option" aria-pressed={!plan} onClick={() => setPlan("")}>{tx("自定义金额")}</button>}
               </div>
             </fieldset>
             {!plan && plans.custom_enabled && <label>{tx("自定义金额")}<input aria-label={tx("自定义金额")} type="number" required min={(plans.min_fen ?? 1) / 100} max={(plans.max_fen ?? 0) / 100} step="0.01" value={custom} disabled={busy || Boolean(attempt) || Boolean(order)} onChange={event => setCustom(event.target.value)} /><small>{formatWalletMicros((plans.min_fen ?? 1) * 10000)} – {formatWalletMicros((plans.max_fen ?? 0) * 10000)}</small></label>}
-            <fieldset className="payment-amounts" disabled={busy || Boolean(attempt)}>
-              <legend>{tx("支付方式")}</legend>
+            <fieldset className="payment-amounts payment-panel" disabled={busy || Boolean(attempt)}>
+              <legend><CreditCard aria-hidden="true" />{tx("支付方式")}</legend>
               <div className="payment-channel-options">
-                {plans.channels.map(item => <button key={item} type="button" className="payment-amount-option" aria-pressed={channel === item} onClick={() => setChannel(item)}>{channelLabel(item)}</button>)}
+                {plans.channels.map(item => <button key={item} type="button" className={`payment-channel-option ${item}`} aria-label={channelLabel(item)} aria-pressed={channel === item} onClick={() => setChannel(item)}>
+                  <span className="payment-channel-radio" aria-hidden="true" />
+                  <span className="payment-channel-mark" aria-hidden="true">{item === "alipay" ? "支" : <><i /><i /></>}</span>
+                  <span className="payment-channel-copy"><strong>{channelLabel(item)}</strong><small>{item === "alipay" ? tx("推荐使用，到账快速") : tx("微信扫码支付")}</small></span>
+                </button>)}
               </div>
             </fieldset>
-            {<button className="button" disabled={busy || !validAmount || !channel}>{tx("创建充值订单")}</button>}
+            <footer className="recharge-summary">
+              <div><span>{tx("本次充值金额")}</span><strong>{amountLabel(plan ? plans.data.find(item => item.id === plan)?.amount_fen : validAmount ? customFen : 0)}</strong></div>
+              <button className="button" disabled={busy || !validAmount || !channel}><QrCode size={16} aria-hidden="true" />{tx("创建充值订单")}</button>
+            </footer>
           </form>}
           {order && <div className="payment-result">
             <p role="status" className="payment-result-status">{statusLabel(order.status)}</p>
@@ -217,6 +232,22 @@ export function RechargeView({ api }: { api: ApiContext }) {
 
         </section>
       )}
+      </div>
+      <aside className="payment-panel payment-guide" aria-label={tx("充值流程")}>
+        <h2>{tx("充值流程")}</h2>
+        <ol>
+          {[
+            { title: tx("选择充值规格"), detail: tx("根据需要选择合适的充值金额") },
+            { title: tx("选择支付方式"), detail: tx("支持支付宝、微信扫码支付") },
+            { title: tx("扫码完成支付"), detail: tx("使用手机扫描二维码支付") },
+            { title: tx("余额即时到账"), detail: tx("支付成功后余额立即更新") },
+          ].map((step, index) => <li key={step.title}>
+            <span className={`payment-guide-index ${index === 3 ? "complete" : ""}`} aria-hidden="true">{index === 3 ? <Check size={16} /> : index + 1}</span>
+            <span><strong>{step.title}</strong><small>{step.detail}</small></span>
+          </li>)}
+        </ol>
+      </aside>
+      </div>
       {<section className="section payment-history">
         <h2>{tx("充值订单")}</h2>
         {orders.length === 0 && <p className="muted">{tx("暂无数据")}</p>}

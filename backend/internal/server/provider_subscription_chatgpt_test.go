@@ -156,7 +156,7 @@ func TestChatGPTSubscriptionDynamicClientAuthorization(t *testing.T) {
 	}
 	parsed, _ := url.Parse(address)
 	query := parsed.Query()
-	if query.Get("client_id") != "dynamic_agent_client" || query.Get("code_challenge") != openAICodeChallenge(verifier) || query.Get("nonce") != "nonce" || !strings.Contains(query.Get("scope"), chatGPTSubscriptionDirectScope) {
+	if query.Get("client_id") != "dynamic_agent_client" || query.Get("agent_name_hint") != "TokenStation" || query.Get("code_challenge") != openAICodeChallenge(verifier) || query.Get("nonce") != "nonce" || !strings.Contains(query.Get("scope"), chatGPTSubscriptionDirectScope) {
 		t.Fatalf("incorrect authorization parameters: %v", query)
 	}
 	if _, err := ChatGPTSubscriptionAuthorizeURL("https://attacker.invalid", "state", "nonce", verifier, "urn:uuid:fixture", ""); err == nil {

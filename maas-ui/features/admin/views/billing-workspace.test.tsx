@@ -15,7 +15,7 @@ beforeEach(() => {
 });
 
 it("preserves unsaved recharge edits while switching billing tabs", async () => {
-  render(<BillingWorkspace api={api} role="system_admin"><div>Management fixture</div></BillingWorkspace>);
+  render(<BillingWorkspace api={api} role="admin"><div>Management fixture</div></BillingWorkspace>);
   fireEvent.click(screen.getByRole("tab", { name: "充值设置" }));
   fireEvent.change(await screen.findByLabelText("档位名称"), { target: { value: "Edited draft" } });
   fireEvent.click(screen.getByRole("tab", { name: "支付与钱包对账" }));
@@ -25,9 +25,13 @@ it("preserves unsaved recharge edits while switching billing tabs", async () => 
   expect(screen.getByRole("tab", { name: "充值设置" })).toHaveAttribute("aria-selected", "true");
 });
 
-it("keeps recharge settings unavailable to ordinary administrators", async () => {
+it("shows recharge settings to platform administrators", async () => {
   render(<BillingWorkspace api={api} role="admin"><div>Management fixture</div></BillingWorkspace>);
+  expect(screen.getByRole("tab", { name: "充值设置" })).toBeInTheDocument();
+});
+
+it("keeps recharge settings unavailable to ordinary administrators", async () => {
+  render(<BillingWorkspace api={api} role="team_leader"><div>Management fixture</div></BillingWorkspace>);
   expect(screen.queryByRole("tab", { name: "充值设置" })).not.toBeInTheDocument();
-  await waitFor(() => expect(fetch).toHaveBeenCalled());
   expect(vi.mocked(fetch).mock.calls.some(([url]) => String(url).includes("recharge/settings"))).toBe(false);
 });

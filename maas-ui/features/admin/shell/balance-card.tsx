@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { type ApiContext, type ViewKey } from "../core/types";
 import { languageLocale, tx } from "../i18n/runtime";
 import { adminFetch } from "../resources/payloads";
+import { formatWalletMicros } from "../resources/wallet";
 
 export function formatBalanceCNY(cents: number) {
   return new Intl.NumberFormat(languageLocale(), { style: "currency", currency: "CNY", currencyDisplay: "narrowSymbol", minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(cents / 100);
@@ -15,7 +16,7 @@ export function BalanceCard({ api, activeView, teamID, onSelectView }: { api: Ap
     window.addEventListener("tokenstation-wallet-updated", refresh);
     return () => window.removeEventListener("tokenstation-wallet-updated", refresh);
   }, []);
-  const [balanceCents, setBalanceCents] = useState<number | null>(null);
+  const [balance, setBalance] = useState<{ cents?: number; micros?: number } | null>(null);
 
   useEffect(() => {
     if (!api.adminToken || teamID === "") return;
@@ -25,8 +26,8 @@ export function BalanceCard({ api, activeView, teamID, onSelectView }: { api: Ap
       .then(async resp => {
         if (!resp.ok) return;
         const payload = (await resp.json()) as { available_micros?: number; balance_cents?: unknown; wallet?: { balance_cents?: unknown } };
-        const value = teamID ? payload.wallet?.balance_cents : typeof payload.available_micros === "number" ? payload.available_micros / 10_000 : undefined;
-        if (!cancelled && typeof value === "number") setBalanceCents(value);
+        const next = teamID ? { cents: typeof payload.wallet?.balance_cents === "number" ? payload.wallet.balance_cents : undefined } : { micros: typeof payload.available_micros === "number" ? payload.available_micros : undefined };
+        if (!cancelled && (typeof next.cents === "number" || typeof next.micros === "number")) setBalance(next);
       })
       .catch(() => undefined);
     return () => {
@@ -38,7 +39,7 @@ export function BalanceCard({ api, activeView, teamID, onSelectView }: { api: Ap
     <button className="console-topbar-balance" onClick={() => onSelectView("balance-recharge")} title={tx("余额充值")} type="button">
       <Wallet size={15} />
       <span>{tx("账户余额")}</span>
-      <strong>{balanceCents === null ? "--" : formatBalanceCNY(balanceCents)}</strong>
+      <strong>{balance === null ? "--" : typeof balance.micros === "number" ? formatWalletMicros(balance.micros) : typeof balance.cents === "number" ? formatBalanceCNY(balance.cents) : "--"}</strong>
     </button>
   );
 }

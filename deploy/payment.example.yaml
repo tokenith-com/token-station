@@ -3,6 +3,8 @@
 # to the YAML. Keep private keys and the API v3 key in separate files.
 # Remove a channel's section to disable it.
 # Enable after publishing a CNY exchange rate (USD per CNY) and testing the eligible models.
+# Personal-wallet calls are admitted when balance_micros is zero or positive,
+# then charged from actual usage; a negative balance rejects new calls with 402.
 prepaid_usage: false
 
 plans:

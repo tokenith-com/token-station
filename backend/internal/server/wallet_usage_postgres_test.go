@@ -6,7 +6,7 @@ import "testing"
 
 func TestPostgresWalletUsageMigrationAndSettlement(t *testing.T) {
 	admin, url := openPostgresAdmin(t)
-	for _, name := range []string{"migration", "settlement"} {
+	for _, name := range []string{"migration", "settlement", "postpaid"} {
 		t.Run(name, func(t *testing.T) {
 			schema := createPostgresSchema(t, admin, "tokenhub_wallet_")
 			dsn, err := withSearchPath(url, schema)
@@ -20,6 +20,10 @@ func TestPostgresWalletUsageMigrationAndSettlement(t *testing.T) {
 			store, err := NewStoreWithDialect(dsn, Config{})
 			if err != nil {
 				t.Fatal(err)
+			}
+			if name == "postpaid" {
+				testPostpaidWalletUsage(t, store)
+				return
 			}
 			testPrepaidReservations(t, store)
 		})

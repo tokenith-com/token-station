@@ -266,7 +266,7 @@ export function notificationChannelDescription(type: string) {
 }
 
 export function notificationChannelURLPlaceholder(type: string) {
-  return notificationChannelTemplate(type)?.urlPlaceholder ?? notificationChannelTemplates.find((template) => template.type === notificationChannelDefaultType)?.urlPlaceholder ?? "http://localhost:8081/tokenhub-alert";
+  return notificationChannelTemplate(type)?.urlPlaceholder ?? notificationChannelTemplates.find((template) => template.type === notificationChannelDefaultType)?.urlPlaceholder ?? "http://localhost:8081/tokenstation-alert";
 }
 
 export function notificationChannelTargetSummary(item: AdminResource) {
@@ -325,8 +325,8 @@ export function modelCatalogFilterLabel(categories: Array<{ key: string; label: 
 }
 
 export function priceMetric(value: number | undefined) {
-  if (!value) return "¥-";
-  return `¥${formatMoney(value)}/Mt`;
+  if (!value) return "$-";
+  return `$${formatMoney(value)}/Mt`;
 }
 
 export function modelCategory(model: Model | ProviderCatalogModel | undefined, dataOrDefinitions?: Pick<AppData, "plugins" | "providerAdapters"> | ReturnType<typeof modelCategoryDefinitionsFromData>) {

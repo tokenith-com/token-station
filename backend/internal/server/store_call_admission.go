@@ -229,7 +229,7 @@ func (s *GormStore) admitCallTransaction(ctx context.Context, tx *gorm.DB, key A
 	teamWalletReservedCents := int64(0)
 	// A call has one payer: a configured team wallet takes precedence over a
 	// personal prepaid wallet for calls billed to that team.
-	if strings.TrimSpace(privateProject.TeamID) != "" {
+	if privateProject.ID != consumerProjectID && strings.TrimSpace(privateProject.TeamID) != "" {
 		var wallet teamWallet
 		if err := tx.First(&wallet, "team_id = ?", privateProject.TeamID).Error; err == nil {
 			teamWalletEnabled = true
@@ -240,8 +240,13 @@ func (s *GormStore) admitCallTransaction(ctx context.Context, tx *gorm.DB, key A
 	if teamWalletEnabled {
 		payer = ""
 	}
-	if payer != "" && ctx.Value(prepaidChatContextKey{}) != true {
-		return admission, walletUsageError()
+	if payer != "" {
+		if err := checkPersonalWalletBalance(tx, payer); err != nil {
+			return admission, err
+		}
+		if ctx.Value(prepaidChatContextKey{}) != true {
+			return admission, walletUsageError()
+		}
 	}
 	if teamWalletEnabled {
 		rate, err := teamWalletRate(tx)
@@ -256,7 +261,7 @@ func (s *GormStore) admitCallTransaction(ctx context.Context, tx *gorm.DB, key A
 		if err != nil || teamWalletReservedCents <= 0 {
 			return admission, NewHTTPError(409, "team_wallet_reservation_unavailable", "Call token reservation is not a reliable wallet upper bound")
 		}
-		if err := reserveTeamWalletCall(tx, privateProject.TeamID, requestID, rate, teamWalletReservedCents, now); err != nil {
+		if err := reserveTeamWalletCall(tx, privateProject.TeamID, requestID, rate, teamWalletReservedCents, now, privateKey.ID, attributedUserID); err != nil {
 			return admission, err
 		}
 	}

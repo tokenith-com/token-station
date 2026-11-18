@@ -282,7 +282,10 @@ func newStoreWithDialect(databaseURL string, config Config, mode storeOpenMode) 
 		if err := backfillQuotaBucketAttribution(db); err != nil {
 			return err
 		}
-		return backfillRoutingPolicyBindingKeys(db)
+		if err := backfillRoutingPolicyBindingKeys(db); err != nil {
+			return err
+		}
+		return backfillBrandDefaults(db)
 	}
 	var instanceHeartbeatID string
 	const startupSchemaLockWait = time.Duration(dbschema.DefaultExpandLockTimeoutSeconds) * time.Second
@@ -1368,7 +1371,7 @@ func sqliteDSN(databaseURL string) (string, error) {
 			path = strings.TrimPrefix(parsed.Path, "/")
 		}
 		if path == "" {
-			path = "data/tokenhub.db"
+			path = "data/tokenstation.db"
 		}
 		if parsed.RawQuery != "" {
 			path += "?" + parsed.RawQuery

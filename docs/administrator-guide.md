@@ -24,6 +24,14 @@ In **Team Groups**, review the balance and choose **Credit** for the intended te
 
 If the response is uncertain, reconcile or retry the same pending operation with its original request ID. Do not create a second credit to retry an uncertain result. **Wallet ledger** shows funding and API-call wallet activity. Team leaders can view only their own team's balance and ledger and cannot post funds. A configured USD-to-CNY rate and sufficient balance are required for paid calls.
 
+### Settlement Configuration
+
+Administrators configure the USD-to-CNY settlement rate in **System Settings → Settlement Configuration**. Enter the CNY amount for 1 USD as a positive decimal with up to 18 integer digits and 6 decimal places, then save. No default rate is applied when configuration is missing. Paid calls also require sufficient team balance.
+
+A saved rate applies only to subsequent call reservations. Requests already reserved retain their exchange-rate snapshot; saving does not recalculate historical charges or directly change team balances. This page does not provide a reset or disable action.
+
+The **Exchange-rate save history** below the save button lists successfully saved rates, save times and operators, newest first, with pagination. Records persist in the database. History starts with successful saves after this feature is deployed; earlier missing records cannot be reconstructed. Use this history to trace configuration changes, and use each call's reserved exchange-rate snapshot to reconcile its actual charge.
+
 ## Production Setup Order
 
 1. Configure at least one identity source and keep a controlled administrator account.

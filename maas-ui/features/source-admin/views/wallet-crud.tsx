@@ -22,7 +22,7 @@ function TeamWalletCrud(props: CrudProps & Required<Pick<CrudProps, "api" | "cur
   const config = { ...props.config,
     columns: [...props.config.columns, { key: "wallet_balance", label: "团队余额（CNY）", render: (team: AdminResource) => <WalletBalance key={`${api.baseURL}:${currentUser?.id}:${team.id}:${revision}`} api={api} teamID={team.id} /> }],
     actions: [...(props.config.actions ?? []),
-      ...(["admin", "system_admin"].includes(currentUser!.role.trim().toLowerCase()) ? [{ label: "入账", open: (team: AdminResource) => setDialog({ team, mode: "credit" }) }] : []),
+      ...(currentUser!.role.trim().toLowerCase() === "admin" ? [{ label: "入账", open: (team: AdminResource) => setDialog({ team, mode: "credit" }) }] : []),
       { label: "资金流水", open: (team: AdminResource) => setDialog({ team, mode: "ledger" }) }],
   };
   return <><CrudView {...props} config={config} />{dialog ? <WalletTeamDialog key={`${api.baseURL}:${currentUser?.id}:${dialog.team.id}:${dialog.mode}`} {...dialog} api={api} userID={currentUser!.id} owner={ownerUserLabel(props.data, stringifyValue(dialog.team.fields?.owner))} copy={copy} onClose={() => setDialog(undefined)} onSaved={() => { setRevision(value => value + 1); setDialog(undefined); }} /> : null}</>;

@@ -95,6 +95,13 @@ func TestCompatibilityManifestRequiresWalletCreditMetadata(t *testing.T) {
 	}
 }
 
+func TestCompatibilityManifestRequiresProjectExcludedModels(t *testing.T) {
+	manifest := CurrentCompatibilityManifest()
+	if manifest.MinCompatible < 22 {
+		t.Fatalf("minimum compatible schema = %d, want at least 22 for project excluded models", manifest.MinCompatible)
+	}
+}
+
 func TestCompatibilityManifestRequiresSubscriptionOAuthTables(t *testing.T) {
 	manifest := CurrentCompatibilityManifest()
 	if manifest.MinCompatible < 10 {

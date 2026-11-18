@@ -265,6 +265,9 @@ func modelAccessReasons(project Project, key APIKey, modelName string) []string 
 	if project.ModelAccessMode == ModelAccessModeRestricted && !AllowedModelSet(project.AllowedModels)[modelName] {
 		reasons = append(reasons, "project_model_not_allowed")
 	}
+	if project.ModelAccessMode == ModelAccessModeExcluded && AllowedModelSet(project.ExcludedModels)[modelName] {
+		reasons = append(reasons, "project_model_excluded")
+	}
 	if key.ModelAccessMode == ModelAccessModeRestricted && !key.AllowedModels[modelName] {
 		reasons = append(reasons, "api_key_model_not_allowed")
 	}

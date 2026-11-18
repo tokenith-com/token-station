@@ -454,9 +454,11 @@ docker inspect --format 'memory={{.HostConfig.Memory}} memory_swap={{.HostConfig
 
 电脑网站支付请配置 `alipay.return_url` 为公网 HTTPS 充值页，例如 `https://app.example.com/maas/balance-recharge/`。服务端附加 `payment_order`，页面通过登录会话向后端读取订单；浏览器返回参数不能触发钱包入账。为兼容已有配置，该项可省略，但省略后收银台没有返回商户页面的目标。配置更新后需创建新订单，已有收银台链接不会改变。
 
-在所有网关副本上设置 `prepaid_usage: true`，为散客的文本聊天和模型演练场启用钱包扣费。启用前通过 `POST /api/admin/billing/exchange-rates` 发布人民币结算汇率，填写每 1 元人民币对应的美元金额。系统会为每次请求保存汇率快照。散客 API Key 需要绑定明确且有效的所有者。当前支持通过原生 Chat Completions 适配器发送文本聊天。部署前核对各上游模型的上下文窗口和输出上限。启用后，散客的其他计费接口会明确拒绝请求。
+在所有网关副本上设置 `prepaid_usage: true`，为个人钱包的文本聊天和模型演练场按实际完成用量扣费。启用前通过 `POST /api/admin/billing/exchange-rates` 发布人民币结算汇率，填写每 1 元人民币对应的美元金额。系统会为每次请求保存汇率快照。个人 API Key 需要绑定明确且有效的所有者。当前支持通过原生 Chat Completions 适配器发送文本聊天。部署前核对各上游模型的上下文窗口和输出上限。启用后，个人钱包的其他计费接口会明确拒绝请求。
 
-钱包 API 的 `available_micros` 以百万分之一元表示扣除退款和请求预留后的可用余额。管理员可用 `GET /api/admin/payment-wallet/usage?status=pending_review` 查询待核对请求。核对上游用量凭证后，通过 `POST /api/admin/payment-wallet/usage/{request_id}/resolve` 提交 `charged_micros` 和核对原因 `reason`。金额为零时释放预留。超过原预留金额的费用需另行对账。
+个人钱包的 `balance_micros < 0` 时，新调用以 HTTP 402 拒绝；余额为 0 或正数时放行。准入不预留余额，也不检查预计费用，调用完成后余额可以变为负数；已准入的并发调用可以继续结算。缺失或非法的 usage 会记录为 `pending_review`，由人工核对。团队钱包行为不变。
+
+钱包 API 的 `balance_micros` 以百万分之一元表示余额。管理员可用 `GET /api/admin/payment-wallet/usage?status=pending_review` 查询待核对请求。核对上游用量凭证后，通过 `POST /api/admin/payment-wallet/usage/{request_id}/resolve` 提交 `charged_micros` 和核对原因 `reason`。
 
 正式启用支付宝前，请在商家账户或已验签的成功通知中核对该应用的 `seller_id`，并用真实小额支付验证 HTTPS 回调。上线前演练 schema 20 迁移，回退期间继续处理现有支付通知和钱包结算。本分支保留支付迁移版本 12–14，将消费者和团队钱包迁移安排在版本 15–20。已经应用分叉 master 历史中版本 12 或更高版本的数据库，启动前必须显式协调迁移历史，不要覆盖迁移校验和。配置团队钱包时优先使用团队钱包，单个请求只使用一个付款方。直接支付钱包与消费者充值余额仍为独立账本。
 

@@ -208,15 +208,17 @@ func TestUserCreatesPersonalAPIKeyWithoutProjectMembership(t *testing.T) {
 func TestUserCanReadRoutedAdminModels(t *testing.T) {
 	store := newTestMemoryStore(t)
 	store.CreateResource("teams", AdminResource{ID: "team_platform", Name: "Platform Team", Status: StatusActive})
-	if _, err := store.CreateAdminUser(AdminUser{
+	user, err := store.CreateAdminUser(AdminUser{
 		Username: "model.viewer",
 		Email:    "model.viewer@tokenhub.local",
 		Role:     "user",
 		TeamID:   "team_platform",
 		Status:   StatusActive,
-	}, "viewer123456"); err != nil {
+	}, "viewer123456")
+	if err != nil {
 		t.Fatal(err)
 	}
+	store.CreateProject(Project{Name: "Model Viewer Project", OwnerUserID: user.ID, Status: StatusActive})
 	store.AddModel(Model{Name: "gpt-4.1-mini", Modality: "chat", Status: StatusActive})
 	store.AddModel(Model{Name: "text-embedding-3-small", Modality: "embedding", Status: StatusActive})
 	store.AddRoute(ModelRoute{ModelName: "gpt-4.1-mini", ProviderID: "provider_mock", ProviderModel: "mock-chat", Status: StatusActive})
@@ -360,6 +362,18 @@ func TestBootstrapBaseDataSeedsGovernanceResources(t *testing.T) {
 			t.Fatalf("unexpected role config: %+v", role)
 		}
 	}
+	expectedNames := map[string]string{
+		"user":        "团队普通用户",
+		"consumer":    "C端普通用户",
+		"team_leader": "团队管理者",
+		"admin":       "平台超管",
+	}
+	for _, role := range roles {
+		key := stringField(role.Fields, "role_key")
+		if role.Name != expectedNames[key] || stringField(role.Fields, "display_name") != expectedNames[key] {
+			t.Fatalf("expected canonical Chinese role name for %s, got %+v", key, role)
+		}
+	}
 	for _, key := range []string{"user", "consumer", "team_leader", "admin"} {
 		if !roleKeys[key] {
 			t.Fatalf("expected seeded role key %s, got %+v", key, roleKeys)
@@ -378,11 +392,15 @@ func TestBootstrapBaseDataSeedsGovernanceResources(t *testing.T) {
 func TestSeedRoleConfigsCanonicalizesLegacyConsumer(t *testing.T) {
 	store := NewMemoryStore()
 	store.CreateResource("role-configs", AdminResource{
-		ID: "role_guest", Name: "C端普通用户", Description: "Custom consumer configuration", Status: "disabled",
-		Fields: map[string]any{"role_key": "guest", "display_name": "C端普通用户", "assignable": false},
+		ID: "role_guest", Name: "Consumer", Description: "Custom consumer configuration", Status: "disabled",
+		Fields: map[string]any{"role_key": "guest", "display_name": "Consumer", "assignable": false},
 	})
-	seedDefaultRoleConfigs(store)
-	seedDefaultRoleConfigs(store)
+	if err := seedDefaultRoleConfigs(store); err != nil {
+		t.Fatal(err)
+	}
+	if err := seedDefaultRoleConfigs(store); err != nil {
+		t.Fatal(err)
+	}
 	roles := store.ListResources("role-configs")
 	if len(roles) != 4 {
 		t.Fatalf("expected four role configs after repeated seeding, got %d", len(roles))
@@ -392,7 +410,7 @@ func TestSeedRoleConfigsCanonicalizesLegacyConsumer(t *testing.T) {
 			t.Fatalf("unexpected duplicate or legacy role: %+v", role)
 		}
 		if role.ID == "role_guest" {
-			if stringField(role.Fields, "role_key") != "consumer" || role.Name != "C端普通用户" || role.Status != "disabled" || role.Description != "Custom consumer configuration" || role.Fields["assignable"] != false {
+			if stringField(role.Fields, "role_key") != "consumer" || role.Name != "C端普通用户" || stringField(role.Fields, "display_name") != "C端普通用户" || role.Status != "disabled" || role.Description != "Custom consumer configuration" || role.Fields["assignable"] != false {
 				t.Fatalf("legacy consumer configuration was not preserved: %+v", role)
 			}
 		}

@@ -1,6 +1,5 @@
 import { useState, type ReactNode } from "react";
 import type { ApiContext } from "../core/types";
-import { appRole } from "../core/navigation";
 import { tx } from "../i18n/runtime";
 import { BillingStatements } from "./billing-statements";
 import { RechargeSettings } from "../../admin/views/recharge-settings";
@@ -11,11 +10,11 @@ type Tab = "statements" | "wallet" | "recharge" | "management";
 export function BillingWorkspace({ api, role, children }: { api: ApiContext; role: string; children: ReactNode }) {
   const [active, setActive] = useState<Tab>("statements");
   const [visited, setVisited] = useState<Tab[]>(["statements"]);
-  if (appRole(role) !== "admin") return children;
+  if (role !== "admin") return children;
   const tabs: { id: Tab; label: string }[] = [
     { id: "statements", label: tx("费用对账单") },
     { id: "wallet", label: tx("支付与钱包对账") },
-    ...(role === "system_admin" ? [{ id: "recharge" as const, label: tx("充值设置") }] : []),
+    { id: "recharge", label: tx("充值设置") },
     { id: "management", label: tx("计费管理") },
   ];
   function select(id: Tab) {

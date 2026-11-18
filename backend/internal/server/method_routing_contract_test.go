@@ -288,7 +288,7 @@ func newMethodRoutingAdminServer(t *testing.T, password string) (*GormStore, htt
 func loginMethodRoutingAdmin(t *testing.T, handler http.Handler, password string) (string, AdminUser) {
 	t.Helper()
 	response := methodRoutingJSONRequest(t, handler, http.MethodPost, "/api/admin/auth/login", map[string]any{
-		"identity": "admin@tokenhub.local",
+		"identity": "admin@tokenstation.local",
 		"password": password,
 	}, "")
 	if response.Code != http.StatusOK {

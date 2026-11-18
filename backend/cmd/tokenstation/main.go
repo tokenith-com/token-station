@@ -2,18 +2,23 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"log"
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
 	"github.com/joho/godotenv"
+	"gopkg.in/yaml.v3"
 	"tokenhub/backend/internal/dbcli"
 	"tokenhub/backend/internal/payment"
+	"tokenhub/backend/internal/paymentmock"
 	"tokenhub/backend/internal/server"
 )
 
@@ -22,6 +27,46 @@ var (
 	buildType      = "source"
 	deploymentType = "source"
 )
+
+func loadPayments(addr string, config server.Config) (*payment.Service, error) {
+	path := strings.TrimSpace(config.PaymentConfigFile)
+	if path == "" {
+		return nil, nil
+	}
+	contents, err := os.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+	var mode struct {
+		Mode string `yaml:"mode"`
+	}
+	if err := yaml.Unmarshal(contents, &mode); err != nil {
+		return nil, errors.New("invalid payment YAML")
+	}
+	if mode.Mode != "mock" {
+		return payment.Load(path)
+	}
+	if environment := strings.ToLower(strings.TrimSpace(config.Environment)); environment != "dev" && environment != "test" {
+		return nil, errors.New("mock payment is only available in dev or test environments")
+	}
+	host, _, err := net.SplitHostPort(addr)
+	if err != nil || host == "" || !isLoopbackHost(host) {
+		return nil, errors.New("mock payment requires a loopback HTTP address")
+	}
+	if strings.HasPrefix(strings.TrimSpace(config.DatabaseURL), "postgres") {
+		return nil, errors.New("mock payment requires a local SQLite database")
+	}
+	log.Printf("[TokenStation] local mock payment enabled")
+	return paymentmock.Load(path)
+}
+
+func isLoopbackHost(host string) bool {
+	if host == "localhost" {
+		return true
+	}
+	ip := net.ParseIP(host)
+	return ip != nil && ip.IsLoopback()
+}
 
 func main() {
 	loadDotEnv()
@@ -55,7 +100,7 @@ func main() {
 	}
 	var payments *payment.Service
 	if err == nil {
-		payments, err = payment.Load(config.PaymentConfigFile)
+		payments, err = loadPayments(addr, config)
 	}
 	if err != nil {
 		log.Printf("[TokenStation] startup blocked by configuration: %v", err)

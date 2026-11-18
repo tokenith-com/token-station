@@ -23,7 +23,7 @@ func ChatGPTSubscriptionAuthorizeURL(redirectURI, state, nonce, verifier, hostID
 		"redirect_uri": {redirectURI}, "resource": {chatGPTSubscriptionBaseURL}, "scope": {"openid profile email offline_access resource.invoke " + chatGPTSubscriptionDirectScope},
 		"state": {state}, "nonce": {nonce}, "code_challenge": {openAICodeChallenge(verifier)}, "code_challenge_method": {"S256"}}
 	if clientID == "" {
-		query.Set("agent_name_hint", "TokenHub")
+		query.Set("agent_name_hint", "TokenStation")
 	}
 	return "https://auth.openai.com/api/accounts/authorize?" + query.Encode(), nil
 }

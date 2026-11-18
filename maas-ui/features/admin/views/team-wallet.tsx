@@ -1,3 +1,4 @@
+import { Wallet } from "lucide-react";
 import { useEffect, useState } from "react";
 import type { ApiContext } from "../core/types";
 import type { TeamWalletExchangeRate, TeamWalletResponse } from "../core/usage-report-types";
@@ -36,15 +37,15 @@ export function TeamWalletSummary({ api, teamID }: { api: ApiContext; teamID?: s
   }, [api, teamID, revision]);
 
   const paidCallsEnabled = state?.wallet?.paid_calls_enabled ?? state?.rate?.paid_calls_enabled;
-  return <section className="global-usage-context" aria-label={tx("团队钱包")}>
-    <strong>{tx("团队钱包")}</strong>
+  return <section className="team-wallet-summary" aria-label={tx("团队钱包")}>
+    <div className="team-wallet-heading"><span className="team-wallet-icon"><Wallet size={20} aria-hidden="true" /></span><strong>{tx("团队钱包")}</strong></div>
     {teamID === "" ? <span>{tx("未关联团队，无法读取钱包")}</span> : state?.error ? <div role="alert">
       <span>{tx("团队钱包加载失败")} · {state.error}</span>
       <button className="secondary-button" type="button" onClick={() => { setState(undefined); setRevision(value => value + 1); }}>{tx("重试")}</button>
     </div> : !state ? <span role="status">{tx("正在加载团队钱包…")}</span> : <>
-      {state.wallet ? <span>{tx("团队余额（CNY）")} <strong>{new Intl.NumberFormat(languageLocale(), { style: "currency", currency: "CNY" }).format(state.wallet.wallet.balance_cents / 100)}</strong></span> : null}
+      {state.wallet ? <span className="team-wallet-balance">{tx("团队余额（CNY）")} <strong>{new Intl.NumberFormat(languageLocale(), { style: "currency", currency: "CNY" }).format(state.wallet.wallet.balance_cents / 100)}</strong></span> : null}
       {state.rate ? <span>{state.rate.configured ? formatTranslationTemplate(tx("钱包汇率：1 USD = {rate} CNY"), { rate: state.rate.usd_to_cny }) : tx("钱包汇率未配置")}</span> : null}
-      <span>{paidCallsEnabled ? tx("付费调用可用") : tx("付费调用暂不可用")}</span>
+      <span className={`team-wallet-status ${paidCallsEnabled ? "is-enabled" : "is-unavailable"}`}><i aria-hidden="true" />{paidCallsEnabled ? tx("付费调用可用") : state.wallet?.wallet.balance_cents === 0 ? tx("余额不足，请充值后继续") : tx("结算配置未完成，请联系管理员")}</span>
     </>}
   </section>;
 }

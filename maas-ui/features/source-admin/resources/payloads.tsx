@@ -557,7 +557,7 @@ export function defaultFormValues<T>(config: ResourceConfig<T>, data: AppData, c
     if (field.key === "schedule") values[field.key] = "manual";
     if (field.key === "trigger") values[field.key] = "quota_increase";
     if (field.key === "approver_role") values[field.key] = "admin";
-    if (field.key === "webhook_url") values[field.key] = "http://localhost:8081/tokenhub-alert";
+    if (field.key === "webhook_url") values[field.key] = "http://localhost:8081/tokenstation-alert";
     if (field.key === "protocol") values[field.key] = "direct";
     if (field.key === "notify_mode") values[field.key] = "silent";
     if (field.key === "role") values[field.key] = config.view === "project-members" ? "developer" : "user";
@@ -576,7 +576,7 @@ export function defaultFormValues<T>(config: ResourceConfig<T>, data: AppData, c
     if (field.key === "icon_key") values[field.key] = "auto";
     if (field.key === "login_label") values[field.key] = "";
     if (field.key === "issuer_url") values[field.key] = "https://sso.example.com";
-    if (field.key === "client_id") values[field.key] = "tokenhub-admin";
+    if (field.key === "client_id") values[field.key] = "tokenstation-admin";
     if (field.key === "redirect_uri") values[field.key] = "http://localhost:8080/api/admin/auth/oauth/callback";
     if (field.key === "scopes") values[field.key] = "openid, profile, email";
     if (field.key === "username_claim") values[field.key] = "preferred_username";

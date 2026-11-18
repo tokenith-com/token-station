@@ -24,7 +24,7 @@ func TestConfigDefaultDatabaseURLPrefersBackendDataFromRepoRoot(t *testing.T) {
 	t.Setenv("TOKENHUB_MODEL_CATALOG_FILE", "")
 
 	config := ConfigFromEnv()
-	if config.DatabaseURL != "sqlite://backend/data/tokenhub.db" {
+	if config.DatabaseURL != "sqlite://backend/data/tokenstation.db" {
 		t.Fatalf("expected backend data database, got %q", config.DatabaseURL)
 	}
 	if config.SQLiteBackupDir != "backend/data/backups" {
@@ -298,7 +298,7 @@ func TestDevelopmentConfigKeepsLocalDefaults(t *testing.T) {
 	config := Config{
 		Environment:            "dev",
 		AdminToken:             "dev_admin_token",
-		SecretKey:              "dev_tokenhub_secret_key",
+		SecretKey:              "dev_tokenstation_secret_key",
 		BootstrapAdminPassword: "admin123456",
 	}
 	if err := config.ValidateForStartup(); err != nil {

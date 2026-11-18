@@ -360,7 +360,7 @@ func quotePostgresDSNValue(value string) string {
 
 func defaultConfigDatabaseURL() string {
 	if pathExists("backend/data") {
-		return "sqlite://backend/data/tokenhub.db"
+		return "sqlite://backend/data/tokenstation.db"
 	}
 	return defaultSQLiteDatabaseURL
 }

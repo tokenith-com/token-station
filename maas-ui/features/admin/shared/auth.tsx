@@ -512,7 +512,7 @@ export function identityProviderInitialFormValues(values: Record<string, string>
   const templateKey = inferIdentityProviderTemplateKey(values, templates);
   const next: Record<string, string> = createMode ? applyIdentityProviderTemplate(values, templateKey, false, templates) : { ...values, provider_template: templateKey };
   if (createMode) {
-    if (next.client_id === "tokenhub-admin") next.client_id = "";
+    if (next.client_id === "tokenstation-admin" || next.client_id === "tokenhub-admin") next.client_id = "";
     if (next.issuer_url === "https://sso.example.com") next.issuer_url = "";
     if (next.redirect_uri === "http://localhost:8080/api/admin/auth/oauth/callback") next.redirect_uri = "";
   }

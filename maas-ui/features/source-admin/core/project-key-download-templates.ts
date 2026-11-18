@@ -49,10 +49,10 @@ function codexConfigTemplate(item: APIKey, data: AppData, apiBaseURL: string) {
 # export TOKENHUB_API_KEY="REPLACE_WITH_YOUR_TOKENHUB_API_KEY"
 
 model = "${escapeTomlString(model)}"
-model_provider = "tokenhub"
+model_provider = "tokenstation"
 model_reasoning_effort = "medium"
 
-[model_providers.tokenhub]
+[model_providers.tokenstation]
 name = "TokenStation - ${escapeTomlString(item.name)}"
 base_url = "${escapeTomlString(baseURL)}"
 wire_api = "responses"

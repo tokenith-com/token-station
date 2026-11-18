@@ -10,6 +10,54 @@ import (
 	"time"
 )
 
+func TestSeedConsumerProjectRemovesLegacyTeamWithoutChangingKeys(t *testing.T) {
+	store := newTestMemoryStore(t)
+	store.CreateResource("teams", AdminResource{ID: "team_platform", Name: "Platform", Status: StatusActive})
+	store.CreateProject(Project{ID: consumerProjectID, Name: "C端普通用户项目", TeamID: "team_platform", CostCenter: "AI-PLATFORM", Status: StatusActive})
+	key, _, err := store.CreateAPIKey(consumerProjectID, APIKey{Name: "consumer-key", Status: StatusActive}, "seed-test-secret")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if err := seedConsumerProject(store); err != nil {
+		t.Fatal(err)
+	}
+
+	project, ok := store.GetProject(consumerProjectID)
+	if !ok || project.TeamID != "" || project.CostCenter != consumerCostCenterCode {
+		t.Fatalf("legacy consumer project was not detached: %+v", project)
+	}
+	if _, ok := store.GetAPIKey(key.ID); !ok {
+		t.Fatal("consumer API key was not preserved")
+	}
+	links, total, err := store.ListProjectTeams(consumerProjectID, 0, 10)
+	if err != nil || total != 0 || len(links) != 0 {
+		t.Fatalf("legacy project team links were not removed: total=%d links=%+v err=%v", total, links, err)
+	}
+}
+
+func TestBuiltinConsumerProjectCannotBeDeletedOrReassigned(t *testing.T) {
+	store := newTestMemoryStore(t)
+	store.CreateResource("teams", AdminResource{ID: "team_consumer_test", Name: "Consumer Test Team", Status: StatusActive})
+	store.CreateProject(Project{ID: consumerProjectID, Name: "C端普通用户项目", Status: StatusActive, CostCenter: consumerCostCenterCode})
+
+	if _, err := store.UpdateProject(consumerProjectID, Project{Name: "Renamed Consumer Project"}); err != nil {
+		t.Fatalf("consumer project name should remain editable: %v", err)
+	}
+	if _, err := store.UpdateProject(consumerProjectID, Project{Status: StatusDisabled}); AsHTTPError(err).Code != "builtin_consumer_project" {
+		t.Fatalf("expected disabled consumer project update to be rejected, got %v", err)
+	}
+	if _, err := store.UpdateProject(consumerProjectID, Project{CostCenter: defaultCostCenterCode}); AsHTTPError(err).Code != "builtin_consumer_project" {
+		t.Fatalf("expected consumer cost center update to be rejected, got %v", err)
+	}
+	if _, err := store.AddProjectTeam(ProjectTeam{ProjectID: consumerProjectID, TeamID: "team_consumer_test", Role: "viewer"}); AsHTTPError(err).Code != "builtin_consumer_project" {
+		t.Fatalf("expected consumer team link to be rejected, got %v", err)
+	}
+	if err := store.DeleteProject(consumerProjectID); AsHTTPError(err).Code != "builtin_consumer_project" {
+		t.Fatalf("expected consumer project deletion to be rejected, got %v", err)
+	}
+}
+
 func TestInitializeDatabaseRefreshesModelCatalog(t *testing.T) {
 	store := newTestMemoryStore(t)
 	catalogPath := filepath.Join(t.TempDir(), "model-catalog.yaml")
@@ -188,7 +236,7 @@ func TestInitializeDatabaseUpgradesV040DatabaseWithDisabledDefaultTeam(t *testin
 	}
 	if _, err := legacyDB.Exec(`INSERT INTO admin_users
 		(id, username, name, email, role, team_id, status, password_hash, created_at, updated_at) VALUES
-		('usr_admin', 'admin', 'Platform Admin', 'admin@tokenhub.local', 'admin', 'team_custom', 'active', 'legacy-password-hash', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`); err != nil {
+		('usr_admin', 'admin', 'Platform Admin', 'admin@tokenstation.local', 'admin', 'team_custom', 'active', 'legacy-password-hash', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`); err != nil {
 		t.Fatal(err)
 	}
 	if err := legacyDB.Close(); err != nil {

@@ -67,7 +67,7 @@ func (s *Server) resolveOperatorWalletUsage(w http.ResponseWriter, r *http.Reque
 		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Take(&entry, "request_id = ?", r.PathValue("request_id")).Error; err != nil {
 			return err
 		}
-		if entry.Status != "pending_review" || amount > entry.ReservedMicros {
+		if entry.Status != "pending_review" || (entry.SettlementMode != "postpaid" && amount > entry.ReservedMicros) {
 			return NewHTTPError(409, "wallet_resolution_conflict", "The request must be pending review and the charge must fit the reservation")
 		}
 		status := "settled"

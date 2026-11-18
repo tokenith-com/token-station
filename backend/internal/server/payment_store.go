@@ -182,7 +182,7 @@ func (s *GormStore) settlePayment(ctx context.Context, order paymentOrder, resul
 			return err
 		}
 		if err := tx.Model(&wallet).Where("user_id = ? AND currency = ?", order.UserID, order.Currency).
-			Updates(map[string]any{"balance_fen": gorm.Expr("balance_fen + ?", order.AmountFen), "balance_micros": gorm.Expr("balance_micros + ?", order.AmountFen*walletMicrosPerFen), "updated_at": now}).Error; err != nil {
+			Updates(map[string]any{"balance_fen": gorm.Expr("(balance_micros + ?) / ?", order.AmountFen*walletMicrosPerFen, walletMicrosPerFen), "balance_micros": gorm.Expr("balance_micros + ?", order.AmountFen*walletMicrosPerFen), "updated_at": now}).Error; err != nil {
 			return err
 		}
 		return createWalletTransaction(tx, order, "recharge", order.AmountFen, now)

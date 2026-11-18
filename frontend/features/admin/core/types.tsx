@@ -38,8 +38,9 @@ export type Project = {
   teams?: ProjectTeam[];
   owner_user_id?: string;
   cost_center?: string;
-  model_access_mode?: "inherit" | "restricted";
+  model_access_mode?: "inherit" | "restricted" | "excluded";
   allowed_models?: string[];
+  excluded_models?: string[];
   status: string;
   default_quota_ref?: string;
   created_at?: string;

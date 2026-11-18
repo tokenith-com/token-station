@@ -7,10 +7,9 @@ import { apiKeyAuditLabel } from "../domain/entities";
 import { compactNumber, formatNumber } from "../domain/formatting";
 import { languageLocale, tx } from "../i18n/runtime";
 import { adminFetch, readAdminError } from "../resources/payloads";
+import { formatWalletMicros, walletRequest, type Wallet as WalletData } from "../resources/wallet";
 import { SimpleTable } from "../shared/ui";
 import { useUsageReport } from "./use-usage-report";
-
-type WalletInfo = { balance_cents: number };
 
 type RechargeOrder = {
   id: string;
@@ -31,7 +30,7 @@ function formatCNY(cents: number) {
 }
 
 function usageMoney(value: number) {
-  return new Intl.NumberFormat(languageLocale(), { style: "currency", currency: "CNY", currencyDisplay: "narrowSymbol", minimumFractionDigits: 2, maximumFractionDigits: 6 }).format(value);
+  return new Intl.NumberFormat(languageLocale(), { style: "currency", currency: "USD", currencyDisplay: "code", minimumFractionDigits: 2, maximumFractionDigits: 6 }).format(value);
 }
 
 function formatPercent(value: number) {
@@ -46,26 +45,43 @@ function formatDate(value: string | undefined) {
 export function GuestCostDetailsView({ api, data }: { api: ApiContext; data: AppData }) {
   const [range, setRange] = useState<UsageRange>("30d");
   const { report, error, refreshing, refresh } = useUsageReport(api, range);
-  const [wallet, setWallet] = useState<WalletInfo | null>(null);
+  const [wallet, setWallet] = useState<WalletData | null>(null);
+  const [walletError, setWalletError] = useState("");
   const [orders, setOrders] = useState<RechargeOrder[]>([]);
   const [ordersError, setOrdersError] = useState("");
 
   const loadWallet = useCallback(async () => {
-    const resp = await adminFetch(api, "/api/admin/consumer/wallet");
-    if (!resp.ok) throw new Error(await readAdminError(resp, tx("余额加载失败")));
-    setWallet((await resp.json()) as WalletInfo);
+    setWalletError("");
+    try {
+      const next = await walletRequest<WalletData>(api, "/api/admin/wallet");
+      setWallet(next);
+      window.dispatchEvent(new Event("tokenstation-wallet-updated"));
+    } catch (reason) {
+      setWalletError(reason instanceof Error ? reason.message : tx("余额加载失败"));
+    }
   }, [api]);
 
   const loadOrders = useCallback(async () => {
-    const resp = await adminFetch(api, "/api/admin/consumer/recharge-orders");
-    if (!resp.ok) throw new Error(await readAdminError(resp, tx("充值记录加载失败")));
-    setOrders(((await resp.json()) as { orders: RechargeOrder[] }).orders ?? []);
+    setOrdersError("");
+    try {
+      const resp = await adminFetch(api, "/api/admin/consumer/recharge-orders");
+      if (!resp.ok) throw new Error(await readAdminError(resp, tx("充值记录加载失败")));
+      setOrders(((await resp.json()) as { orders: RechargeOrder[] }).orders ?? []);
+    } catch (reason) {
+      setOrdersError(reason instanceof Error ? reason.message : tx("充值记录加载失败"));
+    }
   }, [api]);
 
   useEffect(() => {
-    loadWallet().catch(() => {});
-    loadOrders().catch(err => setOrdersError(err instanceof Error ? err.message : tx("充值记录加载失败")));
+    void loadWallet();
+    void loadOrders();
   }, [loadWallet, loadOrders]);
+
+  const refreshAll = useCallback(() => {
+    refresh();
+    void loadWallet();
+    void loadOrders();
+  }, [loadOrders, loadWallet, refresh]);
 
   const summary = report?.summary;
   return (
@@ -81,16 +97,17 @@ export function GuestCostDetailsView({ api, data }: { api: ApiContext; data: App
               <button key={value} type="button" aria-pressed={range === value} onClick={() => setRange(value)}>{rangeLabel(value)}</button>
             ))}
           </div>
-          <button className="cost-refresh" type="button" disabled={refreshing} onClick={refresh} aria-label={tx("刷新")} title={tx("刷新")}>
+          <button className="cost-refresh" type="button" disabled={refreshing} onClick={refreshAll} aria-label={tx("刷新")} title={tx("刷新")}>
             <RefreshCw size={15} className={refreshing ? "is-spinning" : undefined} />
           </button>
         </div>
       </header>
 
       {error ? <div className="recharge-alert error" role="alert">{tx("费用明细加载失败")}</div> : null}
+      {walletError ? <div className="recharge-alert error" role="alert">{walletError}</div> : null}
 
       <div className="cost-kpis">
-        <Kpi tone="balance" icon={<Wallet size={18} />} label={tx("账户余额")} value={formatCNY(wallet?.balance_cents ?? 0)} />
+        <Kpi tone="balance" icon={<Wallet size={18} />} label={tx("账户余额")} value={wallet ? formatWalletMicros(wallet.available_micros) : "—"} />
         <Kpi tone="purple" icon={<Receipt size={18} />} label={tx("估算成本")} value={summary ? usageMoney(summary.estimated_cost_usd) : "—"} />
         <Kpi tone="blue" icon={<Activity size={18} />} label={tx("请求数")} value={summary ? formatNumber(summary.request_count) : "—"} />
         <Kpi tone="green" icon={<Coins size={18} />} label={tx("总 Token")} value={summary ? compactNumber(summary.total_tokens) : "—"} />
