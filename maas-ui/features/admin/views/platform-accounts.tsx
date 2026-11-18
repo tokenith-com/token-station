@@ -37,7 +37,7 @@ export function PlatformAccountsView({
   onOnboard?: (values: PlatformAccountValues) => Promise<boolean>;
 }) {
   const isTeamView = variant === "team";
-  const canOnboard = !isTeamView && ["admin", "system_admin"].includes(currentUser.role) && Boolean(onOnboard);
+  const canOnboard = !isTeamView && currentUser.role.trim().toLowerCase() === "admin" && Boolean(onOnboard);
   const [onboardingOpen, setOnboardingOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [scopeFilter, setScopeFilter] = useState("all");

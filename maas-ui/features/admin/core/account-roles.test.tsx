@@ -7,7 +7,7 @@ import { maasSessionStorageKey, sessionStorageKey, type AdminUser } from "./type
 
 describe("shared MaaS accounts", () => {
   it.each([
-    ["admin", "admin"], ["system_admin", "admin"],
+    ["admin", "admin"],
     ["team_leader", "team_leader"], ["project_admin", "team_leader"],
     ["user", "user"], ["guest", "consumer"], ["consumer", "consumer"],
     [" GUEST ", "consumer"], ["unknown", null], ["", null],

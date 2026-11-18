@@ -34,6 +34,8 @@ The database is resolved from `TOKENHUB_DATABASE_URL` (or the default SQLite pat
 
 `contract` requires all of the following before it executes anything: every data backfill complete, no live instance heartbeats, an operator-verified backup reference, and an explicit maintenance assertion. For SQLite, create the built-in backup first; for PostgreSQL, provide the external backup reference that you verified yourself.
 
+Migration 26 replaces the legacy `system_admin` account role with `admin`, including for disabled accounts. It keeps account IDs, passwords, team membership, and active sessions. The migrated accounts use the administrator permissions, including team wallet reads and administration. For a manual upgrade, stop the old instances and run the new binary’s `db prepare` and `db verify` before starting it.
+
 ## Operational notes
 
 - A startup error `checksum_mismatch (version 4)` can result from the historical metering migration checksum regression. Use a release containing the compatibility fix, then run `tokenstation db prepare` and `tokenstation db verify` before restarting normally. It recognizes both the original SQL checksum and the exact intermediate `tokenhub-schema-metering-evidence-v2` value, preserves existing ledger rows, and leaves audit correlation changes in migration 5. Other checksum mismatches still refuse startup; do not delete the database or edit its ledger to bypass verification. `db repair` is for dirty migrations and does not resolve this clean-ledger mismatch.

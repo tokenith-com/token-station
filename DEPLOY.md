@@ -179,7 +179,7 @@ sudo -u tokenstation test -x "$backend_release/bin/tokenstation"
 
 先记录两个旧链接的目标。维护命令使用已暂存的新二进制，以 `tokenstation` 用户执行，并通过 systemd 加载同一份环境文件。这样数据库连接串和密钥都留在 ECS 配置中。迁移期间使用目标版本的目录文件。
 
-先在旧服务运行时执行 `run_db status`，核对数据库驱动、版本、脏迁移及待执行项目，并确认连接同一 PostgreSQL 库的旧实例。此次发布前为版本 20，待执行迁移为 21–25。此次部署沿用了之前已验证可恢复的 PostgreSQL 备份，正式切换时没有新建备份容器。后续如需新备份，使用 PostgreSQL 已有的备份或快照渠道。
+先在旧服务运行时执行 `run_db status`，核对数据库驱动、版本、脏迁移及待执行项目，并确认连接同一 PostgreSQL 库的旧实例。2026-11-18 的发布前为版本 20，待执行迁移为 21–25。后续升级到含角色统一的版本时，目标为版本 26。迁移 26 会将现有 `system_admin` 账号统一为 `admin`，保留账号 ID 和有效会话。此次部署沿用了之前已验证可恢复的 PostgreSQL 备份，正式切换时没有新建备份容器。后续如需新备份，使用 PostgreSQL 已有的备份或快照渠道。
 
 ```bash
 readlink -f "$backend_root/current"
@@ -274,6 +274,6 @@ curl -fsS --max-time 10 "$site/maas-api/readyz"
 curl -fsS --max-time 10 "$site/maas-api/api/admin/auth/identity-providers" | python3 -m json.tool >/dev/null
 ```
 
-常规 systemd 启动只校验迁移状态。迁移 25 应用后，若要回退到只支持版本 20 的旧后端，需要先按备份恢复方案处理数据库，再切回旧版本目录。恢复发布前备份可能丢失切换后发生的写入，需先评估影响。
+常规 systemd 启动只校验迁移状态。迁移 25 应用后，若要回退到只支持版本 20 的旧后端，需要先按备份恢复方案处理数据库，再切回旧版本目录。恢复发布前备份可能丢失切换后发生的写入，需先评估影响。应用迁移 26 后，回退前也要确认旧二进制能识别迁移 26；仅支持版本 25 的二进制无法通过账本校验。
 
 相关文档：[数据库演进](docs/zh-CN/database-evolution.md)、[通用部署](docs/zh-CN/deployment.md)、[MaaS 静态构建](maas-ui/docs/static-DEPLOY.md)。

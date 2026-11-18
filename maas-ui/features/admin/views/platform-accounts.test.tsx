@@ -36,9 +36,9 @@ function fillNewMember() {
 }
 
 describe("customer onboarding", () => {
-  it.each(["admin", "system_admin", "team_leader", "user", "guest"])("restricts onboarding to platform administrators (%s)", role => {
+  it.each(["admin", "team_leader", "user", "guest"])("restricts onboarding to platform administrators (%s)", role => {
     renderAccounts("platform", { ...leader, role });
-    expect(Boolean(screen.queryByRole("button", { name: "开通客户" }))).toBe(["admin", "system_admin"].includes(role));
+    expect(Boolean(screen.queryByRole("button", { name: "开通客户" }))).toBe(role === "admin");
   });
 
   it("does not expose onboarding in the team view", () => {

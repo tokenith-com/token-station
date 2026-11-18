@@ -220,6 +220,15 @@
       "checksum": "tokenhub-schema-team-wallet-micros-v1",
       "lock_timeout_seconds": 30,
       "statement_budget": 24
+    },
+    {
+      "version": 26,
+      "name": "canonicalize-platform-admin-role",
+      "phase": "expand",
+      "dialect": "",
+      "checksum": "0f1dd8f234028e4f53058c4cd5cad82e00f6a0ea3d12f5dc98b6961e3b2d023e",
+      "lock_timeout_seconds": 30,
+      "statement_budget": 50
     }
   ]
 }

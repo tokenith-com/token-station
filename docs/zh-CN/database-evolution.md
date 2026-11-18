@@ -34,6 +34,8 @@ tokenstation db contract --backup-reference <ref> --maintenance
 
 `contract` 在执行任何操作前要求：全部数据回填完成、不存在未过期的实例心跳、操作者提供已验证的备份引用、显式确认满足维护条件。SQLite 请先创建内置备份；PostgreSQL 请提供你自行验证过的外部备份引用。
 
+迁移 26 将旧的 `system_admin` 账号角色统一为 `admin`，也会转换已禁用账号。账号 ID、密码、团队关系和有效会话都会保留。迁移后的账号使用管理员权限，包括团队钱包的读取和管理权限。手动升级时，先停止旧实例，再用新版二进制执行 `db prepare` 和 `db verify`，通过后启动。
+
 ## 运维要点
 
 - 历史上的计量迁移校验值回归可能导致启动时报 `checksum_mismatch (version 4)`。请使用包含兼容性修复的版本，依次运行 `tokenstation db prepare` 和 `tokenstation db verify` 后正常重启。修复同时识别原始 SQL 校验值和中间版本的确切值 `tokenhub-schema-metering-evidence-v2`，保留已有账本记录，审计关联字段仍由迁移 5 添加。其他校验值不匹配仍会阻止启动；请勿删除数据库或修改账本来绕过校验。`db repair` 用于修复脏迁移，不能解决这种干净账本的校验值不匹配。

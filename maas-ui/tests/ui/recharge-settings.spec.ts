@@ -4,8 +4,8 @@ import { user } from "./fixtures/shell";
 const settings = { plans: [{ id: "ten", name: "Standard", amount_fen: 1000, disabled: false }], custom_enabled: false, min_fen: 100, max_fen: 5000000 };
 
 test.describe("recharge administration", () => {
-  test.use({ sessionUser: { ...user, role: "system_admin" } });
-  test("system administrators configure recharge plans and custom limits", async ({ page, api }, info) => {
+  test.use({ sessionUser: { ...user, role: "admin" } });
+  test("administrators configure recharge plans and custom limits", async ({ page, api }, info) => {
     api.respond("GET", "/api/admin/recharge/settings", settings);
     let saved = false;
     api.define("PUT", "/api/admin/recharge/settings", ({ body }) => {

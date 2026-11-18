@@ -218,7 +218,7 @@ export const roleViewAccess: Record<AppRole, ViewKey[]> = {
 
 export function appRole(role: string): AppRole {
   const normalized = String(role || "").trim().toLowerCase();
-  if (normalized === "admin" || normalized === "system_admin") return "admin";
+  if (normalized === "admin") return "admin";
   if (normalized === "team_leader" || normalized === "teamlead" || normalized === "project_admin") return "team_leader";
   if (["guest", "individual", "consumer", "retail_user"].includes(normalized)) return "consumer";
   return "user";

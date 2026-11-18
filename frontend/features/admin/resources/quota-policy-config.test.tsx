@@ -14,7 +14,8 @@ afterEach(() => {
 });
 
 describe("default user quota configuration", () => {
-  it.each(["admin", "system_admin"])("offers a default template to %s without loading users", (role) => {
+  it("offers a default template to an administrator without loading users", () => {
+    const role = "admin";
     const field = config.fields.find((item) => item.key === "scope_id")!;
     const options = field.optionsFromData!(emptyData(), { ...admin, role }, { scope: "user" });
     expect(options).toContainEqual({ value: "all_users", label: "所有用户（每人独立额度）" });

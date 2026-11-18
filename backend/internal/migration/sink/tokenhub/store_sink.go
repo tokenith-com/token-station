@@ -1102,6 +1102,8 @@ func sameAdminUser(existing server.AdminUser, desired server.AdminUser) bool {
 func normalizeMigrationAdminRole(role string) string {
 	role = strings.ToLower(strings.TrimSpace(role))
 	switch role {
+	case "system_admin":
+		return "admin"
 	case "security":
 		return "security_admin"
 	case "project_admin", "teamlead":

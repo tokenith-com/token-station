@@ -14,7 +14,7 @@ export function apiKeyCanManage(data: AppData, key: APIKey, currentUser?: AdminU
 
 function adminAppRole(role: string) {
   const normalized = String(role || "").trim().toLowerCase();
-  if (normalized === "admin" || normalized === "system_admin") return "admin";
+  if (normalized === "admin") return "admin";
   if (normalized === "team_leader" || normalized === "teamlead" || normalized === "project_admin") return "team_leader";
   return "user";
 }

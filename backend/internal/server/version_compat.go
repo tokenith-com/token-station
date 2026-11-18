@@ -22,13 +22,13 @@ type CompatibilityManifest struct {
 // Versions 12–14 retain the payment branch history; consumer and team wallet
 // expansions follow at versions 15–21, with project model access at version 22,
 // postpaid wallet settlement at version 23, team wallet call snapshots at
-// version 24, and unified team wallet micros at version 25. Startup applies all
-// pending expansions.
+// version 24, team wallet micros at version 25, and canonical administrator
+// roles at version 26. Database preparation applies pending expansions.
 func CurrentCompatibilityManifest() CompatibilityManifest {
 	return CompatibilityManifest{
-		TargetVersion: 25,
-		MinCompatible: 25,
-		MaxCompatible: 25,
+		TargetVersion: 26,
+		MinCompatible: 26,
+		MaxCompatible: 26,
 	}
 }
 

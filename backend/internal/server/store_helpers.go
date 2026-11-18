@@ -102,10 +102,18 @@ func publicKey(key APIKey) APIKey {
 
 func publicAdminUser(user AdminUser) AdminUser {
 	user.PasswordHash = ""
-	if isConsumerRole(user.Role) {
-		user.Role = "consumer"
-	}
+	user.Role = canonicalAdminAccountRole(user.Role)
 	return user
+}
+
+// Preserve custom role values while storing the canonical administrator and consumer roles.
+func canonicalAdminAccountRole(role string) string {
+	switch normalized := normalizeAdminRole(role); normalized {
+	case "admin", "consumer":
+		return normalized
+	default:
+		return role
+	}
 }
 
 func ipAllowed(clientIP string, allowlist []string) bool {

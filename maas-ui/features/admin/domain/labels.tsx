@@ -288,7 +288,6 @@ export function parseLooseValue(value: string) {
 export function roleLabel(role: string) {
   const labels: Record<string, string> = {
     admin: "平台超管",
-    system_admin: "平台超管",
     team_leader: "团队管理者",
     project_admin: "团队管理者",
     user: "团队普通用户",

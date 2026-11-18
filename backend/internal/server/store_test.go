@@ -510,7 +510,7 @@ func TestUpdateAdminUserProtectsLastActivePlatformAdmin(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			store := newTestMemoryStore(t)
-			admin := createTestAdminUser(t, store, "only-admin-"+tt.name, "system_admin")
+			admin := createTestAdminUser(t, store, "only-admin-"+tt.name, "admin")
 			createTestAdminUser(t, store, "member-"+tt.name, "user")
 
 			if _, err := store.UpdateAdminUser(admin.ID, tt.patch, ""); AsHTTPError(err).Code != "last_admin_user" {
@@ -523,7 +523,7 @@ func TestUpdateAdminUserProtectsLastActivePlatformAdmin(t *testing.T) {
 func TestAdminUserChangesAllowedWhenAnotherAdminRemains(t *testing.T) {
 	store := newTestMemoryStore(t)
 	first := createTestAdminUser(t, store, "first-admin", "admin")
-	createTestAdminUser(t, store, "second-admin", "system_admin")
+	createTestAdminUser(t, store, "second-admin", "admin")
 
 	updated, err := store.UpdateAdminUser(first.ID, AdminUser{Role: "user"}, "")
 	if err != nil {
