@@ -25,8 +25,11 @@ var (
 	errTeamWalletSettlementInvalid  = NewHTTPError(409, "team_wallet_settlement_invalid", "Team wallet charge cannot be converted using the reserved exchange rate")
 )
 
-// ConvertUSDToCNYCents rounds positive charges up to the next cent without floats.
-func ConvertUSDToCNYCents(usd, rate string) (int64, error) {
+// ConvertUSDToCNYMicros converts a USD amount into CNY micros (1 CNY = 1,000,000
+// micros) without floats. roundUp rounds any remainder away from zero, which
+// reservations use so a frozen amount is always a safe upper bound; settlement
+// passes false to apply banker's rounding like the consumer wallet.
+func ConvertUSDToCNYMicros(usd, rate string, roundUp bool) (int64, error) {
 	if !walletDecimal.MatchString(usd) || !walletDecimal.MatchString(rate) {
 		return 0, NewHTTPError(400, "invalid_wallet_decimal", "Amounts and rates must be decimal strings with at most six fractional digits")
 	}
@@ -35,55 +38,57 @@ func ConvertUSDToCNYCents(usd, rate string) (int64, error) {
 	if exchange.Sign() <= 0 {
 		return 0, NewHTTPError(400, "invalid_exchange_rate", "Exchange rate must be positive")
 	}
-	amount.Mul(amount, exchange).Mul(amount, big.NewRat(100, 1))
-	cents, remainder := new(big.Int), new(big.Int)
-	cents.QuoRem(amount.Num(), amount.Denom(), remainder)
-	if remainder.Sign() > 0 {
-		cents.Add(cents, big.NewInt(1))
+	amount.Mul(amount, exchange).Mul(amount, big.NewRat(1_000_000, 1))
+	micros, remainder := new(big.Int), new(big.Int)
+	micros.QuoRem(amount.Num(), amount.Denom(), remainder)
+	twice := new(big.Int).Lsh(remainder, 1)
+	comparison := twice.Cmp(amount.Denom())
+	if (roundUp && remainder.Sign() > 0) || (!roundUp && (comparison > 0 || comparison == 0 && micros.Bit(0) == 1)) {
+		micros.Add(micros, big.NewInt(1))
 	}
-	if !cents.IsInt64() {
+	if !micros.IsInt64() {
 		return 0, NewHTTPError(400, "wallet_amount_overflow", "Converted amount exceeds the supported range")
 	}
-	return cents.Int64(), nil
+	return micros.Int64(), nil
 }
 
 type teamWallet struct {
-	TeamID       string    `gorm:"primaryKey" json:"team_id"`
-	BalanceCents int64     `json:"balance_cents"`
-	UpdatedAt    time.Time `json:"updated_at"`
+	TeamID        string    `gorm:"primaryKey" json:"team_id"`
+	BalanceMicros int64     `json:"balance_micros"`
+	UpdatedAt     time.Time `json:"updated_at"`
 }
 
 type teamWalletEntry struct {
-	ID                 string    `gorm:"primaryKey" json:"id"`
-	TeamID             string    `json:"team_id"`
-	RequestID          string    `json:"request_id"`
-	AmountCents        int64     `json:"amount_cents"`
-	ActorUserID        string    `json:"actor_user_id"`
-	CreatedAt          time.Time `json:"created_at"`
-	CreditType         string    `json:"credit_type"`
-	Remark             string    `json:"remark"`
-	BeforeBalanceCents *int64    `json:"before_balance_cents"`
-	AfterBalanceCents  *int64    `json:"after_balance_cents"`
-	ActorName          string    `json:"actor_name"`
-	TeamName           string    `json:"team_name"`
+	ID                  string    `gorm:"primaryKey" json:"id"`
+	TeamID              string    `json:"team_id"`
+	RequestID           string    `json:"request_id"`
+	AmountMicros        int64     `json:"amount_micros"`
+	ActorUserID         string    `json:"actor_user_id"`
+	CreatedAt           time.Time `json:"created_at"`
+	CreditType          string    `json:"credit_type"`
+	Remark              string    `json:"remark"`
+	BeforeBalanceMicros *int64    `json:"before_balance_micros"`
+	AfterBalanceMicros  *int64    `json:"after_balance_micros"`
+	ActorName           string    `json:"actor_name"`
+	TeamName            string    `json:"team_name"`
 }
 
 type teamWalletCall struct {
-	RequestID                   string     `gorm:"primaryKey" json:"request_id"`
-	TeamID                      string     `json:"team_id"`
-	ReservedCents               int64      `json:"reserved_cents"`
-	ExchangeRate                string     `json:"exchange_rate"`
-	SettledCents                int64      `json:"settled_cents"`
-	Status                      string     `json:"status"`
-	CreatedAt                   time.Time  `json:"created_at"`
-	SettledAt                   *time.Time `json:"settled_at,omitempty"`
-	ReservedBeforeBalanceCents  *int64     `json:"reserved_before_balance_cents"`
-	ReservedAfterBalanceCents   *int64     `json:"reserved_after_balance_cents"`
-	FinalizedBeforeBalanceCents *int64     `json:"finalized_before_balance_cents"`
-	FinalizedAfterBalanceCents  *int64     `json:"finalized_after_balance_cents"`
-	ActorUserID                 string     `json:"actor_user_id"`
-	ActorName                   string     `json:"actor_name"`
-	APIKeyID                    string     `json:"api_key_id"`
+	RequestID                    string     `gorm:"primaryKey" json:"request_id"`
+	TeamID                       string     `json:"team_id"`
+	ReservedMicros               int64      `json:"reserved_micros"`
+	ExchangeRate                 string     `json:"exchange_rate"`
+	SettledMicros                int64      `json:"settled_micros"`
+	Status                       string     `json:"status"`
+	CreatedAt                    time.Time  `json:"created_at"`
+	SettledAt                    *time.Time `json:"settled_at,omitempty"`
+	ReservedBeforeBalanceMicros  *int64     `json:"reserved_before_balance_micros"`
+	ReservedAfterBalanceMicros   *int64     `json:"reserved_after_balance_micros"`
+	FinalizedBeforeBalanceMicros *int64     `json:"finalized_before_balance_micros"`
+	FinalizedAfterBalanceMicros  *int64     `json:"finalized_after_balance_micros"`
+	ActorUserID                  string     `json:"actor_user_id"`
+	ActorName                    string     `json:"actor_name"`
+	APIKeyID                     string     `json:"api_key_id"`
 }
 
 const (
@@ -114,9 +119,38 @@ func teamWalletCallSnapshotMigration() dbschema.Migration {
 	}}
 }
 
+// teamWalletMicrosMigration unifies the team ledger on CNY micros, the same
+// precision the consumer wallet uses: one cent is 10,000 micros. The frozen
+// team wallet migrations created cent columns, so this renames them and
+// rescales stored values in place.
+func teamWalletMicrosMigration() dbschema.Migration {
+	return dbschema.Migration{Version: 25, Name: "add-team-wallet-micros", ChecksumOverride: "tokenhub-schema-team-wallet-micros-v1", StatementBudget: 24, Statements: []string{
+		`ALTER TABLE team_wallets RENAME COLUMN balance_cents TO balance_micros`,
+		`UPDATE team_wallets SET balance_micros = balance_micros * 10000`,
+		`ALTER TABLE team_wallet_entries RENAME COLUMN amount_cents TO amount_micros`,
+		`UPDATE team_wallet_entries SET amount_micros = amount_micros * 10000`,
+		`ALTER TABLE team_wallet_entries RENAME COLUMN before_balance_cents TO before_balance_micros`,
+		`UPDATE team_wallet_entries SET before_balance_micros = before_balance_micros * 10000 WHERE before_balance_micros IS NOT NULL`,
+		`ALTER TABLE team_wallet_entries RENAME COLUMN after_balance_cents TO after_balance_micros`,
+		`UPDATE team_wallet_entries SET after_balance_micros = after_balance_micros * 10000 WHERE after_balance_micros IS NOT NULL`,
+		`ALTER TABLE team_wallet_calls RENAME COLUMN reserved_cents TO reserved_micros`,
+		`UPDATE team_wallet_calls SET reserved_micros = reserved_micros * 10000`,
+		`ALTER TABLE team_wallet_calls RENAME COLUMN settled_cents TO settled_micros`,
+		`UPDATE team_wallet_calls SET settled_micros = settled_micros * 10000`,
+		`ALTER TABLE team_wallet_calls RENAME COLUMN reserved_before_balance_cents TO reserved_before_balance_micros`,
+		`UPDATE team_wallet_calls SET reserved_before_balance_micros = reserved_before_balance_micros * 10000 WHERE reserved_before_balance_micros IS NOT NULL`,
+		`ALTER TABLE team_wallet_calls RENAME COLUMN reserved_after_balance_cents TO reserved_after_balance_micros`,
+		`UPDATE team_wallet_calls SET reserved_after_balance_micros = reserved_after_balance_micros * 10000 WHERE reserved_after_balance_micros IS NOT NULL`,
+		`ALTER TABLE team_wallet_calls RENAME COLUMN finalized_before_balance_cents TO finalized_before_balance_micros`,
+		`UPDATE team_wallet_calls SET finalized_before_balance_micros = finalized_before_balance_micros * 10000 WHERE finalized_before_balance_micros IS NOT NULL`,
+		`ALTER TABLE team_wallet_calls RENAME COLUMN finalized_after_balance_cents TO finalized_after_balance_micros`,
+		`UPDATE team_wallet_calls SET finalized_after_balance_micros = finalized_after_balance_micros * 10000 WHERE finalized_after_balance_micros IS NOT NULL`,
+	}}
+}
+
 type teamWalletStore interface {
 	TeamWallet(teamID string) (teamWallet, error)
-	CreditTeamWalletWithMetadata(teamID, requestID, actorID string, cents int64, creditType, remark string) (teamWalletEntry, error)
+	CreditTeamWalletWithMetadata(teamID, requestID, actorID string, micros int64, creditType, remark string) (teamWalletEntry, error)
 	TeamWalletLedger(teamID, requestID string, limit, offset int) ([]teamWalletLedgerEntry, int64, error)
 }
 
@@ -129,13 +163,13 @@ func teamWalletRate(tx *gorm.DB) (string, error) {
 		return "", err
 	}
 	rate, ok := setting.Fields["usd_to_cny"].(string)
-	if _, err := ConvertUSDToCNYCents("0", rate); !ok || err != nil {
+	if _, err := ConvertUSDToCNYMicros("0", rate, false); !ok || err != nil {
 		return "", NewHTTPError(503, "team_wallet_exchange_rate_unconfigured", "Team wallet exchange rate is not configured")
 	}
 	return rate, nil
 }
 
-func reserveTeamWalletCall(tx *gorm.DB, teamID, requestID, rate string, cents int64, now time.Time, identity ...string) error {
+func reserveTeamWalletCall(tx *gorm.DB, teamID, requestID, rate string, micros int64, now time.Time, identity ...string) error {
 	apiKeyID, actorUserID := "", ""
 	if len(identity) > 0 {
 		apiKeyID = identity[0]
@@ -143,13 +177,13 @@ func reserveTeamWalletCall(tx *gorm.DB, teamID, requestID, rate string, cents in
 	if len(identity) > 1 {
 		actorUserID = identity[1]
 	}
-	if strings.TrimSpace(teamID) == "" || strings.TrimSpace(requestID) == "" || cents <= 0 {
+	if strings.TrimSpace(teamID) == "" || strings.TrimSpace(requestID) == "" || micros <= 0 {
 		return NewHTTPError(409, "team_wallet_reservation_unavailable", "Team wallet call reservation is unavailable")
 	}
 	var existing teamWalletCall
 	err := tx.First(&existing, "request_id = ?", requestID).Error
 	if err == nil {
-		if existing.TeamID != teamID || existing.ReservedCents != cents || existing.ExchangeRate != rate {
+		if existing.TeamID != teamID || existing.ReservedMicros != micros || existing.ExchangeRate != rate {
 			return NewHTTPError(409, "team_wallet_reservation_conflict", "request_id was already used with different wallet reservation details")
 		}
 		return nil
@@ -165,18 +199,18 @@ func reserveTeamWalletCall(tx *gorm.DB, teamID, requestID, rate string, cents in
 	if err := tx.First(&beforeBalance, "team_id = ?", teamID).Error; err != nil {
 		return err
 	}
-	result := tx.Model(&teamWallet{}).Where("team_id = ? AND balance_cents >= ?", teamID, cents).Updates(map[string]any{"balance_cents": gorm.Expr("balance_cents - ?", cents), "updated_at": now})
+	result := tx.Model(&teamWallet{}).Where("team_id = ? AND balance_micros >= ?", teamID, micros).Updates(map[string]any{"balance_micros": gorm.Expr("balance_micros - ?", micros), "updated_at": now})
 	if result.Error != nil {
 		return result.Error
 	}
 	if result.RowsAffected != 1 {
 		return NewHTTPError(409, "team_wallet_insufficient_balance", "Team wallet balance is insufficient")
 	}
-	afterBalance := beforeBalance.BalanceCents - cents
+	afterBalance := beforeBalance.BalanceMicros - micros
 	return tx.Create(&teamWalletCall{
-		RequestID: requestID, TeamID: teamID, ReservedCents: cents, ExchangeRate: rate,
+		RequestID: requestID, TeamID: teamID, ReservedMicros: micros, ExchangeRate: rate,
 		Status: teamWalletCallReserved, CreatedAt: now,
-		ReservedBeforeBalanceCents: &beforeBalance.BalanceCents, ReservedAfterBalanceCents: &afterBalance,
+		ReservedBeforeBalanceMicros: &beforeBalance.BalanceMicros, ReservedAfterBalanceMicros: &afterBalance,
 		ActorUserID: actorUserID, APIKeyID: apiKeyID,
 	}).Error
 }
@@ -196,15 +230,15 @@ func releaseTeamWalletCall(tx *gorm.DB, requestID string, now time.Time) error {
 	if err := tx.First(&wallet, "team_id = ?", call.TeamID).Error; err != nil {
 		return err
 	}
-	beforeBalance := wallet.BalanceCents
-	if err := tx.Model(&teamWallet{}).Where("team_id = ?", call.TeamID).Updates(map[string]any{"balance_cents": gorm.Expr("balance_cents + ?", call.ReservedCents), "updated_at": now}).Error; err != nil {
+	beforeBalance := wallet.BalanceMicros
+	if err := tx.Model(&teamWallet{}).Where("team_id = ?", call.TeamID).Updates(map[string]any{"balance_micros": gorm.Expr("balance_micros + ?", call.ReservedMicros), "updated_at": now}).Error; err != nil {
 		return err
 	}
-	afterBalance := beforeBalance + call.ReservedCents
+	afterBalance := beforeBalance + call.ReservedMicros
 	call.Status = teamWalletCallReleased
 	call.SettledAt = &now
-	call.FinalizedBeforeBalanceCents = &beforeBalance
-	call.FinalizedAfterBalanceCents = &afterBalance
+	call.FinalizedBeforeBalanceMicros = &beforeBalance
+	call.FinalizedAfterBalanceMicros = &afterBalance
 	return tx.Save(&call).Error
 }
 
@@ -226,15 +260,15 @@ func settleTeamWalletCall(tx *gorm.DB, call CallContext, usage Usage, success bo
 	if success {
 		usd := fmt.Sprintf("%.6f", math.Max(usage.CostUSD, 0))
 		var err error
-		settled, err = ConvertUSDToCNYCents(usd, reservation.ExchangeRate)
+		settled, err = ConvertUSDToCNYMicros(usd, reservation.ExchangeRate, false)
 		if err != nil {
 			return errTeamWalletSettlementInvalid
 		}
-		if settled > reservation.ReservedCents {
+		if settled > reservation.ReservedMicros {
 			return errTeamWalletSettlementExceeded
 		}
 	}
-	refund := reservation.ReservedCents - settled
+	refund := reservation.ReservedMicros - settled
 	var finalizedBefore int64
 	var finalizedAfter int64
 	if refund > 0 {
@@ -242,8 +276,8 @@ func settleTeamWalletCall(tx *gorm.DB, call CallContext, usage Usage, success bo
 		if err := tx.First(&wallet, "team_id = ?", reservation.TeamID).Error; err != nil {
 			return err
 		}
-		finalizedBefore = wallet.BalanceCents
-		if err := tx.Model(&teamWallet{}).Where("team_id = ?", reservation.TeamID).Updates(map[string]any{"balance_cents": gorm.Expr("balance_cents + ?", refund), "updated_at": now}).Error; err != nil {
+		finalizedBefore = wallet.BalanceMicros
+		if err := tx.Model(&teamWallet{}).Where("team_id = ?", reservation.TeamID).Updates(map[string]any{"balance_micros": gorm.Expr("balance_micros + ?", refund), "updated_at": now}).Error; err != nil {
 			return err
 		}
 		finalizedAfter = finalizedBefore + refund
@@ -252,11 +286,11 @@ func settleTeamWalletCall(tx *gorm.DB, call CallContext, usage Usage, success bo
 		if err := tx.First(&wallet, "team_id = ?", reservation.TeamID).Error; err != nil {
 			return err
 		}
-		finalizedBefore, finalizedAfter = wallet.BalanceCents, wallet.BalanceCents
+		finalizedBefore, finalizedAfter = wallet.BalanceMicros, wallet.BalanceMicros
 	}
-	reservation.SettledCents = settled
-	reservation.FinalizedBeforeBalanceCents = &finalizedBefore
-	reservation.FinalizedAfterBalanceCents = &finalizedAfter
+	reservation.SettledMicros = settled
+	reservation.FinalizedBeforeBalanceMicros = &finalizedBefore
+	reservation.FinalizedAfterBalanceMicros = &finalizedAfter
 	reservation.Status = teamWalletCallSettled
 	if !success {
 		reservation.Status = teamWalletCallReleased
@@ -303,20 +337,20 @@ func (s *GormStore) TeamWallet(teamID string) (teamWallet, error) {
 	return wallet, err
 }
 
-func (s *GormStore) CreditTeamWallet(teamID, requestID, actorID string, cents int64) (teamWalletEntry, error) {
-	return s.creditTeamWallet(teamID, requestID, actorID, cents, "legacy", "")
+func (s *GormStore) CreditTeamWallet(teamID, requestID, actorID string, micros int64) (teamWalletEntry, error) {
+	return s.creditTeamWallet(teamID, requestID, actorID, micros, "legacy", "")
 }
 
-func (s *GormStore) CreditTeamWalletWithMetadata(teamID, requestID, actorID string, cents int64, creditType, remark string) (teamWalletEntry, error) {
+func (s *GormStore) CreditTeamWalletWithMetadata(teamID, requestID, actorID string, micros int64, creditType, remark string) (teamWalletEntry, error) {
 	remark = strings.TrimSpace(remark)
 	if (creditType != "offline_receipt" && creditType != "approved_credit") || remark == "" || utf8.RuneCountInString(remark) > 1000 {
 		return teamWalletEntry{}, NewHTTPError(400, "invalid_wallet_credit_metadata", "credit_type must be offline_receipt or approved_credit and a remark of at most 1000 characters is required")
 	}
-	return s.creditTeamWallet(teamID, requestID, actorID, cents, creditType, remark)
+	return s.creditTeamWallet(teamID, requestID, actorID, micros, creditType, remark)
 }
 
-func (s *GormStore) creditTeamWallet(teamID, requestID, actorID string, cents int64, creditType, remark string) (teamWalletEntry, error) {
-	if cents <= 0 || strings.TrimSpace(requestID) == "" || len(requestID) > 128 || strings.TrimSpace(actorID) == "" {
+func (s *GormStore) creditTeamWallet(teamID, requestID, actorID string, micros int64, creditType, remark string) (teamWalletEntry, error) {
+	if micros <= 0 || strings.TrimSpace(requestID) == "" || len(requestID) > 128 || strings.TrimSpace(actorID) == "" {
 		return teamWalletEntry{}, NewHTTPError(400, "invalid_wallet_credit", "A positive amount, actor and request_id of at most 128 bytes are required")
 	}
 	s.mu.Lock()
@@ -332,7 +366,7 @@ func (s *GormStore) creditTeamWallet(teamID, requestID, actorID string, cents in
 		}
 		err = tx.First(&entry, "team_id = ? AND request_id = ?", teamID, requestID).Error
 		if err == nil {
-			if entry.AmountCents != cents || entry.ActorUserID != actorID || entry.CreditType != creditType || entry.Remark != remark {
+			if entry.AmountMicros != micros || entry.ActorUserID != actorID || entry.CreditType != creditType || entry.Remark != remark {
 				return NewHTTPError(409, "wallet_credit_conflict", "request_id was already used with different credit details")
 			}
 			return nil
@@ -345,7 +379,7 @@ func (s *GormStore) creditTeamWallet(teamID, requestID, actorID string, cents in
 		if err := tx.Clauses(clause.OnConflict{DoNothing: true}).Create(&wallet).Error; err != nil {
 			return err
 		}
-		result := tx.Model(&teamWallet{}).Where("team_id = ? AND balance_cents <= ?", teamID, math.MaxInt64-cents).Updates(map[string]any{"balance_cents": gorm.Expr("balance_cents + ?", cents), "updated_at": now})
+		result := tx.Model(&teamWallet{}).Where("team_id = ? AND balance_micros <= ?", teamID, math.MaxInt64-micros).Updates(map[string]any{"balance_micros": gorm.Expr("balance_micros + ?", micros), "updated_at": now})
 		if result.Error != nil {
 			return result.Error
 		}
@@ -355,13 +389,13 @@ func (s *GormStore) creditTeamWallet(teamID, requestID, actorID string, cents in
 		if err := tx.First(&wallet, "team_id = ?", teamID).Error; err != nil {
 			return err
 		}
-		before, after := wallet.BalanceCents-cents, wallet.BalanceCents
+		before, after := wallet.BalanceMicros-micros, wallet.BalanceMicros
 		var actor AdminUser
 		if err := tx.First(&actor, "id = ?", actorID).Error; err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 			return err
 		}
-		entry = teamWalletEntry{ID: NewID("twl"), TeamID: teamID, RequestID: requestID, AmountCents: cents, ActorUserID: actorID, CreatedAt: now,
-			CreditType: creditType, Remark: remark, BeforeBalanceCents: &before, AfterBalanceCents: &after, ActorName: actor.Name, TeamName: team.Name}
+		entry = teamWalletEntry{ID: NewID("twl"), TeamID: teamID, RequestID: requestID, AmountMicros: micros, ActorUserID: actorID, CreatedAt: now,
+			CreditType: creditType, Remark: remark, BeforeBalanceMicros: &before, AfterBalanceMicros: &after, ActorName: actor.Name, TeamName: team.Name}
 		return tx.Create(&entry).Error
 	})
 	return entry, err
@@ -381,7 +415,7 @@ func (s *Server) teamWalletRateConfigured() bool {
 	for _, item := range s.store.ListResources("settings") {
 		if item.ID == teamWalletRateID && item.Status == StatusActive {
 			rate, ok := item.Fields["usd_to_cny"].(string)
-			if _, err := ConvertUSDToCNYCents("0", rate); ok && err == nil {
+			if _, err := ConvertUSDToCNYMicros("0", rate, false); ok && err == nil {
 				return true
 			}
 		}
@@ -413,7 +447,7 @@ func (s *Server) handleTeamWallet(w http.ResponseWriter, r *http.Request) {
 		writeError(w, r, err)
 		return
 	}
-	writeJSON(w, 200, map[string]any{"wallet": wallet, "currency": "CNY", "paid_calls_enabled": wallet.BalanceCents > 0 && s.teamWalletRateConfigured()})
+	writeJSON(w, 200, map[string]any{"wallet": wallet, "currency": "CNY", "paid_calls_enabled": wallet.BalanceMicros > 0 && s.teamWalletRateConfigured()})
 }
 
 func (s *Server) handleTeamWalletCredit(w http.ResponseWriter, r *http.Request) {
@@ -426,10 +460,10 @@ func (s *Server) handleTeamWalletCredit(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 	var req struct {
-		AmountCents int64  `json:"amount_cents"`
-		RequestID   string `json:"request_id"`
-		CreditType  string `json:"credit_type"`
-		Remark      string `json:"remark"`
+		AmountMicros int64  `json:"amount_micros"`
+		RequestID    string `json:"request_id"`
+		CreditType   string `json:"credit_type"`
+		Remark       string `json:"remark"`
 	}
 	if err := s.decodeJSON(w, r, &req); err != nil {
 		writeError(w, r, err)
@@ -440,11 +474,11 @@ func (s *Server) handleTeamWalletCredit(w http.ResponseWriter, r *http.Request) 
 		writeError(w, r, NewHTTPError(501, "wallet_unavailable", "Team wallets are unavailable"))
 		return
 	}
-	if req.AmountCents > 9007199254740991 {
-		writeError(w, r, NewHTTPError(400, "invalid_wallet_credit", "amount_cents must not exceed the JavaScript safe integer range"))
+	if req.AmountMicros > 9007199254740991 {
+		writeError(w, r, NewHTTPError(400, "invalid_wallet_credit", "amount_micros must not exceed the JavaScript safe integer range"))
 		return
 	}
-	entry, err := store.CreditTeamWalletWithMetadata(r.PathValue("team_id"), req.RequestID, user.ID, req.AmountCents, req.CreditType, req.Remark)
+	entry, err := store.CreditTeamWalletWithMetadata(r.PathValue("team_id"), req.RequestID, user.ID, req.AmountMicros, req.CreditType, req.Remark)
 	if err != nil {
 		writeError(w, r, err)
 		return
@@ -469,7 +503,7 @@ func (s *Server) handleTeamWalletRate(w http.ResponseWriter, r *http.Request) {
 			writeError(w, r, err)
 			return
 		}
-		if _, err := ConvertUSDToCNYCents("0", req.Rate); err != nil {
+		if _, err := ConvertUSDToCNYMicros("0", req.Rate, false); err != nil {
 			writeError(w, r, err)
 			return
 		}
@@ -490,7 +524,7 @@ func (s *Server) handleTeamWalletRate(w http.ResponseWriter, r *http.Request) {
 	for _, item := range s.store.ListResources("settings") {
 		if item.ID == teamWalletRateID && item.Status == StatusActive {
 			candidate, ok := item.Fields["usd_to_cny"].(string)
-			if _, err := ConvertUSDToCNYCents("0", candidate); ok && err == nil {
+			if _, err := ConvertUSDToCNYMicros("0", candidate, false); ok && err == nil {
 				rate = candidate
 			}
 		}

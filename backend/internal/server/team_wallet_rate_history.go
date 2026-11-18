@@ -36,7 +36,7 @@ type teamWalletRateStore interface {
 }
 
 func (s *GormStore) SaveTeamWalletRate(rate, actorID string) (teamWalletRateHistoryEntry, error) {
-	if _, err := ConvertUSDToCNYCents("0", rate); err != nil {
+	if _, err := ConvertUSDToCNYMicros("0", rate, false); err != nil {
 		return teamWalletRateHistoryEntry{}, err
 	}
 	s.mu.Lock()

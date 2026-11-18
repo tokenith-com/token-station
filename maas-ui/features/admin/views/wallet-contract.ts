@@ -2,25 +2,35 @@ import type { ApiContext } from "../core/types";
 import { adminFetch } from "../resources/payloads";
 
 export type WalletCopy = { tx: (key: string) => string; locale: string };
-export type WalletCredit = { amount_cents: number; request_id: string; credit_type: "offline_receipt" | "approved_credit"; remark: string };
+export type WalletCredit = { amount_micros: number; request_id: string; credit_type: "offline_receipt" | "approved_credit"; remark: string };
 export type WalletEntry = {
-  id: string; team_id: string; request_id: string; amount_cents: number;
+  id: string; team_id: string; request_id: string; amount_micros: number;
   credit_type: string; remark: string; actor_user_id: string;
-  before_balance_cents: number | null; after_balance_cents: number | null; created_at: string;
+  before_balance_micros: number | null; after_balance_micros: number | null; created_at: string;
   actor_name?: string; team_name?: string;
-  kind?: "credit" | "call"; status?: string; actual_amount_cents?: number;
-  reserved_cents?: number; settled_cents?: number; exchange_rate?: string; settled_at?: string | null;
+  kind?: "credit" | "call"; status?: string; actual_amount_micros?: number;
+  reserved_micros?: number; settled_micros?: number; exchange_rate?: string; settled_at?: string | null;
 };
 export type WalletLedgerResponse = { entries: WalletEntry[]; total: number; limit: number; offset: number; currency: "CNY" };
 export function walletPath(teamID: string) { return `/api/admin/teams/${encodeURIComponent(teamID)}/wallet`; }
-export function yuanToCents(value: string): number | undefined {
-  if (!/^\d+(?:\.\d{1,2})?$/.test(value)) return undefined;
+export function yuanToMicros(value: string): number | undefined {
+  if (!/^\d+(?:\.\d{1,6})?$/.test(value)) return undefined;
   const [whole, fraction = ""] = value.split(".");
-  const cents = BigInt(whole) * 100n + BigInt(fraction.padEnd(2, "0"));
-  return cents > 0n && cents <= BigInt(Number.MAX_SAFE_INTEGER) ? Number(cents) : undefined;
+  const micros = BigInt(whole) * 1_000_000n + BigInt(fraction.padEnd(6, "0"));
+  return micros > 0n && micros <= BigInt(Number.MAX_SAFE_INTEGER) ? Number(micros) : undefined;
 }
-export function walletMoney(cents: number | null | undefined, locale: string) {
-  return cents == null ? "—" : new Intl.NumberFormat(locale, { style: "currency", currency: "CNY" }).format(cents / 100);
+// walletMoney must show the same precision as the balance card, otherwise a
+// sub-cent ledger amount renders as a rounded figure that no longer reconciles
+// with the wallet balance above it.
+export function walletMoney(micros: number | null | undefined, locale: string) {
+  return micros == null ? "—" : new Intl.NumberFormat(locale, { style: "currency", currency: "CNY", minimumFractionDigits: 2, maximumFractionDigits: 6 }).format(micros / 1_000_000);
+}
+// yuanFromMicros renders an amount back into the credit input, keeping at least
+// two decimals so restored drafts look like money rather than integers.
+export function yuanFromMicros(micros: number) {
+  const whole = Math.floor(micros / 1_000_000);
+  const fraction = String(micros % 1_000_000).padStart(6, "0").replace(/0+$/, "").padEnd(2, "0");
+  return `${whole}.${fraction}`;
 }
 export function pendingWalletKey(api: ApiContext, userID: string, teamID: string) {
   return `tokenhub:wallet-credit:${JSON.stringify([api.baseURL, userID, teamID])}`;
@@ -29,7 +39,7 @@ export function readPendingCredit(key: string): WalletCredit | undefined {
   const raw = sessionStorage.getItem(key);
   if (raw === null) return undefined;
   const value = JSON.parse(raw) as WalletCredit;
-  if (!value || !Number.isSafeInteger(value.amount_cents) || value.amount_cents <= 0 || typeof value.request_id !== "string" || !value.request_id.trim() || !["offline_receipt", "approved_credit"].includes(value.credit_type) || typeof value.remark !== "string" || !value.remark.trim() || [...value.remark].length > 1000) throw new Error("Invalid pending wallet operation");
+  if (!value || !Number.isSafeInteger(value.amount_micros) || value.amount_micros <= 0 || typeof value.request_id !== "string" || !value.request_id.trim() || !["offline_receipt", "approved_credit"].includes(value.credit_type) || typeof value.remark !== "string" || !value.remark.trim() || [...value.remark].length > 1000) throw new Error("Invalid pending wallet operation");
   return value;
 }
 export type WalletReadErrorKind = "permission" | "unavailable" | "missing" | "request" | "malformed";
@@ -62,8 +72,8 @@ async function readWallet(api: ApiContext, path: string) {
 }
 export async function loadWalletBalance(api: ApiContext, teamID: string) {
   const payload = await readWallet(api, walletPath(teamID));
-  if (payload.currency !== "CNY" || payload.wallet?.team_id !== teamID || !Number.isSafeInteger(payload.wallet.balance_cents) || payload.wallet.balance_cents < 0) throw new WalletReadError("malformed");
-  return payload.wallet.balance_cents as number;
+  if (payload.currency !== "CNY" || payload.wallet?.team_id !== teamID || !Number.isSafeInteger(payload.wallet.balance_micros) || payload.wallet.balance_micros < 0) throw new WalletReadError("malformed");
+  return payload.wallet.balance_micros as number;
 }
 export async function loadWalletLedger(api: ApiContext, teamID: string, offset = 0, requestID?: string): Promise<WalletLedgerResponse> {
   const query = new URLSearchParams({ limit: "20", offset: String(offset) });
@@ -75,6 +85,6 @@ export async function loadWalletLedger(api: ApiContext, teamID: string, offset =
 function validLedgerEntry(entry: WalletEntry) {
   if (!entry || typeof entry !== "object") return false;
   const strings = [entry.id, entry.request_id, entry.team_id, entry.actor_user_id, entry.actor_name, entry.remark, entry.credit_type, entry.kind, entry.status];
-  const amounts = [entry.amount_cents, entry.actual_amount_cents, entry.reserved_cents, entry.before_balance_cents, entry.after_balance_cents];
+  const amounts = [entry.amount_micros, entry.actual_amount_micros, entry.reserved_micros, entry.before_balance_micros, entry.after_balance_micros];
   return strings.every(value => value === undefined || typeof value === "string") && amounts.every(value => value == null || Number.isSafeInteger(value)) && (entry.created_at === undefined || entry.created_at === "" || (typeof entry.created_at === "string" && Number.isFinite(Date.parse(entry.created_at))));
 }

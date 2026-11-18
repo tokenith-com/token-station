@@ -386,14 +386,10 @@ export function formatMoney(value: number) {
   return (value || 0).toFixed(value >= 1 ? 2 : 6);
 }
 
+// Cost KPIs must keep the same precision as the wallet balance card, otherwise
+// an aggregated amount renders shorter than the balance it is compared against.
 export function formatDashboardMoney(value: number) {
-  const amount = Math.max(0, value || 0);
-  if (amount === 0) return "0.00";
-  if (amount >= 1_000_000) return `${(amount / 1_000_000).toFixed(amount >= 10_000_000 ? 1 : 2)}M`;
-  if (amount >= 1_000) return `${(amount / 1_000).toFixed(amount >= 10_000 ? 1 : 2)}K`;
-  if (amount >= 1) return amount.toFixed(2);
-  if (amount >= 0.01) return amount.toFixed(4);
-  return "<0.01";
+  return new Intl.NumberFormat(languageLocale(), { minimumFractionDigits: 2, maximumFractionDigits: 6 }).format(Math.max(0, value || 0));
 }
 
 export function modelCapabilities(model: ProviderCatalogModel) {

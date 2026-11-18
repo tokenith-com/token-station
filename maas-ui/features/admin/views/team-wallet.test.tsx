@@ -5,10 +5,10 @@ import { UsageView } from "./usage-billing";
 import { TeamWalletSummary } from "./team-wallet";
 
 const api = { baseURL: "http://example.test", adminToken: "synthetic-session" };
-const wallet = { wallet: { team_id: "team/demo", balance_cents: 12345, updated_at: "2026-11-14T00:00:00Z" }, currency: "CNY", paid_calls_enabled: false };
+const wallet = { wallet: { team_id: "team/demo", balance_micros: 123_450_000, updated_at: "2026-11-14T00:00:00Z" }, currency: "CNY", paid_calls_enabled: false };
 
 describe("Team wallet summary", () => {
-  it("reads only the leader's wallet and shows CNY cents without promising paid calls", async () => {
+  it("reads only the leader's wallet and shows the CNY balance without promising paid calls", async () => {
     const fetch = vi.fn().mockResolvedValue(Response.json(wallet));
     vi.stubGlobal("fetch", fetch);
     render(<TeamWalletSummary api={api} teamID="team/demo" />);
@@ -29,7 +29,7 @@ describe("Team wallet summary", () => {
   });
 
   it("does not turn loading or request failures into a zero balance and supports retry", async () => {
-    const fetch = vi.fn().mockResolvedValueOnce(Response.json({ error: { message: "Unavailable" } }, { status: 503 })).mockResolvedValueOnce(Response.json({ ...wallet, wallet: { ...wallet.wallet, balance_cents: 0 } }));
+    const fetch = vi.fn().mockResolvedValueOnce(Response.json({ error: { message: "Unavailable" } }, { status: 503 })).mockResolvedValueOnce(Response.json({ ...wallet, wallet: { ...wallet.wallet, balance_micros: 0 } }));
     vi.stubGlobal("fetch", fetch);
     render(<TeamWalletSummary api={api} teamID="team/demo" />);
     expect(screen.getByRole("status")).toHaveTextContent("正在加载团队钱包…");

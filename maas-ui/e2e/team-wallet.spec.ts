@@ -19,7 +19,7 @@ test("super admin credits a team wallet once and reads its exact CNY ledger", as
   const walletPath = `${backendURL}/api/admin/teams/${team.id}/wallet`;
   const initial = await request.get(walletPath, { headers });
   expect(initial.ok()).toBe(true);
-  expect(await initial.json()).toMatchObject({ currency: "CNY", wallet: { team_id: team.id, balance_cents: 0 } });
+  expect(await initial.json()).toMatchObject({ currency: "CNY", wallet: { team_id: team.id, balance_micros: 0 } });
   await page.goto("/teams");
   const row = page.getByRole("row").filter({ hasText: team.name });
   await row.getByRole("button", { name: "入账", exact: true }).click();
@@ -37,9 +37,9 @@ test("super admin credits a team wallet once and reads its exact CNY ledger", as
   const creditResponse = await credited;
   expect(creditResponse.ok()).toBe(true);
   const payload = creditResponse.request().postDataJSON();
-  expect(payload).toMatchObject({ amount_cents: 2550, credit_type: "offline_receipt", remark: "Synthetic E2E offline receipt", request_id: expect.any(String) });
+  expect(payload).toMatchObject({ amount_micros: 25_500_000, credit_type: "offline_receipt", remark: "Synthetic E2E offline receipt", request_id: expect.any(String) });
   const credit = await creditResponse.json();
-  expect(credit).toMatchObject({ currency: "CNY", entry: { before_balance_cents: 0, after_balance_cents: 2550 } });
+  expect(credit).toMatchObject({ currency: "CNY", entry: { before_balance_micros: 0, after_balance_micros: 25_500_000 } });
   await expect(dialog).toHaveCount(0);
   await row.getByRole("button", { name: "资金流水", exact: true }).click();
   const ledger = page.getByRole("dialog");
@@ -50,8 +50,8 @@ test("super admin credits a team wallet once and reads its exact CNY ledger", as
   expect((await replay.json()).entry.id).toBe(credit.entry.id);
   const finalWallet = await request.get(walletPath, { headers });
   expect(finalWallet.ok()).toBe(true);
-  expect(await finalWallet.json()).toMatchObject({ currency: "CNY", wallet: { balance_cents: 2550 } });
+  expect(await finalWallet.json()).toMatchObject({ currency: "CNY", wallet: { balance_micros: 25_500_000 } });
   const entries = await request.get(`${walletPath}/ledger?limit=20&offset=0`, { headers });
   expect(entries.ok()).toBe(true);
-  expect(await entries.json()).toMatchObject({ currency: "CNY", total: 1, entries: [{ id: credit.entry.id, amount_cents: 2550, before_balance_cents: 0, after_balance_cents: 2550 }] });
+  expect(await entries.json()).toMatchObject({ currency: "CNY", total: 1, entries: [{ id: credit.entry.id, amount_micros: 25_500_000, before_balance_micros: 0, after_balance_micros: 25_500_000 }] });
 });

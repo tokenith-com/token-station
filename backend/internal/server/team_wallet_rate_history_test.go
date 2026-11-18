@@ -198,7 +198,7 @@ func TestTeamWalletRateSavePreservesReservationSnapshot(t *testing.T) {
 		t.Fatal(err)
 	}
 	now := time.Now().UTC()
-	if err := store.db.Create(&teamWallet{TeamID: "team", BalanceCents: 10000, UpdatedAt: now}).Error; err != nil {
+	if err := store.db.Create(&teamWallet{TeamID: "team", BalanceMicros: 100_000_000, UpdatedAt: now}).Error; err != nil {
 		t.Fatal(err)
 	}
 	reserve := func(id string) {
@@ -208,7 +208,7 @@ func TestTeamWalletRateSavePreservesReservationSnapshot(t *testing.T) {
 			if err != nil {
 				return err
 			}
-			return reserveTeamWalletCall(tx, "team", id, rate, 1000, now)
+			return reserveTeamWalletCall(tx, "team", id, rate, 10_000_000, now)
 		}); err != nil {
 			t.Fatal(err)
 		}
@@ -219,26 +219,26 @@ func TestTeamWalletRateSavePreservesReservationSnapshot(t *testing.T) {
 		t.Fatal(err)
 	}
 	after, _ := store.TeamWallet("team")
-	if before.BalanceCents != after.BalanceCents {
+	if before.BalanceMicros != after.BalanceMicros {
 		t.Fatal("saving rate changed balance")
 	}
 	reserve("new")
 	for _, tc := range []struct {
 		id, rate string
 		charge   int64
-	}{{"old", "7", 700}, {"new", "8", 800}} {
+	}{{"old", "7", 7_000_000}, {"new", "8", 8_000_000}} {
 		if err := store.db.Transaction(func(tx *gorm.DB) error {
 			return settleTeamWalletCall(tx, CallContext{RequestID: tc.id, TeamWalletEnabled: true}, Usage{CostUSD: 1}, true, now)
 		}); err != nil {
 			t.Fatal(err)
 		}
 		var call teamWalletCall
-		if err := store.db.First(&call, "request_id = ?", tc.id).Error; err != nil || call.ExchangeRate != tc.rate || call.SettledCents != tc.charge {
+		if err := store.db.First(&call, "request_id = ?", tc.id).Error; err != nil || call.ExchangeRate != tc.rate || call.SettledMicros != tc.charge {
 			t.Fatalf("reservation snapshot: %+v %v", call, err)
 		}
 	}
 	wallet, err := store.TeamWallet("team")
-	if err != nil || wallet.BalanceCents != 8500 {
+	if err != nil || wallet.BalanceMicros != 85_000_000 {
 		t.Fatalf("settled balance: %+v %v", wallet, err)
 	}
 }
