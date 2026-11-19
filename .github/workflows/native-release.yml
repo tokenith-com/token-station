@@ -114,6 +114,9 @@ jobs:
 
   backend:
     name: Build native backend (linux/${{ matrix.arch }})
+    permissions:
+      contents: read
+      packages: write
     needs: prepare
     runs-on: ${{ matrix.runner }}
     strategy:
@@ -133,15 +136,25 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c # v4
 
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@af1e73f918a031802d376d3c8bbc3fe56130a9b0 # v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Build static backend
         env:
           ARCH: ${{ matrix.arch }}
           VERSION: ${{ needs.prepare.outputs.version }}
         run: |
           set -euo pipefail
+          cache_ref="ghcr.io/${GITHUB_REPOSITORY,,}/native-build-cache:${ARCH}"
           mkdir -p "native-backend-${ARCH}"
           docker buildx build \
             --platform "linux/${ARCH}" \
+            --cache-from "type=registry,ref=${cache_ref}" \
+            --cache-to "type=registry,ref=${cache_ref},mode=max,ignore-error=true" \
             --file backend/Dockerfile.native \
             --target artifact \
             --build-arg "TOKENHUB_VERSION=${VERSION}" \

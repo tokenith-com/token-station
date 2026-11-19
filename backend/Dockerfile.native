@@ -1,16 +1,16 @@
 FROM golang:1.26-alpine AS builder
 
 WORKDIR /src
-ARG GOPROXY=https://goproxy.cn,direct
-ARG TOKENHUB_VERSION
-ENV GOPROXY=${GOPROXY}
-RUN sed -i 's|https://dl-cdn.alpinelinux.org|https://mirrors.aliyun.com|g' /etc/apk/repositories
 RUN apk add --no-cache gcc musl-dev
 COPY backend/go.mod ./backend/go.mod
 COPY backend/go.sum ./backend/go.sum
+ARG GOPROXY=https://proxy.golang.org,direct
+ENV GOPROXY=${GOPROXY}
+RUN cd backend && go mod download
 COPY backend/cmd ./backend/cmd
 COPY backend/internal ./backend/internal
-RUN test -n "$TOKENHUB_VERSION" && \
+ARG TOKENHUB_VERSION
+RUN --mount=type=cache,target=/root/.cache/go-build test -n "$TOKENHUB_VERSION" && \
     cd backend && \
     CGO_ENABLED=1 go build \
       -tags "netgo osusergo" \
