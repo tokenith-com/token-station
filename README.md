@@ -100,49 +100,78 @@ Default addresses:
 - Backend API: `http://localhost:8080`
 - Health check: `http://localhost:8080/healthz`
 
-The product launcher serves `maas-ui/`.
+## Configuration and deployment
 
-### Start the MaaS console
+### First install on Linux
 
-With the backend running, open another terminal:
-
-```bash
-cd maas-ui
-npm ci
-NEXT_PUBLIC_TOKENHUB_API_BASE_URL=http://localhost:8080 npm run dev -- --port 3001
-```
-
-Configure backend CORS to allow the console origin. Password login, configured single sign-on, and email registration are available from the same entry point.
-
-Existing `TOKENHUB_*` and `NEXT_PUBLIC_TOKENHUB_*` environment names remain compatibility contracts; use the names in the environment templates rather than renaming them to match the product brand.
-
-## Deployment
-
-### Static MaaS console
-
-Build from `maas-ui/`, replacing the example API address with your backend URL:
+Download the matching `tokenstation_*.tar.gz` and `checksums.txt` from [Releases](https://github.com/tokenith-com/token-station/releases). This amd64 example installs a separate service in a fresh directory.
 
 ```bash
-NEXT_PUBLIC_TOKENHUB_API_BASE_URL=https://api.example.com npm run build
+archive=tokenstation_0.11.0-maas.1_linux_amd64.tar.gz
+awk -v f="$archive" '$2 == f {print}' checksums.txt | sha256sum -c - &&
+  sudo install -d /opt/tokenstation-maas &&
+  sudo tar -xzf "$archive" -C /opt/tokenstation-maas
+sudo useradd --system --user-group --no-create-home --shell /usr/sbin/nologin tokenstation-maas
+sudo install -d -m 0750 -o tokenstation-maas -g tokenstation-maas /var/lib/tokenstation-maas
 ```
 
-The build produces one `out/` directory for all users at that deployment. The API URL and optional path prefix are fixed at build time. Configure HTTPS, static-route handling, and backend CORS for the deployed origin. See the [MaaS static deployment guide](maas-ui/docs/static-deploy.md).
+Create `/etc/tokenstation-maas.env` on the server with mode `0600`. The example uses SQLite. For PostgreSQL, use `postgres://user:password@host:5432/database?sslmode=verify-full`. Replace the example domain. Run `openssl rand -hex 32` separately for the encryption key and initial admin password. Keep the encryption key across upgrades.
 
-### Existing managed stack
+```dotenv
+TOKENHUB_ENV=prod
+TOKENHUB_HTTP_ADDR=127.0.0.1:18080
+TOKENHUB_FRONTEND_HOST=127.0.0.1
+TOKENHUB_FRONTEND_PORT=13000
+TOKENHUB_PUBLIC_BASE_URL=https://maas.example.com/maas-api
+TOKENHUB_DATABASE_URL=sqlite:///var/lib/tokenstation-maas/maas.db
+TOKENHUB_SECRET_KEY=<encryption-key>
+TOKENHUB_BOOTSTRAP_ADMIN_PASSWORD=<initial-password>
+TOKENHUB_INSTALL_ROOT=/opt/tokenstation-maas
+TOKENHUB_PLUGIN_DIR=/var/lib/tokenstation-maas/plugins
+TOKENHUB_MODEL_CATALOG_FILE=/opt/tokenstation-maas/catalog/model-catalog.yaml
+TOKENHUB_PROVIDER_CATALOG_FILE=/opt/tokenstation-maas/catalog/provider-catalog.json
+```
 
-The current native and Docker deployment paths package the original console, not the MaaS static console. For the existing Docker stack, from the repository root:
+Save this unit as `/etc/systemd/system/tokenstation-maas.service`.
+
+```ini
+[Unit]
+Description=TokenStation MaaS
+After=network.target
+
+[Service]
+User=tokenstation-maas
+WorkingDirectory=/var/lib/tokenstation-maas
+EnvironmentFile=/etc/tokenstation-maas.env
+ExecStart=/opt/tokenstation-maas/bin/tokenstation-run
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
+```
+
+Run these commands for a fresh install. For an existing database, back it up, stop all instances using it and run `db prepare` without `--initialize`.
 
 ```bash
-cp deploy/.env.example deploy/.env
-# Configure the image/version and replace all change-me secrets before starting.
-./deploy/install.sh
+sudo systemd-run --wait --pipe --collect -p User=tokenstation-maas \
+  -p WorkingDirectory=/var/lib/tokenstation-maas -p EnvironmentFile=/etc/tokenstation-maas.env \
+  /opt/tokenstation-maas/bin/tokenstation db prepare --initialize
+sudo systemctl daemon-reload
+sudo systemctl enable --now tokenstation-maas
+curl -fsS http://127.0.0.1:18080/readyz
 ```
 
-Review image and release sources before deployment: existing defaults may still reference upstream distribution channels rather than a separately published TokenStation MaaS release. Do not assume those defaults contain this branch's changes.
+Configure the HTTPS reverse proxy to forward `/` to `127.0.0.1:13000` and `/maas-api/` to `127.0.0.1:18080`, stripping the API prefix.
 
-SQLite is suitable for a single-instance installation. PostgreSQL supports shared persistence for multi-instance deployments; replica coordination and connection pools must be configured explicitly. Follow the [deployment guide](docs/deployment.md) and [PostgreSQL guide](docs/postgresql-setup.md).
+### Optional settings
 
-Before upgrading an existing database, back it up and verify its migration history against the target version. Databases that have applied conflicting migrations from divergent development branches require migration-history reconciliation before upgrade; do not bypass checksum checks or overwrite migration records.
+| Variable | Purpose |
+| --- | --- |
+| `TOKENHUB_CORS_ALLOWED_ORIGINS` | Allowed browser origins for cross-origin API access, separated by commas. |
+| `TOKENHUB_PAYMENT_CONFIG_FILE` | Absolute path to the payment configuration. Keep payment credentials on the server. |
+| `NEXT_PUBLIC_TOKENHUB_API_BASE_URL`, `NEXT_PUBLIC_TOKENHUB_BASE_PATH` | API URL and site prefix embedded in the static frontend at build time. The release serves the site at the root and uses the same-origin `/maas-api` endpoint. |
+
+All variables · [backend/.env.example](backend/.env.example) · [maas-ui/.env.example](maas-ui/.env.example)
 
 ## Documentation
 

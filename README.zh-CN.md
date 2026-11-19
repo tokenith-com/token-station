@@ -100,49 +100,78 @@ TokenStation 将模型发现、Playground、API 接入和成本可视化整合�
 - 后端 API：`http://localhost:8080`
 - 健康检查：`http://localhost:8080/healthz`
 
-产品启动脚本使用 `maas-ui/`。
+## 配置与部署
 
-### 启动 MaaS 控制台
+### Linux 首次安装
 
-后端启动后，打开另一个终端：
-
-```bash
-cd maas-ui
-npm ci
-NEXT_PUBLIC_TOKENHUB_API_BASE_URL=http://localhost:8080 npm run dev -- --port 3001
-```
-
-配置后端 CORS 以允许控制台来源。同一个入口支持账号密码登录、配置好的单点登录和邮箱注册。
-
-现有 `TOKENHUB_*` 和 `NEXT_PUBLIC_TOKENHUB_*` 环境变量名仍是兼容性契约；请使用环境模板中的名称，不要为了匹配产品品牌而重命名。
-
-## 部署
-
-### MaaS 静态控制台
-
-在 `maas-ui/` 下构建，将示例 API 地址替换为你的后端 URL：
+从 [Releases](https://github.com/tokenith-com/token-station/releases) 下载对应架构的 `tokenstation_*.tar.gz` 和 `checksums.txt`。以下以 amd64 为例，在新目录安装独立服务。
 
 ```bash
-NEXT_PUBLIC_TOKENHUB_API_BASE_URL=https://api.example.com npm run build
+archive=tokenstation_0.11.0-maas.1_linux_amd64.tar.gz
+awk -v f="$archive" '$2 == f {print}' checksums.txt | sha256sum -c - &&
+  sudo install -d /opt/tokenstation-maas &&
+  sudo tar -xzf "$archive" -C /opt/tokenstation-maas
+sudo useradd --system --user-group --no-create-home --shell /usr/sbin/nologin tokenstation-maas
+sudo install -d -m 0750 -o tokenstation-maas -g tokenstation-maas /var/lib/tokenstation-maas
 ```
 
-每个部署环境只需构建并发布一份 `out/`。API 地址和可选的站点路径前缀在构建时固定。为部署后的来源配置 HTTPS、静态路由和后端 CORS。参见 [MaaS 静态部署指南](maas-ui/docs/static-deploy.md)。
+在服务器上新建 `/etc/tokenstation-maas.env`，权限设为 `0600`。示例使用 SQLite；PostgreSQL 使用 `postgres://用户:密码@主机:5432/数据库?sslmode=verify-full`。 把示例域名换成实际地址。用 `openssl rand -hex 32` 分别生成加密密钥和管理员初始密码；升级时保留原加密密钥。
 
-### 现有托管技术栈
+```dotenv
+TOKENHUB_ENV=prod
+TOKENHUB_HTTP_ADDR=127.0.0.1:18080
+TOKENHUB_FRONTEND_HOST=127.0.0.1
+TOKENHUB_FRONTEND_PORT=13000
+TOKENHUB_PUBLIC_BASE_URL=https://maas.example.com/maas-api
+TOKENHUB_DATABASE_URL=sqlite:///var/lib/tokenstation-maas/maas.db
+TOKENHUB_SECRET_KEY=<encryption-key>
+TOKENHUB_BOOTSTRAP_ADMIN_PASSWORD=<initial-password>
+TOKENHUB_INSTALL_ROOT=/opt/tokenstation-maas
+TOKENHUB_PLUGIN_DIR=/var/lib/tokenstation-maas/plugins
+TOKENHUB_MODEL_CATALOG_FILE=/opt/tokenstation-maas/catalog/model-catalog.yaml
+TOKENHUB_PROVIDER_CATALOG_FILE=/opt/tokenstation-maas/catalog/provider-catalog.json
+```
 
-当前原生部署与 Docker 部署路径打包的是原有控制台，MaaS 控制台按上面的静态方式发布。使用现有 Docker 技术栈时，在仓库根目录执行：
+将以下内容保存为 `/etc/systemd/system/tokenstation-maas.service`。
+
+```ini
+[Unit]
+Description=TokenStation MaaS
+After=network.target
+
+[Service]
+User=tokenstation-maas
+WorkingDirectory=/var/lib/tokenstation-maas
+EnvironmentFile=/etc/tokenstation-maas.env
+ExecStart=/opt/tokenstation-maas/bin/tokenstation-run
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
+```
+
+首次安装执行以下命令。升级已有库时先备份、停止使用该库的实例，执行 `db prepare` 时去掉 `--initialize`。
 
 ```bash
-cp deploy/.env.example deploy/.env
-# Configure the image/version and replace all change-me secrets before starting.
-./deploy/install.sh
+sudo systemd-run --wait --pipe --collect -p User=tokenstation-maas \
+  -p WorkingDirectory=/var/lib/tokenstation-maas -p EnvironmentFile=/etc/tokenstation-maas.env \
+  /opt/tokenstation-maas/bin/tokenstation db prepare --initialize
+sudo systemctl daemon-reload
+sudo systemctl enable --now tokenstation-maas
+curl -fsS http://127.0.0.1:18080/readyz
 ```
 
-部署前请核实镜像与发布来源：现有默认值可能仍指向上游分发渠道，而不是单独发布的 TokenStation MaaS 版本。不要假定这些默认版本包含当前分支的变更。
+在 HTTPS 反向代理中，将 `/` 转发到 `127.0.0.1:13000`，将 `/maas-api/` 去掉前缀后转发到 `127.0.0.1:18080`。
 
-SQLite 适合单实例安装。PostgreSQL 支持多实例部署的共享持久化；副本协调与连接池必须显式配置。请遵循[部署指南](docs/zh-CN/deployment.md)和 [PostgreSQL 指南](docs/zh-CN/postgresql-setup.md)。
+### 可选配置
 
-升级现有数据库前，请先备份，并对照目标版本核验迁移历史。如果数据库已应用来自不同开发分支的冲突迁移，升级前必须先协调迁移历史；不要绕过校验和检查或覆盖迁移记录。
+| 变量 | 用途 |
+| --- | --- |
+| `TOKENHUB_CORS_ALLOWED_ORIGINS` | 浏览器跨域访问 API 时设置，多个来源用逗号分隔。 |
+| `TOKENHUB_PAYMENT_CONFIG_FILE` | 支付配置文件的绝对路径；启用支付时设置，凭据留在服务器。 |
+| `NEXT_PUBLIC_TOKENHUB_API_BASE_URL`, `NEXT_PUBLIC_TOKENHUB_BASE_PATH` | 静态前端的 API 地址和站点路径前缀，构建时生效。发布包默认使用同源 `/maas-api`，站点位于根路径。 |
+
+全部变量见 · [backend/.env.example](backend/.env.example) · [maas-ui/.env.example](maas-ui/.env.example)
 
 ## 文档
 

@@ -100,49 +100,78 @@ TokenStation は、モデルの検索、Playground、API アクセス、コス�
 - バックエンド API：`http://localhost:8080`
 - ヘルスチェック：`http://localhost:8080/healthz`
 
-製品の起動スクリプトは `maas-ui/` を使用します。
+## 設定とデプロイ
 
-### MaaS コンソールの起動
+### Linux への新規インストール
 
-バックエンドを起動した状態で、別のターミナルを開きます。
-
-```bash
-cd maas-ui
-npm ci
-NEXT_PUBLIC_TOKENHUB_API_BASE_URL=http://localhost:8080 npm run dev -- --port 3001
-```
-
-バックエンドの CORS でコンソールのオリジンを許可してください。パスワード、設定済みのシングルサインオン、メール登録を同じ入口から利用できます。
-
-既存の `TOKENHUB_*` および `NEXT_PUBLIC_TOKENHUB_*` 環境変数名は、引き続き互換性のための契約です。製品ブランドに合わせて改名せず、環境変数テンプレートの名前を使用してください。
-
-## デプロイ
-
-### MaaS 静的コンソール
-
-`maas-ui/` でビルドします。例の API アドレスは実際のバックエンド URL に置き換えてください。
+[Releases](https://github.com/tokenith-com/token-station/releases) から対象アーキテクチャの `tokenstation_*.tar.gz` と `checksums.txt` を取得します。以下は amd64 の独立サービスを新しいディレクトリに配置する例です。
 
 ```bash
-NEXT_PUBLIC_TOKENHUB_API_BASE_URL=https://api.example.com npm run build
+archive=tokenstation_0.11.0-maas.1_linux_amd64.tar.gz
+awk -v f="$archive" '$2 == f {print}' checksums.txt | sha256sum -c - &&
+  sudo install -d /opt/tokenstation-maas &&
+  sudo tar -xzf "$archive" -C /opt/tokenstation-maas
+sudo useradd --system --user-group --no-create-home --shell /usr/sbin/nologin tokenstation-maas
+sudo install -d -m 0750 -o tokenstation-maas -g tokenstation-maas /var/lib/tokenstation-maas
 ```
 
-環境ごとに 1 つの `out/` をビルドして公開します。API URL と任意のパスプレフィックスはビルド時に固定されます。デプロイ先のオリジンに合わせて、HTTPS、静的ルートの処理、バックエンドの CORS を設定してください。[MaaS 静的デプロイガイド](maas-ui/docs/static-deploy.md)を参照してください。
+サーバーに `/etc/tokenstation-maas.env` を作成し、権限を `0600` に設定します。例は SQLite 用です。PostgreSQL の場合は `postgres://user:password@host:5432/database?sslmode=verify-full` を指定します。 ドメインを実際の値に置き換えます。暗号鍵と初期管理者パスワードはそれぞれ `openssl rand -hex 32` で生成します。アップグレード時は既存の暗号鍵を引き継ぎます。
 
-### 既存のマネージド構成
+```dotenv
+TOKENHUB_ENV=prod
+TOKENHUB_HTTP_ADDR=127.0.0.1:18080
+TOKENHUB_FRONTEND_HOST=127.0.0.1
+TOKENHUB_FRONTEND_PORT=13000
+TOKENHUB_PUBLIC_BASE_URL=https://maas.example.com/maas-api
+TOKENHUB_DATABASE_URL=sqlite:///var/lib/tokenstation-maas/maas.db
+TOKENHUB_SECRET_KEY=<encryption-key>
+TOKENHUB_BOOTSTRAP_ADMIN_PASSWORD=<initial-password>
+TOKENHUB_INSTALL_ROOT=/opt/tokenstation-maas
+TOKENHUB_PLUGIN_DIR=/var/lib/tokenstation-maas/plugins
+TOKENHUB_MODEL_CATALOG_FILE=/opt/tokenstation-maas/catalog/model-catalog.yaml
+TOKENHUB_PROVIDER_CATALOG_FILE=/opt/tokenstation-maas/catalog/provider-catalog.json
+```
 
-現在のネイティブおよび Docker のデプロイ経路では、MaaS 静的コンソールではなく従来のコンソールがパッケージ化されます。既存の Docker 構成を使用する場合は、リポジトリのルートで実行します。
+以下を `/etc/systemd/system/tokenstation-maas.service` に保存します。
+
+```ini
+[Unit]
+Description=TokenStation MaaS
+After=network.target
+
+[Service]
+User=tokenstation-maas
+WorkingDirectory=/var/lib/tokenstation-maas
+EnvironmentFile=/etc/tokenstation-maas.env
+ExecStart=/opt/tokenstation-maas/bin/tokenstation-run
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
+```
+
+新規導入では以下を実行します。既存のデータベースではバックアップ後に使用中のインスタンスを停止し、`--initialize` を付けずに `db prepare` を実行します。
 
 ```bash
-cp deploy/.env.example deploy/.env
-# Configure the image/version and replace all change-me secrets before starting.
-./deploy/install.sh
+sudo systemd-run --wait --pipe --collect -p User=tokenstation-maas \
+  -p WorkingDirectory=/var/lib/tokenstation-maas -p EnvironmentFile=/etc/tokenstation-maas.env \
+  /opt/tokenstation-maas/bin/tokenstation db prepare --initialize
+sudo systemctl daemon-reload
+sudo systemctl enable --now tokenstation-maas
+curl -fsS http://127.0.0.1:18080/readyz
 ```
 
-デプロイ前にイメージとリリースの取得元を確認してください。既存のデフォルト設定は、個別に公開された TokenStation MaaS リリースではなく、上流の配布チャネルを参照している可能性があります。それらにこのブランチの変更が含まれていると想定しないでください。
+HTTPS リバースプロキシで `/` を `127.0.0.1:13000` に転送し、`/maas-api/` はプレフィックスを除いて `127.0.0.1:18080` に転送します。
 
-SQLite は単一インスタンスのインストールに適しています。PostgreSQL はマルチインスタンス構成で永続データを共有できますが、レプリカ間の協調とコネクションプールを明示的に設定する必要があります。[デプロイガイド](docs/ja/deployment.md)と [PostgreSQL ガイド](docs/ja/postgresql-setup.md)に従ってください。
+### 任意の設定
 
-既存のデータベースをアップグレードする前に、バックアップを作成し、対象バージョンとマイグレーション履歴を照合してください。分岐した開発ブランチから競合するマイグレーションを適用済みの場合は、アップグレード前に履歴の整合性を確保する必要があります。チェックサム検証を回避したり、マイグレーション記録を上書きしたりしないでください。
+| 変数 | 用途 |
+| --- | --- |
+| `TOKENHUB_CORS_ALLOWED_ORIGINS` | クロスオリジン API アクセスを許可するオリジン。複数指定はカンマ区切り。 |
+| `TOKENHUB_PAYMENT_CONFIG_FILE` | 決済設定ファイルの絶対パス。認証情報はサーバー上で管理します。 |
+| `NEXT_PUBLIC_TOKENHUB_API_BASE_URL`, `NEXT_PUBLIC_TOKENHUB_BASE_PATH` | ビルド時に埋め込む API URL とサイトのプレフィックス。配布版はルートで公開し、同一オリジンの `/maas-api` に接続します。 |
+
+変数一覧 · [backend/.env.example](backend/.env.example) · [maas-ui/.env.example](maas-ui/.env.example)
 
 ## ドキュメント
 

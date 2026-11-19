@@ -1,6 +1,8 @@
 name: Native release assets
 
 on:
+  push:
+    tags: ["v*-maas.*"]
   release:
     types:
       - published
@@ -15,7 +17,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: native-release-${{ github.repository }}-${{ github.event.release.tag_name || inputs.tag }}
+  group: native-release-${{ github.repository }}-${{ github.event.release.tag_name || inputs.tag || github.ref_name }}
   cancel-in-progress: false
 
 env:
@@ -37,12 +39,15 @@ jobs:
         env:
           EVENT_NAME: ${{ github.event_name }}
           INPUT_TAG: ${{ inputs.tag }}
+          PUSH_TAG: ${{ github.ref_name }}
           RELEASE_TAG: ${{ github.event.release.tag_name }}
         run: |
           set -euo pipefail
           raw_tag="$INPUT_TAG"
           if [[ "$EVENT_NAME" == "release" ]]; then
             raw_tag="$RELEASE_TAG"
+          elif [[ "$EVENT_NAME" == "push" ]]; then
+            raw_tag="$PUSH_TAG"
           fi
 
           version="$(.github/release/normalize-release-tag.sh "$raw_tag")"
@@ -79,7 +84,7 @@ jobs:
         working-directory: maas-ui
         env:
           ARCH: ${{ matrix.arch }}
-          NEXT_PUBLIC_TOKENHUB_API_BASE_URL: ${{ vars.NEXT_PUBLIC_TOKENHUB_API_BASE_URL || 'http://localhost:8080' }}
+          NEXT_PUBLIC_TOKENHUB_API_BASE_URL: ${{ vars.NEXT_PUBLIC_TOKENHUB_API_BASE_URL || '/maas-api' }}
         run: |
           set -euo pipefail
           npm ci
@@ -297,6 +302,13 @@ jobs:
           set -euo pipefail
           cd dist
           sha256sum tokenstation_*.tar.gz tokenhub_*.tar.gz >checksums.txt
+          if [[ "$GITHUB_EVENT_NAME" == push ]]; then
+            gh release create "$RELEASE_TAG" tokenstation_*.tar.gz tokenhub_*.tar.gz checksums.txt \
+              --repo "$GITHUB_REPOSITORY" --verify-tag --prerelease \
+              --title "TokenStation MaaS ${RELEASE_TAG#v}" \
+              --notes "Linux amd64 and arm64 packages with the MaaS console. See the README at this tag for configuration and systemd deployment."
+            exit 0
+          fi
           gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" >/dev/null
           gh release upload "$RELEASE_TAG" \
             tokenstation_*.tar.gz \

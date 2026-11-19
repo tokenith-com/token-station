@@ -139,9 +139,12 @@ function usesSourceAdminContent(user: AdminUser, view: ViewKey) {
 const apiKeyPageSize = 1000;
 type ConsoleProps = { defaultBaseURL: string };
 
-export function AdminConsole(props: ConsoleProps) {
+export function AdminConsole({ defaultBaseURL }: ConsoleProps) {
+  const apiURL = typeof window !== "undefined" && /^\/(?!\/)/.test(defaultBaseURL)
+    ? new URL(defaultBaseURL, window.location.origin).href
+    : defaultBaseURL;
   return (
-    <Suspense><AdminConsoleContent {...props} /></Suspense>
+    <Suspense><AdminConsoleContent defaultBaseURL={apiURL} /></Suspense>
   );
 }
 
