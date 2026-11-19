@@ -1,16 +1,20 @@
 import { Activity, Coins, Receipt, RefreshCw, Wallet } from "lucide-react";
-import type { ReactNode } from "react";
-import { useCallback, useEffect, useState } from "react";
+import type { KeyboardEvent, ReactNode } from "react";
+import { useCallback, useEffect, useId, useState } from "react";
 import type { ApiContext, AppData, UsageBreakdownRow } from "../core/types";
 import type { UsageRange } from "../core/usage-report-types";
 import { apiKeyAuditLabel } from "../domain/entities";
 import { compactNumber, formatNumber } from "../domain/formatting";
 import { languageLocale, tx } from "../i18n/runtime";
 import { usePaymentHistory, type PaymentOrder } from "../resources/payment-history";
-import { PaginationControls } from "../shared/pagination";
+import { PaymentHistoryTable } from "../shared/payment-history-table";
 import { formatWalletMicros, walletRequest, type Wallet as WalletData } from "../resources/wallet";
 import { SimpleTable } from "../shared/ui";
 import { useUsageReport } from "./use-usage-report";
+
+type WalletUsage = { request_id: string; model: string; status: string; charged_micros: number; created_at?: number };
+type HistoryTab = "orders" | "usage";
+const historyTabs = [{ key: "orders", label: "充值记录" }, { key: "usage", label: "消费流水" }] as const;
 
 const ranges: UsageRange[] = ["today", "7d", "30d", "all"];
 
@@ -23,7 +27,7 @@ function formatCNY(cents: number) {
 }
 
 function usageMoney(value: number) {
-  return new Intl.NumberFormat(languageLocale(), { style: "currency", currency: "USD", currencyDisplay: "code", minimumFractionDigits: 2, maximumFractionDigits: 6 }).format(value);
+  return new Intl.NumberFormat(languageLocale(), { style: "currency", currency: "CNY", currencyDisplay: "narrowSymbol", minimumFractionDigits: 2, maximumFractionDigits: 6 }).format(value);
 }
 
 function formatPercent(value: number) {
@@ -40,7 +44,11 @@ export function GuestCostDetailsView({ api, data }: { api: ApiContext; data: App
   const { report, error, refreshing, refresh } = useUsageReport(api, range);
   const [wallet, setWallet] = useState<WalletData | null>(null);
   const [walletError, setWalletError] = useState("");
-  const orderHistory = usePaymentHistory<PaymentOrder>(api, "/api/admin/recharge/orders");
+  const [historyTab, setHistoryTab] = useState<HistoryTab>("orders");
+  const historyId = useId();
+  const orderHistory = usePaymentHistory<PaymentOrder>(api, "/api/admin/recharge/orders", historyTab === "orders");
+  const usageHistory = usePaymentHistory<WalletUsage>(api, "/api/admin/wallet/usage", historyTab === "usage");
+  const refreshUsage = usageHistory.refresh;
   const { rows: orders, error: ordersError, refresh: loadOrders } = orderHistory;
 
   const loadWallet = useCallback(async () => {
@@ -61,8 +69,20 @@ export function GuestCostDetailsView({ api, data }: { api: ApiContext; data: App
   const refreshAll = useCallback(() => {
     refresh();
     void loadWallet();
-    void loadOrders();
-  }, [loadOrders, loadWallet, refresh]);
+    if (historyTab === "orders") loadOrders();
+    else refreshUsage();
+  }, [historyTab, loadOrders, loadWallet, refresh, refreshUsage]);
+
+  function handleHistoryKeyDown(event: KeyboardEvent<HTMLDivElement>) {
+    if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
+    event.preventDefault();
+    let nextTab: HistoryTab;
+    if (event.key === "Home") nextTab = "orders";
+    else if (event.key === "End") nextTab = "usage";
+    else nextTab = historyTab === "orders" ? "usage" : "orders";
+    setHistoryTab(nextTab);
+    document.getElementById(`${historyId}-${nextTab}-tab`)?.focus();
+  }
 
   const summary = report?.summary;
   return (
@@ -99,16 +119,40 @@ export function GuestCostDetailsView({ api, data }: { api: ApiContext; data: App
         <CostTable title={tx("API Key 成本")} label="API Key" rows={report?.breakdown.api_keys ?? []} paginationKey="cost-api-keys" name={row => apiKeyAuditLabel(data, row.id)} />
       </div>
 
-      <CostPanel title={tx("充值记录")}>
-        {ordersError ? <div className="recharge-alert error" role="alert">{ordersError}</div> : null}
-        <SimpleTable columns={[tx("充值时间"), tx("支付方式"), tx("金额"), tx("状态")]} rows={orders.map(order => [
-          formatDate(order.created_at),
-          tx(order.channel === "alipay" ? "支付宝" : "微信支付"),
-          <span key="amount" className="cost-money">{formatCNY(order.amount_fen ?? 0)}</span>,
-          order.status === "succeeded" ? <span className="cost-status is-paid">{tx("已支付")}</span> : <span className="cost-status is-pending">{tx(order.status === "closed" ? "订单已关闭" : order.status === "refunded" ? "已退款" : order.status === "refund_pending" ? "退款处理中" : "待支付")}</span>,
-        ])} />
-        <PaginationControls pagination={orderHistory.pagination} totalItems={orderHistory.total} />
-      </CostPanel>
+      <section className="cost-panel cost-history">
+        <div className="cost-history-tabs" role="tablist" aria-label={tx("费用明细")} onKeyDown={handleHistoryKeyDown}>
+          {historyTabs.map(tab => (
+            <button key={tab.key} type="button" role="tab" id={`${historyId}-${tab.key}-tab`}
+              aria-selected={historyTab === tab.key} aria-controls={`${historyId}-${tab.key}-panel`}
+              tabIndex={historyTab === tab.key ? 0 : -1} onClick={() => setHistoryTab(tab.key)}>
+              {tx(tab.label)}
+            </button>
+          ))}
+        </div>
+        <div className="cost-panel-body" role="tabpanel" id={`${historyId}-orders-panel`}
+          aria-labelledby={`${historyId}-orders-tab`} hidden={historyTab !== "orders"} tabIndex={0}>
+          {ordersError ? <div className="recharge-alert error" role="alert">{ordersError}</div> : null}
+          <PaymentHistoryTable label={tx("充值记录")} columns={[tx("充值时间"), tx("支付方式"), tx("金额"), tx("状态")]} pagination={orderHistory.pagination} total={orderHistory.total} loading={orderHistory.loading} rows={orders.map(order => [
+            formatDate(order.created_at),
+            tx(order.channel === "alipay" ? "支付宝" : "微信支付"),
+            <span key="amount" className="cost-money">{formatCNY(order.amount_fen ?? 0)}</span>,
+            <span key="status" className="payment-history-status" data-status={order.status}>{order.status === "succeeded" ? tx("已支付") : tx(order.status === "closed" ? "订单已关闭" : order.status === "refunded" ? "已退款" : order.status === "refund_pending" ? "退款处理中" : "待支付")}</span>,
+          ])} />
+        </div>
+        <div className="cost-panel-body" role="tabpanel" id={`${historyId}-usage-panel`}
+          aria-labelledby={`${historyId}-usage-tab`} hidden={historyTab !== "usage"} tabIndex={0}>
+          {usageHistory.error ? <div className="recharge-alert error" role="alert">{usageHistory.error}</div> : null}
+          <PaymentHistoryTable label={tx("消费流水")} columns={[tx("模型"), tx("请求 ID"), tx("时间"), tx("金额"), tx("状态")]}
+            pagination={usageHistory.pagination} total={usageHistory.total} loading={usageHistory.loading}
+            rows={usageHistory.rows.map(entry => [
+              entry.model,
+              entry.request_id,
+              formatDate(entry.created_at),
+              entry.status === "settled" ? <strong key="amount">{formatWalletMicros(entry.charged_micros)}</strong> : "—",
+              <span key="status" className="payment-history-status" data-status={entry.status}>{entry.status === "settled" ? tx("已结算") : entry.status === "released" ? tx("未扣费") : tx("待结算")}</span>,
+            ])} />
+        </div>
+      </section>
     </section>
   );
 }

@@ -13,8 +13,8 @@ test.beforeEach(async ({ api }, info) => {
   for (const [path, rows] of histories) {
     api.define("GET", path, ({ query }) => ({ json: { data: rows.slice(Number(query.get("offset")), Number(query.get("offset")) + Number(query.get("limit"))), total: rows.length } }), query => {
       expect([...query.keys()].sort()).toEqual(["limit", "offset"]);
-      expect(Number(query.get("limit"))).toBe(20);
-      expect([0, 20]).toContain(Number(query.get("offset")));
+      expect(Number(query.get("limit"))).toBe(10);
+      expect([0, 10, 20]).toContain(Number(query.get("offset")));
     });
   }
   api.respond("GET", "/api/admin/recharge/plans", { data: [{ id: "ten", amount_fen: 1000 }], channels: ["wechat", "alipay"] });
@@ -58,16 +58,16 @@ test("merchant return displays a verified receipt and can start another recharge
   await page.getByRole("button", { name: "切换到浅色模式", exact: true }).click();
   await page.setViewportSize({ width: 390, height: 844 });
   await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
-  await page.locator(".payment-table-scroll").getByRole("button", { name: "查看详情" }).scrollIntoViewIfNeeded();
-  await expect(page.locator(".payment-table-scroll").getByRole("button", { name: "查看详情" })).toBeInViewport();
-  await expect.poll(() => page.locator(".payment-table-scroll").evaluate(element => element.scrollWidth <= element.clientWidth)).toBe(true);
+  await page.locator(".payment-history-table").getByRole("button", { name: "查看详情" }).scrollIntoViewIfNeeded();
+  await expect(page.locator(".payment-history-table").getByRole("button", { name: "查看详情" })).toBeInViewport();
+  await expect.poll(() => page.locator(".payment-history-table").evaluateAll(elements => elements.every(element => element.scrollWidth <= element.clientWidth))).toBe(true);
   await capture(page, info, page.locator(".payment-workspace"), "recharge-paid-mobile", "Mobile recharge receipt", "viewport");
   await page.getByRole("button", { name: "继续充值", exact: true }).click();
   await expect(page).not.toHaveURL(/payment_order/);
   await expect(page.getByRole("button", { name: "创建充值订单" })).toBeVisible();
 });
 
-test("recharge history pages independently and custom amount stays inside the form", async ({ page, api }, info) => {
+test("recharge history pages and custom amount stays inside the form", async ({ page, api }, info) => {
   api.replaceResponse("GET", "/api/admin/recharge/plans", { data: [], custom_enabled: true, min_fen: 1, max_fen: 500000, channels: ["alipay"] });
   await page.goto("/balance-recharge/");
   const input = page.getByRole("spinbutton", { name: "自定义金额" });
@@ -81,14 +81,13 @@ test("recharge history pages independently and custom amount stays inside the fo
   expect(hintBox!.y + hintBox!.height).toBeLessThan(methodsBox!.y);
   await capture(page, info, page.locator(".payment-workspace"), "recharge-custom-layout", "Custom amount and payment method spacing", "viewport");
   const orders = page.getByRole("region", { name: "充值订单", exact: true });
-  const usage = page.getByRole("region", { name: "消费流水", exact: true });
-  await expect(orders.locator("tbody tr")).toHaveCount(20);
-  await expect(usage.locator("tbody tr")).toHaveCount(20);
+  await expect(orders.locator("tbody tr")).toHaveCount(10);
   await orders.getByRole("button", { name: "下一页", exact: true }).click();
+  await expect(orders.locator("tbody tr")).toHaveCount(10);
+  await orders.getByRole("button", { name: "最后一页", exact: true }).click();
   await expect(orders.locator("tbody tr")).toHaveCount(5);
-  await expect(usage.locator("tbody tr")).toHaveCount(20);
-  await usage.getByRole("button", { name: "下一页", exact: true }).click();
-  await expect(usage.locator("tbody tr")).toHaveCount(3);
+  await expect(page.getByRole("region", { name: "消费流水", exact: true })).toHaveCount(0);
+  expect(api.calls.some(call => call.path === "/api/admin/wallet/usage")).toBe(false);
   await page.setViewportSize({ width: 390, height: 844 });
   await input.scrollIntoViewIfNeeded();
   await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);

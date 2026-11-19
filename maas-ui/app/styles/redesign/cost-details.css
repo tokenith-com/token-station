@@ -275,3 +275,8 @@
   .cost-header { align-items: stretch; flex-direction: column; }
   .cost-ranges { overflow-x: auto; }
 }
+
+.cost-history-tabs { display: flex; gap: 24px; padding: 0 20px; border-bottom: 1px solid var(--border); }
+.cost-history-tabs button { padding: 15px 0; border: 0; border-bottom: 2px solid transparent; background: transparent; color: var(--muted); font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; }
+.cost-history-tabs button[aria-selected="true"] { border-bottom-color: #9160c9; color: #8550be; }
+.cost-history-tabs button:focus-visible { outline: 2px solid #9160c9; outline-offset: -3px; border-radius: 4px; }

@@ -45,13 +45,18 @@ export function usePagination(totalItems: number, resetKey: string, initialPageS
   };
 }
 
-export function PaginationControls({ pagination, totalItems }: { pagination: PaginationState; totalItems: number }) {
-  if (totalItems <= pageSizeOptions[0]) return null;
+export function PaginationControls({ pagination, totalItems, alwaysVisible = false, disabled = false }: {
+  pagination: PaginationState;
+  totalItems: number;
+  alwaysVisible?: boolean;
+  disabled?: boolean;
+}) {
+  if (!alwaysVisible && totalItems <= pageSizeOptions[0]) return null;
   return (
     <div className="pagination">
       <div className="pagination-summary">
         {formatTranslationTemplate(tx("第 {start}-{end} 条，共 {total} 条"), {
-          start: formatLocaleNumber(pagination.startIndex + 1),
+          start: formatLocaleNumber(totalItems === 0 ? 0 : pagination.startIndex + 1),
           end: formatLocaleNumber(pagination.endIndex),
           total: formatLocaleNumber(totalItems),
         })}
@@ -59,16 +64,16 @@ export function PaginationControls({ pagination, totalItems }: { pagination: Pag
       <div className="pagination-controls">
         <label className="page-size">
           <span>{tx("每页")}</span>
-          <select value={pagination.pageSize} onChange={(event) => pagination.setPageSize(Number(event.target.value))}>
+          <select disabled={disabled} value={pagination.pageSize} onChange={(event) => pagination.setPageSize(Number(event.target.value))}>
             {pageSizeOptions.map((option) => <option key={option} value={option}>{formatLocaleNumber(option)}</option>)}
           </select>
         </label>
         <div className="page-buttons">
-          <button type="button" title={tx("第一页")} onClick={() => pagination.setPage(1)} disabled={pagination.page <= 1}><ChevronsLeft size={15} /></button>
-          <button type="button" title={tx("上一页")} onClick={() => pagination.setPage(pagination.page - 1)} disabled={pagination.page <= 1}><ChevronLeft size={15} /></button>
+          <button type="button" title={tx("第一页")} onClick={() => pagination.setPage(1)} disabled={disabled || pagination.page <= 1}><ChevronsLeft size={15} /></button>
+          <button type="button" title={tx("上一页")} onClick={() => pagination.setPage(pagination.page - 1)} disabled={disabled || pagination.page <= 1}><ChevronLeft size={15} /></button>
           <span>{formatLocaleNumber(pagination.page)} / {formatLocaleNumber(pagination.pageCount)}</span>
-          <button type="button" title={tx("下一页")} onClick={() => pagination.setPage(pagination.page + 1)} disabled={pagination.page >= pagination.pageCount}><ChevronRight size={15} /></button>
-          <button type="button" title={tx("最后一页")} onClick={() => pagination.setPage(pagination.pageCount)} disabled={pagination.page >= pagination.pageCount}><ChevronsRight size={15} /></button>
+          <button type="button" title={tx("下一页")} onClick={() => pagination.setPage(pagination.page + 1)} disabled={disabled || pagination.page >= pagination.pageCount}><ChevronRight size={15} /></button>
+          <button type="button" title={tx("最后一页")} onClick={() => pagination.setPage(pagination.pageCount)} disabled={disabled || pagination.page >= pagination.pageCount}><ChevronsRight size={15} /></button>
         </div>
       </div>
     </div>

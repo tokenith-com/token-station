@@ -549,4 +549,8 @@ behavior is preserved; only `starttls` and `ssl` write the field.
 
 ![Routing policies](assets/screenshots/admin-management/routes.png)
 
-Recharge history uses payment orders. Recharge orders and personal usage transactions use server pagination with 20 rows by default and selectable page sizes.
+Recharge history uses payment orders. Recharge orders, personal usage transactions, and cost-detail recharge history share a table layout with server pagination. Pagination controls remain visible for empty and single-page lists. The default page size is 10, with 20, 50, and 100 also available.
+
+Cost details display balances, estimated costs, model costs, and API key costs with the ¥ symbol, using the original numeric values.
+
+Cost details group recharge history and usage transactions into two tabs. Each tab retains its own page and page size. The recharge page contains checkout and recharge orders.

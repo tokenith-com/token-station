@@ -14,8 +14,8 @@ test("prepaid playground preserves a rejected draft and links to recharge", asyn
     status: 402, json: { error: { code: "wallet_insufficient_balance", message: "Insufficient wallet balance" } },
   }));
   api.respond("GET", "/api/admin/recharge/plans", { data: [{ id: "test", name: "Test recharge", amount_fen: 1000 }], channels: ["wechat"] });
-  api.define("GET", "/api/admin/wallet/usage", () => ({ json: { data: [] } }), query => { expect(Object.fromEntries(query)).toEqual({ limit: "20", offset: "0" }); });
-  api.define("GET", "/api/admin/recharge/orders", () => ({ json: { data: [] } }), query => { expect(Object.fromEntries(query)).toEqual({ limit: "20", offset: "0" }); });
+  api.define("GET", "/api/admin/wallet/usage", () => ({ json: { data: [] } }), query => { expect(Object.fromEntries(query)).toEqual({ limit: "10", offset: "0" }); });
+  api.define("GET", "/api/admin/recharge/orders", () => ({ json: { data: [] } }), query => { expect(Object.fromEntries(query)).toEqual({ limit: "10", offset: "0" }); });
   api.define("POST", "/api/admin/recharge/orders", ({ body }) => {
     expect(body).toEqual({ plan_id: "test", channel: "wechat" });
     return { status: 201, json: { order_no: "test-order", status: "pending", qr_code: "weixin://test/checkout" } };
@@ -46,7 +46,7 @@ for (const theme of ["light", "dark"] as const) {
     api.respond("GET", "/api/admin/wallet", { balance_micros: 50000000, available_micros: 50000000 });
     api.respond("GET", "/api/admin/recharge/plans", { data: [{ id: "ten", amount_fen: 1000 }, { id: "fifty", amount_fen: 5000 }, { id: "hundred", amount_fen: 10000 }], custom_enabled: true, min_fen: 1, max_fen: 500000, channels: ["wechat", "alipay"] });
     for (const path of ["/api/admin/wallet/usage", "/api/admin/recharge/orders"]) {
-      api.define("GET", path, () => ({ json: { data: [], total: 0 } }), query => expect(Object.fromEntries(query)).toEqual({ limit: "20", offset: "0" }));
+      api.define("GET", path, () => ({ json: { data: [], total: 0 } }), query => expect(Object.fromEntries(query)).toEqual({ limit: "10", offset: "0" }));
     }
     api.define("POST", "/api/admin/recharge/orders", ({ body }) => {
       expect(body).toEqual({ plan_id: "", channel: "wechat", amount_fen: 2500 });
@@ -80,12 +80,17 @@ test("consumer cost cards adapt without project costs", async ({ page, api }, in
   });
   api.respond("GET", "/api/admin/consumer/wallet", { balance_cents: 5000 });
   api.respond("GET", "/api/admin/wallet", { balance_micros: 50000000, available_micros: 50000000 });
-  api.define("GET", "/api/admin/recharge/orders", () => ({ json: { data: [{ order_no: "real-payment", amount_fen: 1234, channel: "alipay", status: "succeeded", created_at: 1794700800 }], total: 1 } }), query => { expect(Object.fromEntries(query)).toEqual({ limit: "20", offset: "0" }); });
+  api.define("GET", "/api/admin/recharge/orders", () => ({ json: { data: [{ order_no: "real-payment", amount_fen: 1234, channel: "alipay", status: "succeeded", created_at: 1794700800 }], total: 1 } }), query => { expect(Object.fromEntries(query)).toEqual({ limit: "10", offset: "0" }); });
   await page.goto("/billing/");
   await expect(page.locator(".cost-details").getByText("¥12.34", { exact: true })).toBeVisible();
   await expect(page.locator(".cost-details").getByText("已支付", { exact: true })).toBeVisible();
   await expect(page.getByRole("heading", { name: "项目成本", exact: true })).toHaveCount(0);
   await expect(page.locator(".cost-details-grid .cost-panel")).toHaveCount(2);
+  const costAmount = "¥21.50";
+  await expect(page.locator(".cost-kpi.is-balance strong")).toHaveText("¥50.00");
+  await expect(page.locator(".cost-kpi.is-purple strong")).toHaveText(costAmount);
+  await expect(page.locator(".cost-details-grid .cost-money")).toHaveText([costAmount, costAmount]);
+  await expect(page.locator(".cost-details")).not.toContainText("USD");
   await expect(page.getByText(report.breakdown.models[0].id, { exact: true })).toBeVisible();
   const cards = page.locator(".cost-details-grid .cost-panel");
   const modelBounds = await cards.nth(0).boundingBox();

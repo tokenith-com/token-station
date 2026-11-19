@@ -9,10 +9,8 @@ import { languageLocale, tx } from "../i18n/runtime";
 import { formatWalletMicros, walletRequest, type Wallet } from "../resources/wallet";
 
 import { usePaymentHistory, type PaymentOrder as Order } from "../resources/payment-history";
-import { PaginationControls } from "../shared/pagination";
-import { SimpleTable } from "../shared/ui";
+import { PaymentHistoryTable } from "../shared/payment-history-table";
 type Plans = { custom_enabled?: boolean; min_fen?: number; max_fen?: number; data: { id: string; name: string; amount_fen: number }[]; channels: string[] };
-type Usage = { request_id: string; model: string; status: string; charged_micros: number };
 type CheckoutAttempt = { plan_id: string; amount_fen?: number; channel: string; key: string };
 
 function checkoutURL(value: string | undefined) {
@@ -32,9 +30,6 @@ export function ConsumerRechargeView({ api }: { api: ApiContext }) {
 export function RechargeView({ api }: { api: ApiContext }) {
   const [plans, setPlans] = useState<Plans>();
   const [wallet, setWallet] = useState<Wallet>();
-  const usageHistory = usePaymentHistory<Usage>(api, "/api/admin/wallet/usage");
-  const usage = usageHistory.rows;
-  const refreshUsage = usageHistory.refresh;
   const [attempt, setAttempt] = useState<CheckoutAttempt>();
   const [order, setOrder] = useState<Order>();
   const orderHistory = usePaymentHistory<Order>(api, "/api/admin/recharge/orders");
@@ -119,7 +114,6 @@ export function RechargeView({ api }: { api: ApiContext }) {
       setOrder(next);
       setOrders((current) => current.map((item) => item.order_no === next.order_no ? next : item));
       setWallet(await walletRequest<Wallet>(api, "/api/admin/wallet"));
-      usageHistory.refresh();
       window.dispatchEvent(new Event("tokenstation-wallet-updated"));
     } catch (err) {
       setError(err instanceof Error ? err.message : tx("请求失败"));
@@ -140,7 +134,6 @@ export function RechargeView({ api }: { api: ApiContext }) {
           const balance = await walletRequest<Wallet>(api, "/api/admin/wallet", { signal: controller.signal });
           if (controller.signal.aborted) return;
           setWallet(balance);
-          refreshUsage();
           window.dispatchEvent(new Event("tokenstation-wallet-updated"));
         }
         setError("");
@@ -155,7 +148,7 @@ export function RechargeView({ api }: { api: ApiContext }) {
     };
     timer = window.setTimeout(poll, 3000);
     return () => { window.clearTimeout(timer); controller.abort(); };
-  }, [api, order, setOrders, refreshUsage]);
+  }, [api, order, setOrders]);
 
   function newOrder() {
     setAttempt(undefined); setOrder(undefined); setError("");
@@ -180,7 +173,7 @@ export function RechargeView({ api }: { api: ApiContext }) {
   return (
     <section className="guest-cost-view payment-workspace">
       <header className="guest-cost-heading payment-heading"><h1>{tx("余额充值")}</h1><p>{tx("为您的账户充值，享受更多服务")}</p></header>
-      {(orderHistory.error || usageHistory.error) && <p className="recharge-alert error" role="alert">{orderHistory.error || usageHistory.error}</p>}
+      {orderHistory.error && <p className="recharge-alert error" role="alert">{orderHistory.error}</p>}
       {error && <p className="recharge-alert error" role="alert">{error}</p>}
       <div className="payment-checkout-layout">
       <div className="payment-checkout-main">
@@ -253,31 +246,19 @@ export function RechargeView({ api }: { api: ApiContext }) {
         </ol>
       </aside>
       </div>
-      {<section className="section payment-history" aria-label={tx("充值订单")} aria-busy={orderHistory.loading}>
+      <section className="section payment-history" aria-label={tx("充值订单")}>
         <h2>{tx("充值订单")}</h2>
-        {!orderHistory.loading && orders.length === 0 && <p className="muted">{tx("暂无数据")}</p>}
-        {orders.length > 0 && <div className="payment-table-scroll"><table className="payment-orders-table">
-          <thead><tr><th>{tx("充值金额")}</th><th>{tx("支付方式")}</th><th>{tx("时间")}</th><th>{tx("状态")}</th><th>{tx("操作")}</th></tr></thead>
-          <tbody>{orders.map(item => <tr key={item.order_no}>
-            <td><strong>{amountLabel(item.amount_fen)}</strong><small>{item.order_no}</small></td>
-            <td data-label={tx("支付方式")}>{channelLabel(item.channel)}</td>
-            <td data-label={tx("时间")}>{item.created_at ? new Intl.DateTimeFormat(languageLocale(), { dateStyle: "short", timeStyle: "short" }).format(new Date(item.created_at * 1000)) : "—"}</td>
-            <td data-label={tx("状态")}>{statusLabel(item.status)}</td>
-            <td><button type="button" className="text-button" disabled={busy} onClick={() => void refreshOrder(item)}>{item.status === "pending" ? tx("继续支付") : tx("查看详情")}</button></td>
-          </tr>)}</tbody>
-        </table></div>}
-        <PaginationControls pagination={orderHistory.pagination} totalItems={orderHistory.total} />
-
-      </section>}
-      <section className="section" aria-label={tx("消费流水")} aria-busy={usageHistory.loading}>
-        <h2>{tx("消费流水")}</h2>
-        <SimpleTable columns={[tx("模型"), tx("请求 ID"), tx("金额"), tx("状态")]} rows={usage.map(entry => [
-          entry.model, entry.request_id,
-          entry.status === "settled" ? formatWalletMicros(entry.charged_micros) : "—",
-          entry.status === "settled" ? tx("已结算") : entry.status === "released" ? tx("未扣费") : tx("待结算"),
-        ])} />
-        <PaginationControls pagination={usageHistory.pagination} totalItems={usageHistory.total} />
+        <PaymentHistoryTable label={tx("充值订单")} columns={[tx("充值金额"), tx("支付方式"), tx("时间"), tx("状态"), tx("操作")]}
+          pagination={orderHistory.pagination} total={orderHistory.total} loading={orderHistory.loading}
+          rows={orders.map(item => [
+            <div key="amount"><strong>{amountLabel(item.amount_fen)}</strong><small>{item.order_no}</small></div>,
+            channelLabel(item.channel),
+            item.created_at ? new Intl.DateTimeFormat(languageLocale(), { dateStyle: "short", timeStyle: "short" }).format(new Date(item.created_at * 1000)) : "—",
+            <span key="status" className="payment-history-status" data-status={item.status}>{statusLabel(item.status)}</span>,
+            <button key="action" type="button" className="text-button" disabled={busy} onClick={() => void refreshOrder(item)}>{item.status === "pending" ? tx("继续支付") : tx("查看详情")}</button>,
+          ])} />
       </section>
+
     </section>
   );
 }

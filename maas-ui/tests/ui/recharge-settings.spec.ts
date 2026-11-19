@@ -34,8 +34,8 @@ test.describe("custom recharge", () => {
   test("consumers select plans or enter a bounded custom amount", async ({ page, api }, info) => {
     api.respond("GET", "/api/admin/consumer/wallet", { balance_fen: 0, available_fen: 0 });
     api.respond("GET", "/api/admin/wallet", { balance_micros: 0, available_micros: 0 });
-    api.define("GET", "/api/admin/wallet/usage", () => ({ json: { data: [] } }), query => { expect(Object.fromEntries(query)).toEqual({ limit: "20", offset: "0" }); });
-    api.define("GET", "/api/admin/recharge/orders", () => ({ json: { data: [] } }), query => { expect(Object.fromEntries(query)).toEqual({ limit: "20", offset: "0" }); });
+    api.define("GET", "/api/admin/wallet/usage", () => ({ json: { data: [] } }), query => { expect(Object.fromEntries(query)).toEqual({ limit: "10", offset: "0" }); });
+    api.define("GET", "/api/admin/recharge/orders", () => ({ json: { data: [] } }), query => { expect(Object.fromEntries(query)).toEqual({ limit: "10", offset: "0" }); });
     api.respond("GET", "/api/admin/recharge/plans", { data: settings.plans, custom_enabled: true, min_fen: 100, max_fen: 5000, channels: ["wechat"] });
     api.define("POST", "/api/admin/recharge/orders", ({ body }) => {
       expect(body).toEqual({ plan_id: "", channel: "wechat", amount_fen: 1234 });
