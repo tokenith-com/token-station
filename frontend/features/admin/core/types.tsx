@@ -1291,7 +1291,8 @@ export type ViewKey =
   | "database-status"
   | "announcements"
   | "identity-providers"
-  | "settings";
+  | "role-configs"
+  | "settings" | "settlement-settings";
 
 export const viewRoutes: Record<ViewKey, string> = {
   overview: "/overview",
@@ -1326,7 +1327,7 @@ export const viewRoutes: Record<ViewKey, string> = {
   "database-status": "/database-status",
   announcements: "/announcements",
   "identity-providers": "/identity-providers",
-  settings: "/settings",
+  "role-configs": "/role-configs", settings: "/settings", "settlement-settings": "/settlement-settings",
 };
 
 export const routeViews = Object.fromEntries(

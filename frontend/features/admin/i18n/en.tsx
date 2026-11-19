@@ -1496,4 +1496,4 @@ export const enTranslations: Record<string, string> = {
     "放行": "Allow", "使用独立配置的 Qwen3Guard 服务；未配置或不可用时执行下方策略。": "Uses the separately configured Qwen3Guard service; the behavior below applies when it is unconfigured or unavailable.",
     "Provider 出口模式": "Provider Egress Mode", "继承环境变量代理": "Inherit Environment Proxy", "直接连接": "Direct Connection", "使用统一代理": "Use Global Proxy", "代理协议": "Proxy Protocol", "代理 Host": "Proxy Host", "代理端口": "Proxy Port", "启用代理 Basic 认证": "Enable Proxy Basic Authentication", "代理用户名": "Proxy Username", "代理密码": "Proxy Password", "测试目标 Provider": "Test Target Provider", "正在测试代理": "Testing Proxy", "测试代理连接": "Test Proxy Connection", "代理连接测试通过": "Proxy connection test passed", "代理连接测试失败": "Proxy connection test failed",
     "适用于 Provider 上游请求；本机与内网目标默认直连。其他目标默认继承 HTTP_PROXY、HTTPS_PROXY 和 NO_PROXY。": "Applies to Provider upstream requests. Local and private targets connect directly by default; other targets inherit HTTP_PROXY, HTTPS_PROXY, and NO_PROXY.",
-    };
+};
