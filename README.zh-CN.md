@@ -102,12 +102,14 @@ TokenStation 将模型发现、Playground、API 接入和成本可视化整合�
 
 ## 配置与部署
 
+TokenStation 的发布包由 `release` 分支上的版本标签构建。
+
 ### Linux 首次安装
 
 从 [Releases](https://github.com/tokenith-com/token-station/releases) 下载对应架构的 `tokenstation_*.tar.gz` 和 `checksums.txt`。以下以 amd64 为例，在新目录安装独立服务。
 
 ```bash
-archive=tokenstation_0.11.0-maas.1_linux_amd64.tar.gz
+archive=tokenstation_0.11.1_linux_amd64.tar.gz
 awk -v f="$archive" '$2 == f {print}' checksums.txt | sha256sum -c - &&
   sudo install -d /opt/tokenstation-maas &&
   sudo tar -xzf "$archive" -C /opt/tokenstation-maas
@@ -132,7 +134,7 @@ TOKENHUB_MODEL_CATALOG_FILE=/opt/tokenstation-maas/catalog/model-catalog.yaml
 TOKENHUB_PROVIDER_CATALOG_FILE=/opt/tokenstation-maas/catalog/provider-catalog.json
 ```
 
-将以下内容保存为 `/etc/systemd/system/tokenstation-maas.service`。
+将以下内容保存为 `/etc/systemd/system/tokenstation.service`。
 
 ```ini
 [Unit]
@@ -157,7 +159,7 @@ sudo systemd-run --wait --pipe --collect -p User=tokenstation-maas \
   -p WorkingDirectory=/var/lib/tokenstation-maas -p EnvironmentFile=/etc/tokenstation-maas.env \
   /opt/tokenstation-maas/bin/tokenstation db prepare --initialize
 sudo systemctl daemon-reload
-sudo systemctl enable --now tokenstation-maas
+sudo systemctl enable --now tokenstation.service
 curl -fsS http://127.0.0.1:18080/readyz
 ```
 

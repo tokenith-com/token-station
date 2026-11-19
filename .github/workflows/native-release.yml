@@ -2,7 +2,7 @@ name: Native release assets
 
 on:
   push:
-    tags: ["v*-maas.*"]
+    tags: ["v[0-9]+.[0-9]+.[0-9]+"]
   release:
     types:
       - published
@@ -34,6 +34,9 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
 
+        with:
+          fetch-depth: 0
+
       - name: Validate release tag
         id: release
         env:
@@ -51,6 +54,10 @@ jobs:
           fi
 
           version="$(.github/release/normalize-release-tag.sh "$raw_tag")"
+          git merge-base --is-ancestor "refs/tags/$raw_tag^{commit}" refs/remotes/origin/release || {
+            echo "Release tags must point to commits on the release branch." >&2
+            exit 1
+          }
           echo "tag=v${version}" >>"$GITHUB_OUTPUT"
           echo "version=${version}" >>"$GITHUB_OUTPUT"
 
@@ -305,7 +312,7 @@ jobs:
           if [[ "$GITHUB_EVENT_NAME" == push ]]; then
             gh release create "$RELEASE_TAG" tokenstation_*.tar.gz tokenhub_*.tar.gz checksums.txt \
               --repo "$GITHUB_REPOSITORY" --verify-tag --prerelease \
-              --title "TokenStation MaaS ${RELEASE_TAG#v}" \
+              --title "$RELEASE_TAG" \
               --notes "Linux amd64 and arm64 packages with the MaaS console. See the README at this tag for configuration and systemd deployment."
             exit 0
           fi

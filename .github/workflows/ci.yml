@@ -8,7 +8,7 @@ on:
   push:
     branches:
       - main
-      - product/maas
+      - release
   merge_group:
 
 # Read-only by default, matching container-images.yml. No job here needs more, and

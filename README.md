@@ -102,12 +102,14 @@ Default addresses:
 
 ## Configuration and deployment
 
+TokenStation release packages are built from version tags on the `release` branch.
+
 ### First install on Linux
 
 Download the matching `tokenstation_*.tar.gz` and `checksums.txt` from [Releases](https://github.com/tokenith-com/token-station/releases). This amd64 example installs a separate service in a fresh directory.
 
 ```bash
-archive=tokenstation_0.11.0-maas.1_linux_amd64.tar.gz
+archive=tokenstation_0.11.1_linux_amd64.tar.gz
 awk -v f="$archive" '$2 == f {print}' checksums.txt | sha256sum -c - &&
   sudo install -d /opt/tokenstation-maas &&
   sudo tar -xzf "$archive" -C /opt/tokenstation-maas
@@ -132,7 +134,7 @@ TOKENHUB_MODEL_CATALOG_FILE=/opt/tokenstation-maas/catalog/model-catalog.yaml
 TOKENHUB_PROVIDER_CATALOG_FILE=/opt/tokenstation-maas/catalog/provider-catalog.json
 ```
 
-Save this unit as `/etc/systemd/system/tokenstation-maas.service`.
+Save this unit as `/etc/systemd/system/tokenstation.service`.
 
 ```ini
 [Unit]
@@ -157,7 +159,7 @@ sudo systemd-run --wait --pipe --collect -p User=tokenstation-maas \
   -p WorkingDirectory=/var/lib/tokenstation-maas -p EnvironmentFile=/etc/tokenstation-maas.env \
   /opt/tokenstation-maas/bin/tokenstation db prepare --initialize
 sudo systemctl daemon-reload
-sudo systemctl enable --now tokenstation-maas
+sudo systemctl enable --now tokenstation.service
 curl -fsS http://127.0.0.1:18080/readyz
 ```
 
