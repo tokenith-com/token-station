@@ -111,13 +111,13 @@ TokenStation の配布パッケージは `release` ブランチのバージョ�
 ```bash
 archive=tokenstation_0.11.1_linux_amd64.tar.gz
 awk -v f="$archive" '$2 == f {print}' checksums.txt | sha256sum -c - &&
-  sudo install -d /opt/tokenstation-maas &&
-  sudo tar -xzf "$archive" -C /opt/tokenstation-maas
-sudo useradd --system --user-group --no-create-home --shell /usr/sbin/nologin tokenstation-maas
-sudo install -d -m 0750 -o tokenstation-maas -g tokenstation-maas /var/lib/tokenstation-maas
+  sudo install -d /opt/tokenstation &&
+  sudo tar -xzf "$archive" -C /opt/tokenstation
+sudo useradd --system --user-group --no-create-home --shell /usr/sbin/nologin tokenstation
+sudo install -d -m 0750 -o tokenstation -g tokenstation /var/lib/tokenstation
 ```
 
-サーバーに `/etc/tokenstation-maas.env` を作成し、権限を `0600` に設定します。例は SQLite 用です。PostgreSQL の場合は `postgres://user:password@host:5432/database?sslmode=verify-full` を指定します。 ドメインを実際の値に置き換えます。暗号鍵と初期管理者パスワードはそれぞれ `openssl rand -hex 32` で生成します。アップグレード時は既存の暗号鍵を引き継ぎます。
+サーバーに `/etc/tokenstation.env` を作成し、権限を `0600` に設定します。例は SQLite 用です。PostgreSQL の場合は `postgres://user:password@host:5432/database?sslmode=verify-full` を指定します。 ドメインを実際の値に置き換えます。暗号鍵と初期管理者パスワードはそれぞれ `openssl rand -hex 32` で生成します。アップグレード時は既存の暗号鍵を引き継ぎます。
 
 ```dotenv
 TOKENHUB_ENV=prod
@@ -125,13 +125,13 @@ TOKENHUB_HTTP_ADDR=127.0.0.1:18080
 TOKENHUB_FRONTEND_HOST=127.0.0.1
 TOKENHUB_FRONTEND_PORT=13000
 TOKENHUB_PUBLIC_BASE_URL=https://maas.example.com/maas-api
-TOKENHUB_DATABASE_URL=sqlite:///var/lib/tokenstation-maas/maas.db
+TOKENHUB_DATABASE_URL=sqlite:///var/lib/tokenstation/maas.db
 TOKENHUB_SECRET_KEY=<encryption-key>
 TOKENHUB_BOOTSTRAP_ADMIN_PASSWORD=<initial-password>
-TOKENHUB_INSTALL_ROOT=/var/lib/tokenstation-maas
-TOKENHUB_PLUGIN_DIR=/var/lib/tokenstation-maas/plugins
-TOKENHUB_MODEL_CATALOG_FILE=/opt/tokenstation-maas/catalog/model-catalog.yaml
-TOKENHUB_PROVIDER_CATALOG_FILE=/opt/tokenstation-maas/catalog/provider-catalog.json
+TOKENHUB_INSTALL_ROOT=/var/lib/tokenstation
+TOKENHUB_PLUGIN_DIR=/var/lib/tokenstation/plugins
+TOKENHUB_MODEL_CATALOG_FILE=/opt/tokenstation/catalog/model-catalog.yaml
+TOKENHUB_PROVIDER_CATALOG_FILE=/opt/tokenstation/catalog/provider-catalog.json
 ```
 
 以下を `/etc/systemd/system/tokenstation.service` に保存します。
@@ -142,10 +142,10 @@ Description=TokenStation MaaS
 After=network.target
 
 [Service]
-User=tokenstation-maas
-WorkingDirectory=/var/lib/tokenstation-maas
-EnvironmentFile=/etc/tokenstation-maas.env
-ExecStart=/opt/tokenstation-maas/bin/tokenstation-run
+User=tokenstation
+WorkingDirectory=/var/lib/tokenstation
+EnvironmentFile=/etc/tokenstation.env
+ExecStart=/opt/tokenstation/bin/tokenstation-run
 Restart=on-failure
 
 [Install]
@@ -155,9 +155,9 @@ WantedBy=multi-user.target
 新規導入では以下を実行します。既存のデータベースではバックアップ後に使用中のインスタンスを停止し、`--initialize` を付けずに `db prepare` を実行します。
 
 ```bash
-sudo systemd-run --wait --pipe --collect -p User=tokenstation-maas \
-  -p WorkingDirectory=/var/lib/tokenstation-maas -p EnvironmentFile=/etc/tokenstation-maas.env \
-  /opt/tokenstation-maas/bin/tokenstation db prepare --initialize
+sudo systemd-run --wait --pipe --collect -p User=tokenstation \
+  -p WorkingDirectory=/var/lib/tokenstation -p EnvironmentFile=/etc/tokenstation.env \
+  /opt/tokenstation/bin/tokenstation db prepare --initialize
 sudo systemctl daemon-reload
 sudo systemctl enable --now tokenstation.service
 curl -fsS http://127.0.0.1:18080/readyz

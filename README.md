@@ -111,13 +111,13 @@ Download the matching `tokenstation_*.tar.gz` and `checksums.txt` from [Releases
 ```bash
 archive=tokenstation_0.11.1_linux_amd64.tar.gz
 awk -v f="$archive" '$2 == f {print}' checksums.txt | sha256sum -c - &&
-  sudo install -d /opt/tokenstation-maas &&
-  sudo tar -xzf "$archive" -C /opt/tokenstation-maas
-sudo useradd --system --user-group --no-create-home --shell /usr/sbin/nologin tokenstation-maas
-sudo install -d -m 0750 -o tokenstation-maas -g tokenstation-maas /var/lib/tokenstation-maas
+  sudo install -d /opt/tokenstation &&
+  sudo tar -xzf "$archive" -C /opt/tokenstation
+sudo useradd --system --user-group --no-create-home --shell /usr/sbin/nologin tokenstation
+sudo install -d -m 0750 -o tokenstation -g tokenstation /var/lib/tokenstation
 ```
 
-Create `/etc/tokenstation-maas.env` on the server with mode `0600`. The example uses SQLite. For PostgreSQL, use `postgres://user:password@host:5432/database?sslmode=verify-full`. Replace the example domain. Run `openssl rand -hex 32` separately for the encryption key and initial admin password. Keep the encryption key across upgrades.
+Create `/etc/tokenstation.env` on the server with mode `0600`. The example uses SQLite. For PostgreSQL, use `postgres://user:password@host:5432/database?sslmode=verify-full`. Replace the example domain. Run `openssl rand -hex 32` separately for the encryption key and initial admin password. Keep the encryption key across upgrades.
 
 ```dotenv
 TOKENHUB_ENV=prod
@@ -125,13 +125,13 @@ TOKENHUB_HTTP_ADDR=127.0.0.1:18080
 TOKENHUB_FRONTEND_HOST=127.0.0.1
 TOKENHUB_FRONTEND_PORT=13000
 TOKENHUB_PUBLIC_BASE_URL=https://maas.example.com/maas-api
-TOKENHUB_DATABASE_URL=sqlite:///var/lib/tokenstation-maas/maas.db
+TOKENHUB_DATABASE_URL=sqlite:///var/lib/tokenstation/maas.db
 TOKENHUB_SECRET_KEY=<encryption-key>
 TOKENHUB_BOOTSTRAP_ADMIN_PASSWORD=<initial-password>
-TOKENHUB_INSTALL_ROOT=/var/lib/tokenstation-maas
-TOKENHUB_PLUGIN_DIR=/var/lib/tokenstation-maas/plugins
-TOKENHUB_MODEL_CATALOG_FILE=/opt/tokenstation-maas/catalog/model-catalog.yaml
-TOKENHUB_PROVIDER_CATALOG_FILE=/opt/tokenstation-maas/catalog/provider-catalog.json
+TOKENHUB_INSTALL_ROOT=/var/lib/tokenstation
+TOKENHUB_PLUGIN_DIR=/var/lib/tokenstation/plugins
+TOKENHUB_MODEL_CATALOG_FILE=/opt/tokenstation/catalog/model-catalog.yaml
+TOKENHUB_PROVIDER_CATALOG_FILE=/opt/tokenstation/catalog/provider-catalog.json
 ```
 
 Save this unit as `/etc/systemd/system/tokenstation.service`.
@@ -142,10 +142,10 @@ Description=TokenStation MaaS
 After=network.target
 
 [Service]
-User=tokenstation-maas
-WorkingDirectory=/var/lib/tokenstation-maas
-EnvironmentFile=/etc/tokenstation-maas.env
-ExecStart=/opt/tokenstation-maas/bin/tokenstation-run
+User=tokenstation
+WorkingDirectory=/var/lib/tokenstation
+EnvironmentFile=/etc/tokenstation.env
+ExecStart=/opt/tokenstation/bin/tokenstation-run
 Restart=on-failure
 
 [Install]
@@ -155,9 +155,9 @@ WantedBy=multi-user.target
 Run these commands for a fresh install. For an existing database, back it up, stop all instances using it and run `db prepare` without `--initialize`.
 
 ```bash
-sudo systemd-run --wait --pipe --collect -p User=tokenstation-maas \
-  -p WorkingDirectory=/var/lib/tokenstation-maas -p EnvironmentFile=/etc/tokenstation-maas.env \
-  /opt/tokenstation-maas/bin/tokenstation db prepare --initialize
+sudo systemd-run --wait --pipe --collect -p User=tokenstation \
+  -p WorkingDirectory=/var/lib/tokenstation -p EnvironmentFile=/etc/tokenstation.env \
+  /opt/tokenstation/bin/tokenstation db prepare --initialize
 sudo systemctl daemon-reload
 sudo systemctl enable --now tokenstation.service
 curl -fsS http://127.0.0.1:18080/readyz
