@@ -15,7 +15,7 @@ func TestAdminSchemaStatusEndpoint(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	server := NewWithConfig(store, Config{AdminToken: "schema-status-token", AppVersion: "v0.5.0-schema-test"})
+	server := newManagedTestServerWithConfig(t, store, Config{AdminToken: "schema-status-token", AppVersion: "v0.5.0-schema-test"})
 
 	unauthorized := httptest.NewRequest(http.MethodGet, "/api/admin/system/schema-status", nil)
 	unauthorizedRecorder := httptest.NewRecorder()
@@ -61,7 +61,7 @@ func TestAdminSchemaStatusEndpoint(t *testing.T) {
 }
 
 func TestAnnotateRollbackCompatibility(t *testing.T) {
-	server := New(NewMemoryStore())
+	server := newManagedTestServer(t, newTestMemoryStore(t))
 	versions := []rollbackVersionInfo{
 		{Version: "0.4.0"},
 		{Version: "0.3.0"},

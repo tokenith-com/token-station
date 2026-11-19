@@ -185,6 +185,41 @@ func TestValidateJSONAcceptsMinuteRateLimits(t *testing.T) {
 	}
 }
 
+func TestValidateJSONProjectExcludedModels(t *testing.T) {
+	for _, tc := range []struct {
+		name     string
+		resource string
+		fields   map[string]any
+		valid    bool
+	}{
+		{"project excluded", "projects", map[string]any{"model_access_mode": "excluded", "excluded_models": []string{"model-a"}}, true},
+		{"project empty", "projects", map[string]any{"model_access_mode": "excluded", "excluded_models": []string{}}, true},
+		{"project null", "projects", map[string]any{"excluded_models": nil}, true},
+		{"project invalid list", "projects", map[string]any{"excluded_models": []int{1}}, false},
+		{"key excluded mode", "api_keys", map[string]any{"model_access_mode": "excluded"}, false},
+		{"key excluded list", "api_keys", map[string]any{"excluded_models": []string{"model-a"}}, false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			spec := map[string]any{"name": "Test", "status": "active"}
+			for key, value := range tc.fields {
+				spec[key] = value
+			}
+			payload, err := json.Marshal(map[string]any{
+				"schema_version": SchemaVersion,
+				"source":         map[string]any{"adapter": "tokenhub", "adapter_version": "1.1.0"},
+				"generated_at":   "2026-08-02T01:00:00Z",
+				tc.resource:      []map[string]any{{"external_ref": map[string]any{"system": "tokenhub", "id": "test"}, "spec": spec}},
+			})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if err := ValidateJSON(payload); (err == nil) != tc.valid {
+				t.Fatalf("validation error = %v, want valid %v", err, tc.valid)
+			}
+		})
+	}
+}
+
 func TestValidateJSONAcceptsModelAccessModesAndRouteTags(t *testing.T) {
 	payload, err := json.Marshal(map[string]any{
 		"schema_version": SchemaVersion,

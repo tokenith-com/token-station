@@ -12,7 +12,7 @@ import (
 
 func claudeSubscriptionRoutingFixture(t *testing.T) (*Server, *ClaudeSubscriptionAdapter, []RouteSelection, CallContext) {
 	t.Helper()
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	server := New(store)
 	t.Cleanup(func() { _ = server.Shutdown(context.Background()) })
 	adapter, ok := resolveTypedAdapter[*ClaudeSubscriptionAdapter](server.adapterRegistry, providerClaudeSubscription)

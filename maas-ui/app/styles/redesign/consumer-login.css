@@ -1,0 +1,174 @@
+.consumer-login-shell .login-account-stage {
+  grid-template-columns: minmax(380px, 37.36%) minmax(0, 1fr);
+}
+
+.consumer-login-shell .login-account-main {
+  padding-top: clamp(60px, 16vh, 130px);
+  background: #f7f8fc;
+}
+
+.consumer-login-shell .login-account-card {
+  align-self: start;
+}
+
+.consumer-login-shell .login-account-logo {
+  top: 0;
+  left: 0;
+  width: 253px;
+  height: 42px;
+}
+
+.consumer-login-shell .login-helper-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 34px;
+}
+
+.consumer-login-shell .login-account-card .login-submit,
+.consumer-login-shell .consumer-auth-link {
+  font-weight: 400;
+}
+
+.consumer-auth-link {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #506bc2;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.consumer-auth-link:disabled {
+  cursor: default;
+  opacity: .6;
+}
+
+.consumer-auth-link:focus-visible {
+  outline: 2px solid #506bc2;
+  outline-offset: 4px;
+}
+
+.consumer-registration-heading {
+  margin-bottom: 22px;
+}
+
+.consumer-registration-heading h1 {
+  margin: 0 0 7px;
+  color: #324558;
+  font-size: 21px;
+}
+
+.consumer-registration-heading p,
+.consumer-form-note {
+  margin: 0;
+  color: #667385;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.consumer-registration .login-account-field + .login-account-field {
+  margin-top: 14px;
+}
+
+.consumer-agreement-consent {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px;
+  margin-top: 16px;
+  font-size: 12px;
+  color: #5b6474;
+}
+
+.consumer-agreement-consent input {
+  margin: 0 6px 0 0;
+}
+
+.consumer-agreement-link {
+  border: 0;
+  padding: 0;
+  background: none;
+  color: #506bc2;
+  font: inherit;
+  cursor: pointer;
+}
+
+.consumer-agreement-link:hover,
+.consumer-agreement-link:focus-visible {
+  text-decoration: underline;
+}
+
+.consumer-agreement-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(15, 23, 42, 0.45);
+}
+
+.consumer-agreement-dialog {
+  display: flex;
+  flex-direction: column;
+  width: min(720px, 100%);
+  max-height: min(80vh, 760px);
+  border-radius: 8px;
+  background: #fff;
+  color: #1f2937;
+  box-shadow: 0 20px 48px rgba(15, 23, 42, 0.25);
+  outline: none;
+}
+
+.consumer-agreement-dialog header,
+.consumer-agreement-dialog footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 20px;
+}
+
+.consumer-agreement-dialog header { border-bottom: 1px solid #e5e7eb; }
+.consumer-agreement-dialog footer { justify-content: flex-end; border-top: 1px solid #e5e7eb; }
+.consumer-agreement-dialog h2 { margin: 0; font-size: 18px; }
+
+.consumer-agreement-body {
+  overflow-y: auto;
+  padding: 16px 20px;
+  font-size: 13px;
+  line-height: 1.8;
+}
+
+.consumer-agreement-body h3 { margin: 18px 0 6px; font-size: 14px; }
+.consumer-agreement-body p { margin: 0 0 8px; }
+
+.consumer-login-shell .consumer-registration .login-error {
+  margin: 14px 0;
+  overflow-wrap: anywhere;
+}
+
+.consumer-form-note {
+  margin: 12px 0;
+}
+
+.consumer-registration .login-submit {
+  width: 100%;
+  margin-top: 22px;
+}
+
+.consumer-back {
+  display: block;
+  margin: 18px auto 0;
+}
+
+@media (max-width: 700px) {
+  .consumer-login-shell .login-account-stage { display: block; }
+  .consumer-login-shell .login-account-main { padding-top: 80px; }
+  .consumer-login-shell .login-helper-row { flex-direction: row; }
+}
+
+@media (max-height: 840px) {
+  .consumer-login-shell:has(.consumer-registration) .login-account-main { padding-top: 30px; }
+}

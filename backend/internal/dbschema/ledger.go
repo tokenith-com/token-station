@@ -60,6 +60,19 @@ func (r *Runner) nowText() string {
 	return time.Now().UTC().Format(time.RFC3339)
 }
 
+// inspectApplied reads existing migration records without creating a ledger.
+func (r *Runner) inspectApplied(ctx context.Context) ([]Applied, error) {
+	query := "SELECT EXISTS (SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'schema_migrations')"
+	if r.dialect == DialectPostgres {
+		query = "SELECT to_regclass('schema_migrations') IS NOT NULL"
+	}
+	var exists bool
+	if err := r.db.QueryRowContext(ctx, query).Scan(&exists); err != nil || !exists {
+		return nil, err
+	}
+	return r.loadApplied(ctx)
+}
+
 // loadApplied reads the ledger ordered by version.
 func (r *Runner) loadApplied(ctx context.Context) ([]Applied, error) {
 	rows, err := r.db.QueryContext(ctx, `SELECT version, name, phase, checksum, dirty, applied_at, applied_release FROM schema_migrations ORDER BY version`)

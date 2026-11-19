@@ -148,7 +148,7 @@ func TestGatewaySystemOnePluginDisableAndRestore(t *testing.T) {
 		calls.Add(1)
 		writeFixture(t, w, systemOneFixtureResponse)
 	})
-	server := NewWithConfig(store, Config{AdminToken: "dev_admin_token", PluginDir: t.TempDir()})
+	server := newManagedTestServerWithConfig(t, store, Config{AdminToken: "dev_admin_token", PluginDir: t.TempDir()})
 	for _, tc := range []struct {
 		status string
 		code   int

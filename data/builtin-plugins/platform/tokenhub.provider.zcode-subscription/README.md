@@ -1,6 +1,6 @@
 # ZCode
 
-Connect an explicitly authorized ZCode account to TokenHub.
+Connect an explicitly authorized ZCode account to TokenStation.
 
 - Plugin ID: `tokenhub.provider.zcode-subscription`
 - Configuration: Provider management, with a separate account resource

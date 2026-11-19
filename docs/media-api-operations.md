@@ -4,7 +4,7 @@ Language: English | [简体中文](zh-CN/media-api-operations.md) | [日本語](
 
 This companion to the [text and multimodal API guide](media-apis.md) covers provider-specific workflows, hooks, accounting, and validation. Provider-specific Chat/Responses auxiliary workflows pass provider IDs through; recognized Images/Videos task receipts bind returned task IDs to the submitting key and original account for `/v1/tasks/{task_id}` polling.
 
-TokenHub supports the media protocol families listed below. Configure the upstream provider and publish each generation, upload, query, or download model before calling it. This is protocol compatibility: model availability and accepted parameters remain the upstream provider's responsibility. No vendor credentials or prices are bundled.
+TokenStation supports the media protocol families listed below. Configure the upstream provider and publish each generation, upload, query, or download model before calling it. This is protocol compatibility: model availability and accepted parameters remain the upstream provider's responsibility. No vendor credentials or prices are bundled.
 
 ## Endpoint coverage
 
@@ -33,9 +33,9 @@ For native Gemini media, configure a media modality or output modality on the pu
 
 Native Gemini media streams reject terminal SSE event names, `type:"error"` or `*.failed` payloads, and non-null nested `response.error` fields, including provider-hook output. Such errors remain failures even after a candidate reports a finish reason; known token usage and explicit plugin usage overrides are retained, and error credentials are not returned. A nested `response.error:null` remains compatible with successful events.
 
-The managed `gpt-image-2`, Codex subscription, and plugin image profiles retain their existing validation, one-image job flow, stored assets, and `Prefer: respond-async` support. To use a provider's full Images contract for an upstream model with a managed public name, publish a separate public alias (for example `vendor-gpt-image`) mapped to that upstream ID. Ordinary image routes preserve the provider response except that recognized task IDs are replaced with bound TokenHub IDs for `/v1/tasks` polling. Local image job execution and signed TokenHub image URLs apply only to managed jobs. Direct image requests accept provider-specific `response_format` strings, such as Qwen Image `base64`; built-in managed images still accept only `url` or `b64_json`, while managed plugin models enforce their configured formats.
+The managed `gpt-image-2`, Codex subscription, and plugin image profiles retain their existing validation, one-image job flow, stored assets, and `Prefer: respond-async` support. To use a provider's full Images contract for an upstream model with a managed public name, publish a separate public alias (for example `vendor-gpt-image`) mapped to that upstream ID. Ordinary image routes preserve the provider response except that recognized task IDs are replaced with bound TokenStation IDs for `/v1/tasks` polling. Local image job execution and signed TokenStation image URLs apply only to managed jobs. Direct image requests accept provider-specific `response_format` strings, such as Qwen Image `base64`; built-in managed images still accept only `url` or `b64_json`, while managed plugin models enforce their configured formats.
 
-With `background:true` on `/v1/responses`, the response body's `id` identifies TokenHub's local request job. Completed media polling replies expose the vendor's original root ID in `x-tokenhub-upstream-response-id`; use that ID with the vendor's auxiliary query model. Local completion means the upstream API call finished; vendor rendering may still require polling. String and numeric IDs are preserved exactly. The header is omitted for nonscalar IDs, control characters, surrounding whitespace, or values over 2048 bytes.
+With `background:true` on `/v1/responses`, the response body's `id` identifies TokenStation's local request job. Completed media polling replies expose the vendor's original root ID in `x-tokenhub-upstream-response-id`; use that ID with the vendor's auxiliary query model. Local completion means the upstream API call finished; vendor rendering may still require polling. String and numeric IDs are preserved exactly. The header is omitted for nonscalar IDs, control characters, surrounding whitespace, or values over 2048 bytes.
 
 ## Examples
 
@@ -45,7 +45,7 @@ Replace `TOKENHUB_API_KEY` with a project key in your environment. Model names b
 curl https://tokenhub.example/v1/audio/speech \
   -H "Authorization: Bearer $TOKENHUB_API_KEY" \
   -H 'Content-Type: application/json' \
-  -d '{"model":"speech-2.6-hd","input":"Hello from TokenHub","voice":"male-qn-qingse","response_format":"mp3"}' \
+  -d '{"model":"speech-2.6-hd","input":"Hello from TokenStation","voice":"male-qn-qingse","response_format":"mp3"}' \
   --output speech.mp3
 
 curl https://tokenhub.example/v1/audio/transcriptions \
@@ -66,7 +66,7 @@ curl https://tokenhub.example/v1/responses \
 
 ## Limits, accounting, and verification
 
-The new direct media routes use `TOKENHUB_MAX_MULTIMODAL_REQUEST_BYTES` (32 MiB by default). Multipart requests allow up to 128 parts and 1 MiB per text field. Responses are buffered up to 128 MiB before delivery and keep the provider content type; this direct path does not provide low-latency chunk delivery. Existing managed image limits remain unchanged. Files are not downloaded from response URLs by TokenHub.
+The new direct media routes use `TOKENHUB_MAX_MULTIMODAL_REQUEST_BYTES` (32 MiB by default). Multipart requests allow up to 128 parts and 1 MiB per text field. Responses are buffered up to 128 MiB before delivery and keep the provider content type; this direct path does not provide low-latency chunk delivery. Existing managed image limits remain unchanged. Files are not downloaded from response URLs by TokenStation.
 
 Multipart `model` and `stream` controls must be single text fields. On `/v1/audio/speech`, `stream_format:"sse"` also selects streaming admission and provider hooks; `stream_format` must be a single non-empty text value, and request hooks cannot change the effective stream mode. JSON `stream` must be a boolean; multipart `stream` must contain a boolean text value. Ambiguous controls are rejected before routing, including request-hook patches. Text policies inspect every value of `input`, `instructions`, `prompt`, `negative_prompt`, and `text`, including repeated multipart fields, while preserving repeated options such as `timestamp_granularities[]`.
 

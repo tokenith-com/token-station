@@ -1,10 +1,10 @@
-# TokenHub Migration Framework
+# TokenStation Migration Framework
 
-The TokenHub migration framework provides a repeatable, idempotent workflow for moving competing AI gateways into TokenHub.
+The TokenStation migration framework provides a repeatable, idempotent workflow for moving competing AI gateways into TokenStation.
 
 ## Current Status
 
-The current branch ships a working canonical bundle, a TokenHub sink with both store-backed and remote Admin API-backed execution, a LiteLLM file-based adapter, and a working CLI flow for `extract`, `plan`, `apply`, `verify`, and `rollback`.
+The current branch ships a working canonical bundle, a TokenStation sink with both store-backed and remote Admin API-backed execution, a LiteLLM file-based adapter, and a working CLI flow for `extract`, `plan`, `apply`, `verify`, and `rollback`.
 
 ## Architecture
 
@@ -20,17 +20,17 @@ See [litellm.md](./litellm.md) for LiteLLM specifics.
 
 ## Canonical Bundle
 
-The intermediate representation used between source adapters and the TokenHub sink. See [bundle-schema.md](./bundle-schema.md) for the schema and compatibility policy.
+The intermediate representation used between source adapters and the TokenStation sink. See [bundle-schema.md](./bundle-schema.md) for the schema and compatibility policy.
 
 ## CLI
 
 ```bash
-tokenhub-migrate inspect litellm --from proxy_config.yaml
-tokenhub-migrate extract litellm --from proxy_config.yaml --out bundle.json
-tokenhub-migrate plan --bundle bundle.json
-tokenhub-migrate apply --bundle bundle.json
-tokenhub-migrate verify --bundle bundle.json
-tokenhub-migrate rollback --checkpoint checkpoint.json
+tokenstation-migrate inspect litellm --from proxy_config.yaml
+tokenstation-migrate extract litellm --from proxy_config.yaml --out bundle.json
+tokenstation-migrate plan --bundle bundle.json
+tokenstation-migrate apply --bundle bundle.json
+tokenstation-migrate verify --bundle bundle.json
+tokenstation-migrate rollback --checkpoint checkpoint.json
 ```
 
 ## Secret Handling

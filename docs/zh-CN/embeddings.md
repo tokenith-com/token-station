@@ -1,6 +1,6 @@
 # 文本 Embedding
 
-TokenHub 通过 `POST /v1/embeddings` 提供文本向量，复用 API Key 权限、路由、限流和请求审计。传入 `model` 与单条文本或独立文本数组；批量输入逐条返回向量并保留 `index`。上游返回数量、索引或维度不符时报告错误。
+TokenStation 通过 `POST /v1/embeddings` 提供文本向量，复用 API Key 权限、路由、限流和请求审计。传入 `model` 与单条文本或独立文本数组；批量输入逐条返回向量并保留 `index`。上游返回数量、索引或维度不符时报告错误。
 
 可选参数：`dimensions`、`encoding_format`（`float` / `base64`）、`input_type`（`query` / `document`）、`task`、`normalized`、`truncation`、`late_chunking`、`user`。具体支持取决于上游协议；不支持的参数明确拒绝，不静默丢弃。本接口暂不支持稀疏、量化、多模态和异步 Batch；兼容上游仍可接收 token ID 输入。
 
@@ -25,7 +25,7 @@ TokenHub 通过 `POST /v1/embeddings` 提供文本向量，复用 API Key 权限
 
 ## 向量空间
 
-默认要求 Provider、上游模型、适配器类型、实际 Base URL、Embedding 协议和接口路径一致。资源覆盖也参与空间身份判断；不同部署必须显式确认共享空间。确认部署兼容后，可在 `embedding_spaces` 填写上游模型到空间标识的 JSON，例如 `{"my-embedding-model":"space-v1"}`。相同标识意味着管理员确认模型版本与编码行为兼容；仅维度相同不够。更换空间需要业务应用重建已有向量索引，TokenHub 不修改外部索引。
+默认要求 Provider、上游模型、适配器类型、实际 Base URL、Embedding 协议和接口路径一致。资源覆盖也参与空间身份判断；不同部署必须显式确认共享空间。确认部署兼容后，可在 `embedding_spaces` 填写上游模型到空间标识的 JSON，例如 `{"my-embedding-model":"space-v1"}`。相同标识意味着管理员确认模型版本与编码行为兼容；仅维度相同不够。更换空间需要业务应用重建已有向量索引，TokenStation 不修改外部索引。
 
 计量证据区分未报告与明确零用量，不将估算冒充实测。上游成本和租户收费分别配置。
 
@@ -35,7 +35,7 @@ TokenHub 通过 `POST /v1/embeddings` 提供文本向量，复用 API Key 权限
 {"model":"public-embedding","input":["第一条文本","第二条文本"],"dimensions":1024,"encoding_format":"float"}
 ```
 
-OpenAI SDK 使用 `client.embeddings.create`。Dify、LangChain/LlamaIndex 使用对应集成并配置 TokenHub 地址和对外模型名；客户端实际版本验收独立于本地协议测试。
+OpenAI SDK 使用 `client.embeddings.create`。Dify、LangChain/LlamaIndex 使用对应集成并配置 TokenStation 地址和对外模型名；客户端实际版本验收独立于本地协议测试。
 
 模型发现优先采用上游明确声明的 type、modality 或 model_type；缺失时识别常见 BGE、GTE、E5、Voyage 和 sentence-transformer 名称，重排名称优先判为 rerank。名称推断仍不代表部署能力已经验证。
 

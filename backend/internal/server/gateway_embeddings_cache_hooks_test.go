@@ -128,9 +128,9 @@ func TestEmbeddingsPrivacyPreHookCanRewriteInputBeforeProvider(t *testing.T) {
 
 func newEmbeddingsCacheHookTestServer(t *testing.T) *Server {
 	t.Helper()
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	if err := SeedDemoData(store); err != nil {
 		t.Fatal(err)
 	}
-	return New(store)
+	return newManagedTestServer(t, store)
 }

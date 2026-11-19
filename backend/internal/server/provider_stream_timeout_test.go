@@ -295,7 +295,7 @@ func TestUpstreamTimeoutFallsBackForOutOfRangeValues(t *testing.T) {
 // deadline without waiting out the two-minute production default.
 func nativeAnthropicGateway(t *testing.T, upstreamURL string, config Config) (http.Handler, string) {
 	t.Helper()
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	project := store.CreateProject(Project{Name: "Native Anthropic Timeouts", Status: StatusActive})
 	_, secret, err := store.CreateAPIKey(project.ID, APIKey{
 		Name: "native-anthropic-key", Allowed: []string{"claude-tokenhub-test"}, Status: StatusActive,
@@ -314,7 +314,7 @@ func nativeAnthropicGateway(t *testing.T, upstreamURL string, config Config) (ht
 		Strategy: RouteStrategyPriorityOnly,
 	})
 	config.AdminToken = "dev_admin_token"
-	return NewWithConfig(store, config).Handler(), secret
+	return newManagedTestServerWithConfig(t, store, config).Handler(), secret
 }
 
 func nativeAnthropicUpstream(t *testing.T, gap time.Duration) *httptest.Server {

@@ -11,7 +11,7 @@ import (
 )
 
 func TestDecodeNormalizeHookCanRewriteChatRequestBody(t *testing.T) {
-	server := New(NewMemoryStore())
+	server := newManagedTestServer(t, newTestMemoryStore(t))
 	hook := pluginmeta.GatewayHookDescriptor{
 		PluginID:      "tokenhub.test-decode",
 		HookID:        "normalize",
@@ -62,7 +62,7 @@ func TestDecodeNormalizeHookCanRewriteChatRequestBody(t *testing.T) {
 }
 
 func TestDecodeNormalizeHookDenyReturnsForbidden(t *testing.T) {
-	server := New(NewMemoryStore())
+	server := newManagedTestServer(t, newTestMemoryStore(t))
 	hook := pluginmeta.GatewayHookDescriptor{
 		PluginID:      "tokenhub.test-decode",
 		HookID:        "deny",
@@ -88,7 +88,7 @@ func TestDecodeNormalizeHookDenyReturnsForbidden(t *testing.T) {
 }
 
 func TestDecodeNormalizeHookRewritesGatewayChatBeforeAdmission(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	project := store.CreateProject(Project{Name: "Decode Normalize App"})
 	_, secret, err := store.CreateAPIKey(project.ID, APIKey{
 		Name:    "decode-normalize-key",
@@ -101,7 +101,7 @@ func TestDecodeNormalizeHookRewritesGatewayChatBeforeAdmission(t *testing.T) {
 	provider := store.AddProvider(Provider{ID: "prv_decode_normalize", Name: "Decode Normalize Provider", Type: "decode_normalize_capture", Status: StatusActive, Healthy: true})
 	store.AddModel(Model{Name: "gpt-decode-normalize", Modality: "chat", Status: StatusActive})
 	store.AddRoute(ModelRoute{ID: "route_decode_normalize", ModelName: "gpt-decode-normalize", ProviderID: provider.ID, ProviderModel: "upstream-decode", Status: StatusActive, Priority: 1, Weight: 100})
-	server := New(store)
+	server := newManagedTestServer(t, store)
 	adapter := &requestTransformCaptureAdapter{}
 	server.adapterRegistry.Register("decode_normalize_capture", adapter, AdapterCapabilityChat)
 

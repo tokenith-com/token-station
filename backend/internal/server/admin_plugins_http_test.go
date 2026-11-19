@@ -30,7 +30,7 @@ func TestAdminPluginInstallPostDownloadsAndInstallsPackage(t *testing.T) {
 		_, _ = w.Write(archive)
 	}))
 	defer upstream.Close()
-	server := NewWithConfig(NewMemoryStore(), Config{AdminToken: "dev_admin_token", PluginDir: pluginDir})
+	server := newManagedTestServerWithConfig(t, newTestMemoryStore(t), Config{AdminToken: "dev_admin_token", PluginDir: pluginDir})
 	server.pluginInstallClient = upstream.Client()
 
 	response := doJSON(t, server.Handler(), http.MethodPost, "/api/admin/plugins/install", map[string]any{
@@ -103,7 +103,7 @@ permissions:
 		_, _ = w.Write(archive)
 	}))
 	defer upstream.Close()
-	server := NewWithConfig(NewMemoryStore(), Config{AdminToken: "dev_admin_token", PluginDir: pluginDir})
+	server := newManagedTestServerWithConfig(t, newTestMemoryStore(t), Config{AdminToken: "dev_admin_token", PluginDir: pluginDir})
 	server.pluginInstallClient = upstream.Client()
 
 	response := doJSON(t, server.Handler(), http.MethodPost, "/api/admin/plugins/install", map[string]any{
@@ -133,7 +133,7 @@ func TestAdminPluginInstallPostUploadsAndInstallsPackage(t *testing.T) {
 	archive := adminPluginZip(t, map[string]string{
 		"plugin.yaml": adminPluginManifest("tokenhub.uploaded.kimi", "Uploaded Kimi", "1.0.0"),
 	})
-	server := NewWithConfig(NewMemoryStore(), Config{AdminToken: "dev_admin_token", PluginDir: pluginDir})
+	server := newManagedTestServerWithConfig(t, newTestMemoryStore(t), Config{AdminToken: "dev_admin_token", PluginDir: pluginDir})
 	var requestBody bytes.Buffer
 	writer := multipart.NewWriter(&requestBody)
 	file, err := writer.CreateFormFile("package", "uploaded-kimi.zip")
@@ -173,7 +173,7 @@ func TestAdminPluginInstallPostUploadsAndInstallsPackage(t *testing.T) {
 }
 
 func TestAdminPluginInstallPostRejectsUnsafeDownloadURL(t *testing.T) {
-	server := NewWithConfig(NewMemoryStore(), Config{AdminToken: "dev_admin_token", PluginDir: t.TempDir()})
+	server := newManagedTestServerWithConfig(t, newTestMemoryStore(t), Config{AdminToken: "dev_admin_token", PluginDir: t.TempDir()})
 
 	response := doJSON(t, server.Handler(), http.MethodPost, "/api/admin/plugins/install", map[string]any{
 		"download_url":    "http://plugins.example/kimi.zip",
@@ -192,7 +192,7 @@ func TestAdminPluginInstallPostRejectsChecksumMismatch(t *testing.T) {
 		_, _ = w.Write(archive)
 	}))
 	defer upstream.Close()
-	server := NewWithConfig(NewMemoryStore(), Config{AdminToken: "dev_admin_token", PluginDir: t.TempDir()})
+	server := newManagedTestServerWithConfig(t, newTestMemoryStore(t), Config{AdminToken: "dev_admin_token", PluginDir: t.TempDir()})
 	server.pluginInstallClient = upstream.Client()
 
 	response := doJSON(t, server.Handler(), http.MethodPost, "/api/admin/plugins/install", map[string]any{
@@ -221,7 +221,7 @@ func TestAdminPluginInstallPostVerifiesSignedMarketplaceArtifact(t *testing.T) {
 		}
 	}))
 	defer upstream.Close()
-	server := NewWithConfig(NewMemoryStore(), Config{AdminToken: "dev_admin_token", PluginDir: pluginDir})
+	server := newManagedTestServerWithConfig(t, newTestMemoryStore(t), Config{AdminToken: "dev_admin_token", PluginDir: pluginDir})
 	server.pluginInstallClient = upstream.Client()
 
 	response := doJSON(t, server.Handler(), http.MethodPost, "/api/admin/plugins/install", map[string]any{
@@ -278,7 +278,7 @@ func TestAdminPluginInstallPostRejectsSignedMarketplaceSignatureMismatch(t *test
 		}
 	}))
 	defer upstream.Close()
-	server := NewWithConfig(NewMemoryStore(), Config{AdminToken: "dev_admin_token", PluginDir: t.TempDir()})
+	server := newManagedTestServerWithConfig(t, newTestMemoryStore(t), Config{AdminToken: "dev_admin_token", PluginDir: t.TempDir()})
 	server.pluginInstallClient = upstream.Client()
 
 	response := doJSON(t, server.Handler(), http.MethodPost, "/api/admin/plugins/install", map[string]any{
@@ -313,7 +313,7 @@ func TestAdminPluginInstallPostRejectsSignedMarketplaceMissingPublicKey(t *testi
 		}
 	}))
 	defer upstream.Close()
-	server := NewWithConfig(NewMemoryStore(), Config{AdminToken: "dev_admin_token", PluginDir: t.TempDir()})
+	server := newManagedTestServerWithConfig(t, newTestMemoryStore(t), Config{AdminToken: "dev_admin_token", PluginDir: t.TempDir()})
 	server.pluginInstallClient = upstream.Client()
 
 	response := doJSON(t, server.Handler(), http.MethodPost, "/api/admin/plugins/install", map[string]any{
@@ -430,7 +430,7 @@ func TestAdminPluginInstallPostRejectsSignedMarketplaceTrustFailures(t *testing.
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			server := NewWithConfig(NewMemoryStore(), Config{AdminToken: "dev_admin_token", PluginDir: t.TempDir()})
+			server := newManagedTestServerWithConfig(t, newTestMemoryStore(t), Config{AdminToken: "dev_admin_token", PluginDir: t.TempDir()})
 			server.pluginInstallClient = upstream.Client()
 
 			response := doJSON(t, server.Handler(), http.MethodPost, "/api/admin/plugins/install", tc.payload, "dev_admin_token")
@@ -470,7 +470,7 @@ kinds:
 	if err := os.WriteFile(filepath.Join(localPluginDir, "plugin.state.json"), []byte(`{"status":"disabled","reason":"operator disabled"}`), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	server := NewWithConfig(NewMemoryStore(), Config{AdminToken: "dev_admin_token", PluginDir: pluginDir})
+	server := newManagedTestServerWithConfig(t, newTestMemoryStore(t), Config{AdminToken: "dev_admin_token", PluginDir: pluginDir})
 	server.pluginInstallClient = upstream.Client()
 
 	response := doJSON(t, server.Handler(), http.MethodPost, "/api/admin/plugins/tokenhub.marketplace.kimi/update", map[string]any{}, "dev_admin_token")
@@ -539,8 +539,8 @@ kinds:
 	if err := os.WriteFile(filepath.Join(localPluginDir, "plugin.state.json"), []byte(`{"status":"disabled","reason":"operator disabled"}`), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	store := NewMemoryStore()
-	server := NewWithConfig(store, Config{AdminToken: "dev_admin_token", PluginDir: pluginDir})
+	store := newTestMemoryStore(t)
+	server := newManagedTestServerWithConfig(t, store, Config{AdminToken: "dev_admin_token", PluginDir: pluginDir})
 	server.pluginInstallClient = upstream.Client()
 
 	update := doJSON(t, server.Handler(), http.MethodPost, "/api/admin/plugins/tokenhub.marketplace.kimi/update", map[string]any{}, "dev_admin_token")
@@ -606,8 +606,8 @@ tokenhub:
 kinds:
   - extension
 `)
-	store := NewMemoryStore()
-	server := NewWithConfig(store, Config{AdminToken: "dev_admin_token", PluginDir: pluginDir})
+	store := newTestMemoryStore(t)
+	server := newManagedTestServerWithConfig(t, store, Config{AdminToken: "dev_admin_token", PluginDir: pluginDir})
 
 	response := doJSON(t, server.Handler(), http.MethodPost, "/api/admin/plugins/tokenhub.local-privacy/rollback", map[string]any{
 		"reason": "operator rollback",
@@ -658,7 +658,7 @@ tokenhub:
 kinds:
   - extension
 `)
-	server := NewWithConfig(NewMemoryStore(), Config{AdminToken: "dev_admin_token", PluginDir: pluginDir})
+	server := newManagedTestServerWithConfig(t, newTestMemoryStore(t), Config{AdminToken: "dev_admin_token", PluginDir: pluginDir})
 	server.pluginInstallClient = upstream.Client()
 
 	response := doJSON(t, server.Handler(), http.MethodPost, "/api/admin/plugins/tokenhub.marketplace.signed/update", map[string]any{
@@ -715,7 +715,7 @@ tokenhub:
 kinds:
   - extension
 `)
-	server := NewWithConfig(NewMemoryStore(), Config{AdminToken: "dev_admin_token", PluginDir: pluginDir})
+	server := newManagedTestServerWithConfig(t, newTestMemoryStore(t), Config{AdminToken: "dev_admin_token", PluginDir: pluginDir})
 	server.pluginInstallClient = upstream.Client()
 
 	response := doJSON(t, server.Handler(), http.MethodPost, "/api/admin/plugins/tokenhub.marketplace.kimi/update", map[string]any{
@@ -770,7 +770,7 @@ permissions:
     write:
       - request_body
 `)
-	server := NewWithConfig(NewMemoryStore(), Config{AdminToken: "dev_admin_token", PluginDir: pluginDir})
+	server := newManagedTestServerWithConfig(t, newTestMemoryStore(t), Config{AdminToken: "dev_admin_token", PluginDir: pluginDir})
 	if !gatewayHookExists(server.gatewayChain.Hooks(pluginmeta.StagePrivacyPre), "tokenhub.local-privacy", "mask") {
 		t.Fatal("local privacy hook was not activated before disable")
 	}
@@ -820,7 +820,7 @@ permissions:
 
 func TestAdminPluginStatePatchWritesBuiltInProviderState(t *testing.T) {
 	pluginDir := t.TempDir()
-	server := NewWithConfig(NewMemoryStore(), Config{AdminToken: "dev_admin_token", PluginDir: pluginDir})
+	server := newManagedTestServerWithConfig(t, newTestMemoryStore(t), Config{AdminToken: "dev_admin_token", PluginDir: pluginDir})
 
 	response := doJSON(t, server.Handler(), http.MethodPatch, "/api/admin/plugins/tokenhub.provider.qwen/state", map[string]any{
 		"status": "disabled",
@@ -881,7 +881,7 @@ kinds:
 	if err := os.WriteFile(filepath.Join(localPluginDir, "plugin.state.json"), []byte(`{"status":"disabled","reason":"operator disabled"}`), 0o644); err != nil {
 		t.Fatalf("write package state: %v", err)
 	}
-	server := NewWithConfig(NewMemoryStore(), Config{AdminToken: "dev_admin_token", PluginDir: pluginDir})
+	server := newManagedTestServerWithConfig(t, newTestMemoryStore(t), Config{AdminToken: "dev_admin_token", PluginDir: pluginDir})
 
 	response := doJSON(t, server.Handler(), http.MethodPatch, "/api/admin/plugins/tokenhub.local-privacy/state", map[string]any{
 		"status": "enabled",
@@ -953,7 +953,7 @@ func TestAdminPluginsGetExposesLifecycleTrustAndCompatibilitySummaries(t *testin
 			t.Fatal(err)
 		}
 	}
-	server := NewWithConfig(NewMemoryStore(), Config{AdminToken: "dev_admin_token", PluginDir: pluginDir})
+	server := newManagedTestServerWithConfig(t, newTestMemoryStore(t), Config{AdminToken: "dev_admin_token", PluginDir: pluginDir})
 
 	response := doJSON(t, server.Handler(), http.MethodGet, "/api/admin/plugins", nil, "dev_admin_token")
 	if response.Code != http.StatusOK {
@@ -1033,8 +1033,8 @@ kinds:
 	if err := os.WriteFile(filepath.Join(failedDir, "plugin.state.json"), []byte(`{"status":"failed_startup","health":"unhealthy","rollback_target":"built_in","last_error_code":"plugin_startup_failed","audit_event":"startup_failed"}`), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	store := NewMemoryStore()
-	server := NewWithConfig(store, Config{AdminToken: "dev_admin_token", PluginDir: pluginDir})
+	store := newTestMemoryStore(t)
+	server := newManagedTestServerWithConfig(t, store, Config{AdminToken: "dev_admin_token", PluginDir: pluginDir})
 	quarantined := requireAdminPluginDescriptor(t, server, "tokenhub.provider.openai-codex")
 	if quarantined.Name != "External Codex" || quarantined.Version != "2.0.0" || quarantined.Source != pluginmeta.SourceLocalFile ||
 		quarantined.Lifecycle.DesiredVersion != "2.0.0" || quarantined.Lifecycle.ActiveVersion != pluginmeta.BuiltInVersion ||
@@ -1073,7 +1073,7 @@ kinds:
 }
 
 func TestAdminPluginsGetReflectsBuiltinCodexUIContributions(t *testing.T) {
-	server := NewWithConfig(NewMemoryStore(), Config{AdminToken: "dev_admin_token"})
+	server := newManagedTestServerWithConfig(t, newTestMemoryStore(t), Config{AdminToken: "dev_admin_token"})
 
 	response := doJSON(t, server.Handler(), http.MethodGet, "/api/admin/plugins", nil, "dev_admin_token")
 	if response.Code != http.StatusOK {
@@ -1119,7 +1119,7 @@ tokenhub:
 kinds:
   - extension
 `)
-	server := NewWithConfig(NewMemoryStore(), Config{AdminToken: "dev_admin_token", PluginDir: pluginDir})
+	server := newManagedTestServerWithConfig(t, newTestMemoryStore(t), Config{AdminToken: "dev_admin_token", PluginDir: pluginDir})
 
 	response := doJSON(t, server.Handler(), http.MethodDelete, "/api/admin/plugin-packages/tokenhub.local-privacy", nil, "dev_admin_token")
 	if response.Code != http.StatusOK {
@@ -1143,7 +1143,7 @@ kinds:
 }
 
 func TestAdminPluginDeleteRejectsMissingPackage(t *testing.T) {
-	server := NewWithConfig(NewMemoryStore(), Config{AdminToken: "dev_admin_token", PluginDir: t.TempDir()})
+	server := newManagedTestServerWithConfig(t, newTestMemoryStore(t), Config{AdminToken: "dev_admin_token", PluginDir: t.TempDir()})
 
 	response := doJSON(t, server.Handler(), http.MethodDelete, "/api/admin/plugin-packages/tokenhub.missing", nil, "dev_admin_token")
 	if response.Code != http.StatusNotFound {
@@ -1342,7 +1342,7 @@ func adminPluginArtifactSignatureForTestWithKeyID(t *testing.T, archive []byte, 
 }
 
 func TestAdminPluginStatePatchRejectsInvalidState(t *testing.T) {
-	server := NewWithConfig(NewMemoryStore(), Config{AdminToken: "dev_admin_token", PluginDir: t.TempDir()})
+	server := newManagedTestServerWithConfig(t, newTestMemoryStore(t), Config{AdminToken: "dev_admin_token", PluginDir: t.TempDir()})
 
 	missing := doJSON(t, server.Handler(), http.MethodPatch, "/api/admin/plugins/tokenhub.local-privacy/state", map[string]any{}, "dev_admin_token")
 	if missing.Code != http.StatusBadRequest {
@@ -1358,7 +1358,7 @@ func TestAdminPluginStatePatchRejectsInvalidState(t *testing.T) {
 }
 
 func TestAdminPluginStatePatchRejectsMissingPlugin(t *testing.T) {
-	server := NewWithConfig(NewMemoryStore(), Config{AdminToken: "dev_admin_token", PluginDir: t.TempDir()})
+	server := newManagedTestServerWithConfig(t, newTestMemoryStore(t), Config{AdminToken: "dev_admin_token", PluginDir: t.TempDir()})
 
 	response := doJSON(t, server.Handler(), http.MethodPatch, "/api/admin/plugins/tokenhub.missing/state", map[string]any{
 		"status": "disabled",
@@ -1384,7 +1384,7 @@ kinds:
 	if err := os.WriteFile(filepath.Join(localPluginDir, "plugin.state.json"), []byte(`{"status":"mandatory","mandatory":true}`), 0o644); err != nil {
 		t.Fatalf("write mandatory package state: %v", err)
 	}
-	server := NewWithConfig(NewMemoryStore(), Config{AdminToken: "dev_admin_token", PluginDir: pluginDir})
+	server := newManagedTestServerWithConfig(t, newTestMemoryStore(t), Config{AdminToken: "dev_admin_token", PluginDir: pluginDir})
 
 	response := doJSON(t, server.Handler(), http.MethodPatch, "/api/admin/plugins/tokenhub.local-mandatory/state", map[string]any{
 		"status": "disabled",

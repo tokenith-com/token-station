@@ -168,7 +168,7 @@ func TestRerankInvalidAttributionPreservesNativeEvidence(t *testing.T) {
 		`{"retrieval_evidence":{"unit":"token","quantity":0,"source":"plugin"}}`,
 	} {
 		t.Run(patch, func(t *testing.T) {
-			app := New(NewMemoryStore())
+			app := New(newTestMemoryStore(t))
 			t.Cleanup(func() { _ = app.Shutdown(context.Background()) })
 			registerRerankAttributionPatch(t, app, patch, false)
 			quantity := int64(3)

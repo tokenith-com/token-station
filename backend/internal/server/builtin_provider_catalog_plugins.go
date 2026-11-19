@@ -159,7 +159,7 @@ func registerBuiltinProviderCatalogEntryPlugin(registry *pluginmeta.Registry, en
 		ID:          pluginID,
 		Name:        firstNonEmpty(entry.DisplayName, entry.Name, entry.ID),
 		Version:     pluginmeta.BuiltInVersion,
-		Summary:     "Connect TokenHub to " + firstNonEmpty(entry.DisplayName, entry.Name, entry.ID) + ".",
+		Summary:     "Connect TokenStation to " + firstNonEmpty(entry.DisplayName, entry.Name, entry.ID) + ".",
 		Category:    pluginmeta.CategoryProviderIntegration,
 		HostAdapter: entry.Type,
 		Source:      pluginmeta.SourceBuiltIn,

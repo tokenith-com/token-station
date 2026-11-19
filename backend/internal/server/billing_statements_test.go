@@ -46,7 +46,7 @@ func statementTestQuery(side string) statementQuery {
 }
 
 func TestBillingStatementSeparatesRetriesAndTenantCharges(t *testing.T) {
-	s := NewMemoryStore()
+	s := newTestMemoryStore(t)
 	at := time.Date(2020, 1, 31, 23, 30, 0, 0, time.UTC)
 	statementFixture(t, s, "one", "project-a", at, "2", "3")
 	statementFixture(t, s, "other", "project-b", at, "100")
@@ -88,7 +88,7 @@ func TestBillingStatementSeparatesRetriesAndTenantCharges(t *testing.T) {
 }
 
 func TestBillingStatementDistinguishesFreeUnknownAndLegacy(t *testing.T) {
-	s := NewMemoryStore()
+	s := newTestMemoryStore(t)
 	at := time.Date(2020, 1, 3, 0, 0, 0, 0, time.UTC)
 	statementFixture(t, s, "free", "project-a", at, "0")
 	q := statementTestQuery("margin")
@@ -117,7 +117,7 @@ func TestBillingStatementDistinguishesFreeUnknownAndLegacy(t *testing.T) {
 }
 
 func TestBillingStatementIncludesUnfinishedAttempt(t *testing.T) {
-	s := NewMemoryStore()
+	s := newTestMemoryStore(t)
 	at := time.Date(2020, 1, 3, 0, 0, 0, 0, time.UTC)
 	statementFixture(t, s, "unfinished", "project-a", at, "2")
 	if err := s.db.Delete(&meteringEntry{}, "id = ?", "unfinished:shadow").Error; err != nil {
@@ -134,7 +134,7 @@ func TestBillingStatementIncludesUnfinishedAttempt(t *testing.T) {
 }
 
 func TestBillingStatementExternalCurrenciesAndOverlap(t *testing.T) {
-	s := NewMemoryStore()
+	s := newTestMemoryStore(t)
 	from := time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC)
 	if err := s.db.Create(&billingstore.ConnectorRow{ID: "connector", Config: map[string]string{"provider_id": "supplier"}, CredentialCiphertext: "secret"}).Error; err != nil {
 		t.Fatal(err)
@@ -191,7 +191,7 @@ func TestBillingStatementRequiresPlatformAdministrator(t *testing.T) {
 }
 
 func TestBillingStatementFiltersBeforeApplyingLimit(t *testing.T) {
-	s := NewMemoryStore()
+	s := newTestMemoryStore(t)
 	at := time.Date(2020, 1, 3, 0, 0, 0, 0, time.UTC)
 	statementFixture(t, s, "selected", "project-a", at, "2")
 	entries := make([]meteringEntry, statementRowLimit+1)
@@ -211,7 +211,7 @@ func TestBillingStatementFiltersBeforeApplyingLimit(t *testing.T) {
 }
 
 func TestBillingStatementLegacyProviderModelUsesRequestEvidence(t *testing.T) {
-	s := NewMemoryStore()
+	s := newTestMemoryStore(t)
 	at := time.Date(2020, 1, 3, 0, 0, 0, 0, time.UTC)
 	if err := s.db.Create(&UsageRecord{ID: "legacy", RequestID: "request", ProjectID: "project-a", ProviderID: "supplier", ModelName: "retail", CostUSD: 10, ProviderCostUSD: 2, CreatedAt: at}).Error; err != nil {
 		t.Fatal(err)
@@ -234,7 +234,7 @@ func TestBillingStatementLegacyProviderModelUsesRequestEvidence(t *testing.T) {
 }
 
 func TestBillingStatementMissingFXBlocksMargin(t *testing.T) {
-	s := NewMemoryStore()
+	s := newTestMemoryStore(t)
 	at := time.Date(2020, 1, 3, 0, 0, 0, 0, time.UTC)
 	statementFixture(t, s, "fx", "project-a", at, "2")
 	var entry meteringEntry
@@ -279,7 +279,7 @@ func TestBillingStatementPriceEvidenceToleratesOnlyDecimalQuantum(t *testing.T) 
 }
 
 func TestBillingStatementLegacyModelFilterPrecedesLimit(t *testing.T) {
-	s := NewMemoryStore()
+	s := newTestMemoryStore(t)
 	at := time.Date(2020, 1, 3, 0, 0, 0, 0, time.UTC)
 	usages := make([]UsageRecord, statementRowLimit+1)
 	logs := make([]RequestLog, len(usages))

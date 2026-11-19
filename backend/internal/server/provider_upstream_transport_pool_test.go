@@ -36,7 +36,7 @@ func TestProviderUpstreamTransportRotationUsesNewPoolWithoutInterruptingInflight
 		}
 		return transport
 	}
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	store.CreateResource("settings", syntheticDNSSettings(false, defaultSyntheticDNSCIDRs))
 	policy := newProviderSyntheticDNSPolicy(store)
 	pool := newProviderUpstreamTransportPool(policy, factory)
@@ -104,7 +104,7 @@ func TestProviderUpstreamTransportRotationKeepsPreDialRequestPolicySnapshot(t *t
 		}
 		return transport
 	}
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	store.CreateResource("settings", syntheticDNSSettings(true, defaultSyntheticDNSCIDRs))
 	policy := newProviderSyntheticDNSPolicy(store)
 	client := &http.Client{Transport: newProviderUpstreamTransportPool(policy, factory)}

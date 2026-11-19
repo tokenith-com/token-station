@@ -9,61 +9,61 @@ import (
 func registerBuiltinDefaultSIMPlugin(registry *pluginmeta.Registry) {
 	descriptor := builtinSIMDescriptor(builtinSIMDescriptorOptions{
 		id:      "tokenhub.sim.default",
-		name:    "TokenHub Default Interface Template",
-		summary: "The built-in TokenHub admin console interface template.",
+		name:    "TokenStation Default Interface Template",
+		summary: "The built-in TokenStation admin console interface template.",
 		categories: []string{
 			"interface-template",
 			"official",
 		},
 		localizations: map[string]pluginmeta.MarketplaceLocalization{
 			"zh-CN": {
-				Name:        "TokenHub Default Interface Template",
-				Summary:     "TokenHub 管理端内置的默认界面模板。",
+				Name:        "TokenStation Default Interface Template",
+				Summary:     "TokenStation 管理端内置的默认界面模板。",
 				Description: "提供默认主题 token、侧边栏布局和工作台编排，是第三方界面模板插件的基准实现。",
 			},
 			"en-US": {
-				Name:        "TokenHub Default Interface Template",
-				Summary:     "The built-in TokenHub admin console interface template.",
+				Name:        "TokenStation Default Interface Template",
+				Summary:     "The built-in TokenStation admin console interface template.",
 				Description: "Provides the default theme tokens, sidebar layout, and workspace composition as the baseline implementation for third-party interface template plugins.",
 			},
 			"ja-JP": {
-				Name:        "TokenHub Default Interface Template",
-				Summary:     "TokenHub 管理コンソール組み込みの既定インターフェイステンプレートです。",
+				Name:        "TokenStation Default Interface Template",
+				Summary:     "TokenStation 管理コンソール組み込みの既定インターフェイステンプレートです。",
 				Description: "既定のテーマ Token、サイドバーレイアウト、ワークスペース構成を提供し、サードパーティ製インターフェイステンプレートプラグインの基準実装になります。",
 			},
 		},
 		capabilities: []pluginmeta.CapabilityDescriptor{
 			simThemeCapability("default-light", map[string]any{
 				"id":       "default-light",
-				"title":    "TokenHub Default Light",
+				"title":    "TokenStation Default Light",
 				"mode":     "light",
 				"default":  true,
 				"order":    10,
 				"priority": 100,
 				"localizations": map[string]any{
-					"zh-CN": map[string]any{"title": "TokenHub 默认浅色"},
-					"en-US": map[string]any{"title": "TokenHub Default Light"},
-					"ja-JP": map[string]any{"title": "TokenHub 既定ライト"},
+					"zh-CN": map[string]any{"title": "TokenStation 默认浅色"},
+					"en-US": map[string]any{"title": "TokenStation Default Light"},
+					"ja-JP": map[string]any{"title": "TokenStation 既定ライト"},
 				},
 				"tokens": defaultLightThemeTokens(),
 			}),
 			simThemeCapability("default-dark", map[string]any{
 				"id":       "default-dark",
-				"title":    "TokenHub Default Dark",
+				"title":    "TokenStation Default Dark",
 				"mode":     "dark",
 				"default":  true,
 				"order":    10,
 				"priority": 100,
 				"localizations": map[string]any{
-					"zh-CN": map[string]any{"title": "TokenHub 默认深色"},
-					"en-US": map[string]any{"title": "TokenHub Default Dark"},
-					"ja-JP": map[string]any{"title": "TokenHub 既定ダーク"},
+					"zh-CN": map[string]any{"title": "TokenStation 默认深色"},
+					"en-US": map[string]any{"title": "TokenStation Default Dark"},
+					"ja-JP": map[string]any{"title": "TokenStation 既定ダーク"},
 				},
 				"tokens": defaultDarkThemeTokens(),
 			}),
 			simLayoutCapability("default-sidebar", map[string]any{
 				"id":            "default-sidebar",
-				"title":         "TokenHub Default Sidebar",
+				"title":         "TokenStation Default Sidebar",
 				"navigation":    "sidebar",
 				"density":       "comfortable",
 				"content_width": "fluid",
@@ -71,22 +71,22 @@ func registerBuiltinDefaultSIMPlugin(registry *pluginmeta.Registry) {
 				"order":         10,
 				"priority":      100,
 				"localizations": map[string]any{
-					"zh-CN": map[string]any{"title": "TokenHub 默认侧边栏"},
-					"en-US": map[string]any{"title": "TokenHub Default Sidebar"},
-					"ja-JP": map[string]any{"title": "TokenHub 既定サイドバー"},
+					"zh-CN": map[string]any{"title": "TokenStation 默认侧边栏"},
+					"en-US": map[string]any{"title": "TokenStation Default Sidebar"},
+					"ja-JP": map[string]any{"title": "TokenStation 既定サイドバー"},
 				},
 			}),
 			simDashboardCapability("default-dashboard", map[string]any{
 				"id":       "default-dashboard",
-				"title":    "TokenHub Default Dashboard",
+				"title":    "TokenStation Default Dashboard",
 				"layout":   "grid",
 				"default":  true,
 				"order":    10,
 				"priority": 100,
 				"localizations": map[string]any{
-					"zh-CN": map[string]any{"title": "TokenHub 默认工作台"},
-					"en-US": map[string]any{"title": "TokenHub Default Dashboard"},
-					"ja-JP": map[string]any{"title": "TokenHub 既定ワークスペース"},
+					"zh-CN": map[string]any{"title": "TokenStation 默认工作台"},
+					"en-US": map[string]any{"title": "TokenStation Default Dashboard"},
+					"ja-JP": map[string]any{"title": "TokenStation 既定ワークスペース"},
 				},
 				"cards": []any{
 					map[string]any{"plugin_id": "tokenhub.admin.plugin-ecosystem", "contribution_id": "overview", "region": "main", "size": "wide", "order": 100},
@@ -101,7 +101,7 @@ func registerBuiltinAntDSIMPlugin(registry *pluginmeta.Registry) {
 	descriptor := builtinSIMDescriptor(builtinSIMDescriptorOptions{
 		id:      "tokenhub.sim.antd",
 		name:    "Ant Design Style Interface Template",
-		summary: "An Ant Design style TokenHub admin console interface template.",
+		summary: "An Ant Design style TokenStation admin console interface template.",
 		categories: []string{
 			"interface-template",
 			"official",
@@ -110,17 +110,17 @@ func registerBuiltinAntDSIMPlugin(registry *pluginmeta.Registry) {
 		localizations: map[string]pluginmeta.MarketplaceLocalization{
 			"zh-CN": {
 				Name:        "Ant Design Style Interface Template",
-				Summary:     "基于 Ant Design 视觉语言的 TokenHub 管理端界面模板。",
+				Summary:     "基于 Ant Design 视觉语言的 TokenStation 管理端界面模板。",
 				Description: "提供 Ant Design 风格的主题 token、紧凑侧边栏布局和工作台编排，适合偏企业后台、表格和表单密集的管理场景。",
 			},
 			"en-US": {
 				Name:        "Ant Design Style Interface Template",
-				Summary:     "A TokenHub admin console interface template based on the Ant Design visual language.",
+				Summary:     "A TokenStation admin console interface template based on the Ant Design visual language.",
 				Description: "Provides Ant Design style theme tokens, a compact sidebar layout, and workspace composition for enterprise admin scenarios with dense tables and forms.",
 			},
 			"ja-JP": {
 				Name:        "Ant Design Style Interface Template",
-				Summary:     "Ant Design の視覚言語に基づく TokenHub 管理コンソール用インターフェイステンプレートです。",
+				Summary:     "Ant Design の視覚言語に基づく TokenStation 管理コンソール用インターフェイステンプレートです。",
 				Description: "密度の高いテーブルやフォームを扱う企業管理画面向けに、Ant Design スタイルのテーマ Token、コンパクトなサイドバーレイアウト、ワークスペース構成を提供します。",
 			},
 		},
@@ -189,7 +189,7 @@ func registerBuiltinKnowledgeSidebarSIMPlugin(registry *pluginmeta.Registry) {
 	descriptor := builtinSIMDescriptor(builtinSIMDescriptorOptions{
 		id:      "tokenhub.sim.knowledge-sidebar",
 		name:    "Knowledge Sidebar Interface Template",
-		summary: "A knowledge management style TokenHub admin console interface template.",
+		summary: "A knowledge management style TokenStation admin console interface template.",
 		categories: []string{
 			"interface-template",
 			"official",
@@ -198,17 +198,17 @@ func registerBuiltinKnowledgeSidebarSIMPlugin(registry *pluginmeta.Registry) {
 		localizations: map[string]pluginmeta.MarketplaceLocalization{
 			"zh-CN": {
 				Name:        "Knowledge Sidebar Interface Template",
-				Summary:     "面向知识库与运营后台的 TokenHub 管理端界面模板。",
+				Summary:     "面向知识库与运营后台的 TokenStation 管理端界面模板。",
 				Description: "提供深蓝圆角分组、浅蓝选中态、清爽白底和清晰层级的侧边栏视觉，适合知识资产、智能体编排和权限运营场景。",
 			},
 			"en-US": {
 				Name:        "Knowledge Sidebar Interface Template",
-				Summary:     "A TokenHub admin console interface template for knowledge-base and operations products.",
+				Summary:     "A TokenStation admin console interface template for knowledge-base and operations products.",
 				Description: "Provides deep-blue rounded navigation groups, pale-blue selected items, a clean white shell, and a strong sidebar hierarchy for knowledge assets, agent orchestration, and access operations.",
 			},
 			"ja-JP": {
 				Name:        "Knowledge Sidebar Interface Template",
-				Summary:     "ナレッジベースと運用プロダクト向けの TokenHub 管理コンソール用インターフェイステンプレートです。",
+				Summary:     "ナレッジベースと運用プロダクト向けの TokenStation 管理コンソール用インターフェイステンプレートです。",
 				Description: "濃いブルーの角丸ナビゲーショングループ、淡いブルーの選択状態、白を基調にしたシェル、明確なサイドバー階層を提供します。",
 			},
 		},

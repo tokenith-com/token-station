@@ -2,8 +2,8 @@ schema_version: 2
 id: tokenhub.action.echo-go
 name: Echo Go Action
 version: 1.0.0
-summary: Run a small operator-triggered action through TokenHub.
-description: Reference management action plugin using the TokenHub stdio-json-v1 transport.
+summary: Run a small operator-triggered action through TokenStation.
+description: Reference management action plugin using the TokenStation stdio-json-v1 transport.
 category: automation
 tokenhub:
   plugin_api: v2

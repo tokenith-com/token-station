@@ -15,8 +15,8 @@ import (
 )
 
 func TestAdminUsageSummaryIncludesCacheWriteAndReasoningTokens(t *testing.T) {
-	store := NewMemoryStore()
-	app := New(store).Handler()
+	store := newTestMemoryStore(t)
+	app := newManagedTestServer(t, store).Handler()
 
 	call := CallContext{
 		RequestID: "req_summary_tokens",
@@ -62,7 +62,7 @@ func TestAdminUsageSummaryIncludesCacheWriteAndReasoningTokens(t *testing.T) {
 }
 
 func TestUsageSummarySQLMatchesLegacyPermissions(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	for _, teamID := range []string{"team_summary_a", "team_summary_b"} {
 		store.CreateResource("teams", AdminResource{ID: teamID, Name: teamID, Status: StatusActive})
 	}
@@ -118,7 +118,7 @@ func TestUsageSummarySQLMatchesLegacyPermissions(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	server := New(store)
+	server := newManagedTestServer(t, store)
 	tests := []struct {
 		name              string
 		user              AdminUser
@@ -164,7 +164,7 @@ func TestUsageSummarySQLMatchesLegacyPermissions(t *testing.T) {
 }
 
 func TestQueryUsageSummaryEmptyScopesReturnZero(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	if err := store.db.Create(&UsageRecord{ID: "usage_summary_hidden", InputTokens: 10, CreatedAt: time.Now().UTC()}).Error; err != nil {
 		t.Fatal(err)
 	}
@@ -181,7 +181,7 @@ func TestQueryUsageSummaryEmptyScopesReturnZero(t *testing.T) {
 }
 
 func TestQueryUsageSummaryAcceptsLargePermissionScopes(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	now := time.Now().UTC()
 	if err := store.db.Create(&UsageRecord{
 		ID: "usage_summary_large_scope", AttributedUserID: "usr_large_match", ProjectID: "prj_large_match",
@@ -216,7 +216,7 @@ func TestQueryUsageSummaryAcceptsLargePermissionScopes(t *testing.T) {
 }
 
 func TestBackfillUsageRecordAttributionNormalization(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	if err := store.db.Delete(&ClusterTaskState{}, "name = ?", usageAttributionNormalizationTask).Error; err != nil {
 		t.Fatal(err)
 	}
@@ -257,7 +257,7 @@ func TestBackfillUsageRecordAttributionNormalization(t *testing.T) {
 }
 
 func TestUsageSummarySQLiteQueryUsesScopeIndexes(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	dryDB := store.db.Session(&gorm.Session{DryRun: true})
 	scoped, err := applyUsageSummaryScope(dryDB.Model(&UsageRecord{}), store.dbDriver, UsageSummaryScope{
 		AttributedUserIDs: []string{"usr_plan"},
@@ -296,8 +296,8 @@ func TestUsageSummarySQLiteQueryUsesScopeIndexes(t *testing.T) {
 }
 
 func TestUsageSummaryHandlersReportQueryFailure(t *testing.T) {
-	store := NewMemoryStore()
-	app := New(failingUsageSummaryStore{Store: store}).Handler()
+	store := newTestMemoryStore(t)
+	app := newManagedTestServer(t, failingUsageSummaryStore{Store: store}).Handler()
 	for _, path := range []string{"/api/admin/usage/summary", "/api/admin/overview"} {
 		t.Run(path, func(t *testing.T) {
 			response := doJSON(t, app, http.MethodGet, path, nil, "")
@@ -309,7 +309,7 @@ func TestUsageSummaryHandlersReportQueryFailure(t *testing.T) {
 }
 
 func BenchmarkUsageSummaryAggregation(b *testing.B) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(b)
 	sqlDB, err := store.db.DB()
 	if err != nil {
 		b.Fatal(err)

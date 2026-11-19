@@ -396,9 +396,31 @@ func (c *AdminAPIClient) ListProjects(ctx context.Context) ([]server.Project, er
 	return resp.Data, nil
 }
 
+type projectWriteRequest struct {
+	ID              string   `json:"id,omitempty"`
+	Name            string   `json:"name"`
+	TeamID          string   `json:"team_id"`
+	OwnerUserID     string   `json:"owner_user_id"`
+	CostCenter      string   `json:"cost_center"`
+	ModelAccessMode string   `json:"model_access_mode"`
+	AllowedModels   []string `json:"allowed_models"`
+	ExcludedModels  []string `json:"excluded_models"`
+	Status          string   `json:"status"`
+	DefaultQuotaRef string   `json:"default_quota_ref"`
+}
+
+func projectWriteRequestFrom(req server.Project) projectWriteRequest {
+	return projectWriteRequest{
+		ID: req.ID, Name: req.Name, TeamID: req.TeamID, OwnerUserID: req.OwnerUserID,
+		CostCenter: req.CostCenter, ModelAccessMode: req.ModelAccessMode,
+		AllowedModels: req.AllowedModels, ExcludedModels: req.ExcludedModels,
+		Status: req.Status, DefaultQuotaRef: req.DefaultQuotaRef,
+	}
+}
+
 func (c *AdminAPIClient) CreateProject(ctx context.Context, req server.Project) (server.Project, error) {
 	var resp server.Project
-	if err := c.doJSON(ctx, http.MethodPost, c.endpoint("/api/admin/projects"), req, &resp); err != nil {
+	if err := c.doJSON(ctx, http.MethodPost, c.endpoint("/api/admin/projects"), projectWriteRequestFrom(req), &resp); err != nil {
 		return server.Project{}, err
 	}
 	return resp, nil
@@ -406,7 +428,7 @@ func (c *AdminAPIClient) CreateProject(ctx context.Context, req server.Project) 
 
 func (c *AdminAPIClient) UpdateProject(ctx context.Context, id string, req server.Project) (server.Project, error) {
 	var resp server.Project
-	if err := c.doJSON(ctx, http.MethodPatch, c.endpoint("/api/admin/projects", id), req, &resp); err != nil {
+	if err := c.doJSON(ctx, http.MethodPatch, c.endpoint("/api/admin/projects", id), projectWriteRequestFrom(req), &resp); err != nil {
 		return server.Project{}, err
 	}
 	return resp, nil

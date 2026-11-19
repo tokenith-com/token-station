@@ -2,7 +2,7 @@
 
 言語：[English](../typesafe.md) | [简体中文](../zh-CN/typesafe.md) | 日本語
 
-TokenHub は専用 Provider adapter と `POST /v1/systemone` で TypeSafe System One を提供します。Jev は共有状態から分類、確率、スコアを返し、チャットテキストは生成しません。第 1 段階には Provider 設定、モデルメタデータ、検出、ヘルスチェック、ルーティング、ガバナンス、課金が含まれます。専用 Playground とゲートウェイ内部の意味的ルーティングは対象外です。
+TokenStation は専用 Provider adapter と `POST /v1/systemone` で TypeSafe System One を提供します。Jev は共有状態から分類、確率、スコアを返し、チャットテキストは生成しません。第 1 段階には Provider 設定、モデルメタデータ、検出、ヘルスチェック、ルーティング、ガバナンス、課金が含まれます。専用 Playground とゲートウェイ内部の意味的ルーティングは対象外です。
 
 ## Provider の設定
 
@@ -15,7 +15,7 @@ TokenHub は専用 Provider adapter と `POST /v1/systemone` で TypeSafe System
 
 ## ゲートウェイ呼び出し
 
-公開 TokenHub モデル名と **TokenHub プロジェクト API Key** を使用します。
+公開 TokenStation モデル名と **TokenStation プロジェクト API Key** を使用します。
 
 ```bash
 curl https://tokenhub.example/v1/systemone \
@@ -38,7 +38,7 @@ curl https://tokenhub.example/v1/systemone \
 
 ネイティブ応答は `model`、`answers`、`usage.input_tokens` / `usage.output_tokens` を含みます。回答キーは質問キーと一致します。応答モデルは上流で解決されたバージョンです。リクエストログには公開モデル名とルートの上流モデル名も保存されます。
 
-成功応答には TokenHub の `x-request-id` が含まれ、成功した上流が ID を報告した場合は `x-typesafe-request-id` も含まれます。SDK の `client.systemOne(...).withResponse().requestId` は後者を読み取ります。両ヘッダーはブラウザクライアントにも公開され、上流 ID がない場合は補完しません。
+成功応答には TokenStation の `x-request-id` が含まれ、成功した上流が ID を報告した場合は `x-typesafe-request-id` も含まれます。SDK の `client.systemOne(...).withResponse().requestId` は後者を読み取ります。両ヘッダーはブラウザクライアントにも公開され、上流 ID がない場合は補完しません。
 
 | Primitive | Criteria | 回答 |
 | --- | --- | --- |
@@ -52,11 +52,11 @@ curl https://tokenhub.example/v1/systemone \
 
 各 System One リクエストまたは応答は最大 8 MiB、ペイロード全体で最大 32,768 JSON ノードです。コンテナ、スカラー値、オブジェクトキーを数えます。数値の指数部は先頭のゼロを含め最大 128 桁です。map や構造体にデコードする前に、重複キー（エスケープ後に同一となるキーを含む）とプロトコルフィールド名の大文字・小文字違いを拒否します。hook ペイロードにも同じ検証を適用します。リクエスト JSON の上限超過は `400`、リクエスト全体の guardrail 検査対象が 32,768 個を超えた場合は `422` です。不正な上流または hook 応答はマスキングされた `502` となり、独立して検証できる曖昧さのない有効な使用量だけを保持します。
 
-上流ドキュメントに基づき、カタログには合計 64,000 token と「状態＋最大質問」32,000 token の制限を記録しています。TokenHub はクォータ受け入れのために token を推定し、tokenizer 固有の検証は TypeSafe が行います。ストリーミングとチャット専用フィールドは拒否されます。不正な JSON や未知のフィールドは `400`、primitive の意味的検証エラーは `422` です。
+上流ドキュメントに基づき、カタログには合計 64,000 token と「状態＋最大質問」32,000 token の制限を記録しています。TokenStation はクォータ受け入れのために token を推定し、tokenizer 固有の検証は TypeSafe が行います。ストリーミングとチャット専用フィールドは拒否されます。不正な JSON や未知のフィールドは `400`、primitive の意味的検証エラーは `422` です。
 
 ## JavaScript SDK の互換範囲
 
-`@typesafe-ai/sdk@0.6.0` の `client.systemOne()` を使用できます。`baseURL` は **`/v1` を含まない TokenHub origin** にします。SDK が `/v1/systemone` を追加します。TokenHub Key と公開モデル名を渡します。SDK smoke test はこのメソッドを使用します。
+`@typesafe-ai/sdk@0.6.0` の `client.systemOne()` を使用できます。`baseURL` は **`/v1` を含まない TokenStation origin** にします。SDK が `/v1/systemone` を追加します。TokenStation Key と公開モデル名を渡します。SDK smoke test はこのメソッドを使用します。
 
 ```bash
 cd sdk
@@ -66,7 +66,7 @@ TOKENHUB_API_KEY="$TOKENHUB_API_KEY" \
 TOKENHUB_MODEL=jev-1.13.0 npm run test:systemone
 ```
 
-この段階は `systemOne()` のみを対象とし、TypeSafe SDK 全体の互換性は提供しません。TokenHub の既存の複数プロトコル用 `/v1/models` 契約は保持され、SDK の `models.list()` 用 TypeSafe 応答は模倣しません。OpenAI Chat、Responses、Embeddings、ストリーミング契約は変更しません。既存のチャット Playground では Jev を実行できません。
+この段階は `systemOne()` のみを対象とし、TypeSafe SDK 全体の互換性は提供しません。TokenStation の既存の複数プロトコル用 `/v1/models` 契約は保持され、SDK の `models.list()` 用 TypeSafe 応答は模倣しません。OpenAI Chat、Responses、Embeddings、ストリーミング契約は変更しません。既存のチャット Playground では Jev を実行できません。
 
 ## ガバナンスと課金
 
@@ -84,4 +84,4 @@ TOKENHUB_MODEL=jev-1.13.0 npm run test:systemone
 
 専用プロジェクト Key と明示的な Jev ルートから開始します。スコアを業務判断に使う前に、対象言語とタスクのラベル付きサンプルで評価します。遅延、上流エラー、実使用量、原価を観測します。データベース移行やデプロイ環境変数の追加はありません。公開モデルまたはルートを無効化すると通信を停止できます。`tokenhub.provider.typesafe` を無効化すると、カタログ項目と実行アダプターの両方が削除され、既存の TypeSafe ルートも利用できなくなります。TypeSafe ルートしかないモデルへの `/v1/systemone` 呼び出しは `501 provider_capability_not_supported` を返します。プラグインを再度有効化すると、既存のルート設定でアダプターを利用できます。一部の通信だけを停止する場合は、該当するモデルまたはルートを無効化します。
 
-参考：[HTTP API](https://docs.typesafe.ai/api)、[高度な入力](https://docs.typesafe.ai/primitives/advanced)、[confidence](https://docs.typesafe.ai/confidence)、TokenHub の `/openapi.json` 契約。
+参考：[HTTP API](https://docs.typesafe.ai/api)、[高度な入力](https://docs.typesafe.ai/primitives/advanced)、[confidence](https://docs.typesafe.ai/confidence)、TokenStation の `/openapi.json` 契約。

@@ -734,7 +734,7 @@ func TestAnthropicMessagesPreservesNativeProtocolAndHeaders(t *testing.T) {
 }
 
 func TestNativeAnthropicRequestUsesRouteProviderAdapter(t *testing.T) {
-	server := NewWithConfig(NewMemoryStore(), Config{AdminToken: "admin"})
+	server := newManagedTestServerWithConfig(t, newTestMemoryStore(t), Config{AdminToken: "admin"})
 	const providerType = "custom_native_anthropic"
 	descriptor := providerPluginDescriptorWithRouteProtocol(
 		"tokenhub.provider.custom-native-anthropic",
@@ -933,7 +933,7 @@ func TestAnthropicMessagesRejectsUnsupportedRole(t *testing.T) {
 	req := httptest.NewRequest(http.MethodPost, "/v1/messages", body)
 	req.Header.Set("content-type", "application/json")
 
-	_, err := New(NewMemoryStore()).decodeAnthropicMessagesRequest(httptest.NewRecorder(), req, true)
+	_, err := newManagedTestServer(t, newTestMemoryStore(t)).decodeAnthropicMessagesRequest(httptest.NewRecorder(), req, true)
 	if err == nil {
 		t.Fatal("expected unsupported role to be rejected")
 	}
@@ -1089,7 +1089,7 @@ func TestAnthropicMessagesSkipsIncompatibleRouteWithoutProviderPenalty(t *testin
 	}))
 	defer nativeUpstream.Close()
 
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	project := store.CreateProject(Project{Name: "Route Compatibility Project", Status: StatusActive})
 	_, secret, err := store.CreateAPIKey(project.ID, APIKey{
 		Name:    "route-compatibility-key",
@@ -1158,7 +1158,7 @@ func TestAnthropicMessagesSkipsIncompatibleRouteWithoutProviderPenalty(t *testin
 		Strategy:      RouteStrategyPriorityOnly,
 	})
 
-	handler := New(store).Handler()
+	handler := newManagedTestServer(t, store).Handler()
 	for attempt := 0; attempt < 3; attempt++ {
 		resp := doAnthropicRequest(t, handler, "/v1/messages", map[string]any{
 			"model":      "claude-route-compatibility",
@@ -1202,7 +1202,7 @@ func TestAnthropicMessagesSkipsIncompatibleRouteWithoutProviderPenalty(t *testin
 }
 
 func TestCompatibleAnthropicRoutesUsesHighestPriorityError(t *testing.T) {
-	server := NewWithConfig(NewMemoryStore(), Config{AdminToken: "admin"})
+	server := newManagedTestServerWithConfig(t, newTestMemoryStore(t), Config{AdminToken: "admin"})
 	req := anthropicMessagesRequest{
 		Raw: map[string]any{
 			"model":      "claude-route-compatibility",
@@ -1239,7 +1239,7 @@ func TestCompatibleAnthropicRoutesUsesHighestPriorityError(t *testing.T) {
 }
 
 func TestCompatibleAnthropicRoutesSkipsProviderRejectingReasoningEffort(t *testing.T) {
-	server := NewWithConfig(NewMemoryStore(), Config{AdminToken: "admin"})
+	server := newManagedTestServerWithConfig(t, newTestMemoryStore(t), Config{AdminToken: "admin"})
 	req := anthropicMessagesRequest{
 		Raw: map[string]any{
 			"model":         "claude-route-reasoning",
@@ -1295,7 +1295,7 @@ func TestAnthropicMessagesRejectsUnsupportedServerToolOnOpenAIRoute(t *testing.T
 }
 
 func TestGatewayModelsIncludeAnthropicDiscoveryFields(t *testing.T) {
-	handler := newTestServer()
+	handler := newTestServer(t)
 	resp := doJSON(t, handler, http.MethodGet, "/v1/models", nil, "thk_demo_local")
 	if resp.Code != http.StatusOK {
 		t.Fatalf("expected 200, got %d: %s", resp.Code, resp.Body)
@@ -1331,7 +1331,7 @@ func newAnthropicGatewayServer(t *testing.T, upstreamURL string, providerType st
 
 func newAnthropicGatewayServerWithOptions(t *testing.T, upstreamURL string, providerType string, options map[string]string) (*Server, *GormStore, string) {
 	t.Helper()
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	project := store.CreateProject(Project{Name: "Claude Code Project", Status: StatusActive})
 	_, secret, err := store.CreateAPIKey(project.ID, APIKey{
 		Name:    "claude-code-key",
@@ -1370,7 +1370,7 @@ func newAnthropicGatewayServerWithOptions(t *testing.T, upstreamURL string, prov
 		Status:        StatusActive,
 		Strategy:      RouteStrategyPriorityOnly,
 	})
-	return New(store), store, secret
+	return newManagedTestServer(t, store), store, secret
 }
 
 func doAnthropicRequest(
@@ -1429,8 +1429,8 @@ func findTestBeta(payload any) string {
 // it must fail with a controlled 503 instead of dereferencing an
 // unconfigured zero-value client.
 func TestDoNativeAnthropicRequestRejectsMissingAdapter(t *testing.T) {
-	store := NewMemoryStore()
-	srv := NewWithConfig(store, Config{AdminToken: "dev_admin_token"})
+	store := newTestMemoryStore(t)
+	srv := newManagedTestServerWithConfig(t, store, Config{AdminToken: "dev_admin_token"})
 	// Drop every registered adapter so the Anthropic adapter is unavailable.
 	srv.adapterRegistry = NewAdapterRegistry()
 	_, err := srv.doNativeAnthropicRequest(context.Background(), Provider{

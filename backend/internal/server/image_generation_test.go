@@ -130,7 +130,7 @@ func TestOpenAIImageUsesPlatformImagesAPI(t *testing.T) {
 	}))
 	defer upstream.Close()
 
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	server := NewWithConfig(store, Config{
 		AdminToken:      "test-admin-token",
 		SecretKey:       "openai-image-test-secret",
@@ -191,7 +191,7 @@ func TestOpenAIImageUsesPlatformImagesAPI(t *testing.T) {
 }
 
 func TestImageModelsUseSeparateProviderTypes(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	openAIProvider := store.AddProvider(Provider{
 		ID: "prv_platform_image", Name: "OpenAI Platform", Type: ProviderOpenAI, Status: StatusActive, Healthy: true,
 	})
@@ -436,7 +436,7 @@ func (s imageStartRejectStore) StartCall(context.Context, Project, APIKey, strin
 }
 
 func TestImageAuthorizationHappensBeforeJobOrAssetPersistence(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	project := store.CreateProject(Project{Name: "Rejected Image Project"})
 	_, secret, err := store.CreateAPIKey(project.ID, APIKey{Name: "rejected-image", Status: StatusActive}, "thk_rejected_image")
 	if err != nil {
@@ -481,7 +481,7 @@ func TestImageAuthorizationHappensBeforeJobOrAssetPersistence(t *testing.T) {
 
 func TestImageRouteCandidatesHookCanSelectApprovedImageRoute(t *testing.T) {
 	imageBytes := realPNGFixture(t)
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	project := store.CreateProject(Project{Name: "Image Route Plugin Project", Status: StatusActive})
 	_, secret, err := store.CreateAPIKey(project.ID, APIKey{Name: "image-route-plugin-key", Allowed: []string{openAIImageModelName}, Status: StatusActive}, "thk_image_route_plugin")
 	if err != nil {
@@ -540,7 +540,7 @@ func TestImageRouteCandidatesHookCanSelectApprovedImageRoute(t *testing.T) {
 }
 
 func TestServerStartupFailsUnfinishedImageJobsWithoutRecovery(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	job, err := store.CreateImageJob(ImageJob{
 		ProjectID: "prj_restart", APIKeyID: "key_restart", Status: imageJobStatusQueued,
 		RequestID: "req_image_restart", Model: codexImageModelName, Action: "generate",
@@ -655,7 +655,7 @@ func TestImageAdmissionAndJobCreationRollbackTogether(t *testing.T) {
 }
 
 func TestCodexImageVirtualModelRequiresSupportedSubscriptionAccount(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	syncBuiltInImageCapabilityProfilesForTest(store)
 	project := store.CreateProject(Project{Name: "Codex Image Model Project"})
 	key, _, err := store.CreateAPIKey(project.ID, APIKey{
@@ -740,7 +740,7 @@ func TestCodexImageVirtualModelRequiresSupportedSubscriptionAccount(t *testing.T
 }
 
 func TestCodexImageModelPermissionIsNotInheritedFromGPTImage2(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	project := store.CreateProject(Project{Name: "Separated Image Models"})
 	key, _, err := store.CreateAPIKey(project.ID, APIKey{
 		Name: "standard-image-only", Allowed: []string{"gpt-image-2"}, Status: StatusActive,
@@ -756,7 +756,7 @@ func TestCodexImageModelPermissionIsNotInheritedFromGPTImage2(t *testing.T) {
 }
 
 func TestImageJobCompletionIsAtomic(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	project := store.CreateProject(Project{Name: "Atomic Image Completion"})
 	key, _, err := store.CreateAPIKey(project.ID, APIKey{
 		Name: "atomic-image-key", Allowed: []string{openAIImageModelName}, Status: StatusActive,
@@ -841,7 +841,7 @@ func TestImageJobCompletionIsAtomic(t *testing.T) {
 }
 
 func TestImageGenerationTimesOutAfterConfiguredLimit(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	project := store.CreateProject(Project{Name: "Timed Image Project"})
 	_, secret, err := store.CreateAPIKey(project.ID, APIKey{
 		Name: "timed-image-key", Allowed: []string{codexImageModelName}, Status: StatusActive,
@@ -906,7 +906,7 @@ func TestImageGenerationTimesOutAfterConfiguredLimit(t *testing.T) {
 }
 
 func TestImageQueueHonorsWorkerAndCapacityLimits(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	project := store.CreateProject(Project{Name: "Image Queue Project"})
 	_, secret, err := store.CreateAPIKey(project.ID, APIKey{
 		Name: "image-queue-key", Allowed: []string{openAIImageModelName}, Status: StatusActive,
@@ -1036,7 +1036,7 @@ func TestImageQueueHonorsWorkerAndCapacityLimits(t *testing.T) {
 
 func TestCodexImageRequestUsesSubscriptionCompatibleResponse(t *testing.T) {
 	imageBytes := realPNGFixture(t)
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	project := store.CreateProject(Project{Name: "Codex App Image Project"})
 	_, secret, err := store.CreateAPIKey(project.ID, APIKey{
 		Name:    "codex-app-image-key",
@@ -1148,7 +1148,7 @@ func TestImageGenerationAsyncUsesCodexSubscriptionAndPersistsImage(t *testing.T)
 	}))
 	defer upstream.Close()
 
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	project := store.CreateProject(Project{Name: "Image API Project"})
 	_, secret, err := store.CreateAPIKey(project.ID, APIKey{
 		Name:    "image-api-key",
@@ -1360,7 +1360,7 @@ func TestValidGPTImage2Size(t *testing.T) {
 }
 
 func TestImageGenerationResponseReportsMissingStoredAsset(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	server := NewWithConfig(store, Config{
 		AdminToken: "test-admin-token", SecretKey: "missing-image-secret", ImageStorageDir: t.TempDir(),
 	})

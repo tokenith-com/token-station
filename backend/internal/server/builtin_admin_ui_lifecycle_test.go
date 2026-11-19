@@ -17,7 +17,7 @@ func TestBuiltinPresentationLifecycleAppliesImmediatelyAndAfterRestart(t *testin
 	} {
 		t.Run(pluginID, func(t *testing.T) {
 			config := Config{AdminToken: "dev_admin_token", PluginDir: t.TempDir()}
-			server := NewWithConfig(NewMemoryStore(), config)
+			server := newManagedTestServerWithConfig(t, newTestMemoryStore(t), config)
 			contributionCount := countBuiltinPresentationContributions(server, pluginID)
 			assertBuiltinPresentationStatus(t, server, pluginID, pluginmeta.StatusEnabled, contributionCount)
 
@@ -29,7 +29,7 @@ func TestBuiltinPresentationLifecycleAppliesImmediatelyAndAfterRestart(t *testin
 				assertBuiltinPresentationStatus(t, server, "tokenhub.sim.antd", pluginmeta.StatusEnabled, 0)
 			}
 
-			restarted := NewWithConfig(NewMemoryStore(), config)
+			restarted := newManagedTestServerWithConfig(t, newTestMemoryStore(t), config)
 			assertBuiltinPresentationStatus(t, restarted, pluginID, pluginmeta.StatusDisabled, 0)
 			patchBuiltinPresentationStatus(t, restarted, pluginID, pluginmeta.StatusEnabled)
 			assertBuiltinPresentationStatus(t, restarted, pluginID, pluginmeta.StatusEnabled, contributionCount)

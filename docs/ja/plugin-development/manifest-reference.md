@@ -2,7 +2,7 @@
 
 Language: [English](../../plugin-development/manifest-reference.md) | [简体中文](../../zh-CN/plugin-development/manifest-reference.md) | 日本語
 
-各 package の root に `plugin.yaml` を 1 つ配置します。TokenHub は capability を登録または実行する前にこれを検証します。
+各 package の root に `plugin.yaml` を 1 つ配置します。TokenStation は capability を登録または実行する前にこれを検証します。
 
 | フィールド | 目的 |
 | --- | --- |

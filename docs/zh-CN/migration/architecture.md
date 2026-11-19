@@ -3,19 +3,19 @@
 ## 流水线概览
 
 ```
-Source Gateway  ──extract──▶  CanonicalMigrationBundle  ──apply──▶  TokenHub
+Source Gateway  ──extract──▶  CanonicalMigrationBundle  ──apply──▶  TokenStation
 (LiteLLM, ...)               (版本化 JSON，无明文密钥)             (Admin API / DB)
 ```
 
 - **Source Adapter** — 读取竞品网关配置，输出标准化 bundle。
 - **Sink** — 消费 bundle 并通过 Admin API 或直连数据库执行幂等 upsert，同时写入 checkpoint 以支持回滚。
-- **CLI** (`tokenhub-migrate`) — 暴露 `extract`、`plan`、`apply`、`verify`、`rollback` 子命令。
+- **CLI** (`tokenstation-migrate`) — 暴露 `extract`、`plan`、`apply`、`verify`、`rollback` 子命令。
 
 ## 目录结构
 
 ```
 backend/
-  cmd/tokenhub-migrate/          # CLI 入口
+  cmd/tokenstation-migrate/          # CLI 入口
   internal/migration/
     bundle/                      # 中间格式定义 + JSON Schema
     cli/                         # cobra 命令注册

@@ -3,7 +3,7 @@ package server
 import "testing"
 
 func TestProviderRouteBridgeUsesPluginDeclaredProtocol(t *testing.T) {
-	server := NewWithConfig(NewMemoryStore(), Config{AdminToken: "admin"})
+	server := newManagedTestServerWithConfig(t, newTestMemoryStore(t), Config{AdminToken: "admin"})
 	const providerType = "plugin_bridge_protocol"
 	descriptor := providerPluginDescriptorWithRouteProtocol(
 		"tokenhub.provider.bridge-protocol",
@@ -31,7 +31,7 @@ func TestProviderRouteBridgeUsesPluginDeclaredProtocol(t *testing.T) {
 }
 
 func TestProviderRouteBridgeIgnoresUndeclaredProtocol(t *testing.T) {
-	server := NewWithConfig(NewMemoryStore(), Config{AdminToken: "admin"})
+	server := newManagedTestServerWithConfig(t, newTestMemoryStore(t), Config{AdminToken: "admin"})
 	server.adapterRegistry.Register("plain_chat_provider", routeProtocolTestAdapter{}, AdapterCapabilityChat)
 
 	if bridge, ok := server.chatRouteBridge(RouteSelection{Provider: Provider{Type: "plain_chat_provider"}}); ok {

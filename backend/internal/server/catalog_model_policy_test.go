@@ -50,7 +50,7 @@ func TestCatalogRetirementUsesExactCutoffAndKeepsPreviewAvailable(t *testing.T) 
 }
 
 func TestCatalogPolicyBlocksNewRoutesWithoutChangingExistingTraffic(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	provider := store.AddProvider(Provider{ID: "p", Type: ProviderOpenAICompatible, Status: StatusActive, Healthy: true, Options: map[string]string{"catalog_id": "official"}})
 	store.AddModel(Model{Name: "public", Modality: "chat", Status: StatusActive})
 	store.AddProviderModel(ProviderModel{ProviderID: provider.ID, UpstreamModel: "same-model", Modality: "chat", Status: StatusActive, InputPriceUSDPer1M: 9})

@@ -1,6 +1,6 @@
 # MiniMax Coding Plan
 
-Connect an explicitly authorized MiniMax Coding Plan account to TokenHub.
+Connect an explicitly authorized MiniMax Coding Plan account to TokenStation.
 
 - Plugin ID: `tokenhub.provider.minimax-code-subscription`
 - Configuration: Provider management, with a separate account resource

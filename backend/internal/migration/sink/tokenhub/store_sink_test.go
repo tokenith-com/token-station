@@ -9,6 +9,50 @@ import (
 	"tokenhub/backend/internal/server"
 )
 
+func TestStoreSinkProjectExcludedModels(t *testing.T) {
+	store := server.NewMemoryStore()
+	sink := NewStoreSink(store, bundle.StaticResolver{})
+	b := &bundle.CanonicalMigrationBundle{
+		SchemaVersion: bundle.SchemaVersion,
+		Source:        bundle.Source{Adapter: "tokenhub", AdapterVersion: "1.1.0"},
+		GeneratedAt:   time.Now().UTC(),
+		Models:        []bundle.ModelRef{{ExternalRef: bundle.ExternalRef{System: "tokenhub", ID: "model/a"}, Spec: server.Model{Name: "model-a", Family: "test", Modality: "text", Status: server.StatusActive}}},
+		Projects:      []bundle.ProjectRef{{ExternalRef: bundle.ExternalRef{System: "tokenhub", ID: "project/a"}, Spec: server.Project{Name: "Excluded Project", Status: server.StatusActive, ExcludedModels: []string{" model-a ", "model-a", ""}}}},
+	}
+	for _, excluded := range [][]string{b.Projects[0].Spec.ExcludedModels, {}, {"model-a"}} {
+		b.Projects[0].Spec.ExcludedModels = excluded
+		b.Projects[0].Spec.ModelAccessMode = server.ModelAccessModeExcluded
+		if _, err := sink.Apply(b); err != nil {
+			t.Fatal(err)
+		}
+		project := store.ListProjects()[0]
+		if project.ModelAccessMode != server.ModelAccessModeExcluded || len(project.ExcludedModels) != len(normalizedExcludedForTest(excluded)) {
+			t.Fatalf("unexpected project: %+v", project)
+		}
+		result, err := sink.Apply(b)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, change := range result.Changes {
+			if change.Action != ActionSkip {
+				t.Fatalf("reapply changed %s: %s", change.Resource, change.Action)
+			}
+		}
+	}
+	b.Projects[0].Spec.ModelAccessMode = server.ModelAccessModeInherit
+	if _, err := sink.Apply(b); err != nil {
+		t.Fatal(err)
+	}
+	if project := store.ListProjects()[0]; len(project.ExcludedModels) != 0 {
+		t.Fatalf("inherit retained exclusions: %+v", project)
+	}
+}
+
+func normalizedExcludedForTest(values []string) []string {
+	_, values = normalizedMigrationModelAccess(server.ModelAccessModeRestricted, values)
+	return values
+}
+
 func TestStoreSinkApplyRefreshesSecretBackedHeadersWithoutDuplicates(t *testing.T) {
 	store := server.NewMemoryStore()
 	resolver := bundle.StaticResolver{

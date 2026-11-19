@@ -58,7 +58,7 @@ func TestRegistryMergesDescriptorsForSamePlugin(t *testing.T) {
 		ID:          "tokenhub.codex",
 		Name:        "Codex",
 		Version:     "built-in",
-		Description: "Connects Codex subscriptions to TokenHub.",
+		Description: "Connects Codex subscriptions to TokenStation.",
 		Source:      SourceBuiltIn,
 		Marketplace: &MarketplaceMetadata{
 			Summary:    "Official Codex subscription provider.",
@@ -96,7 +96,7 @@ func TestRegistryMergesDescriptorsForSamePlugin(t *testing.T) {
 	if descriptor.Name != "Codex" || descriptor.Version != "built-in" || descriptor.Source != SourceBuiltIn {
 		t.Fatalf("descriptor identity changed: %+v", descriptor)
 	}
-	if descriptor.Description != "Connects Codex subscriptions to TokenHub." {
+	if descriptor.Description != "Connects Codex subscriptions to TokenStation." {
 		t.Fatalf("descriptor description changed: %q", descriptor.Description)
 	}
 	if want := []Kind{KindAdminUI, KindProvider}; !reflect.DeepEqual(descriptor.Kinds, want) {

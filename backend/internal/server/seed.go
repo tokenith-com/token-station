@@ -3,17 +3,21 @@ package server
 import (
 	"context"
 	"fmt"
+	"log"
 	"net/http"
 	"strings"
 	"time"
 )
 
-const defaultProjectID = "prj_default"
+const (
+	defaultProjectID       = "prj_default"
+	consumerProjectID      = "prj_consumer"
+	consumerCostCenterCode = "c-platform"
+	defaultCostCenterCode  = "default-platform"
+)
 
-// RunStartupBootstrap reapplies idempotent startup data on every process start
-// while serializing replicas through a cluster-wide lease. The contextual
-// store makes lease loss cancel the database operations still in progress.
-func RunStartupBootstrap(ctx context.Context, store *GormStore, config Config) error {
+// InitializeDatabase populates application data under a cluster-wide lease.
+func InitializeDatabase(ctx context.Context, store *GormStore, config Config) error {
 	operation := "bootstrap-base"
 	seed := BootstrapBaseDataWithConfig
 	if config.SeedDemo {
@@ -22,11 +26,48 @@ func RunStartupBootstrap(ctx context.Context, store *GormStore, config Config) e
 	}
 	return store.RunClusterOperation(ctx, operation, func(leaseCtx context.Context) error {
 		contextual := store.WithContext(leaseCtx)
+		_, _, _, found, err := contextual.LoadProviderCatalogSnapshot(false)
+		if err != nil {
+			return err
+		}
+		if err := seed(contextual, config); err != nil {
+			return err
+		}
+		if !found {
+			catalog := newProviderCatalogService(contextual, config.ProviderCatalogFile, nil)
+			if _, err := catalog.Initialize(leaseCtx); err != nil {
+				log.Printf("initialize local provider catalog: %v; using built-in catalog", err)
+			}
+		}
+		return nil
+	})
+}
+
+// RepairDatabaseData normalizes existing provider and route data for this release.
+func RepairDatabaseData(ctx context.Context, store *GormStore, config Config) error {
+	runtime := newBuiltinProviderRuntime(builtinProviderRuntimeDependencies{Store: store})
+	plugins, err := bootstrapServerPlugins(config, runtime.adapters)
+	if err != nil {
+		return err
+	}
+	(&Server{store: store}).installServerPluginHandlers(&plugins)
+	return store.RunClusterOperation(ctx, "bootstrap-base", func(leaseCtx context.Context) error {
+		contextual := store.WithContext(leaseCtx)
 		if err := contextual.NormalizeProviderAdapterTypes(leaseCtx); err != nil {
 			return err
 		}
-		return seed(contextual, config)
+		configureProviderResourceTypeDefaults(contextual, plugins.adapterRegistry)
+		contextual.setProviderImageCapabilityRouteProfiles(providerImageCapabilityRouteProfilesFromActions(plugins.pluginActions.List()))
+		repairProviderAndRouteData(contextual, plugins.adapterRegistry)
+		return nil
 	})
+}
+
+func repairProviderAndRouteData(store Store, registry *AdapterRegistry) {
+	reconcileProviderPluginPolicies(store, registry)
+	backfillProviderModelsFromRoutes(store)
+	backfillExternalModelRolesFromRoutes(store)
+	backfillCodexImageRoutes(store)
 }
 
 func SeedDemoData(store Store) error {
@@ -154,6 +195,10 @@ func BootstrapBaseDataWithConfig(store Store, config Config) error {
 		return err
 	}
 	seedDefaultProject(store)
+	seedConsumerCostCenter(store)
+	if err := seedConsumerProject(store); err != nil {
+		return err
+	}
 	if err := seedBuiltinProviderCatalog(store); err != nil {
 		return err
 	}
@@ -168,7 +213,7 @@ func seedBootstrapAdmin(store Store, password string) error {
 		ID:       "usr_admin",
 		Username: "admin",
 		Name:     "Platform Admin",
-		Email:    "admin@tokenhub.local",
+		Email:    "admin@tokenstation.local",
 		Role:     "admin",
 		TeamID:   "team_platform",
 		Status:   StatusActive,
@@ -197,8 +242,48 @@ func seedDefaultProject(store Store) {
 		Name:        "Default Project Space",
 		TeamID:      "team_platform",
 		OwnerUserID: "usr_admin",
-		CostCenter:  "AI-PLATFORM",
+		CostCenter:  defaultCostCenterCode,
 		Status:      StatusActive,
+	})
+}
+
+// seedConsumerProject creates the dedicated project that holds API keys of
+// consumer (guest) accounts, keeping them separate from the default project.
+func seedConsumerProject(store Store) error {
+	if _, ok := store.GetProject(consumerProjectID); ok {
+		if repairable, ok := store.(interface{ RepairBuiltinConsumerProject() error }); ok {
+			return repairable.RepairBuiltinConsumerProject()
+		}
+		return nil
+	}
+	store.CreateProject(Project{
+		ID:          consumerProjectID,
+		Name:        "C端普通用户项目",
+		OwnerUserID: "usr_admin",
+		CostCenter:  consumerCostCenterCode,
+		Status:      StatusActive,
+	})
+	return nil
+}
+
+// seedConsumerCostCenter ensures a cost center with the consumer code exists,
+// unless an operator already created one with the same code.
+func seedConsumerCostCenter(store Store) {
+	for _, existing := range store.ListResources("cost-centers") {
+		if code, _ := existing.Fields["code"].(string); code == consumerCostCenterCode {
+			return
+		}
+	}
+	seedResourceIfMissing(store, "cost-centers", AdminResource{
+		ID:          "cc_consumer",
+		Name:        "C端成本中心",
+		Description: "Cost attribution for self-registered consumer accounts.",
+		Status:      StatusActive,
+		Fields: map[string]any{
+			"code":               consumerCostCenterCode,
+			"monthly_budget_usd": 0,
+			"owner":              "usr_admin",
+		},
 	})
 }
 
@@ -245,7 +330,7 @@ func seedDefaultOrgResources(store Store) error {
 		Status:      StatusActive,
 		Fields: map[string]any{
 			"owner":       "usr_admin",
-			"cost_center": "AI-PLATFORM",
+			"cost_center": defaultCostCenterCode,
 		},
 	})
 	seedResourceIfMissing(store, "cost-centers", AdminResource{
@@ -254,7 +339,7 @@ func seedDefaultOrgResources(store Store) error {
 		Description: "Cost attribution for platform engineering and shared AI infrastructure.",
 		Status:      StatusActive,
 		Fields: map[string]any{
-			"code":               "AI-PLATFORM",
+			"code":               defaultCostCenterCode,
 			"department":         "Platform Engineering",
 			"owner":              "usr_admin",
 			"monthly_budget_usd": 5000,
@@ -307,7 +392,7 @@ func seedDefaultOrgResources(store Store) error {
 		Fields: map[string]any{
 			"provider_type":  "oidc",
 			"issuer_url":     "https://sso.example.com",
-			"client_id":      "tokenhub-admin",
+			"client_id":      "tokenstation-admin",
 			"client_secret":  "",
 			"authorize_url":  "https://sso.example.com/oauth2/authorize",
 			"token_url":      "https://sso.example.com/oauth2/token",
@@ -319,52 +404,99 @@ func seedDefaultOrgResources(store Store) error {
 			"team_claim":     "department",
 		},
 	})
-	seedDefaultRoleConfigs(store)
+	if err := seedDefaultRoleConfigs(store); err != nil {
+		return fmt.Errorf("seed role configs: %w", err)
+	}
 	return nil
 }
 
-func seedDefaultRoleConfigs(store Store) {
+func seedDefaultRoleConfigs(store Store) error {
 	roles := []AdminResource{
 		{
 			ID:          "role_user",
-			Name:        "Regular User",
+			Name:        "团队普通用户",
 			Description: "Can create personal API keys and view personal request logs and usage.",
 			Status:      StatusActive,
 			Fields: map[string]any{
 				"role_key":     "user",
-				"display_name": "Regular User",
+				"display_name": "团队普通用户",
+				"data_scope":   "self",
+				"assignable":   true,
+			},
+		},
+		{
+			ID:          "role_consumer",
+			Name:        "C端普通用户",
+			Description: "Individual consumer account that manages personal API keys, available models, usage, and request logs.",
+			Status:      StatusActive,
+			Fields: map[string]any{
+				"role_key":     "consumer",
+				"display_name": "C端普通用户",
 				"data_scope":   "self",
 				"assignable":   true,
 			},
 		},
 		{
 			ID:          "role_team_leader",
-			Name:        "Team Leader",
+			Name:        "团队管理者",
 			Description: "Manages team members and views team usage and cost.",
 			Status:      StatusActive,
 			Fields: map[string]any{
 				"role_key":     "team_leader",
-				"display_name": "Team Leader",
+				"display_name": "团队管理者",
 				"data_scope":   "team",
 				"assignable":   true,
 			},
 		},
 		{
 			ID:          "role_admin",
-			Name:        "Platform Admin",
+			Name:        platformAdminDisplayName,
 			Description: "Manages platform settings, Providers, model routes, users, and governance policies.",
 			Status:      StatusActive,
 			Fields: map[string]any{
 				"role_key":     "admin",
-				"display_name": "Platform Admin",
+				"display_name": platformAdminDisplayName,
 				"data_scope":   "global",
 				"assignable":   true,
 			},
 		},
 	}
-	for _, role := range roles {
-		seedResourceIfMissing(store, "role-configs", role)
+	resources, err := store.ListResourcesChecked("role-configs")
+	if err != nil {
+		return err
 	}
+	for _, role := range roles {
+		var existing *AdminResource
+		for index := range resources {
+			candidate := &resources[index]
+			key := stringField(candidate.Fields, "role_key")
+			if candidate.ID == role.ID || key == stringField(role.Fields, "role_key") || (key == "guest" && stringField(role.Fields, "role_key") == "consumer") {
+				existing = candidate
+				break
+			}
+		}
+		if existing == nil {
+			if _, err := store.CreateResourceChecked("role-configs", role); err != nil {
+				return err
+			}
+			continue
+		}
+
+		fields := cloneFields(existing.Fields)
+		fields["display_name"] = role.Fields["display_name"]
+		if stringField(role.Fields, "role_key") == "consumer" {
+			fields["role_key"] = "consumer"
+		}
+		if existing.Name != role.Name || stringField(existing.Fields, "display_name") != stringField(role.Fields, "display_name") || stringField(existing.Fields, "role_key") != stringField(fields, "role_key") {
+			patch := *existing
+			patch.Name = role.Name
+			patch.Fields = fields
+			if _, err := store.UpdateResource("role-configs", existing.ID, patch); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
 }
 
 func seedResourceIfMissing(store Store, kind string, resource AdminResource) {
@@ -410,7 +542,7 @@ func seedAdminResources(store Store) error {
 	store.CreateResource("announcements", AdminResource{
 		ID:          "ann_mvp",
 		Name:        "Internal Rollout Notice",
-		Description: "TokenHub is available for internal rollout. Provider credentials must only be used for enterprise-authorized APIs.",
+		Description: "TokenStation is available for internal rollout. Provider credentials must only be used for enterprise-authorized APIs.",
 		Status:      StatusActive,
 		Fields: map[string]any{
 			"notify_mode": "silent",
@@ -460,7 +592,7 @@ func seedAdminResources(store Store) error {
 		Status:      StatusActive,
 		Fields: map[string]any{
 			"scope":         "cost_center",
-			"scope_id":      "AI-PLATFORM",
+			"scope_id":      defaultCostCenterCode,
 			"period":        "monthly",
 			"period_ref":    time.Now().UTC().Format("2006-01"),
 			"amount_usd":    5000,
@@ -591,7 +723,7 @@ func seedMockData(store Store) error {
 				TokenLimitTPM:  int64(90000 + i*1500),
 				MaxConcurrency: int64(10 + (i % 12)),
 				Headers: map[string]string{
-					"x-tokenhub-resource-region": mockRegion(i + resourceIndex),
+					"x-tokenstation-resource-region": mockRegion(i + resourceIndex),
 				},
 				Options: map[string]string{
 					"owner": fmt.Sprintf("team_mock_%02d", ((i-1)%24)+1),
@@ -649,7 +781,7 @@ func seedMockData(store Store) error {
 			ID:           fmt.Sprintf("usr_mock_%03d", i),
 			Username:     fmt.Sprintf("mock.user%03d", i),
 			Name:         fmt.Sprintf("Mock User %03d", i),
-			Email:        fmt.Sprintf("mock.user%03d@tokenhub.local", i),
+			Email:        fmt.Sprintf("mock.user%03d@tokenstation.local", i),
 			Role:         mockRole(i),
 			TeamID:       mockActiveTeamID(i),
 			Status:       activeEvery(i, 16),

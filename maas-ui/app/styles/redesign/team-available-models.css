@@ -1,0 +1,366 @@
+.view-models .team-available-models {
+  min-width: 0;
+  width: 100%;
+}
+
+.view-models .team-available-models > .section {
+  min-width: 0;
+  border: 1px solid #e4e7ed;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: none;
+}
+
+.view-models .team-available-models > .section > .section-header {
+  min-height: 42px;
+  padding: 0 14px;
+  border-bottom: 1px solid #eceef2;
+}
+
+.view-models .team-available-models > .section > .section-header h2 {
+  color: #1d2129;
+  font-size: calc(13 * var(--content-font-unit, 1px));
+  font-weight: 600;
+}
+
+.view-models .team-available-models > .section > .section-body {
+  padding: 14px;
+}
+
+.view-models .team-available-models .model-catalog-main {
+  gap: 10px;
+}
+
+.view-models .team-available-models .model-category-strip {
+  min-height: 44px;
+  border-color: #e3e6eb;
+  border-radius: 8px;
+  padding: 6px 8px;
+  grid-template-columns: 104px minmax(0, 1fr);
+  gap: 8px;
+  box-shadow: none;
+}
+
+.view-models .team-available-models .model-category-strip-head strong {
+  color: #4c5e70;
+  font-size: calc(12 * var(--content-font-unit, 1px));
+  font-weight: 600;
+}
+
+.view-models .team-available-models .model-category-strip-head span {
+  color: #9aa4af;
+  font-size: calc(10 * var(--content-font-unit, 1px));
+}
+
+.view-models .team-available-models .model-category-tabs {
+  gap: 6px;
+}
+
+.view-models .team-available-models .model-category-tab {
+  min-width: 0;
+  height: calc(28 * var(--content-font-unit, 1px));
+  min-height: calc(28 * var(--content-font-unit, 1px));
+  border-color: #e4e7ed;
+  border-radius: 5px;
+  padding: 2px 7px;
+  grid-template-columns: 16px minmax(42px, 1fr) auto;
+  gap: 5px;
+  background: #fff;
+}
+
+.view-models .team-available-models .model-category-tab:hover,
+.view-models .team-available-models .model-category-tab.active {
+  border-color: #8a5fc4;
+  background: rgba(138, 95, 196, 0.08);
+}
+
+.view-models .team-available-models .model-category-tab .model-brand-icon {
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+}
+
+.view-models .team-available-models .model-category-tab .model-brand-icon img {
+  width: 11px;
+  height: 11px;
+}
+
+.view-models .team-available-models .model-category-tab strong {
+  color: #4c5e70;
+  font-size: calc(11 * var(--content-font-unit, 1px));
+  font-weight: 500;
+}
+
+.view-models .team-available-models .model-category-tab em {
+  color: #8d98a5;
+  font-size: calc(10 * var(--content-font-unit, 1px));
+  font-weight: 400;
+}
+
+.view-models .team-available-models .model-filterbar {
+  min-height: calc(34 * var(--content-font-unit, 1px));
+  gap: 10px;
+}
+
+.view-models .team-available-models .model-capability-tabs {
+  flex-wrap: nowrap;
+  gap: 6px;
+}
+
+.view-models .team-available-models .model-capability-tab {
+  height: calc(28 * var(--content-font-unit, 1px));
+  border-color: #e4e7ed;
+  border-radius: 7px;
+  padding: 0 8px;
+  gap: 5px;
+  color: #4c5e70;
+  font-size: calc(11 * var(--content-font-unit, 1px));
+  font-weight: 500;
+}
+
+.view-models .team-available-models .model-capability-tab:hover,
+.view-models .team-available-models .model-capability-tab.active {
+  border-color: #8a5fc4;
+  background: rgba(138, 95, 196, 0.08);
+  color: #121699;
+}
+
+.view-models .team-available-models .model-search {
+  width: 184px;
+  height: 28px;
+  border-color: #e1e4e9;
+  border-radius: 8px;
+  background: #fafbfc;
+}
+
+.view-models .team-available-models .model-search input {
+  font-size: calc(11 * var(--content-font-unit, 1px));
+}
+
+.view-models .team-available-models .model-catalog-summary {
+  min-height: 22px;
+  gap: 4px;
+  color: #8994a1;
+  font-size: calc(11 * var(--content-font-unit, 1px));
+}
+
+.view-models .team-available-models .model-catalog-summary span {
+  color: #121699;
+  font-weight: 500;
+}
+
+.view-models .team-available-models .model-catalog-summary strong {
+  color: #8a5fc4;
+  font-size: calc(11 * var(--content-font-unit, 1px));
+}
+
+.view-models .team-available-models .model-availability-note {
+  min-height: 31px;
+  border-color: #e5e8ed;
+  border-radius: 7px;
+  padding: 6px 8px;
+  align-items: center;
+  color: #7f8b98;
+  font-size: calc(10 * var(--content-font-unit, 1px));
+  line-height: 1.4;
+}
+
+.view-models .team-available-models .model-availability-note svg {
+  width: 13px;
+  height: 13px;
+  margin-top: 0;
+  color: #8a5fc4;
+}
+
+.view-models .team-available-models .model-price-table-wrap {
+  border-color: #e2e6ec;
+  border-radius: 7px;
+  box-shadow: none;
+}
+
+.view-models .team-available-models .model-price-table {
+  min-width: 1080px;
+}
+
+.view-models .team-available-models .model-price-table th {
+  height: calc(32 * var(--content-font-unit, 1px));
+  padding: 0 9px;
+  background: #fafafa;
+  color: #87919f;
+  font-size: calc(10 * var(--content-font-unit, 1px));
+  font-weight: 500;
+}
+
+.view-models .team-available-models .model-price-table td {
+  height: calc(55 * var(--content-font-unit, 1px));
+  padding: 7px 9px;
+}
+
+.view-models .team-available-models .model-price-name {
+  grid-template-columns: 28px minmax(0, 1fr);
+  gap: 8px;
+}
+
+.view-models .team-available-models .model-price-name .model-brand-icon {
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+}
+
+.view-models .team-available-models .model-price-name .model-brand-icon img {
+  width: 16px;
+  height: 16px;
+}
+
+.view-models .team-available-models .model-price-name strong {
+  color: #1d2129;
+  font-size: calc(11 * var(--content-font-unit, 1px));
+  font-weight: 600;
+}
+
+.view-models .team-available-models .model-price-name > div > span,
+.view-models .team-available-models .model-context-cell span,
+.view-models .team-available-models .model-source-cell small {
+  color: #98a1ad;
+  font-size: calc(9 * var(--content-font-unit, 1px));
+}
+
+.view-models .team-available-models .model-type-badge,
+.view-models .team-available-models .model-source-pill {
+  border-radius: 5px;
+  padding: 2px 6px;
+  font-size: calc(10 * var(--content-font-unit, 1px));
+  font-weight: 500;
+}
+
+.view-models .team-available-models .model-price-number,
+.view-models .team-available-models .model-monthly-cost,
+.view-models .team-available-models .model-context-cell strong,
+.view-models .team-available-models .model-price-index strong {
+  color: #1d2129;
+  font-size: calc(10 * var(--content-font-unit, 1px));
+  font-weight: 600;
+}
+
+.view-models .team-available-models .model-price-number.output {
+  color: #9a49b7;
+}
+
+.view-models .team-available-models .model-price-index {
+  gap: 5px;
+}
+
+.view-models .team-available-models .model-price-index > span {
+  height: 18px;
+  border-radius: 6px;
+}
+
+.view-models .team-available-models .pagination-controls {
+  min-height: calc(32 * var(--content-font-unit, 1px));
+}
+
+@media (max-width: 980px) {
+  .view-models .team-available-models .model-filterbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .view-models .team-available-models .model-capability-tabs {
+    overflow-x: auto;
+  }
+
+  .view-models .team-available-models .model-search {
+    width: 100%;
+  }
+}
+
+.view-models .team-available-models .model-category-tab.active strong,
+.view-models .team-available-models .model-category-tab:hover strong {
+  color: #121699;
+}
+
+.view-models .team-available-models .model-type-badge.balanced,
+.view-models .team-available-models .model-type-badge.code,
+.view-models .team-available-models .model-type-badge.media,
+.view-models .team-available-models .model-source-pill.official {
+  border-color: rgba(18, 22, 153, 0.2);
+  background: rgba(18, 22, 153, 0.06);
+  color: #121699;
+}
+
+.view-models .team-available-models .model-type-badge.reasoning {
+  border-color: rgba(138, 95, 196, 0.28);
+  background: rgba(138, 95, 196, 0.08);
+  color: #8a5fc4;
+}
+
+.view-models .team-available-models .model-type-badge.flagship,
+.view-models .team-available-models .model-source-pill.third {
+  border-color: rgba(154, 73, 183, 0.28);
+  background: rgba(154, 73, 183, 0.08);
+  color: #9a49b7;
+}
+
+.view-models .team-available-models .model-price-index i {
+  background: linear-gradient(90deg, rgba(18, 22, 153, 0.22), rgba(154, 73, 183, 0.32));
+}
+
+/* Read-only directory table (team view) — 利通 brand colors */
+.view-models .team-available-models .model-directory-table th {
+  background: #f7f6fc;
+  color: #6b6f8a;
+}
+
+.view-models .team-available-models .model-directory-table tbody tr:hover td {
+  background: rgba(138, 95, 196, 0.05);
+}
+
+.view-models .team-available-models .directory-model-name .model-brand-icon {
+  border-color: rgba(138, 95, 196, 0.22);
+  background: rgba(138, 95, 196, 0.08);
+  color: #8a5fc4;
+}
+
+.view-models .team-available-models .directory-model-name strong,
+.view-models .team-available-models .directory-model-name .model-detail-trigger {
+  color: #1d2129;
+}
+
+.view-models .team-available-models .directory-model-name .model-detail-trigger:hover {
+  color: #121699;
+}
+
+.view-models .team-available-models .model-directory-table td:nth-child(2) > strong {
+  color: #8a5fc4;
+}
+
+.view-models .team-available-models .model-directory-table td:last-child > strong {
+  color: #121699;
+}
+
+.view-models .team-available-models .model-directory-table .pill.ok {
+  border-color: rgba(138, 95, 196, 0.28);
+  background: rgba(138, 95, 196, 0.1);
+  color: #8a5fc4;
+}
+
+.view-models .team-available-models .mapping-summary em {
+  background: rgba(18, 22, 153, 0.06);
+  color: #121699;
+}
+
+.view-models .team-available-models .model-directory-toolbar input:focus,
+.view-models .team-available-models .search-box:focus-within {
+  border-color: #8a5fc4;
+  box-shadow: 0 0 0 3px rgba(138, 95, 196, 0.12);
+}
+
+.view-models .team-available-models .model-directory-table tbody tr:hover {
+  background: transparent;
+}
+
+.view-models .team-available-models .directory-model-name span {
+  border: 1px solid rgba(138, 95, 196, 0.2);
+  background: rgba(138, 95, 196, 0.06);
+  color: #8a5fc4;
+}

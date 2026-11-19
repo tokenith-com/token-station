@@ -17,8 +17,8 @@ import (
 )
 
 func TestAdminPluginActionExecutesThroughBroker(t *testing.T) {
-	store := NewMemoryStore()
-	server := NewWithConfig(store, Config{AdminToken: "plugin-action-admin"})
+	store := newTestMemoryStore(t)
+	server := newManagedTestServerWithConfig(t, store, Config{AdminToken: "plugin-action-admin"})
 	if err := server.pluginActions.Register(pluginmeta.ActionDescriptor{
 		PluginID: "tokenhub.provider.openai-codex",
 		ActionID: "test.echo",
@@ -53,7 +53,7 @@ func TestAdminPluginActionExecutesThroughBroker(t *testing.T) {
 }
 
 func TestAdminPluginActionSanitizesResultSecrets(t *testing.T) {
-	server := NewWithConfig(NewMemoryStore(), Config{AdminToken: "plugin-action-admin"})
+	server := newManagedTestServerWithConfig(t, newTestMemoryStore(t), Config{AdminToken: "plugin-action-admin"})
 	if err := server.pluginActions.Register(pluginmeta.ActionDescriptor{
 		PluginID: "tokenhub.provider.openai-codex",
 		ActionID: "test.secrets",
@@ -88,7 +88,7 @@ func TestAdminPluginActionSanitizesResultSecrets(t *testing.T) {
 }
 
 func TestAdminPluginActionPersistsCredentialRefreshResult(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	provider := store.AddProvider(Provider{ID: "prv_kimi_refresh", Name: "Kimi", Type: "kimi_subscription", Status: StatusActive, Healthy: true})
 	resource, err := store.AddProviderResource(ProviderResource{
 		ID:           "rsrc_kimi_refresh",
@@ -102,7 +102,7 @@ func TestAdminPluginActionPersistsCredentialRefreshResult(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	server := NewWithConfig(store, Config{AdminToken: "plugin-action-admin"})
+	server := newManagedTestServerWithConfig(t, store, Config{AdminToken: "plugin-action-admin"})
 	if err := server.pluginRegistry.Register(pluginmeta.Descriptor{
 		ID:      "tokenhub.provider.kimi",
 		Name:    "Kimi",
@@ -156,7 +156,7 @@ func TestAdminPluginActionPersistsCredentialRefreshResult(t *testing.T) {
 }
 
 func TestAdminPluginActionMarksCredentialRefreshReauthorization(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	provider := store.AddProvider(Provider{ID: "prv_kimi_reauthorize", Name: "Kimi", Type: "kimi_subscription", Status: StatusActive, Healthy: true})
 	resource, err := store.AddProviderResource(ProviderResource{
 		ID:           "rsrc_kimi_reauthorize",
@@ -170,7 +170,7 @@ func TestAdminPluginActionMarksCredentialRefreshReauthorization(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	server := NewWithConfig(store, Config{AdminToken: "plugin-action-admin"})
+	server := newManagedTestServerWithConfig(t, store, Config{AdminToken: "plugin-action-admin"})
 	if err := server.pluginRegistry.Register(pluginmeta.Descriptor{
 		ID:      "tokenhub.provider.kimi",
 		Name:    "Kimi",
@@ -216,7 +216,7 @@ func TestAdminPluginActionMarksCredentialRefreshReauthorization(t *testing.T) {
 }
 
 func TestAdminPluginActionCredentialRefreshRejectsWrongResourceType(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	provider := store.AddProvider(Provider{ID: "prv_kimi_refresh_type", Name: "Kimi", Type: "kimi_subscription", Status: StatusActive, Healthy: true})
 	resource, err := store.AddProviderResource(ProviderResource{
 		ID:           "rsrc_kimi_refresh_type",
@@ -230,7 +230,7 @@ func TestAdminPluginActionCredentialRefreshRejectsWrongResourceType(t *testing.T
 	if err != nil {
 		t.Fatal(err)
 	}
-	server := NewWithConfig(store, Config{AdminToken: "plugin-action-admin"})
+	server := newManagedTestServerWithConfig(t, store, Config{AdminToken: "plugin-action-admin"})
 	if err := server.pluginRegistry.Register(pluginmeta.Descriptor{
 		ID:      "tokenhub.provider.kimi",
 		Name:    "Kimi",
@@ -275,7 +275,7 @@ func TestAdminPluginActionCredentialRefreshRejectsWrongResourceType(t *testing.T
 }
 
 func TestAdminPluginActionRejectsInvalidResultSchema(t *testing.T) {
-	server := NewWithConfig(NewMemoryStore(), Config{AdminToken: "plugin-action-admin"})
+	server := newManagedTestServerWithConfig(t, newTestMemoryStore(t), Config{AdminToken: "plugin-action-admin"})
 	if err := server.pluginActions.Register(pluginmeta.ActionDescriptor{
 		PluginID: "tokenhub.provider.openai-codex",
 		ActionID: "test.invalid-result",
@@ -298,7 +298,7 @@ func TestAdminPluginActionRejectsInvalidResultSchema(t *testing.T) {
 }
 
 func TestAdminPluginActionsListsBuiltInActions(t *testing.T) {
-	server := NewWithConfig(NewMemoryStore(), Config{AdminToken: "plugin-action-admin"})
+	server := newManagedTestServerWithConfig(t, newTestMemoryStore(t), Config{AdminToken: "plugin-action-admin"})
 
 	response := doJSON(t, server.Handler(), http.MethodGet, "/api/admin/plugin-actions", nil, "plugin-action-admin")
 	if response.Code != http.StatusOK {
@@ -331,7 +331,7 @@ func TestAdminPluginActionsListsBuiltInActions(t *testing.T) {
 }
 
 func TestAdminPluginActionsListSanitizesDescriptorMetadata(t *testing.T) {
-	server := NewWithConfig(NewMemoryStore(), Config{AdminToken: "plugin-action-admin"})
+	server := newManagedTestServerWithConfig(t, newTestMemoryStore(t), Config{AdminToken: "plugin-action-admin"})
 	if err := server.pluginActions.Register(pluginmeta.ActionDescriptor{
 		PluginID:   "tokenhub.provider.openai-codex",
 		ActionID:   "test.leaky-descriptor",
@@ -383,7 +383,7 @@ func TestAdminPluginActionsListSanitizesDescriptorMetadata(t *testing.T) {
 }
 
 func TestProviderCredentialModelsPreviewUsesPluginAction(t *testing.T) {
-	server := NewWithConfig(NewMemoryStore(), Config{AdminToken: "plugin-action-admin"})
+	server := newManagedTestServerWithConfig(t, newTestMemoryStore(t), Config{AdminToken: "plugin-action-admin"})
 	providerType := "preview_action_provider"
 	pluginID := "tokenhub.provider.preview-action"
 	if err := server.adapterRegistry.RegisterPlugin(pluginmeta.BuiltInProvider(pluginID, "Preview Action Provider", []string{providerType}, []string{string(AdapterCapabilityModels)}), AdapterRegistration{
@@ -428,8 +428,8 @@ func TestProviderCredentialModelsPreviewUsesPluginAction(t *testing.T) {
 }
 
 func TestAdminPluginActionStartsOpenAICodexOAuth(t *testing.T) {
-	store := NewMemoryStore()
-	server := NewWithConfig(store, Config{
+	store := newTestMemoryStore(t)
+	server := newManagedTestServerWithConfig(t, store, Config{
 		AdminToken:         "plugin-action-admin",
 		CORSAllowedOrigins: []string{"http://localhost:3001"},
 	})
@@ -463,8 +463,8 @@ func TestAdminPluginActionStartsOpenAICodexOAuth(t *testing.T) {
 }
 
 func TestLegacyOpenAICodexOAuthAliasUsesProviderPluginAction(t *testing.T) {
-	store := NewMemoryStore()
-	server := NewWithConfig(store, Config{AdminToken: "plugin-action-admin"})
+	store := newTestMemoryStore(t)
+	server := newManagedTestServerWithConfig(t, store, Config{AdminToken: "plugin-action-admin"})
 	server.pluginActions = pluginmeta.NewActionBroker()
 	if err := server.pluginActions.Register(pluginmeta.ActionDescriptor{
 		PluginID:   "tokenhub.provider.openai-codex",
@@ -559,8 +559,8 @@ func TestLegacyOpenAICodexOAuthAliasUsesProviderPluginAction(t *testing.T) {
 }
 
 func TestAdminProviderActionExecutesOAuthCapabilityByProviderType(t *testing.T) {
-	store := NewMemoryStore()
-	server := NewWithConfig(store, Config{AdminToken: "plugin-action-admin"})
+	store := newTestMemoryStore(t)
+	server := newManagedTestServerWithConfig(t, store, Config{AdminToken: "plugin-action-admin"})
 	providerType := "kimi_subscription"
 	pluginID := "tokenhub.provider.kimi"
 	if err := server.adapterRegistry.RegisterPlugin(pluginmeta.BuiltInProvider(pluginID, "Kimi", []string{providerType}, []string{
@@ -615,7 +615,7 @@ func TestAdminProviderActionExecutesOAuthCapabilityByProviderType(t *testing.T) 
 }
 
 func TestAdminProviderActionAllowsDeclaredOAuthExchangeCredentialResult(t *testing.T) {
-	server := NewWithConfig(NewMemoryStore(), Config{AdminToken: "plugin-action-admin"})
+	server := newManagedTestServerWithConfig(t, newTestMemoryStore(t), Config{AdminToken: "plugin-action-admin"})
 	providerType := "kimi_subscription"
 	pluginID := "tokenhub.provider.kimi"
 	if err := server.adapterRegistry.RegisterPlugin(pluginmeta.BuiltInProvider(pluginID, "Kimi", []string{providerType}, []string{
@@ -692,7 +692,7 @@ func TestAdminPluginActionRefreshesOpenAICodexCredentials(t *testing.T) {
 	openAIAccountOAuthTokenEndpoint = tokenServer.URL
 	t.Cleanup(func() { openAIAccountOAuthTokenEndpoint = previousEndpoint })
 
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	provider := store.AddProvider(Provider{
 		ID: "prv_plugin_refresh", Name: "Plugin Refresh Provider", Type: ProviderOpenAICodex,
 		Status: StatusActive, Healthy: true,
@@ -708,7 +708,7 @@ func TestAdminPluginActionRefreshesOpenAICodexCredentials(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	server := NewWithConfig(store, Config{AdminToken: "plugin-action-admin"})
+	server := newManagedTestServerWithConfig(t, store, Config{AdminToken: "plugin-action-admin"})
 
 	response := doJSON(t, server.Handler(), http.MethodPost, "/api/admin/plugins/tokenhub.provider.openai-codex/actions/openai_codex.credentials.refresh", map[string]any{
 		"resource_id": resource.ID,
@@ -819,7 +819,7 @@ func TestAdminPluginActionConfiguresOpenAICodexImageCapability(t *testing.T) {
 }
 
 func TestAdminPluginActionRunsOpenAICodexProviderProbe(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	provider := store.AddProvider(Provider{
 		ID:      "prv_plugin_provider_probe",
 		Name:    "Plugin Provider Probe",
@@ -838,7 +838,7 @@ func TestAdminPluginActionRunsOpenAICodexProviderProbe(t *testing.T) {
 	}); err != nil {
 		t.Fatal(err)
 	}
-	server := NewWithConfig(store, Config{AdminToken: "plugin-action-admin", SecretKey: "plugin-provider-probe-secret-key"})
+	server := newManagedTestServerWithConfig(t, store, Config{AdminToken: "plugin-action-admin", SecretKey: "plugin-provider-probe-secret-key"})
 	mustCodexSubscriptionAdapterForTest(t, server).Client = &http.Client{Transport: roundTripperFunc(func(req *http.Request) (*http.Response, error) {
 		var payload map[string]any
 		if err := json.NewDecoder(req.Body).Decode(&payload); err != nil {
@@ -883,7 +883,7 @@ func TestAdminPluginActionRunsOpenAICodexProviderProbe(t *testing.T) {
 }
 
 func TestAdminPluginActionReadsOpenAICodexModels(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	provider := store.AddProvider(Provider{
 		ID:      "prv_plugin_models",
 		Name:    "Plugin Models",
@@ -903,7 +903,7 @@ func TestAdminPluginActionReadsOpenAICodexModels(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	server := NewWithConfig(store, Config{AdminToken: "plugin-action-admin", SecretKey: "plugin-models-secret-key"})
+	server := newManagedTestServerWithConfig(t, store, Config{AdminToken: "plugin-action-admin", SecretKey: "plugin-models-secret-key"})
 	mustCodexSubscriptionAdapterForTest(t, server).ModelsURL = "https://chatgpt.example/backend-api/codex/models"
 	mustCodexSubscriptionAdapterForTest(t, server).Client = &http.Client{Transport: roundTripperFunc(func(req *http.Request) (*http.Response, error) {
 		if req.Header.Get("authorization") != "Bearer plugin-models-secret" || req.Header.Get("chatgpt-account-id") != "plugin-models-account" {
@@ -939,8 +939,8 @@ func TestAdminPluginActionReadsOpenAICodexModels(t *testing.T) {
 }
 
 func TestAdminProviderResourceTestRouteUsesProbeAction(t *testing.T) {
-	store := NewMemoryStore()
-	server := NewWithConfig(store, Config{AdminToken: "plugin-action-admin"})
+	store := newTestMemoryStore(t)
+	server := newManagedTestServerWithConfig(t, store, Config{AdminToken: "plugin-action-admin"})
 	providerType := "probe_action_provider"
 	pluginID := "tokenhub.provider.probe-action"
 	adapterCalls := 0
@@ -1038,7 +1038,7 @@ capabilities:
 `), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	server := NewWithConfig(NewMemoryStore(), Config{AdminToken: "plugin-action-admin", PluginDir: pluginRoot})
+	server := newManagedTestServerWithConfig(t, newTestMemoryStore(t), Config{AdminToken: "plugin-action-admin", PluginDir: pluginRoot})
 
 	response := doJSON(t, server.Handler(), http.MethodGet, "/api/admin/plugin-actions", nil, "plugin-action-admin")
 	if response.Code != http.StatusOK {
@@ -1080,7 +1080,7 @@ capabilities:
 `), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	server := NewWithConfig(NewMemoryStore(), Config{AdminToken: "plugin-action-admin", PluginDir: pluginRoot})
+	server := newManagedTestServerWithConfig(t, newTestMemoryStore(t), Config{AdminToken: "plugin-action-admin", PluginDir: pluginRoot})
 	if err := server.pluginBackgroundJobs.Register(pluginmeta.BackgroundJobDescriptor{
 		PluginID:       "tokenhub.jobs",
 		JobID:          "quota.refresh",
@@ -1108,8 +1108,8 @@ capabilities:
 }
 
 func TestAdminPluginBackgroundJobRunExecutesThroughRunner(t *testing.T) {
-	store := NewMemoryStore()
-	server := NewWithConfig(store, Config{AdminToken: "plugin-action-admin"})
+	store := newTestMemoryStore(t)
+	server := newManagedTestServerWithConfig(t, store, Config{AdminToken: "plugin-action-admin"})
 	if err := server.pluginRegistry.Register(pluginmeta.Descriptor{
 		ID:      "tokenhub.jobs",
 		Name:    "Jobs Plugin",
@@ -1193,7 +1193,7 @@ func TestAdminPluginBackgroundJobRunExecutesThroughRunner(t *testing.T) {
 }
 
 func TestAdminPluginBackgroundJobRunRedactsErrorText(t *testing.T) {
-	server := NewWithConfig(NewMemoryStore(), Config{AdminToken: "plugin-action-admin"})
+	server := newManagedTestServerWithConfig(t, newTestMemoryStore(t), Config{AdminToken: "plugin-action-admin"})
 	if err := server.pluginRegistry.Register(pluginmeta.Descriptor{
 		ID:      "tokenhub.jobs",
 		Name:    "Jobs Plugin",
@@ -1251,7 +1251,7 @@ func TestAdminPluginBackgroundJobRunRedactsErrorText(t *testing.T) {
 }
 
 func TestAdminPluginBackgroundJobRunMapsErrors(t *testing.T) {
-	server := NewWithConfig(NewMemoryStore(), Config{AdminToken: "plugin-action-admin"})
+	server := newManagedTestServerWithConfig(t, newTestMemoryStore(t), Config{AdminToken: "plugin-action-admin"})
 	if err := server.pluginRegistry.Register(pluginmeta.Descriptor{
 		ID:      "tokenhub.jobs",
 		Name:    "Jobs Plugin",
@@ -1295,14 +1295,14 @@ func TestAdminPluginBackgroundJobRunMapsErrors(t *testing.T) {
 }
 
 func TestAdminPluginActionRejectsUnknownPlugin(t *testing.T) {
-	server := NewWithConfig(NewMemoryStore(), Config{AdminToken: "plugin-action-admin"})
+	server := newManagedTestServerWithConfig(t, newTestMemoryStore(t), Config{AdminToken: "plugin-action-admin"})
 
 	response := doJSON(t, server.Handler(), http.MethodPost, "/api/admin/plugins/tokenhub.missing/actions/test.echo", map[string]any{}, "plugin-action-admin")
 	assertResponseBodyJSONError(t, response, http.StatusNotFound, "plugin_not_found")
 }
 
 func TestAdminPluginActionRejectsUnknownAction(t *testing.T) {
-	server := NewWithConfig(NewMemoryStore(), Config{AdminToken: "plugin-action-admin"})
+	server := newManagedTestServerWithConfig(t, newTestMemoryStore(t), Config{AdminToken: "plugin-action-admin"})
 
 	response := doJSON(t, server.Handler(), http.MethodPost, "/api/admin/plugins/tokenhub.provider.openai-codex/actions/missing", map[string]any{}, "plugin-action-admin")
 	assertResponseBodyJSONError(t, response, http.StatusNotFound, "plugin_action_not_found")

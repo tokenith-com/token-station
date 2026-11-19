@@ -23,7 +23,7 @@ func TestAdminPluginLifecycleRejectsUnsatisfiedDependencies(t *testing.T) {
 		if err := os.WriteFile(filepath.Join(consumerDir, "plugin.state.json"), []byte(`{"status":"disabled"}`), 0o644); err != nil {
 			t.Fatal(err)
 		}
-		server := NewWithConfig(NewMemoryStore(), Config{AdminToken: "dev_admin_token", PluginDir: pluginDir})
+		server := newManagedTestServerWithConfig(t, newTestMemoryStore(t), Config{AdminToken: "dev_admin_token", PluginDir: pluginDir})
 
 		response := doJSON(t, server.Handler(), http.MethodPatch, "/api/admin/plugins/tokenhub.consumer/state", map[string]any{"status": "enabled"}, "dev_admin_token")
 		assertResponseBodyJSONError(t, response, http.StatusConflict, "plugin_dependency_unsatisfied")
@@ -37,7 +37,7 @@ func TestAdminPluginLifecycleRejectsUnsatisfiedDependencies(t *testing.T) {
 		pluginDir := t.TempDir()
 		writeServerPluginManifest(t, filepath.Join(pluginDir, "core"), serverDependencyManifest("tokenhub.core", "1.4.0", "", ""))
 		writeServerPluginManifest(t, filepath.Join(pluginDir, "consumer"), serverDependencyManifest("tokenhub.consumer", "1.0.0", "tokenhub.core", "^1.0.0"))
-		server := NewWithConfig(NewMemoryStore(), Config{AdminToken: "dev_admin_token", PluginDir: pluginDir})
+		server := newManagedTestServerWithConfig(t, newTestMemoryStore(t), Config{AdminToken: "dev_admin_token", PluginDir: pluginDir})
 
 		disable := doJSON(t, server.Handler(), http.MethodPatch, "/api/admin/plugins/tokenhub.core/state", map[string]any{"status": "disabled"}, "dev_admin_token")
 		assertResponseBodyJSONError(t, disable, http.StatusConflict, "plugin_dependency_in_use")
@@ -60,7 +60,7 @@ func TestAdminPluginUpdateRejectsMismatchedPluginID(t *testing.T) {
 	}))
 	defer upstream.Close()
 	writeServerPluginManifest(t, currentDir, adminPluginManifestWithTestDistribution("tokenhub.current", "Current Plugin", "1.0.0", upstream.URL+"/other.zip", adminSHA256Hex(archive), ""))
-	server := NewWithConfig(NewMemoryStore(), Config{AdminToken: "dev_admin_token", PluginDir: pluginDir})
+	server := newManagedTestServerWithConfig(t, newTestMemoryStore(t), Config{AdminToken: "dev_admin_token", PluginDir: pluginDir})
 	server.pluginInstallClient = upstream.Client()
 
 	response := doJSON(t, server.Handler(), http.MethodPost, "/api/admin/plugins/tokenhub.current/update", map[string]any{}, "dev_admin_token")
@@ -83,7 +83,7 @@ func TestAdminPluginUpdatePublishesNewActions(t *testing.T) {
 	}))
 	defer upstream.Close()
 	writeServerPluginManifest(t, filepath.Join(pluginDir, "hot-reload"), adminPluginActionManifest("tokenhub.hot-reload", "1.0.0", "sync.old", upstream.URL+"/hot-reload.zip", adminSHA256Hex(archive)))
-	server := NewWithConfig(NewMemoryStore(), Config{AdminToken: "dev_admin_token", PluginDir: pluginDir})
+	server := newManagedTestServerWithConfig(t, newTestMemoryStore(t), Config{AdminToken: "dev_admin_token", PluginDir: pluginDir})
 	server.pluginInstallClient = upstream.Client()
 
 	before := doJSON(t, server.Handler(), http.MethodGet, "/api/admin/plugin-actions", nil, "dev_admin_token")
@@ -120,7 +120,7 @@ func TestAdminPluginUpdateRecoversQuarantinedPackage(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(currentDir, "run.sh"), []byte("#!/bin/sh\nprintf '{}'"), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	server := NewWithConfig(NewMemoryStore(), Config{AdminToken: "dev_admin_token", PluginDir: pluginDir})
+	server := newManagedTestServerWithConfig(t, newTestMemoryStore(t), Config{AdminToken: "dev_admin_token", PluginDir: pluginDir})
 	server.pluginInstallClient = upstream.Client()
 
 	if _, ok := server.pluginRegistry.Describe("tokenhub.recovery"); ok {
@@ -186,7 +186,7 @@ tokenhub:
   plugin_api: v2
 kinds: [extension]
 `)
-	server := NewWithConfig(NewMemoryStore(), Config{AdminToken: "dev_admin_token", PluginDir: pluginDir})
+	server := newManagedTestServerWithConfig(t, newTestMemoryStore(t), Config{AdminToken: "dev_admin_token", PluginDir: pluginDir})
 	server.pluginInstallClient = upstream.Client()
 
 	if _, ok := server.pluginRegistry.Describe("tokenhub.invalid-recovery"); ok {
@@ -250,7 +250,7 @@ permissions:
     read: []
     write: []
 `)
-	server := NewWithConfig(NewMemoryStore(), Config{AdminToken: "dev_admin_token", PluginDir: pluginDir})
+	server := newManagedTestServerWithConfig(t, newTestMemoryStore(t), Config{AdminToken: "dev_admin_token", PluginDir: pluginDir})
 	server.pluginInstallClient = upstream.Client()
 
 	packages, err := pluginmeta.NewRuntime(pluginDir).DiscoverRecoverable()
@@ -311,7 +311,7 @@ func TestAdminPluginUpdateRetainsLastKnownGoodRollbackWhileRecoveringFailedUpdat
 		adminSHA256Hex(failedArchive),
 		"automation",
 	))
-	server := NewWithConfig(NewMemoryStore(), Config{AdminToken: "dev_admin_token", PluginDir: pluginDir})
+	server := newManagedTestServerWithConfig(t, newTestMemoryStore(t), Config{AdminToken: "dev_admin_token", PluginDir: pluginDir})
 	server.pluginInstallClient = upstream.Client()
 
 	failedUpdate := doJSON(t, server.Handler(), http.MethodPost, "/api/admin/plugins/tokenhub.rollback-recovery/update", map[string]any{}, "dev_admin_token")
@@ -351,7 +351,7 @@ func TestAdminPluginUpdateRejectsDependencyBreakingVersion(t *testing.T) {
 	defer upstream.Close()
 	writeServerPluginManifest(t, filepath.Join(pluginDir, "core"), adminPluginManifestWithTestDistribution("tokenhub.core", "Core Plugin", "1.4.0", upstream.URL+"/core.zip", adminSHA256Hex(archive), "automation"))
 	writeServerPluginManifest(t, filepath.Join(pluginDir, "consumer"), serverDependencyManifest("tokenhub.consumer", "1.0.0", "tokenhub.core", "^1.0.0"))
-	server := NewWithConfig(NewMemoryStore(), Config{AdminToken: "dev_admin_token", PluginDir: pluginDir})
+	server := newManagedTestServerWithConfig(t, newTestMemoryStore(t), Config{AdminToken: "dev_admin_token", PluginDir: pluginDir})
 	server.pluginInstallClient = upstream.Client()
 
 	response := doJSON(t, server.Handler(), http.MethodPost, "/api/admin/plugins/tokenhub.core/update", map[string]any{}, "dev_admin_token")
@@ -372,7 +372,7 @@ func TestAdminPluginRollbackRejectsDependencyBreakingVersion(t *testing.T) {
 	}))
 	defer upstream.Close()
 	writeServerPluginManifest(t, filepath.Join(pluginDir, "core"), adminPluginManifestWithTestDistribution("tokenhub.core", "Core Plugin", "1.0.0", upstream.URL+"/core.zip", adminSHA256Hex(archive), "automation"))
-	server := NewWithConfig(NewMemoryStore(), Config{AdminToken: "dev_admin_token", PluginDir: pluginDir})
+	server := newManagedTestServerWithConfig(t, newTestMemoryStore(t), Config{AdminToken: "dev_admin_token", PluginDir: pluginDir})
 	server.pluginInstallClient = upstream.Client()
 
 	update := doJSON(t, server.Handler(), http.MethodPost, "/api/admin/plugins/tokenhub.core/update", map[string]any{}, "dev_admin_token")
@@ -403,7 +403,7 @@ func TestAdminPluginRollbackRejectsDependencyBreakingVersion(t *testing.T) {
 }
 
 func TestReloadPluginRuntimeWaitsForRequestSnapshot(t *testing.T) {
-	server := NewWithConfig(NewMemoryStore(), Config{PluginDir: t.TempDir()})
+	server := newManagedTestServerWithConfig(t, newTestMemoryStore(t), Config{PluginDir: t.TempDir()})
 	requestEntered := make(chan struct{})
 	releaseRequest := make(chan struct{})
 	requestDone := make(chan struct{})
@@ -451,7 +451,7 @@ func TestReloadPluginRuntimeWaitsForRequestSnapshot(t *testing.T) {
 }
 
 func TestReloadPluginRuntimeWaitsForScheduledJobSnapshot(t *testing.T) {
-	server := NewWithConfig(NewMemoryStore(), Config{PluginDir: t.TempDir()})
+	server := newManagedTestServerWithConfig(t, newTestMemoryStore(t), Config{PluginDir: t.TempDir()})
 	jobEntered := make(chan struct{})
 	releaseJob := make(chan struct{})
 	jobDone := make(chan struct{})
@@ -536,7 +536,7 @@ func TestReloadPluginRuntimeWaitsForResponseWorkerSnapshot(t *testing.T) {
 }
 
 func TestReloadPluginRuntimeWaitsForImageWorkerSnapshot(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	project := store.CreateProject(Project{Name: "Image Snapshot", Status: StatusActive})
 	_, secret, err := store.CreateAPIKey(project.ID, APIKey{Name: "image-snapshot", Allowed: []string{openAIImageModelName}, Status: StatusActive}, "thk_image_snapshot")
 	if err != nil {
@@ -600,8 +600,8 @@ func assertPluginReloadCompletes(t *testing.T, reloadDone <-chan error, consumer
 }
 
 func TestAdminPluginActionFailurePersistsSafeMessage(t *testing.T) {
-	store := NewMemoryStore()
-	server := NewWithConfig(store, Config{AdminToken: "dev_admin_token"})
+	store := newTestMemoryStore(t)
+	server := newManagedTestServerWithConfig(t, store, Config{AdminToken: "dev_admin_token"})
 	if err := server.pluginRegistry.Register(pluginmeta.Descriptor{ID: "tokenhub.failure", Name: "Failure", Version: "1.0.0"}); err != nil {
 		t.Fatal(err)
 	}

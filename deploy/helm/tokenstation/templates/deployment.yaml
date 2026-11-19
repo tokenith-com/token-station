@@ -1,0 +1,26 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "tokenstation.fullname" . }}
+  labels:
+    {{- include "tokenstation.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  strategy:
+    type: {{ .Values.strategy }}
+    {{- if eq .Values.strategy "RollingUpdate" }}
+    rollingUpdate:
+      # RollingUpdate is gated on confirmInstanceScopedRecovery: the old pod
+      # keeps serving while the new one starts, which only instance-scoped
+      # image-job recovery makes safe.
+      maxUnavailable: 0
+      maxSurge: 1
+    {{- end }}
+  selector:
+    matchLabels:
+      {{- include "tokenstation.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      {{- include "tokenstation.podMetadata" . | nindent 6 }}
+    spec:
+      {{- include "tokenstation.podSpec" . | nindent 6 }}

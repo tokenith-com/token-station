@@ -10,8 +10,56 @@ import (
 	"time"
 )
 
-func TestRunStartupBootstrapReloadsCatalogOnEveryStart(t *testing.T) {
-	store := NewMemoryStore()
+func TestSeedConsumerProjectRemovesLegacyTeamWithoutChangingKeys(t *testing.T) {
+	store := newTestMemoryStore(t)
+	store.CreateResource("teams", AdminResource{ID: "team_platform", Name: "Platform", Status: StatusActive})
+	store.CreateProject(Project{ID: consumerProjectID, Name: "C端普通用户项目", TeamID: "team_platform", CostCenter: "AI-PLATFORM", Status: StatusActive})
+	key, _, err := store.CreateAPIKey(consumerProjectID, APIKey{Name: "consumer-key", Status: StatusActive}, "seed-test-secret")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if err := seedConsumerProject(store); err != nil {
+		t.Fatal(err)
+	}
+
+	project, ok := store.GetProject(consumerProjectID)
+	if !ok || project.TeamID != "" || project.CostCenter != consumerCostCenterCode {
+		t.Fatalf("legacy consumer project was not detached: %+v", project)
+	}
+	if _, ok := store.GetAPIKey(key.ID); !ok {
+		t.Fatal("consumer API key was not preserved")
+	}
+	links, total, err := store.ListProjectTeams(consumerProjectID, 0, 10)
+	if err != nil || total != 0 || len(links) != 0 {
+		t.Fatalf("legacy project team links were not removed: total=%d links=%+v err=%v", total, links, err)
+	}
+}
+
+func TestBuiltinConsumerProjectCannotBeDeletedOrReassigned(t *testing.T) {
+	store := newTestMemoryStore(t)
+	store.CreateResource("teams", AdminResource{ID: "team_consumer_test", Name: "Consumer Test Team", Status: StatusActive})
+	store.CreateProject(Project{ID: consumerProjectID, Name: "C端普通用户项目", Status: StatusActive, CostCenter: consumerCostCenterCode})
+
+	if _, err := store.UpdateProject(consumerProjectID, Project{Name: "Renamed Consumer Project"}); err != nil {
+		t.Fatalf("consumer project name should remain editable: %v", err)
+	}
+	if _, err := store.UpdateProject(consumerProjectID, Project{Status: StatusDisabled}); AsHTTPError(err).Code != "builtin_consumer_project" {
+		t.Fatalf("expected disabled consumer project update to be rejected, got %v", err)
+	}
+	if _, err := store.UpdateProject(consumerProjectID, Project{CostCenter: defaultCostCenterCode}); AsHTTPError(err).Code != "builtin_consumer_project" {
+		t.Fatalf("expected consumer cost center update to be rejected, got %v", err)
+	}
+	if _, err := store.AddProjectTeam(ProjectTeam{ProjectID: consumerProjectID, TeamID: "team_consumer_test", Role: "viewer"}); AsHTTPError(err).Code != "builtin_consumer_project" {
+		t.Fatalf("expected consumer team link to be rejected, got %v", err)
+	}
+	if err := store.DeleteProject(consumerProjectID); AsHTTPError(err).Code != "builtin_consumer_project" {
+		t.Fatalf("expected consumer project deletion to be rejected, got %v", err)
+	}
+}
+
+func TestInitializeDatabaseRefreshesModelCatalog(t *testing.T) {
+	store := newTestMemoryStore(t)
 	catalogPath := filepath.Join(t.TempDir(), "model-catalog.yaml")
 	config := Config{
 		BootstrapAdminPassword: "startup-bootstrap-test-password",
@@ -36,7 +84,7 @@ func TestRunStartupBootstrapReloadsCatalogOnEveryStart(t *testing.T) {
 	}
 
 	writeCatalog("first-start")
-	if err := RunStartupBootstrap(context.Background(), store, config); err != nil {
+	if err := InitializeDatabase(context.Background(), store, config); err != nil {
 		t.Fatal(err)
 	}
 	if got := modelCategory(); got != "first-start" {
@@ -44,16 +92,16 @@ func TestRunStartupBootstrapReloadsCatalogOnEveryStart(t *testing.T) {
 	}
 
 	writeCatalog("second-start")
-	if err := RunStartupBootstrap(context.Background(), store, config); err != nil {
+	if err := InitializeDatabase(context.Background(), store, config); err != nil {
 		t.Fatal(err)
 	}
 	if got := modelCategory(); got != "second-start" {
-		t.Fatalf("catalog edit was not applied on restart: category=%q", got)
+		t.Fatalf("catalog edit was not applied during initialization: category=%q", got)
 	}
 }
 
 func TestBootstrapGeneratesRetrievableInitialAdminPassword(t *testing.T) {
-	store := NewMemoryStoreWithConfig(Config{SecretKey: strings.Repeat("s", 32)})
+	store := newTestMemoryStoreWithConfig(t, Config{SecretKey: strings.Repeat("s", 32)})
 	catalogPath := filepath.Join(t.TempDir(), "model-catalog.yaml")
 	if err := os.WriteFile(catalogPath, []byte("version: 1\nmodels:\n  - name: bootstrap-test-model\n    category: bootstrap\n    family: bootstrap\n    modality: chat\n    context_window: 1000\n    input_modalities: [text]\n    output_modalities: [text]\n    capabilities: [chat]\n    supported_parameters: []\n"), 0o600); err != nil {
 		t.Fatal(err)
@@ -97,7 +145,7 @@ func TestBootstrapGeneratesRetrievableInitialAdminPassword(t *testing.T) {
 }
 
 func TestCreateAdminSessionDeletesGeneratedInitialAdminPassword(t *testing.T) {
-	store := NewMemoryStoreWithConfig(Config{SecretKey: strings.Repeat("s", 32)})
+	store := newTestMemoryStoreWithConfig(t, Config{SecretKey: strings.Repeat("s", 32)})
 	catalogPath := filepath.Join(t.TempDir(), "model-catalog.yaml")
 	if err := os.WriteFile(catalogPath, []byte("version: 1\nmodels:\n  - name: oauth-bootstrap-test-model\n    category: bootstrap\n    family: bootstrap\n    modality: chat\n    context_window: 1000\n    input_modalities: [text]\n    output_modalities: [text]\n    capabilities: [chat]\n    supported_parameters: []\n"), 0o600); err != nil {
 		t.Fatal(err)
@@ -122,7 +170,7 @@ func TestCreateAdminSessionDeletesGeneratedInitialAdminPassword(t *testing.T) {
 }
 
 func TestSeedDefaultModelCatalogReportsLegacyNameConflict(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	store.AddModel(Model{
 		ID:       "legacy-catalog-id",
 		Name:     "catalog-conflict-model",
@@ -146,7 +194,7 @@ func TestSeedDefaultModelCatalogReportsLegacyNameConflict(t *testing.T) {
 	}
 }
 
-func TestRunStartupBootstrapUpgradesV040DatabaseWithDisabledDefaultTeam(t *testing.T) {
+func TestInitializeDatabaseUpgradesV040DatabaseWithDisabledDefaultTeam(t *testing.T) {
 	databasePath := filepath.Join(t.TempDir(), "v0.4.0.db")
 	legacyDB, err := sql.Open("sqlite3", databasePath)
 	if err != nil {
@@ -188,7 +236,7 @@ func TestRunStartupBootstrapUpgradesV040DatabaseWithDisabledDefaultTeam(t *testi
 	}
 	if _, err := legacyDB.Exec(`INSERT INTO admin_users
 		(id, username, name, email, role, team_id, status, password_hash, created_at, updated_at) VALUES
-		('usr_admin', 'admin', 'Platform Admin', 'admin@tokenhub.local', 'admin', 'team_custom', 'active', 'legacy-password-hash', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`); err != nil {
+		('usr_admin', 'admin', 'Platform Admin', 'admin@tokenstation.local', 'admin', 'team_custom', 'active', 'legacy-password-hash', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`); err != nil {
 		t.Fatal(err)
 	}
 	if err := legacyDB.Close(); err != nil {
@@ -207,7 +255,7 @@ func TestRunStartupBootstrapUpgradesV040DatabaseWithDisabledDefaultTeam(t *testi
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := RunStartupBootstrap(context.Background(), store, config); err != nil {
+	if err := InitializeDatabase(context.Background(), store, config); err != nil {
 		t.Fatalf("v0.4.0 database upgrade should preserve the existing admin assignment: %v", err)
 	}
 	users := store.ListAdminUsers()
@@ -221,8 +269,8 @@ func TestRunStartupBootstrapUpgradesV040DatabaseWithDisabledDefaultTeam(t *testi
 	}
 }
 
-func TestRunStartupBootstrapPreservesExistingModelPrices(t *testing.T) {
-	store := NewMemoryStore()
+func TestInitializeDatabasePreservesExistingModelPrices(t *testing.T) {
+	store := newTestMemoryStore(t)
 	catalogPath := filepath.Join(t.TempDir(), "model-catalog.yaml")
 	config := Config{
 		BootstrapAdminPassword: "startup-price-test-password",
@@ -260,7 +308,7 @@ models:
     output_price_usd_per_1m: 2
     embedding_price_usd_per_1m: 0.2
 `)
-	if err := RunStartupBootstrap(context.Background(), store, config); err != nil {
+	if err := InitializeDatabase(context.Background(), store, config); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := store.UpdateModel("startup-priced-model", Model{
@@ -302,7 +350,7 @@ models:
     output_price_usd_per_1m: 22
     embedding_price_usd_per_1m: 2.2
 `)
-	if err := RunStartupBootstrap(context.Background(), store, config); err != nil {
+	if err := InitializeDatabase(context.Background(), store, config); err != nil {
 		t.Fatal(err)
 	}
 
@@ -323,7 +371,7 @@ models:
 }
 
 func TestBootstrapBaseDataPreservesRoutesWhenRefreshingLegacyCatalogModel(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	const modelName = "deepseek-v4-flash"
 	store.AddModel(Model{
 		Name:     modelName,

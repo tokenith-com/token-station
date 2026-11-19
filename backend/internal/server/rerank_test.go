@@ -87,7 +87,7 @@ func TestRerankGatewayAuthenticatesRoutesAndCharges(t *testing.T) {
 		writeJSON(w, 200, map[string]any{"results": []any{map[string]any{"index": 0, "relevance_score": 0.8}}, "meta": map[string]any{"billed_units": map[string]any{"search_units": 1}}})
 	}))
 	defer upstream.Close()
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	if err := SeedDemoData(store); err != nil {
 		t.Fatal(err)
 	}
@@ -99,7 +99,7 @@ func TestRerankGatewayAuthenticatesRoutesAndCharges(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	server := New(store)
+	server := newManagedTestServer(t, store)
 	payload := map[string]any{"model": "public-rerank", "query": "q", "documents": []string{"doc"}}
 	denied := doJSON(t, server.Handler(), http.MethodPost, "/v1/rerank", payload, "invalid")
 	if denied.Code != 401 {
@@ -119,8 +119,8 @@ func TestRerankGatewayAuthenticatesRoutesAndCharges(t *testing.T) {
 }
 
 func TestRetrievalPublicationPreservesExistingRoutes(t *testing.T) {
-	store := NewMemoryStore()
-	server := New(store)
+	store := newTestMemoryStore(t)
+	server := newManagedTestServer(t, store)
 	provider := store.AddProvider(Provider{ID: "p", Type: ProviderOpenAICompatible, Status: StatusActive, Options: map[string]string{"rerank_protocol": "jina"}})
 	model := store.AddModel(Model{Name: "m", Modality: "rerank", Status: StatusActive})
 	upstream := store.AddProviderModel(ProviderModel{ProviderID: "p", UpstreamModel: "u", Modality: "rerank"})
@@ -153,13 +153,13 @@ func TestRetrievalPublicationPreservesExistingRoutes(t *testing.T) {
 }
 
 func TestAdminRerankPriceMetadataPersistsWithoutAffectingTokenPrices(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	if err := SeedDemoData(store); err != nil {
 		t.Fatal(err)
 	}
 	provider := store.AddProvider(Provider{ID: "price-provider", Type: ProviderOpenAICompatible, Status: StatusActive})
 	model := store.AddProviderModel(ProviderModel{ProviderID: provider.ID, UpstreamModel: "reranker", Modality: "rerank", InputPriceUSDPer1M: 2})
-	app := New(store).Handler()
+	app := newManagedTestServer(t, store).Handler()
 	response := doJSON(t, app, http.MethodPatch, "/api/admin/provider-models/"+model.ID, map[string]any{"metadata": map[string]string{retrievalSearchUnitPriceKey: "0.002", "retrieval_pricing_confirmed": "true"}}, "")
 	if response.Code != 200 {
 		t.Fatalf("status=%d body=%s", response.Code, response.Body)

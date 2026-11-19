@@ -3,7 +3,7 @@ id: "tokenhub.provider.workbuddy-subscription"
 name: "WorkBuddy"
 version: 1.0.0
 summary: "Connect a WorkBuddy subscription account."
-description: "Connect an explicitly authorized WorkBuddy subscription account through TokenHub's isolated bundled runtime."
+description: "Connect an explicitly authorized WorkBuddy subscription account through TokenStation's isolated bundled runtime."
 category: provider_integration
 tokenhub:
   plugin_api: v2

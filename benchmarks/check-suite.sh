@@ -15,7 +15,7 @@ for baseline in "$ROOT_DIR"/benchmarks/baselines/*.json; do
   fi
   (
     cd "$ROOT_DIR/backend"
-    go run ./cmd/tokenhub-benchmark check \
+    go run ./cmd/tokenstation-benchmark check \
       --baseline "$baseline" \
       --current "$current" \
       --budget "$ROOT_DIR/benchmarks/budget.json" \

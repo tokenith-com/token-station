@@ -1,6 +1,6 @@
 # Kiro
 
-Connect an explicitly authorized Kiro account to TokenHub.
+Connect an explicitly authorized Kiro account to TokenStation.
 
 - Plugin ID: `tokenhub.provider.kiro-subscription`
 - Configuration: Provider management, with a separate account resource

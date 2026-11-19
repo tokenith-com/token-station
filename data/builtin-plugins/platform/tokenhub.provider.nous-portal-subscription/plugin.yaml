@@ -3,7 +3,7 @@ id: "tokenhub.provider.nous-portal-subscription"
 name: "Nous Portal"
 version: 1.0.0
 summary: "Connect a Nous Portal subscription account."
-description: "Connect an explicitly authorized Nous Portal subscription account through TokenHub's isolated bundled runtime."
+description: "Connect an explicitly authorized Nous Portal subscription account through TokenStation's isolated bundled runtime."
 category: provider_integration
 tokenhub:
   plugin_api: v2

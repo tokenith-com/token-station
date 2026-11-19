@@ -154,7 +154,7 @@ func TestAnthropicErrorTypeForPayloadTooLarge(t *testing.T) {
 // connector handler must surface payload_too_large from an over-limit body instead
 // of replacing it with its bespoke invalid_billing_connector 400.
 func TestBillingConnectorOverLimitReturns413(t *testing.T) {
-	handler := NewWithConfig(NewMemoryStore(), Config{
+	handler := newManagedTestServerWithConfig(t, newTestMemoryStore(t), Config{
 		AdminToken:                "dev_admin_token",
 		MaxJSONRequestBytes:       1 << 10,
 		MaxMultimodalRequestBytes: 4 << 10,

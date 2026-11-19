@@ -700,7 +700,7 @@ func TestLocalCodexCompatSerializesClaudeCodeToolsOnly(t *testing.T) {
 }
 
 func TestLocalCodexCompatAnthropicRouteCompatibility(t *testing.T) {
-	server := NewWithConfig(NewMemoryStore(), Config{AdminToken: "admin"})
+	server := newManagedTestServerWithConfig(t, newTestMemoryStore(t), Config{AdminToken: "admin"})
 	validRequest := localCodexCompatAnthropicRequest(t, map[string]any{
 		"model":      localCodexCompatModel,
 		"max_tokens": 1024,
@@ -1010,7 +1010,7 @@ func localCodexCompatAnthropicRequest(t *testing.T, body map[string]any) anthrop
 	}
 	request := httptest.NewRequest(http.MethodPost, "/v1/messages", bytes.NewReader(encoded))
 	request.Header.Set("content-type", "application/json")
-	decoded, err := New(NewMemoryStore()).decodeAnthropicMessagesRequest(httptest.NewRecorder(), request, true)
+	decoded, err := newManagedTestServer(t, newTestMemoryStore(t)).decodeAnthropicMessagesRequest(httptest.NewRecorder(), request, true)
 	if err != nil {
 		t.Fatalf("decode Anthropic request: %v", err)
 	}

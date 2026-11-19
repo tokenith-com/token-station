@@ -2,8 +2,8 @@ schema_version: 2
 id: "tokenhub.provider.azure-openai"
 name: "Azure OpenAI"
 version: 1.0.0
-summary: "Connect TokenHub to an Azure OpenAI deployment."
-description: "Connect TokenHub to an Azure OpenAI deployment."
+summary: "Connect TokenStation to an Azure OpenAI deployment."
+description: "Connect TokenStation to an Azure OpenAI deployment."
 category: provider_integration
 tokenhub:
   plugin_api: v2

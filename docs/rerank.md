@@ -1,6 +1,6 @@
 # Text reranking
 
-`POST /v1/rerank` scores candidate documents for a query. It uses TokenHub API keys, model permissions, request limits, applicable security policies, gateway hooks, routing and audit. A model must be published as `rerank` with a supported Provider protocol and configured tenant price. New publication also requires provider prices.
+`POST /v1/rerank` scores candidate documents for a query. It uses TokenStation API keys, model permissions, request limits, applicable security policies, gateway hooks, routing and audit. A model must be published as `rerank` with a supported Provider protocol and configured tenant price. New publication also requires provider prices.
 
 ```json
 {"model":"public-reranker","query":"How do I renew a certificate?","documents":["Renewal instructions","An unrelated document"],"top_n":1,"return_documents":true}
@@ -59,7 +59,7 @@ Rerank cache hooks must use and echo the host-provided `cache_key` (`rerank:v1:`
 
 ## Local compatible services and upgrades
 
-For custom `openai-compatible` and `local` providers without a vendor catalog (or with the `custom` / `local` / `openai-compatible` catalog), automatic protocol selection uses the Jina-compatible `/rerank` contract. Explicit protocol settings and named vendor defaults take precedence. Unknown vendor catalogs still require an explicit supported protocol; TokenHub does not infer a native vendor API from a model name.
+For custom `openai-compatible` and `local` providers without a vendor catalog (or with the `custom` / `local` / `openai-compatible` catalog), automatic protocol selection uses the Jina-compatible `/rerank` contract. Explicit protocol settings and named vendor defaults take precedence. Unknown vendor catalogs still require an explicit supported protocol; TokenStation does not infer a native vendor API from a model name.
 
 For `http://model-host:8000/v1/rerank`, set Base URL to `http://model-host:8000/v1` and leave the path empty or enter `/rerank`. If the service uses `/rerank` at its root, omit `/v1` from Base URL. Confirm the actual serving endpoint and protocol.
 

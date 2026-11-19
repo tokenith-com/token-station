@@ -112,11 +112,11 @@ func tracingTestConfig(endpoint string) Config {
 
 func newTracingTestServer(t *testing.T, config Config) *Server {
 	t.Helper()
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	if err := SeedDemoData(store); err != nil {
 		t.Fatal(err)
 	}
-	app := NewWithConfig(store, config)
+	app := newManagedTestServerWithConfig(t, store, config)
 	if app.traceEmitter == nil {
 		t.Fatal("tracing was configured but no emitter was installed")
 	}
@@ -414,7 +414,7 @@ func TestTracingRedactsSecretsInPayloads(t *testing.T) {
 
 func TestTracingRecordsFailoverPerCandidate(t *testing.T) {
 	endpoint := newFakeOTLPEndpoint(t)
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	project := store.CreateProject(Project{Name: "Failover App"})
 	_, secret, err := store.CreateAPIKey(project.ID, APIKey{
 		Name:    "failover-key",
@@ -430,7 +430,7 @@ func TestTracingRecordsFailoverPerCandidate(t *testing.T) {
 	store.AddRoute(ModelRoute{ID: "route_partial", ModelName: "gpt-4.1-mini", ProviderID: failing.ID, ProviderModel: "partial-chat", Priority: 1, Weight: 100, Status: StatusActive, Strategy: "priority_only"})
 	store.AddRoute(ModelRoute{ID: "route_backup", ModelName: "gpt-4.1-mini", ProviderID: backup.ID, ProviderModel: "backup-chat", Priority: 2, Weight: 100, Status: StatusActive, Strategy: "priority_only"})
 
-	app := NewWithConfig(store, tracingTestConfig(endpoint.tracesURL()))
+	app := newManagedTestServerWithConfig(t, store, tracingTestConfig(endpoint.tracesURL()))
 	app.adapterRegistry.Register("partial_usage_mock", partialUsageFailingAdapter{}, AdapterCapabilityChat)
 
 	response := doJSON(t, app.Handler(), http.MethodPost, "/v1/chat/completions", map[string]any{
@@ -466,7 +466,7 @@ func TestTracingRecordsFailoverPerCandidate(t *testing.T) {
 func TestTracingFailoverAttemptSpansOmitErrorMessageWhenPayloadCaptureDisabled(t *testing.T) {
 	const upstreamError = "upstream failed after emitting tokens"
 	endpoint := newFakeOTLPEndpoint(t)
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	project := store.CreateProject(Project{Name: "Failover Redaction App"})
 	_, secret, err := store.CreateAPIKey(project.ID, APIKey{
 		Name:    "failover-redaction-key",
@@ -484,7 +484,7 @@ func TestTracingFailoverAttemptSpansOmitErrorMessageWhenPayloadCaptureDisabled(t
 
 	config := tracingTestConfig(endpoint.tracesURL())
 	config.TracingCapturePayloads = false
-	app := NewWithConfig(store, config)
+	app := newManagedTestServerWithConfig(t, store, config)
 	app.adapterRegistry.Register("partial_usage_mock", partialUsageFailingAdapter{}, AdapterCapabilityChat)
 
 	response := doJSON(t, app.Handler(), http.MethodPost, "/v1/chat/completions", map[string]any{
@@ -755,7 +755,7 @@ func TestTracingTagsPlaygroundTraffic(t *testing.T) {
 	app := newTracingTestServer(t, tracingTestConfig(endpoint.tracesURL()))
 
 	response := doJSON(t, app.Handler(), http.MethodPost, "/api/admin/playground/chat", map[string]any{
-		"project_id": "prj_demo",
+		"api_key_id": createPlaygroundTestKey(t, app.store, "prj_demo", ""),
 		"model":      "gpt-4.1-mini",
 		"messages":   []map[string]any{{"role": "user", "content": "hello"}},
 	}, "")
@@ -813,11 +813,11 @@ func TestTracingCountsExportOutcomes(t *testing.T) {
 			config.MetricsEnabled = true
 			// One second, so a refused export gives up long before the test does.
 			config.TracingTimeoutSeconds = 1
-			store := NewMemoryStore()
+			store := newTestMemoryStore(t)
 			if err := SeedDemoData(store); err != nil {
 				t.Fatal(err)
 			}
-			app := NewWithConfig(store, config)
+			app := newManagedTestServerWithConfig(t, store, config)
 			if app.metrics == nil {
 				t.Fatal("metrics were requested but not installed")
 			}
@@ -885,11 +885,11 @@ func TestTracingRefusesRedirects(t *testing.T) {
 	config.TracingHeaders = "X-Api-Key=super-secret-value,Authorization=Basic cGs6c2s="
 	config.MetricsEnabled = true
 	config.TracingTimeoutSeconds = 2
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	if err := SeedDemoData(store); err != nil {
 		t.Fatal(err)
 	}
-	app := NewWithConfig(store, config)
+	app := newManagedTestServerWithConfig(t, store, config)
 
 	response := doJSON(t, app.Handler(), http.MethodPost, "/v1/chat/completions", map[string]any{
 		"model":    "gpt-4.1-mini",
@@ -918,7 +918,7 @@ func TestTracingPricesPlaygroundGenerations(t *testing.T) {
 	app := newTracingTestServer(t, tracingTestConfig(endpoint.tracesURL()))
 
 	response := doJSON(t, app.Handler(), http.MethodPost, "/api/admin/playground/chat", map[string]any{
-		"project_id": "prj_demo",
+		"api_key_id": createPlaygroundTestKey(t, app.store, "prj_demo", ""),
 		"model":      "gpt-4.1-mini",
 		"messages":   []map[string]any{{"role": "user", "content": "hello"}},
 	}, "")

@@ -62,7 +62,7 @@ func TestJevSharedProtocolControlsRequireForwardingAdapter(t *testing.T) {
 // derived from the adapter registered for the provider type, not from request
 // metadata or model declarations.
 func TestForwardsProtocolControlsUsesAdapterCapability(t *testing.T) {
-	server := NewWithConfig(NewMemoryStore(), Config{})
+	server := newManagedTestServerWithConfig(t, newTestMemoryStore(t), Config{})
 	registry := NewAdapterRegistry()
 	for _, providerType := range []string{ProviderOpenAI, ProviderOpenAICompatible, "deepseek"} {
 		registry.Register(providerType, OpenAICompatibleAdapter{})
@@ -114,7 +114,7 @@ func TestJevBoundResponsesAdmissionUsesRouteForwarding(t *testing.T) {
 		{name: "anthropic bridge keeps the gate", providerType: ProviderAnthropic, wantRejected: true},
 	} {
 		t.Run(test.name, func(t *testing.T) {
-			store := NewMemoryStore()
+			store := newTestMemoryStore(t)
 			provider := store.AddProvider(Provider{ID: "p_" + test.providerType, Name: "P", Type: test.providerType, Status: StatusActive})
 			store.AddProviderModel(ProviderModel{
 				ProviderID: provider.ID, UpstreamModel: "model_x", Status: StatusActive,

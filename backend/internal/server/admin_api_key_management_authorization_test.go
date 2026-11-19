@@ -8,7 +8,7 @@ import (
 )
 
 func TestAssignedAPIKeyOwnerCannotManageAdminIssuedKey(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	if _, err := store.CreateAdminUser(AdminUser{
 		Username: "assigned-key-admin",
 		Name:     "Assigned Key Admin",
@@ -87,7 +87,7 @@ func TestAssignedAPIKeyOwnerCannotManageAdminIssuedKey(t *testing.T) {
 	viewerToken := sessionToken(viewer.ID)
 	creatorToken := sessionToken(creator.ID)
 	maintainerToken := sessionToken(maintainer.ID)
-	server := New(store)
+	server := newManagedTestServer(t, store)
 	app := server.Handler()
 
 	issued := doJSON(t, app, http.MethodPost, "/api/admin/projects/"+project.ID+"/keys", map[string]any{
@@ -235,7 +235,7 @@ func apiKeyPayloadContainsID(keys []APIKey, id string) bool {
 }
 
 func TestOrdinaryUsersCanReadOnlyOwnActiveTeamsForAPIKeyConsoleAuthz(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	store.CreateResource("teams", AdminResource{ID: "team_active_authz", Name: "Active Authz Team", Status: StatusActive})
 	store.CreateResource("teams", AdminResource{ID: "team_disabled_authz", Name: "Disabled Authz Team", Status: StatusActive})
 	store.CreateResource("teams", AdminResource{ID: "team_other_authz", Name: "Other Authz Team", Status: StatusActive})
@@ -257,7 +257,7 @@ func TestOrdinaryUsersCanReadOnlyOwnActiveTeamsForAPIKeyConsoleAuthz(t *testing.
 	if err != nil {
 		t.Fatal(err)
 	}
-	app := New(store).Handler()
+	app := newManagedTestServer(t, store).Handler()
 
 	listed := doJSON(t, app, http.MethodGet, "/api/admin/resources/teams", nil, session.Token)
 	if listed.Code != http.StatusOK {

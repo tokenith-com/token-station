@@ -107,8 +107,8 @@ func TestEmbeddingCacheKeyBindsSpaceAndDimensions(t *testing.T) {
 	}
 }
 func TestResourceChangeRevalidatesEmbeddingPublication(t *testing.T) {
-	store := NewMemoryStore()
-	app := New(store)
+	store := newTestMemoryStore(t)
+	app := newManagedTestServer(t, store)
 	p := store.AddProvider(Provider{ID: "p", Type: ProviderOpenAICompatible, Status: StatusActive, Healthy: true})
 	model := store.AddModel(Model{Name: "m", Modality: "embedding", Status: StatusActive, EmbeddingPriceUSDPer1M: 1})
 	makeResource := func(name, space string) ProviderResource {

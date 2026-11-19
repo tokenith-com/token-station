@@ -3,6 +3,7 @@ package server
 import (
 	"bytes"
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"net/http"
@@ -23,7 +24,7 @@ func TestImageGatewayPreflightHooksRewritePromptBeforeJobRuns(t *testing.T) {
 	for _, stage := range stages {
 		t.Run(string(stage), func(t *testing.T) {
 			imageBytes := realPNGFixture(t)
-			store := NewMemoryStore()
+			store := newTestMemoryStore(t)
 			project := store.CreateProject(Project{Name: "Image Preflight Plugin Project", Status: StatusActive})
 			_, secret, err := store.CreateAPIKey(project.ID, APIKey{Name: "image-preflight-plugin-key", Allowed: []string{openAIImageModelName}, Status: StatusActive}, "thk_image_preflight_plugin")
 			if err != nil {
@@ -88,7 +89,7 @@ func TestImageGatewayPreflightHooksRewritePromptBeforeJobRuns(t *testing.T) {
 
 func TestImageProviderCallHookServesGatewayImageWithoutBuiltinAdapter(t *testing.T) {
 	imageBytes := realPNGFixture(t)
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	project := store.CreateProject(Project{Name: "Image Provider Plugin Project", Status: StatusActive})
 	_, secret, err := store.CreateAPIKey(project.ID, APIKey{Name: "image-provider-plugin-key", Allowed: []string{"plugin-image-model"}, Status: StatusActive}, "thk_image_provider_plugin")
 	if err != nil {
@@ -174,7 +175,7 @@ func TestImageProviderCallHookServesGatewayImageWithoutBuiltinAdapter(t *testing
 }
 
 func TestImageProviderCallRouteRequiresMatchingHookSubject(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	provider := store.AddProvider(Provider{ID: "prv_image_subject", Name: "Image Subject", Type: "third_party_image_plugin", Status: StatusActive, Healthy: true})
 	resource, err := store.AddProviderResource(ProviderResource{
 		ID: "rsrc_image_subject", ProviderID: provider.ID, Name: "Image Subject Account",
@@ -230,7 +231,7 @@ func TestImageProviderCallRouteRequiresMatchingHookSubject(t *testing.T) {
 
 func TestImageRequestTransformHookRewritesProviderRequestBeforeInvoke(t *testing.T) {
 	imageBytes := realPNGFixture(t)
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	project := store.CreateProject(Project{Name: "Image Request Transform Project", Status: StatusActive})
 	_, secret, err := store.CreateAPIKey(project.ID, APIKey{Name: "image-transform-plugin-key", Allowed: []string{openAIImageModelName}, Status: StatusActive}, "thk_image_transform_plugin")
 	if err != nil {
@@ -289,7 +290,7 @@ func TestImageRequestTransformHookRewritesProviderRequestBeforeInvoke(t *testing
 func TestImagePostUsageAndCacheWriteHooksRunAfterProviderInvoke(t *testing.T) {
 	imageBytes := realPNGFixture(t)
 	transformedImageBytes := append(append([]byte{}, imageBytes...), '\n')
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	project := store.CreateProject(Project{Name: "Image Post Plugin Project", Status: StatusActive})
 	_, secret, err := store.CreateAPIKey(project.ID, APIKey{Name: "image-post-plugin-key", Allowed: []string{openAIImageModelName}, Status: StatusActive}, "thk_image_post_plugin")
 	if err != nil {
@@ -385,17 +386,29 @@ func TestImagePostUsageAndCacheWriteHooksRunAfterProviderInvoke(t *testing.T) {
 	if !strings.Contains(response.Body, "post-stage revised prompt") || !strings.Contains(response.Body, `"total_tokens":9`) {
 		t.Fatalf("image response was not post-processed: %s", response.Body)
 	}
-	if !strings.Contains(response.Body, encodeBase64(transformedImageBytes)) || strings.Contains(response.Body, encodeBase64(imageBytes)) {
+	var payload struct {
+		JobID string `json:"job_id"`
+		Data  []struct {
+			Base64JSON string `json:"b64_json"`
+		} `json:"data"`
+	}
+	if err := json.Unmarshal([]byte(response.Body), &payload); err != nil {
+		t.Fatal(err)
+	}
+	if len(payload.Data) != 1 {
+		t.Fatalf("image response data count = %d, want 1", len(payload.Data))
+	}
+	responseBytes, err := base64.StdEncoding.DecodeString(payload.Data[0].Base64JSON)
+	if err != nil {
+		t.Fatalf("decode image response bytes: %v", err)
+	}
+	if !bytes.Equal(responseBytes, transformedImageBytes) || bytes.Equal(responseBytes, imageBytes) {
 		t.Fatalf("image response body did not use transformed image bytes: %s", response.Body)
 	}
 	if !sawCacheWrite {
 		t.Fatal("image cache_write hook did not receive transformed request, response, and usage data")
 	}
-	var payload map[string]any
-	if err := json.Unmarshal([]byte(response.Body), &payload); err != nil {
-		t.Fatal(err)
-	}
-	jobID, _ := payload["job_id"].(string)
+	jobID := payload.JobID
 	if jobID == "" {
 		t.Fatalf("image response did not include job id: %s", response.Body)
 	}
@@ -422,7 +435,7 @@ func TestImagePostUsageAndCacheWriteHooksRunAfterProviderInvoke(t *testing.T) {
 
 func TestImageGatewayRunsTraceExportHookWithoutPromptOrImagePayload(t *testing.T) {
 	imageBytes := realPNGFixture(t)
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	project := store.CreateProject(Project{Name: "Image Trace Export Project", Status: StatusActive})
 	_, secret, err := store.CreateAPIKey(project.ID, APIKey{Name: "image-trace-export-key", Allowed: []string{openAIImageModelName}, Status: StatusActive}, "thk_image_trace_export")
 	if err != nil {
@@ -490,7 +503,7 @@ func TestImageGuardrailPostPersistsApprovedAssetAndCacheWritePayload(t *testing.
 	providerImageBytes := realPNGFixture(t)
 	responsePostImageBytes := append(append([]byte{}, providerImageBytes...), '\n')
 	guardrailImageBytes := append(append([]byte{}, responsePostImageBytes...), '\n')
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	project := store.CreateProject(Project{Name: "Image Guardrail Post Project", Status: StatusActive})
 	_, secret, err := store.CreateAPIKey(project.ID, APIKey{Name: "image-guardrail-post-key", Allowed: []string{openAIImageModelName}, Status: StatusActive}, "thk_image_guardrail_post")
 	if err != nil {
@@ -632,7 +645,7 @@ func TestImageGuardrailPostPersistsApprovedAssetAndCacheWritePayload(t *testing.
 
 func TestImageCacheLookupHookShortCircuitsProviderInvoke(t *testing.T) {
 	imageBytes := realPNGFixture(t)
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	project := store.CreateProject(Project{Name: "Image Cache Lookup Project", Status: StatusActive})
 	_, secret, err := store.CreateAPIKey(project.ID, APIKey{Name: "image-cache-lookup-key", Allowed: []string{openAIImageModelName}, Status: StatusActive}, "thk_image_cache_lookup")
 	if err != nil {
@@ -705,7 +718,7 @@ func TestImageCacheLookupHookShortCircuitsProviderInvoke(t *testing.T) {
 
 func TestImageCacheLookupFailOpenContinuesToProviderInvoke(t *testing.T) {
 	imageBytes := realPNGFixture(t)
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	project := store.CreateProject(Project{Name: "Image Cache Lookup Failure Project", Status: StatusActive})
 	_, secret, err := store.CreateAPIKey(project.ID, APIKey{Name: "image-cache-lookup-failure-key", Allowed: []string{openAIImageModelName}, Status: StatusActive}, "thk_image_cache_lookup_failure")
 	if err != nil {
@@ -758,7 +771,7 @@ func TestImageCacheLookupFailOpenContinuesToProviderInvoke(t *testing.T) {
 
 func TestImageCacheWriteFailOpenPreservesProviderResponse(t *testing.T) {
 	imageBytes := realPNGFixture(t)
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	project := store.CreateProject(Project{Name: "Image Cache Write Failure Project", Status: StatusActive})
 	_, secret, err := store.CreateAPIKey(project.ID, APIKey{Name: "image-cache-write-failure-key", Allowed: []string{openAIImageModelName}, Status: StatusActive}, "thk_image_cache_write_failure")
 	if err != nil {
@@ -812,7 +825,7 @@ func TestImageCacheWriteFailOpenPreservesProviderResponse(t *testing.T) {
 
 func TestImageResponseTransformFailOpenPreservesProviderImage(t *testing.T) {
 	imageBytes := realPNGFixture(t)
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	project := store.CreateProject(Project{Name: "Image Response Transform Failure Project", Status: StatusActive})
 	_, secret, err := store.CreateAPIKey(project.ID, APIKey{Name: "image-response-transform-failure-key", Allowed: []string{openAIImageModelName}, Status: StatusActive}, "thk_image_response_transform_failure")
 	if err != nil {

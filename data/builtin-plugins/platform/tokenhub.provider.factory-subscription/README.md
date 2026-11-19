@@ -1,6 +1,6 @@
 # Factory
 
-Connect an explicitly authorized Factory account to TokenHub.
+Connect an explicitly authorized Factory account to TokenStation.
 
 - Plugin ID: `tokenhub.provider.factory-subscription`
 - Configuration: Provider management, with a separate account resource

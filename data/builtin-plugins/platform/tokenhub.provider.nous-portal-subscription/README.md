@@ -1,6 +1,6 @@
 # Nous Portal
 
-Connect an explicitly authorized Nous Portal account to TokenHub.
+Connect an explicitly authorized Nous Portal account to TokenStation.
 
 - Plugin ID: `tokenhub.provider.nous-portal-subscription`
 - Configuration: Provider management, with a separate account resource

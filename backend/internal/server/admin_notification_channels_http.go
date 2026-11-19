@@ -30,7 +30,7 @@ func (s *Server) handleAdminNotificationChannelTestPost(w http.ResponseWriter, r
 	alert := AlertEvent{
 		ID: NewID("notification_test"), ScopeType: "notification_channel", ScopeID: channel.ID,
 		Severity: "info", Code: "notification_channel_test",
-		Message: "This is a TokenHub test notification. No action is required.", CreatedAt: time.Now().UTC(),
+		Message: "This is a TokenStation test notification. No action is required.", CreatedAt: time.Now().UTC(),
 	}
 	delivery := s.deliverNotification(r.Context(), alert, channel)
 	s.recordAdminAudit(r, user, "test", "notification_channel", channel.ID, "", delivery)

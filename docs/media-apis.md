@@ -2,9 +2,9 @@
 
 Language: English | [简体中文](zh-CN/media-apis.md) | [日本語](ja/media-apis.md)
 
-Call approved text and media models through one TokenHub gateway and a project API key. This guide covers authentication, model selection, request parameters, responses, asynchronous tasks, errors, and limits for each supported workflow.
+Call approved text and media models through one TokenStation gateway and a project API key. This guide covers authentication, model selection, request parameters, responses, asynchronous tasks, errors, and limits for each supported workflow.
 
-**Endpoint support does not imply model availability.** An administrator must configure the upstream credential, publish a public model ID, map it to the upstream model, and grant your key access. Formats, duration, resolution, voices, model versions, and asset expiration depend on the upstream. TokenHub does not bundle vendor accounts or guarantee access to every upstream model.
+**Endpoint support does not imply model availability.** An administrator must configure the upstream credential, publish a public model ID, map it to the upstream model, and grant your key access. Formats, duration, resolution, voices, model versions, and asset expiration depend on the upstream. TokenStation does not bundle vendor accounts or guarantee access to every upstream model.
 
 ## Choose an API
 
@@ -46,7 +46,7 @@ curl --fail-with-body "$TOKENHUB_URL/v1/chat/completions" \
   -d '{"model":"text-model","messages":[{"role":"user","content":"Explain an API gateway in one sentence."}],"stream":false}'
 ```
 
-Read text from `choices[].message.content`. Save the request ID for **Request Logs**. A model appearing in `/v1/models` confirms visibility and routing eligibility, not live availability of every upstream feature. Provider-specific `expand` metadata and account-balance APIs are not part of the TokenHub model API.
+Read text from `choices[].message.content`. Save the request ID for **Request Logs**. A model appearing in `/v1/models` confirms visibility and routing eligibility, not live availability of every upstream feature. Provider-specific `expand` metadata and account-balance APIs are not part of the TokenStation model API.
 
 ## Provider setup and model selection
 
@@ -54,7 +54,7 @@ For an account supporting the required endpoints, add an **OpenAI-compatible** p
 
 Native Anthropic and Gemini requests require a route that supports the native protocol and response shape; an OpenAI-compatible base URL alone does not establish native compatibility. See the [User Guide](user-guide.md) for adapters and SDK configuration. Vendor documentation may show wrapped text responses; verify the selected route returns the protocol your client expects.
 
-Public `gpt-image-2`, Codex subscription image models, and configured managed image plugins use TokenHub's managed image workflow. To use the full upstream Images contract, including supported asynchronous generation, publish a separate alias such as `image-model` mapped to `gpt-image-2`. See the [managed image guide](user-guide.md#codex-subscription-image-generation).
+Public `gpt-image-2`, Codex subscription image models, and configured managed image plugins use TokenStation's managed image workflow. To use the full upstream Images contract, including supported asynchronous generation, publish a separate alias such as `image-model` mapped to `gpt-image-2`. See the [managed image guide](user-guide.md#codex-subscription-image-generation).
 
 Upgrading applies database migration v8, `add-media-task-bindings`, through the normal startup migration process. Task bindings survive restarts; keep the configured server secret stable so encrypted upstream task IDs remain readable. No new environment variable is required.
 
@@ -124,7 +124,7 @@ This example requires an image route that accepts aspect ratios and resolution t
 | `image_urls`, other reference fields | Reference images when supported |
 | `response_format` | Upstream-supported format, such as `url`, `b64_json`, or `base64` |
 
-Synchronous responses commonly contain `data[].url` or `data[].b64_json`. Supported asynchronous receipts contain `data[].task_id`, or `data.id` with `data.object:"generation.task"`; poll each returned TokenHub ID using the task API below. Provider result fields are preserved. TokenHub does not download returned URLs or extend their lifetime.
+Synchronous responses commonly contain `data[].url` or `data[].b64_json`. Supported asynchronous receipts contain `data[].task_id`, or `data.id` with `data.object:"generation.task"`; poll each returned TokenStation ID using the task API below. Provider result fields are preserved. TokenStation does not download returned URLs or extend their lifetime.
 
 ### Edit an image or supply a mask
 
@@ -147,7 +147,7 @@ Use local files and a route supporting multipart edits. Let cURL generate the mu
 curl --fail-with-body "$TOKENHUB_URL/v1/audio/speech" \
   -H "Authorization: Bearer $TOKENHUB_API_KEY" \
   -H 'Content-Type: application/json' \
-  -d '{"model":"speech-model","input":"Hello from TokenHub.","voice":"alloy","response_format":"opus","speed":1}' \
+  -d '{"model":"speech-model","input":"Hello from TokenStation.","voice":"alloy","response_format":"opus","speed":1}' \
   --output speech.opus
 ```
 
@@ -177,7 +177,7 @@ Multipart transcription and translation require exactly one nonempty `file`, at 
 
 Publish a route whose adapter explicitly supports `transcription` and whose model endpoints include the requested operation. OpenAI and configured OpenAI-compatible/local adapters support it; current imported endpoint metadata is checked again on each request. JSON vendor extensions can use matching provider-call hooks, while multipart uploads require a native adapter. See the [transcription upload and metering contract](media-api-operations.md#transcription-upload-and-metering-contract) for publication, hooks, upload validation, and SDK smoke tests.
 
-Voice cloning and music remain available through existing provider-specific Chat/Responses workflows in [media operations](media-api-operations.md). Separate `/v1/music/*`, voice/asset management, upload, and webhook management APIs are not implemented as a general TokenHub API family.
+Voice cloning and music remain available through existing provider-specific Chat/Responses workflows in [media operations](media-api-operations.md). Separate `/v1/music/*`, voice/asset management, upload, and webhook management APIs are not implemented as a general TokenStation API family.
 
 ## Videos, including Seedance
 
@@ -199,7 +199,7 @@ Configure `seedance-video` to a compatible upstream model such as `seedance-2.0`
 | `image_urls`, `video_urls`, `audio_urls` | Model-supported reference assets; use reachable URLs |
 | Other options | Provider extensions are preserved and validated upstream |
 
-First/last frames, multiple references, duration ranges, and reference combinations are not universal. TokenHub does not implement Volcengine-native `/content_generation/tasks`.
+First/last frames, multiple references, duration ranges, and reference combinations are not universal. TokenStation does not implement Volcengine-native `/content_generation/tasks`.
 
 Providers exposing Seedance through `/v1/responses` use a generation model and an auxiliary model such as `seedance-2-0-get`. Their task IDs and polling rules differ from `/v1/tasks`; see [provider setup and examples](media-api-operations.md).
 
@@ -217,9 +217,9 @@ Some upstream image routes support this HTTP `202` task-object receipt:
 {"code":202,"data":{"id":"task_example","object":"generation.task","type":"image","status":"pending","progress":0,"poll_url":"/v1/tasks/task_example"}}
 ```
 
-If the upstream selects this format through a version-selection header, configure the header name and value specified in that provider's documentation in its custom headers. TokenHub does not automatically forward client headers. It preserves HTTP `202` and the receipt structure, replaces `data.id`, and rewrites an existing `poll_url` to the corresponding TokenHub path. Use the gateway origin with that relative URL. Ordinary synchronous image asset IDs remain unchanged.
+If the upstream selects this format through a version-selection header, configure the header name and value specified in that provider's documentation in its custom headers. TokenStation does not automatically forward client headers. It preserves HTTP `202` and the receipt structure, replaces `data.id`, and rewrites an existing `poll_url` to the corresponding TokenStation path. Use the gateway origin with that relative URL. Ordinary synchronous image asset IDs remain unchanged.
 
-Either receipt means the upstream accepted work, not that generation is complete. TokenHub replaces vendor task IDs with opaque IDs and persists the submitting project/key and provider/resource binding. Use **the same project API key** and exact returned ID:
+Either receipt means the upstream accepted work, not that generation is complete. TokenStation replaces vendor task IDs with opaque IDs and persists the submitting project/key and provider/resource binding. Use **the same project API key** and exact returned ID:
 
 ```bash
 export TOKENHUB_TASK_ID='TASK_ID_FROM_SUBMISSION'
@@ -231,22 +231,22 @@ The optional `language` query parameter accepts `en`, `zh`, `ja`, `ko`, `ru`, `f
 
 | Response field | Meaning |
 | --- | --- |
-| `data.id` | TokenHub task ID for this polling workflow |
+| `data.id` | TokenStation task ID for this polling workflow |
 | `data.status` | Upstream task status |
 | `data.progress` | Optional upstream progress, not a gateway estimate |
 | `data.result` | Model-specific output; may contain `images[]` or `videos[]` with `url` arrays |
 | `data.error` | Upstream task failure details when present |
-| `data.cost`, `data.credits_cost` | Upstream metadata, not a TokenHub invoice |
+| `data.cost`, `data.credits_cost` | Upstream metadata, not a TokenStation invoice |
 
 Poll `pending`/`processing` with a bounded timeout and a delay, for example 3–5 seconds with backoff. `completed` means success; `failed` and `cancelled` are terminal failures. Treat other nonterminal states according to the upstream contract. Save result URLs promptly and honor `expires_at`. HTTP 200 may contain a failed task; inspect both HTTP status and `data.status`.
 
-Queries use the original route/account without failover. The key must remain active and permitted to use the model. Another key, even in the same project, cannot retrieve the task; arbitrary vendor IDs are not accepted. Route/provider changes may make existing tasks unavailable. The upstream runs the background work; TokenHub adds no worker, cancellation, or completion webhook service. Provider callbacks configured outside TokenHub use provider identifiers and semantics.
+Queries use the original route/account without failover. The key must remain active and permitted to use the model. Another key, even in the same project, cannot retrieve the task; arbitrary vendor IDs are not accepted. Route/provider changes may make existing tasks unavailable. The upstream runs the background work; TokenStation adds no worker, cancellation, or completion webhook service. Provider callbacks configured outside TokenStation use provider identifiers and semantics.
 
 Bindings expire **30 days after submission**, independently of the upstream asset URL's lifetime. Expired, unknown, or inaccessible tasks return `404 media_task_not_found`; rotating a project key does not transfer its tasks to the replacement key. Replacing the original provider credential, URL, headers, or other account settings prevents polling with `503 media_task_route_unavailable`, even if the replacement account can serve the same model. If saving a binding fails, submission returns `503 media_task_binding_unavailable`; the upstream may already have accepted the generation, so inspect logs before retrying.
 
 ### Continue or regenerate a video
 
-For video models that support a previous-task reference, pass the **TokenHub task ID returned by the source submission** in the relevant top-level field:
+For video models that support a previous-task reference, pass the **TokenStation task ID returned by the source submission** in the relevant top-level field:
 
 | Field | Upstream operation example |
 | --- | --- |
@@ -257,7 +257,7 @@ For video models that support a previous-task reference, pass the **TokenHub tas
 
 These fields are recognized only on `POST /v1/videos/generations`. For example, `{"model":"followup-video","source_task_id":"task_example"}` uses an administrator-published alias for a compatible regeneration model. Model-specific completion, age, resolution, and parameter restrictions still apply upstream; not every model supports every field. Prompt text, asset URLs, and nested extension identifiers are not interpreted as task references.
 
-Use the same project API key, retain permission to both the source and target models, and reference an unexpired binding within its 30-day lifetime. Malformed, unknown, expired, foreign-key, or raw vendor task IDs return `404 media_task_not_found` before generation. TokenHub resolves authorized handles to provider IDs and uses the original provider account/resource. The target alias, route, and upstream model may differ when that account supports the follow-up operation. TokenHub never switches to another account. A changed account fingerprint, including changed credentials or settings, returns `503 media_task_route_unavailable`; ordinary routing, policy, and capacity errors still apply when the original account is unavailable.
+Use the same project API key, retain permission to both the source and target models, and reference an unexpired binding within its 30-day lifetime. Malformed, unknown, expired, foreign-key, or raw vendor task IDs return `404 media_task_not_found` before generation. TokenStation resolves authorized handles to provider IDs and uses the original provider account/resource. The target alias, route, and upstream model may differ when that account supports the follow-up operation. TokenStation never switches to another account. A changed account fingerprint, including changed credentials or settings, returns `503 media_task_route_unavailable`; ordinary routing, policy, and capacity errors still apply when the original account is unavailable.
 
 References to conflicting accounts return `400 invalid_media_task_reference`. The upstream decides whether a combination of otherwise valid references is supported. Each accepted follow-up creates a new task and may incur a new upstream charge. Request hooks retain the public handles; provider-call hooks receive the resolved provider IDs.
 
@@ -266,7 +266,7 @@ Do not interchange these asynchronous mechanisms:
 | Mechanism | ID and query |
 | --- | --- |
 | Bound image/video task | Returned `task_id` or `data.id`; `GET /v1/tasks/{task_id}` |
-| Managed TokenHub image job | Managed job contract in the [image guide](user-guide.md#codex-subscription-image-generation) |
+| Managed TokenStation image job | Managed job contract in the [image guide](user-guide.md#codex-subscription-image-generation) |
 | Responses with `background:true` | Local Responses job; completion means the upstream API call finished, not that vendor rendering finished |
 
 Completed background media Responses expose a valid vendor root ID in `x-tokenhub-upstream-response-id`; pass it to the provider's auxiliary query model. It is not a `/v1/tasks` ID.

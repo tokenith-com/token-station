@@ -16,6 +16,30 @@ import (
 	"gorm.io/gorm/clause"
 )
 
+func builtinConsumerProjectError(message string) error {
+	return NewHTTPError(http.StatusConflict, "builtin_consumer_project", message)
+}
+
+func (s *GormStore) RepairBuiltinConsumerProject() error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	return s.db.Transaction(func(tx *gorm.DB) error {
+		var project Project
+		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).First(&project, "id = ?", consumerProjectID).Error; err != nil {
+			return notFound(err, "project_not_found", "Project not found")
+		}
+		project.TeamID = ""
+		project.CostCenter = consumerCostCenterCode
+		project.Status = StatusActive
+		project.UpdatedAt = time.Now().UTC()
+		if err := tx.Save(&project).Error; err != nil {
+			return err
+		}
+		return tx.Where("project_id = ?", consumerProjectID).Delete(&ProjectTeam{}).Error
+	})
+}
+
 func (s *GormStore) CreateProject(project Project) Project {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -30,11 +54,11 @@ func (s *GormStore) CreateProjectChecked(project Project) (Project, error) {
 }
 
 func (s *GormStore) createProject(project Project, requireActiveTeam bool) (Project, error) {
-	mode, allowed, err := normalizeModelAccess(project.ModelAccessMode, project.AllowedModels)
+	mode, allowed, excluded, err := normalizeProjectModelAccess(project.ModelAccessMode, project.AllowedModels, project.ExcludedModels)
 	if err != nil {
 		return Project{}, err
 	}
-	project.ModelAccessMode, project.AllowedModels = mode, allowed
+	project.ModelAccessMode, project.AllowedModels, project.ExcludedModels = mode, allowed, excluded
 	now := time.Now().UTC()
 	if project.ID == "" {
 		project.ID = NewID("prj")
@@ -48,7 +72,7 @@ func (s *GormStore) createProject(project Project, requireActiveTeam bool) (Proj
 	project.UpdatedAt = now
 	project.Teams = nil
 	err = s.db.Transaction(func(tx *gorm.DB) error {
-		if err := validateConfiguredModels(tx, project.AllowedModels); err != nil {
+		if err := validateConfiguredModels(tx, append(append([]string{}, project.AllowedModels...), project.ExcludedModels...)); err != nil {
 			return err
 		}
 		if strings.TrimSpace(project.TeamID) != "" {
@@ -112,6 +136,14 @@ func (s *GormStore) UpdateProject(id string, patch Project) (Project, error) {
 		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).First(&project, "id = ?", id).Error; err != nil {
 			return notFound(err, "project_not_found", "Project not found")
 		}
+		if id == consumerProjectID {
+			if nextTeamID != "" || patch.CostCenter != "" && patch.CostCenter != consumerCostCenterCode || patch.Status != "" && patch.Status != StatusActive {
+				return builtinConsumerProjectError("The consumer project must remain active, use the consumer cost center, and have no team")
+			}
+			nextTeamID = ""
+			patch.CostCenter = consumerCostCenterCode
+			patch.Status = StatusActive
+		}
 		if nextTeamID != strings.TrimSpace(project.TeamID) && nextTeam.Status != "" && nextTeam.Status != StatusActive {
 			return NewHTTPError(http.StatusBadRequest, "team_inactive", "Only an active team can be assigned to a project")
 		}
@@ -124,15 +156,15 @@ func (s *GormStore) UpdateProject(id string, patch Project) (Project, error) {
 		if patch.Status != "" {
 			project.Status = patch.Status
 		}
-		if patch.ModelAccessMode != "" || patch.AllowedModels != nil {
-			mode, allowed, err := normalizeModelAccess(patch.ModelAccessMode, patch.AllowedModels)
+		if patch.ModelAccessMode != "" || patch.AllowedModels != nil || patch.ExcludedModels != nil {
+			mode, allowed, excluded, err := normalizeProjectModelAccess(patch.ModelAccessMode, patch.AllowedModels, patch.ExcludedModels)
 			if err != nil {
 				return err
 			}
-			if err := validateConfiguredModels(tx, allowed); err != nil {
+			if err := validateConfiguredModels(tx, append(append([]string{}, allowed...), excluded...)); err != nil {
 				return err
 			}
-			project.ModelAccessMode, project.AllowedModels = mode, allowed
+			project.ModelAccessMode, project.AllowedModels, project.ExcludedModels = mode, allowed, excluded
 		}
 		project.DefaultQuotaRef = patch.DefaultQuotaRef
 		project.UpdatedAt = time.Now().UTC()
@@ -169,6 +201,9 @@ func (s *GormStore) DeleteProject(id string) error {
 		var project Project
 		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).First(&project, "id = ?", id).Error; err != nil {
 			return notFound(err, "project_not_found", "Project not found")
+		}
+		if id == consumerProjectID {
+			return builtinConsumerProjectError("The consumer project cannot be deleted")
 		}
 		var guardrailBindingCount int64
 		if err := tx.Model(&guardrails.Binding{}).Where("scope_type = ? AND scope_id = ?", guardrails.ScopeProject, id).Count(&guardrailBindingCount).Error; err != nil {
@@ -284,6 +319,9 @@ func (s *GormStore) AddProjectTeam(link ProjectTeam) (ProjectTeam, error) {
 	link.UpdatedAt = now
 	var project Project
 	err := s.db.Transaction(func(tx *gorm.DB) error {
+		if link.ProjectID == consumerProjectID {
+			return builtinConsumerProjectError("The consumer project cannot be linked to a team")
+		}
 		if err := lockActiveTeamForMutation(tx, link.TeamID); err != nil {
 			return err
 		}
@@ -321,11 +359,35 @@ func (s *GormStore) UpdateProjectTeam(projectID string, teamID string, role stri
 	return link, nil
 }
 
+func (s *GormStore) ClearProjectTeamAssociation(projectID string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	return s.db.Transaction(func(tx *gorm.DB) error {
+		if projectID == consumerProjectID {
+			return builtinConsumerProjectError("The consumer project cannot be linked to a team")
+		}
+		var project Project
+		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).First(&project, "id = ?", projectID).Error; err != nil {
+			return notFound(err, "project_not_found", "Project not found")
+		}
+		project.TeamID = ""
+		project.UpdatedAt = time.Now().UTC()
+		if err := tx.Save(&project).Error; err != nil {
+			return err
+		}
+		return tx.Where("project_id = ?", projectID).Delete(&ProjectTeam{}).Error
+	})
+}
+
 func (s *GormStore) RemoveProjectTeam(projectID string, teamID string) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
 	return s.db.Transaction(func(tx *gorm.DB) error {
+		if projectID == consumerProjectID {
+			return builtinConsumerProjectError("The consumer project cannot be unlinked from a team")
+		}
 		project, err := lockProjectForTeamMutation(tx, projectID)
 		if err != nil {
 			return err
@@ -454,6 +516,11 @@ func (s *GormStore) CreateAPIKey(projectID string, key APIKey, rawSecret string)
 	}
 	key.ProjectID = projectID
 	key.KeyHash = HashSecret(rawSecret)
+	ciphertext, err := s.encryptSecretStrict(rawSecret)
+	if err != nil {
+		return APIKey{}, "", err
+	}
+	key.KeyCiphertext = ciphertext
 	key.KeyPrefix = prefix
 	key.KeySuffix = suffix
 	if key.CreatedAt.IsZero() {
@@ -513,6 +580,20 @@ func (s *GormStore) GetAPIKey(id string) (APIKey, bool) {
 	}
 	hydrateAPIKey(&key)
 	return publicKey(key), true
+}
+
+// RevealAPIKey decrypts the stored plaintext of an API key. Keys created before
+// encrypted storage existed have no ciphertext and cannot be revealed.
+func (s *GormStore) RevealAPIKey(id string) (string, error) {
+	var key APIKey
+	if err := s.criticalReadDatabase().Select("id", "key_ciphertext").First(&key, "id = ?", id).Error; err != nil {
+		return "", notFound(err, "api_key_not_found", "API key not found")
+	}
+	secret := s.decryptSecret(key.KeyCiphertext)
+	if key.KeyCiphertext == "" || secret == "" || secret == key.KeyCiphertext {
+		return "", NewHTTPError(http.StatusConflict, "api_key_secret_unavailable", "API key plaintext is not stored; rotate the key to obtain a retrievable secret")
+	}
+	return secret, nil
 }
 
 func (s *GormStore) UpdateAPIKey(id string, patch APIKey) (APIKey, error) {
@@ -614,7 +695,11 @@ func (s *GormStore) RotateAPIKey(id string, graceUntil *time.Time) (APIKey, stri
 	var newKey APIKey
 	newSecret := s.generateAPIKeySecret()
 	prefix, suffix := PrefixSuffix(newSecret)
-	err := s.db.Transaction(func(tx *gorm.DB) error {
+	newCiphertext, err := s.encryptSecretStrict(newSecret)
+	if err != nil {
+		return APIKey{}, "", err
+	}
+	err = s.db.Transaction(func(tx *gorm.DB) error {
 		if err := s.lockScopeForUpdate(tx, "api_key", id); err != nil {
 			return err
 		}
@@ -626,6 +711,7 @@ func (s *GormStore) RotateAPIKey(id string, graceUntil *time.Time) (APIKey, stri
 		newKey = oldKey
 		newKey.ID = NewID("key")
 		newKey.KeyHash = HashSecret(newSecret)
+		newKey.KeyCiphertext = newCiphertext
 		newKey.KeyPrefix = prefix
 		newKey.KeySuffix = suffix
 		newKey.RotatedFromID = oldKey.ID

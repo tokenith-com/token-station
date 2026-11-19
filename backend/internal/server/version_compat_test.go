@@ -17,7 +17,7 @@ func TestRollbackCompatibilityPreflight(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	server := NewWithConfig(store, Config{AdminToken: "rollback-test-token"})
+	server := newManagedTestServerWithConfig(t, store, Config{AdminToken: "rollback-test-token"})
 	ctx := context.Background()
 
 	if verdict := server.rollbackCompatibility(ctx, "v0.4.0"); verdict.Compatibility != rollbackIncompatible {
@@ -55,7 +55,7 @@ func TestRollbackHandlerRefusesUnknownCompatibility(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	server := NewWithConfig(store, Config{AdminToken: "rollback-test-token"})
+	server := newManagedTestServerWithConfig(t, store, Config{AdminToken: "rollback-test-token"})
 	request := httptest.NewRequest(http.MethodPost, "/api/admin/system/rollback", strings.NewReader(`{"version":"0.3.0"}`))
 	request.Header.Set("Content-Type", "application/json")
 	request.Header.Set("Authorization", "Bearer rollback-test-token")
@@ -70,7 +70,7 @@ func TestRollbackHandlerRefusesUnknownCompatibility(t *testing.T) {
 }
 
 func TestRollbackCompatibilityOnMemoryStoreUsesExpandedSchema(t *testing.T) {
-	server := New(NewMemoryStore())
+	server := newManagedTestServer(t, newTestMemoryStore(t))
 	verdict := server.rollbackCompatibility(context.Background(), "v0.4.0")
 	if verdict.Compatibility != rollbackIncompatible {
 		t.Fatalf("memory store uses the current expanded schema state, got %+v", verdict)
@@ -85,6 +85,20 @@ func TestCompatibilityManifestTargetsLatestRegisteredMigration(t *testing.T) {
 	}
 	if manifest.TargetVersion != latest || manifest.MaxCompatible < latest || manifest.MinCompatible > manifest.TargetVersion {
 		t.Fatalf("compatibility manifest %+v does not cover latest migration %d", manifest, latest)
+	}
+}
+
+func TestCompatibilityManifestRequiresWalletCreditMetadata(t *testing.T) {
+	manifest := CurrentCompatibilityManifest()
+	if manifest.MinCompatible < 20 {
+		t.Fatalf("minimum compatible schema = %d, want at least 20 for wallet credit metadata", manifest.MinCompatible)
+	}
+}
+
+func TestCompatibilityManifestRequiresProjectExcludedModels(t *testing.T) {
+	manifest := CurrentCompatibilityManifest()
+	if manifest.MinCompatible < 22 {
+		t.Fatalf("minimum compatible schema = %d, want at least 22 for project excluded models", manifest.MinCompatible)
 	}
 }
 

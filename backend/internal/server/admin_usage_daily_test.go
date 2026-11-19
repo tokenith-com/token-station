@@ -9,8 +9,8 @@ import (
 )
 
 func TestUsageDailyUsesDashboardTimezoneWindow(t *testing.T) {
-	store := NewMemoryStore()
-	server := New(store)
+	store := newTestMemoryStore(t)
+	server := newManagedTestServer(t, store)
 	store.CreateResource("settings", AdminResource{
 		ID:     gatewaySettingsID,
 		Status: StatusActive,
@@ -130,8 +130,8 @@ func TestUsageDailyUsesDashboardTimezoneWindow(t *testing.T) {
 }
 
 func TestUsageDailyUsesConfiguredDashboardTimezone(t *testing.T) {
-	store := NewMemoryStore()
-	server := New(store)
+	store := newTestMemoryStore(t)
+	server := newManagedTestServer(t, store)
 	store.CreateResource("settings", AdminResource{
 		ID:     gatewaySettingsID,
 		Status: StatusActive,
@@ -152,13 +152,13 @@ func TestUsageDailyUsesConfiguredDashboardTimezone(t *testing.T) {
 }
 
 func TestUsageDailyEndpointIgnoresTimezoneQuery(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	store.CreateResource("settings", AdminResource{
 		ID:     gatewaySettingsID,
 		Status: StatusActive,
 		Fields: map[string]any{dashboardTimezoneField: "Asia/Shanghai"},
 	})
-	app := New(store).Handler()
+	app := newManagedTestServer(t, store).Handler()
 	response := doJSON(t, app, http.MethodGet, "/api/admin/usage/daily?timezone=UTC", nil, "")
 	if response.Code != http.StatusOK {
 		t.Fatalf("usage daily response = %d %s, want 200", response.Code, response.Body)
@@ -182,8 +182,8 @@ func TestUsageDailyEndpointIgnoresTimezoneQuery(t *testing.T) {
 }
 
 func TestUsageDailyRedactsProviderBreakdownsForNonPlatformRoles(t *testing.T) {
-	store := NewMemoryStore()
-	server := New(store)
+	store := newTestMemoryStore(t)
+	server := newManagedTestServer(t, store)
 	store.CreateResource("teams", AdminResource{ID: "team_daily", Status: StatusActive})
 	teamProject, err := store.CreateProjectChecked(Project{
 		ID:          "prj_daily_team",
@@ -247,8 +247,8 @@ func TestUsageDailyRedactsProviderBreakdownsForNonPlatformRoles(t *testing.T) {
 }
 
 func TestUsageDailyIncludesProviderBreakdownsForPlatformAdmin(t *testing.T) {
-	store := NewMemoryStore()
-	server := New(store)
+	store := newTestMemoryStore(t)
+	server := newManagedTestServer(t, store)
 	project := store.CreateProject(Project{ID: "prj_daily_platform", Name: "Daily platform project", Status: StatusActive})
 	record := UsageRecord{
 		ID:                 "use_daily_platform_provider",
@@ -281,7 +281,7 @@ func TestUsageDailyIncludesProviderBreakdownsForPlatformAdmin(t *testing.T) {
 }
 
 func TestGatewaySettingsRejectInvalidDashboardTimezone(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	store.CreateResource("settings", AdminResource{
 		ID:     gatewaySettingsID,
 		Name:   "Gateway settings",
@@ -304,7 +304,7 @@ func TestGatewaySettingsRejectInvalidDashboardTimezone(t *testing.T) {
 			syntheticDNSAllowPrivateField: false,
 		},
 	}
-	response := doJSON(t, New(store).Handler(), http.MethodPatch, "/api/admin/resources/settings/"+gatewaySettingsID, setting, "")
+	response := doJSON(t, newManagedTestServer(t, store).Handler(), http.MethodPatch, "/api/admin/resources/settings/"+gatewaySettingsID, setting, "")
 	if response.Code != http.StatusBadRequest || !strings.Contains(response.Body, "invalid_dashboard_timezone") {
 		t.Fatalf("invalid dashboard timezone response = %d %s, want invalid_dashboard_timezone", response.Code, response.Body)
 	}

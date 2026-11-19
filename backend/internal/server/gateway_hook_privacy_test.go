@@ -12,7 +12,7 @@ import (
 
 func TestSensitiveGatewayHookAuditEventsRetainOnlyMetadata(t *testing.T) {
 	const private = "private-hook-audit-sentinel"
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	app := New(store)
 	t.Cleanup(func() { _ = app.Shutdown(context.Background()) })
 	for _, call := range []CallContext{

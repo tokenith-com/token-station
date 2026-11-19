@@ -10,7 +10,7 @@ import (
 )
 
 func TestAdminPluginsGetExposesSafeMarketplaceMetadata(t *testing.T) {
-	server := NewWithConfig(NewMemoryStore(), Config{AdminToken: "dev_admin_token", PluginDir: t.TempDir()})
+	server := newManagedTestServerWithConfig(t, newTestMemoryStore(t), Config{AdminToken: "dev_admin_token", PluginDir: t.TempDir()})
 	err := server.pluginRegistry.Register(pluginmeta.Descriptor{
 		ID:      "tokenhub.marketplace.rich",
 		Name:    "Rich Marketplace",

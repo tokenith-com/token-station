@@ -7,7 +7,7 @@ import (
 )
 
 func TestResponsesRoutePreservesLegacyUsageTotals(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	project := store.CreateProject(Project{Name: "Usage compatibility project", Status: StatusActive})
 	_, secret, err := store.CreateAPIKey(project.ID, APIKey{Name: "Usage compatibility key", Status: StatusActive}, "thk_usage_compatibility")
 	if err != nil {
@@ -20,7 +20,7 @@ func TestResponsesRoutePreservesLegacyUsageTotals(t *testing.T) {
 		Priority: 1, Weight: 100, Status: StatusActive,
 	})
 
-	resp := doJSON(t, New(store).Handler(), http.MethodPost, "/v1/responses", map[string]any{
+	resp := doJSON(t, newManagedTestServer(t, store).Handler(), http.MethodPost, "/v1/responses", map[string]any{
 		"model": "usage-compatible-model",
 		"input": "preserve existing response usage fields",
 	}, secret)

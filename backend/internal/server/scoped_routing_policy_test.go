@@ -8,17 +8,21 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
+
+	"gorm.io/driver/sqlite"
+	"gorm.io/gorm"
 )
 
 func TestAdminRoutingPolicyCreateBindUnbindAndAudit(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	model := store.AddModel(Model{Name: "admin-policy-model", Modality: "chat", Status: StatusActive})
 	project := store.CreateProject(Project{ID: "prj_admin_policy", Name: "Admin Policy", Status: StatusActive})
 	provider := store.AddProvider(Provider{ID: "prv_admin_policy", Name: "Admin Policy", Type: ProviderMock, Status: StatusActive, Healthy: true})
-	app := New(store).Handler()
+	app := newManagedTestServer(t, store).Handler()
 
 	created := doJSON(t, app, http.MethodPost, "/api/admin/resources/routing-policies", map[string]any{
 		"name": "Internal only", "status": StatusActive,
@@ -73,7 +77,7 @@ func TestAdminRoutingPolicyCreateBindUnbindAndAudit(t *testing.T) {
 }
 
 func TestRoutingPolicyBindingIsUniqueAcrossConcurrentCreates(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	project := store.CreateProject(Project{ID: "prj_policy_create_race", Name: "Create Race", Status: StatusActive})
 	start := make(chan struct{})
 	errors := make(chan error, 2)
@@ -106,7 +110,7 @@ func TestRoutingPolicyBindingIsUniqueAcrossConcurrentCreates(t *testing.T) {
 }
 
 func TestRoutingPolicyBindingIsUniqueAcrossConcurrentBinds(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	project := store.CreateProject(Project{ID: "prj_policy_bind_race", Name: "Bind Race", Status: StatusActive})
 	policyIDs := []string{"pol_bind_race_a", "pol_bind_race_b"}
 	for _, policyID := range policyIDs {
@@ -149,7 +153,7 @@ func TestRoutingPolicyBindingIsUniqueAcrossConcurrentBinds(t *testing.T) {
 }
 
 func TestRoutingPolicyBindingBackfillUpgradesExistingPolicies(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	legacy := AdminResource{
 		ID: "pol_legacy_binding", Kind: routingPolicyResourceKind, Name: "Legacy Binding", Status: StatusActive,
 		Fields: map[string]any{"scope": RoutingPolicyScopeProject, "scope_id": "prj_legacy_binding"},
@@ -171,7 +175,7 @@ func TestRoutingPolicyBindingBackfillUpgradesExistingPolicies(t *testing.T) {
 }
 
 func TestRoutingPolicyBindingBackfillRejectsLegacyDuplicates(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	for _, policyID := range []string{"pol_legacy_duplicate_a", "pol_legacy_duplicate_b"} {
 		legacy := AdminResource{
 			ID: policyID, Kind: routingPolicyResourceKind, Name: policyID, Status: StatusActive,
@@ -187,7 +191,7 @@ func TestRoutingPolicyBindingBackfillRejectsLegacyDuplicates(t *testing.T) {
 }
 
 func TestAPIKeyRotationPreservesScopedRoutingPolicyDuringGracePeriod(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	model := store.AddModel(Model{Name: "rotation-policy-model", Modality: "chat", Status: StatusActive})
 	project := store.CreateProject(Project{ID: "prj_policy_rotation", Name: "Policy Rotation", Status: StatusActive})
 	key, _, err := store.CreateAPIKey(project.ID, APIKey{
@@ -207,7 +211,7 @@ func TestAPIKeyRotationPreservesScopedRoutingPolicyDuringGracePeriod(t *testing.
 	}
 
 	graceUntil := time.Now().UTC().Add(time.Hour).Truncate(time.Second)
-	resp := doJSON(t, New(store).Handler(), http.MethodPost, "/api/admin/api-keys/"+key.ID+"/rotate", map[string]any{
+	resp := doJSON(t, newManagedTestServer(t, store).Handler(), http.MethodPost, "/api/admin/api-keys/"+key.ID+"/rotate", map[string]any{
 		"grace_until": graceUntil,
 	}, "")
 	if resp.Code != http.StatusCreated {
@@ -246,7 +250,7 @@ func TestAPIKeyRotationPreservesScopedRoutingPolicyDuringGracePeriod(t *testing.
 }
 
 func TestProjectAndAPIKeyModelAccessUsesLeastPrivilege(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	for _, name := range []string{"model-a", "model-b", "model-c"} {
 		store.AddModel(Model{Name: name, Modality: "chat", Status: StatusActive})
 	}
@@ -288,8 +292,113 @@ func TestProjectAndAPIKeyModelAccessUsesLeastPrivilege(t *testing.T) {
 	}
 }
 
+func TestProjectExcludedModelAccess(t *testing.T) {
+	// Exercise storage against the model schema without changing the migration bundle.
+	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	sqlDB, err := db.DB()
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = sqlDB.Close() })
+	if err := db.AutoMigrate(&Project{}, &ProjectTeam{}, &Model{}, &APIKey{}, &AdminResource{}); err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Exec("ALTER TABLE api_keys ADD COLUMN key_ciphertext TEXT").Error; err != nil {
+		t.Fatal(err)
+	}
+	store := &GormStore{db: db, mu: &sync.Mutex{}, dbDriver: "sqlite"}
+	for _, name := range []string{"excluded-a", "excluded-b", "excluded-c"} {
+		if err := db.Create(&Model{ID: name, Name: name, Modality: "chat", Status: StatusActive}).Error; err != nil {
+			t.Fatal(err)
+		}
+	}
+	project, err := store.CreateProjectChecked(Project{
+		Name: "Excluded models", ModelAccessMode: " EXCLUDED ",
+		AllowedModels: []string{"excluded-a"}, ExcludedModels: []string{" excluded-b ", "excluded-b", ""},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if project.ModelAccessMode != ModelAccessModeExcluded || len(project.AllowedModels) != 0 || len(project.ExcludedModels) != 1 || project.ExcludedModels[0] != "excluded-b" {
+		t.Fatalf("normalized project = %+v", project)
+	}
+	key, _, err := store.CreateAPIKey(project.ID, APIKey{Name: "Restricted", ModelAccessMode: ModelAccessModeRestricted, Allowed: []string{"excluded-a", "excluded-b"}}, "thk_excluded_models")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, tc := range []struct {
+		model  string
+		reason string
+	}{
+		{model: "excluded-a"},
+		{model: "excluded-b", reason: "project_model_excluded"},
+		{model: "excluded-c", reason: "api_key_model_not_allowed"},
+	} {
+		t.Run(tc.model, func(t *testing.T) {
+			reasons := modelAccessReasons(project, key, tc.model)
+			allowed := tc.reason == ""
+			if modelAllowedByScopes(project, key, tc.model) != allowed || (len(reasons) == 0) != allowed || (!allowed && !containsString(reasons, tc.reason)) {
+				t.Fatalf("access and diagnostic mismatch: reasons=%v", reasons)
+			}
+		})
+	}
+	persisted, ok := store.GetProject(project.ID)
+	if !ok || len(persisted.ExcludedModels) != 1 || persisted.ExcludedModels[0] != "excluded-b" {
+		t.Fatalf("persisted project = %+v", persisted)
+	}
+	if _, err := store.UpdateProject(project.ID, Project{ModelAccessMode: ModelAccessModeExcluded, ExcludedModels: []string{"missing-model"}}); err == nil || AsHTTPError(err).Code != "model_not_found" {
+		t.Fatalf("unknown excluded model error = %v", err)
+	}
+	project, err = store.UpdateProject(project.ID, Project{ModelAccessMode: ModelAccessModeExcluded, ExcludedModels: []string{}})
+	if err != nil || project.ModelAccessMode != ModelAccessModeExcluded || !modelAllowedByScopes(project, APIKey{}, "excluded-b") {
+		t.Fatalf("empty exclusion list: project=%+v err=%v", project, err)
+	}
+	project, err = store.UpdateProject(project.ID, Project{ExcludedModels: []string{"excluded-a"}})
+	if err != nil || project.ModelAccessMode != ModelAccessModeExcluded || modelAllowedByScopes(project, APIKey{}, "excluded-a") {
+		t.Fatalf("list-only patch: project=%+v err=%v", project, err)
+	}
+	project, err = store.UpdateProject(project.ID, Project{Name: "Unrelated update"})
+	if err != nil || len(project.ExcludedModels) != 1 {
+		t.Fatalf("unrelated update lost exclusions: project=%+v err=%v", project, err)
+	}
+	project, err = store.UpdateProject(project.ID, Project{ModelAccessMode: ModelAccessModeInherit})
+	if err != nil || len(project.ExcludedModels) != 0 || !modelAllowedByScopes(project, APIKey{}, "excluded-a") {
+		t.Fatalf("inherit transition: project=%+v err=%v", project, err)
+	}
+	if _, _, err := store.CreateAPIKey(project.ID, APIKey{ModelAccessMode: ModelAccessModeExcluded}, "thk_invalid_excluded"); err == nil || AsHTTPError(err).Code != "invalid_model_access_mode" {
+		t.Fatalf("API key accepted excluded mode: %v", err)
+	}
+	if _, err := store.UpdateAPIKey(key.ID, APIKey{ModelAccessMode: ModelAccessModeExcluded}); err == nil || AsHTTPError(err).Code != "invalid_model_access_mode" {
+		t.Fatalf("API key update accepted excluded mode: %v", err)
+	}
+}
+
+func TestProjectModelAccessLegacyCompatibility(t *testing.T) {
+	for _, tc := range []struct {
+		name    string
+		project Project
+		allowed bool
+	}{
+		{name: "legacy unrestricted", project: Project{}, allowed: true},
+		{name: "legacy allowlist match", project: Project{AllowedModels: []string{"model-a"}}, allowed: true},
+		{name: "legacy allowlist denial", project: Project{AllowedModels: []string{"model-b"}}},
+		{name: "empty restricted", project: Project{ModelAccessMode: ModelAccessModeRestricted}},
+		{name: "empty excluded", project: Project{ModelAccessMode: ModelAccessModeExcluded}, allowed: true},
+		{name: "invalid mode fails closed", project: Project{ModelAccessMode: "invalid"}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := modelAllowedByScopes(tc.project, APIKey{}, "model-a"); got != tc.allowed {
+				t.Fatalf("model allowed = %v, want %v", got, tc.allowed)
+			}
+		})
+	}
+}
+
 func TestRoutingPolicySimulationReturnsSafeDiagnosticFailures(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	model := store.AddModel(Model{Name: "policy-diagnostic-model", Modality: "chat", Status: StatusActive})
 	project := store.CreateProject(Project{ID: "prj_policy_diagnostic", Name: "Diagnostic", Status: StatusActive})
 	key, _, err := store.CreateAPIKey(project.ID, APIKey{ID: "key_policy_diagnostic", Name: "Diagnostic", Status: StatusActive}, "thk_policy_diagnostic")
@@ -302,7 +411,7 @@ func TestRoutingPolicySimulationReturnsSafeDiagnosticFailures(t *testing.T) {
 		ID: "pol_policy_diagnostic", Name: "No matching tag", Status: StatusActive,
 		Fields: map[string]any{"scope": RoutingPolicyScopeProject, "scope_id": project.ID, "required_tags": []string{"internal"}},
 	})
-	app := New(store).Handler()
+	app := newManagedTestServer(t, store).Handler()
 	simulate := func() RoutingPolicyResolution {
 		t.Helper()
 		resp := doJSON(t, app, http.MethodPost, "/api/admin/routing-policies/simulate", map[string]any{
@@ -331,7 +440,7 @@ func TestRoutingPolicySimulationReturnsSafeDiagnosticFailures(t *testing.T) {
 }
 
 func TestRoutingPolicySimulationExplainsMissingBaseCandidates(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	model := store.AddModel(Model{Name: "policy-no-base-route", Modality: "chat", Status: StatusActive})
 	project := store.CreateProject(Project{ID: "prj_policy_no_base", Name: "No Base Route", Status: StatusActive})
 	key, _, err := store.CreateAPIKey(project.ID, APIKey{ID: "key_policy_no_base", Name: "No Base Route", Status: StatusActive}, "thk_policy_no_base")
@@ -346,7 +455,7 @@ func TestRoutingPolicySimulationExplainsMissingBaseCandidates(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	resp := doJSON(t, New(store).Handler(), http.MethodPost, "/api/admin/routing-policies/simulate", map[string]any{
+	resp := doJSON(t, newManagedTestServer(t, store).Handler(), http.MethodPost, "/api/admin/routing-policies/simulate", map[string]any{
 		"project_id": project.ID, "api_key_id": key.ID, "model": model.Name,
 	}, "")
 	if resp.Code != http.StatusOK {
@@ -361,7 +470,7 @@ func TestRoutingPolicySimulationExplainsMissingBaseCandidates(t *testing.T) {
 		t.Fatalf("missing-base resolution = %+v", resolution)
 	}
 
-	chat := doJSON(t, New(store).Handler(), http.MethodPost, "/v1/chat/completions", map[string]any{
+	chat := doJSON(t, newManagedTestServer(t, store).Handler(), http.MethodPost, "/v1/chat/completions", map[string]any{
 		"model": model.Name, "messages": []map[string]any{{"role": "user", "content": "no route"}},
 	}, "thk_policy_no_base")
 	if chat.Code != http.StatusServiceUnavailable {
@@ -372,7 +481,7 @@ func TestRoutingPolicySimulationExplainsMissingBaseCandidates(t *testing.T) {
 		t.Fatalf("chat no-route log missing policy metadata: %+v", logs)
 	}
 
-	anthropic := doAnthropicRequest(t, New(store).Handler(), "/v1/messages", map[string]any{
+	anthropic := doAnthropicRequest(t, newManagedTestServer(t, store).Handler(), "/v1/messages", map[string]any{
 		"model": model.Name, "max_tokens": 8, "messages": []any{map[string]any{"role": "user", "content": "no route"}},
 	}, "", "thk_policy_no_base")
 	if anthropic.Code != http.StatusServiceUnavailable {
@@ -385,7 +494,7 @@ func TestRoutingPolicySimulationExplainsMissingBaseCandidates(t *testing.T) {
 }
 
 func TestPlaygroundGlobalRoutingPolicyAnnotatesMissingBaseCandidates(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	project := store.CreateProject(Project{Name: "Playground Project"})
 	model := store.AddModel(Model{Name: "playground-policy-no-base", Modality: "chat", Status: StatusActive})
 	policy, err := store.CreateRoutingPolicy(AdminResource{
@@ -395,9 +504,10 @@ func TestPlaygroundGlobalRoutingPolicyAnnotatesMissingBaseCandidates(t *testing.
 	if err != nil {
 		t.Fatal(err)
 	}
+	keyID := createPlaygroundTestKey(t, store, project.ID, "")
 	for _, path := range []string{"/api/admin/playground/chat", "/api/admin/playground/chat/stream"} {
-		resp := doJSON(t, New(store).Handler(), http.MethodPost, path, map[string]any{
-			"project_id": project.ID, "model": model.Name, "messages": []map[string]any{{"role": "user", "content": "no route"}},
+		resp := doJSON(t, newManagedTestServer(t, store).Handler(), http.MethodPost, path, map[string]any{
+			"api_key_id": keyID, "model": model.Name, "messages": []map[string]any{{"role": "user", "content": "no route"}},
 		}, "")
 		if resp.Code != http.StatusServiceUnavailable {
 			t.Fatalf("%s missing base routes: status=%d body=%s", path, resp.Code, resp.Body)
@@ -410,7 +520,7 @@ func TestPlaygroundGlobalRoutingPolicyAnnotatesMissingBaseCandidates(t *testing.
 }
 
 func TestScopedRoutingPolicySimulationUsesKeyProjectGlobalPrecedence(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	project := store.CreateProject(Project{ID: "prj_scoped_policy", Name: "Scoped Policy", Status: StatusActive})
 	key, _, err := store.CreateAPIKey(project.ID, APIKey{ID: "key_scoped_policy", Name: "Scoped Policy", Status: StatusActive}, "thk_scoped_policy")
 	if err != nil {
@@ -447,7 +557,7 @@ func TestScopedRoutingPolicySimulationUsesKeyProjectGlobalPrecedence(t *testing.
 		"pol_key", "api_key", key.ID, providers[2].ID,
 	))
 
-	app := New(store).Handler()
+	app := newManagedTestServer(t, store).Handler()
 	assertSimulation := func(wantPolicyID, wantScope, wantRouteID string) {
 		t.Helper()
 		resp := doJSON(t, app, http.MethodPost, "/api/admin/routing-policies/simulate", map[string]any{
@@ -502,7 +612,7 @@ func TestProjectRoutingPolicyNeverFallsBackOutsideItsCandidates(t *testing.T) {
 	}))
 	defer external.Close()
 
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	project := store.CreateProject(Project{ID: "prj_internal_only", Name: "Internal Only", Status: StatusActive})
 	const modelName = "internal-only-model"
 	_, secret, err := store.CreateAPIKey(project.ID, APIKey{Name: "Internal Only", Allowed: []string{modelName}, Status: StatusActive}, "thk_internal_only")
@@ -528,7 +638,7 @@ func TestProjectRoutingPolicyNeverFallsBackOutsideItsCandidates(t *testing.T) {
 		"pol_internal_only", RoutingPolicyScopeProject, project.ID, internalProvider.ID,
 	))
 
-	resp := postStream(t, New(store).Handler(), "/v1/chat/completions", map[string]any{
+	resp := postStream(t, newManagedTestServer(t, store).Handler(), "/v1/chat/completions", map[string]any{
 		"model":    modelName,
 		"messages": []map[string]any{{"role": "user", "content": "private workload"}},
 		"stream":   true,
@@ -547,7 +657,7 @@ func TestProjectRoutingPolicyNeverFallsBackOutsideItsCandidates(t *testing.T) {
 		t.Fatalf("request log is missing policy metadata: %+v", logs)
 	}
 
-	anthropicResp := doAnthropicRequest(t, New(store).Handler(), "/v1/messages", map[string]any{
+	anthropicResp := doAnthropicRequest(t, newManagedTestServer(t, store).Handler(), "/v1/messages", map[string]any{
 		"model": modelName, "max_tokens": 32,
 		"messages": []any{map[string]any{"role": "user", "content": "private workload"}},
 	}, "", secret)
@@ -578,7 +688,7 @@ func TestRoutingPolicyAllowsFailoverWithinScopedCandidates(t *testing.T) {
 	}))
 	defer external.Close()
 
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	project := store.CreateProject(Project{ID: "prj_scoped_failover", Name: "Scoped Failover", Status: StatusActive})
 	const modelName = "scoped-failover-model"
 	_, secret, err := store.CreateAPIKey(project.ID, APIKey{Name: "Scoped Failover", Status: StatusActive}, "thk_scoped_failover")
@@ -609,7 +719,7 @@ func TestRoutingPolicyAllowsFailoverWithinScopedCandidates(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	resp := postStream(t, New(store).Handler(), "/v1/chat/completions", map[string]any{
+	resp := postStream(t, newManagedTestServer(t, store).Handler(), "/v1/chat/completions", map[string]any{
 		"model": modelName, "messages": []map[string]any{{"role": "user", "content": "private workload"}}, "stream": true,
 	}, secret)
 	if resp.Code != http.StatusOK || !strings.Contains(resp.Body.String(), "scoped internal failover") {
@@ -621,7 +731,7 @@ func TestRoutingPolicyAllowsFailoverWithinScopedCandidates(t *testing.T) {
 }
 
 func TestImageRoutingPolicyNeverFallsBackOutsideItsCandidates(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	project := store.CreateProject(Project{ID: "prj_internal_image", Name: "Internal Image", Status: StatusActive})
 	_, secret, err := store.CreateAPIKey(project.ID, APIKey{
 		Name: "Internal Image", Allowed: []string{openAIImageModelName}, Status: StatusActive,
@@ -673,7 +783,7 @@ func TestImageRoutingPolicyNeverFallsBackOutsideItsCandidates(t *testing.T) {
 }
 
 func TestImageRoutingPolicyAnnotatesMissingBaseCandidates(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	project := store.CreateProject(Project{ID: "prj_image_no_base", Name: "Image No Base", Status: StatusActive})
 	_, secret, err := store.CreateAPIKey(project.ID, APIKey{ID: "key_image_no_base", Name: "Image No Base", Status: StatusActive}, "thk_image_no_base")
 	if err != nil {
@@ -703,7 +813,7 @@ func TestImageRoutingPolicyAnnotatesMissingBaseCandidates(t *testing.T) {
 }
 
 func TestRoutingPolicyFiltersCandidatesBeforeCacheAffinity(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	project := store.CreateProject(Project{ID: "prj_policy_affinity", Name: "Affinity", Status: StatusActive})
 	key, _, err := store.CreateAPIKey(project.ID, APIKey{ID: "key_policy_affinity", Name: "Affinity", Status: StatusActive}, "thk_policy_affinity")
 	if err != nil {
@@ -718,18 +828,18 @@ func TestRoutingPolicyFiltersCandidatesBeforeCacheAffinity(t *testing.T) {
 		RequestID: "req_policy_affinity", Project: project, Key: key, Model: Model{Name: "affinity-model"},
 		Affinity: &RequestAffinity{Kind: AffinityKindCacheLocality, KeyHash: "external-preferring-session"},
 	}
-	filtered, err := New(store).resolveScopedRoutingPolicyForCall(&call, routes)
+	filtered, err := newManagedTestServer(t, store).resolveScopedRoutingPolicyForCall(&call, routes)
 	if err != nil {
 		t.Fatal(err)
 	}
-	planned := New(store).planRouteOrder(call, filtered)
+	planned := newManagedTestServer(t, store).planRouteOrder(call, filtered)
 	if len(planned) != 1 || planned[0].Provider.ID != "prv_internal_affinity" {
 		t.Fatalf("affinity escaped scoped candidates: %+v", planned)
 	}
 }
 
 func TestRoutingPolicyLimitsHalfOpenRecoveryToScopedCandidates(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	project := store.CreateProject(Project{ID: "prj_policy_half_open", Name: "Half Open", Status: StatusActive})
 	key, _, err := store.CreateAPIKey(project.ID, APIKey{ID: "key_policy_half_open", Name: "Half Open", Status: StatusActive}, "thk_policy_half_open")
 	if err != nil {
@@ -769,7 +879,7 @@ func TestRoutingPolicyLimitsHalfOpenRecoveryToScopedCandidates(t *testing.T) {
 		t.Fatal(err)
 	}
 	call := CallContext{RequestID: "req_policy_half_open", Project: project, Key: key, Model: model}
-	filtered, err := New(store).resolveScopedRoutingPolicyForCall(&call, routes)
+	filtered, err := newManagedTestServer(t, store).resolveScopedRoutingPolicyForCall(&call, routes)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -786,7 +896,7 @@ func TestRoutingPolicyLimitsHalfOpenRecoveryToScopedCandidates(t *testing.T) {
 }
 
 func TestRoutingPolicySimulationExplainsResourceTagAndBoundaryConstraints(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	project := store.CreateProject(Project{ID: "prj_policy_boundary", Name: "Boundary", Status: StatusActive})
 	key, _, err := store.CreateAPIKey(project.ID, APIKey{ID: "key_policy_boundary", Name: "Boundary", Status: StatusActive}, "thk_policy_boundary")
 	if err != nil {
@@ -827,7 +937,7 @@ func TestRoutingPolicySimulationExplainsResourceTagAndBoundaryConstraints(t *tes
 		},
 	})
 
-	resp := doJSON(t, New(store).Handler(), http.MethodPost, "/api/admin/routing-policies/simulate", map[string]any{
+	resp := doJSON(t, newManagedTestServer(t, store).Handler(), http.MethodPost, "/api/admin/routing-policies/simulate", map[string]any{
 		"project_id": project.ID,
 		"api_key_id": key.ID,
 		"model":      model.Name,

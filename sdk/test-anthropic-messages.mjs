@@ -23,7 +23,7 @@ if (!apiKey || apiKey === "thk_your_tokenhub_key" || !model) {
   process.exit(1);
 }
 
-console.log("TokenHub Anthropic Messages smoke test");
+console.log("TokenStation Anthropic Messages smoke test");
 console.log(`Base URL: ${baseURL}`);
 console.log(`Model:    ${model}`);
 console.log(`API Key:  ${maskKey(apiKey)}`);
@@ -40,7 +40,7 @@ async function checkModelVisibility() {
   const payload = await responseJSON(response, "GET /v1/models");
   const models = Array.isArray(payload.data) ? payload.data : [];
   if (!models.some((item) => item?.id === model)) {
-    throw new Error(`Model ${model} is not visible to the TokenHub key`);
+    throw new Error(`Model ${model} is not visible to the TokenStation key`);
   }
   console.log("Model discovery: passed");
 }

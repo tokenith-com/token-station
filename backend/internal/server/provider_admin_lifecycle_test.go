@@ -25,7 +25,7 @@ func (lifecycleTestAdapter) ProviderResourceOperationKey(provider Provider, reso
 }
 
 func TestProviderAdminOperationKeyUsesAdapterLifecycle(t *testing.T) {
-	server := NewWithConfig(NewMemoryStore(), Config{AdminToken: "admin"})
+	server := newManagedTestServerWithConfig(t, newTestMemoryStore(t), Config{AdminToken: "admin"})
 	const providerType = "lifecycle_provider"
 	if err := server.adapterRegistry.RegisterPlugin(pluginmeta.BuiltInProvider(
 		"tokenhub.provider.lifecycle",

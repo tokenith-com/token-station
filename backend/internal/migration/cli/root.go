@@ -44,9 +44,9 @@ func Execute() error {
 }
 
 var rootCmd = &cobra.Command{
-	Use:           "tokenhub-migrate",
-	Short:         "Migrate competing AI gateways into TokenHub",
-	Long:          "tokenhub-migrate provides a repeatable, idempotent workflow for migrating supported gateways into TokenHub.",
+	Use:           "tokenstation-migrate",
+	Short:         "Migrate competing AI gateways into TokenStation",
+	Long:          "tokenstation-migrate provides a repeatable, idempotent workflow for migrating supported gateways into TokenStation.",
 	SilenceUsage:  true,
 	SilenceErrors: true,
 }

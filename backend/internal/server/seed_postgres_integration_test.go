@@ -92,7 +92,7 @@ models:
 		t.Fatalf("upgrade v0.4 PostgreSQL database: %v", err)
 	}
 	defer closePostgresUpgradeStore(upgradedStore)
-	if err := RunStartupBootstrap(t.Context(), upgradedStore, config); err != nil {
+	if err := InitializeDatabase(t.Context(), upgradedStore, config); err != nil {
 		t.Fatalf("bootstrap upgraded v0.4 PostgreSQL database: %v", err)
 	}
 	assigned, err := upgradedStore.CreateAdminUser(AdminUser{

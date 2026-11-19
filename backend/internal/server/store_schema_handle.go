@@ -94,6 +94,21 @@ func SchemaMigrationRegistry() []dbschema.Migration {
 		usageWindowIndexesMigration(),
 		subscriptionOAuthRegistrationMigration(),
 		responsesImageStoreMigration(),
+		paymentMigration(),
+		paymentCheckoutMigration(),
+		walletUsageMigration(),
+		consumerEmailActivationMigration(),
+		consumerRechargeMigration(),
+		apiKeyCiphertextMigration(),
+		teamWalletMigration(),
+		teamWalletLedgerMigration(),
+		teamWalletCallSnapshotMigration(),
+		teamWalletRateHistoryMigration(),
+		teamWalletMicrosMigration(),
+		canonicalAdminRoleMigration(),
+		walletPostpaidMigration(),
+		projectExcludedModelsMigration(),
+		{Version: 19, Name: "add-team-wallet-exchange-rate", Go: addTeamWalletExchangeRate, ChecksumOverride: "tokenhub-schema-team-wallet-rate-v1", StatementBudget: 3},
 		{
 			Version:          2,
 			Name:             "add-granular-billing-columns-sqlite",
@@ -155,6 +170,25 @@ func SchemaMigrationRegistry() []dbschema.Migration {
 			ChecksumOverride: "tokenhub-schema-image-job-worker-instance-v1",
 		},
 	}
+}
+
+func addTeamWalletExchangeRate(ctx context.Context, db dbschema.MigrationExecer) error {
+	// Probe PostgreSQL first because a SQLite PRAGMA would abort its transaction.
+	var schema string
+	if err := db.QueryRowContext(ctx, `SELECT current_schema()`).Scan(&schema); err == nil {
+		if _, err := db.ExecContext(ctx, `ALTER TABLE team_wallet_calls ADD COLUMN IF NOT EXISTS exchange_rate text NOT NULL DEFAULT ''`); err != nil {
+			return fmt.Errorf("add postgres column team_wallet_calls.exchange_rate: %w", err)
+		}
+		return nil
+	}
+	exists, err := sqliteColumnExists(ctx, db, "team_wallet_calls", "exchange_rate")
+	if err != nil || exists {
+		return err
+	}
+	if _, err := db.ExecContext(ctx, `ALTER TABLE team_wallet_calls ADD COLUMN exchange_rate text NOT NULL DEFAULT ''`); err != nil {
+		return fmt.Errorf("add sqlite column team_wallet_calls.exchange_rate: %w", err)
+	}
+	return nil
 }
 
 func addImageJobWorkerInstance(ctx context.Context, db dbschema.MigrationExecer) error {

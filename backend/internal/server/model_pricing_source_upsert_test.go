@@ -24,7 +24,7 @@ func TestModelPricingSourceUpsertMergesPartialMetadata(t *testing.T) {
 			store, original, _ := pricingSourceUpsertFixture(t)
 			model := store.AddModel(linkedPricingModel(original))
 			model.Metadata = test.metadata
-			response := doJSON(t, New(store).Handler(), http.MethodPost, "/api/admin/models", model, "")
+			response := doJSON(t, newManagedTestServer(t, store).Handler(), http.MethodPost, "/api/admin/models", model, "")
 			if response.Code != http.StatusCreated {
 				t.Fatalf("upsert returned %d: %s", response.Code, response.Body)
 			}
@@ -62,7 +62,7 @@ func TestModelPricingSourceUpsertRejectsInvalidMergedMetadata(t *testing.T) {
 			before := store.ListModels()
 			model.Metadata = test.metadata
 			model.InputPriceUSDPer1M = 99
-			response := doJSON(t, New(store).Handler(), http.MethodPost, "/api/admin/models", model, "")
+			response := doJSON(t, newManagedTestServer(t, store).Handler(), http.MethodPost, "/api/admin/models", model, "")
 			if response.Code != http.StatusBadRequest {
 				t.Fatalf("invalid upsert returned %d: %s", response.Code, response.Body)
 			}
@@ -91,7 +91,7 @@ func TestModelPricingSourceNewInsertKeepsExplicitModeSemantics(t *testing.T) {
 			store, original, _ := pricingSourceUpsertFixture(t)
 			model := linkedPricingModel(original)
 			model.Metadata = test.metadata
-			response := doJSON(t, New(store).Handler(), http.MethodPost, "/api/admin/models", model, "")
+			response := doJSON(t, newManagedTestServer(t, store).Handler(), http.MethodPost, "/api/admin/models", model, "")
 			if response.Code != test.wantCode {
 				t.Fatalf("create returned %d, want %d: %s", response.Code, test.wantCode, response.Body)
 			}
@@ -131,7 +131,7 @@ func TestModelPricingSourceUpsertRetainsIntentAfterInsertConflict(t *testing.T) 
 	t.Cleanup(func() { _ = store.db.Callback().Create().Remove(callback) })
 	model := linkedPricingModel(original)
 	model.Metadata = map[string]string{modelPricingProviderKey: replacement.ID}
-	response := doJSON(t, New(store).Handler(), http.MethodPost, "/api/admin/models", model, "")
+	response := doJSON(t, newManagedTestServer(t, store).Handler(), http.MethodPost, "/api/admin/models", model, "")
 	if response.Code != http.StatusCreated {
 		t.Fatalf("upsert returned %d: %s", response.Code, response.Body)
 	}

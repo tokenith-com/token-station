@@ -14,7 +14,7 @@ import (
 )
 
 func TestAdminCreatesProviderResource(t *testing.T) {
-	app := newTestServer()
+	app := newTestServer(t)
 
 	resourceResp := doJSON(t, app, http.MethodPost, "/api/admin/provider-resources", map[string]any{
 		"provider_id":     "prv_mock",
@@ -64,7 +64,7 @@ func TestAdminCreatesProviderResource(t *testing.T) {
 }
 
 func TestAdminDeletesProviderAccountRuntimeData(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	if err := SeedDemoData(store); err != nil {
 		t.Fatal(err)
 	}
@@ -110,7 +110,7 @@ func TestAdminDeletesProviderAccountRuntimeData(t *testing.T) {
 		}
 	}
 
-	app := New(store).Handler()
+	app := newManagedTestServer(t, store).Handler()
 	resp := doJSON(t, app, http.MethodDelete, "/api/admin/provider-resources/"+resource.ID, nil, "")
 	if resp.Code != http.StatusNoContent {
 		t.Fatalf("expected account delete 204, got %d: %s", resp.Code, resp.Body)
@@ -148,7 +148,7 @@ func TestAdminDeletesProviderAccountRuntimeData(t *testing.T) {
 }
 
 func TestAdminRejectsDuplicateProviderResourceName(t *testing.T) {
-	app := newTestServer()
+	app := newTestServer(t)
 	for index, name := range []string{"OpenAI Codex Primary Account", "  openai codex primary account  "} {
 		resp := doJSON(t, app, http.MethodPost, "/api/admin/provider-resources", map[string]any{
 			"id":            "rsrc_openai_account_" + strconv.Itoa(index+1),
@@ -191,7 +191,7 @@ func TestAdminRejectsDuplicateProviderResourceName(t *testing.T) {
 }
 
 func TestAdminCreatesOpenAISubscriptionProviderResource(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	store.AddProvider(Provider{
 		ID:      "prv_openai_sub",
 		Name:    "OpenAI Subscription Pool",
@@ -199,7 +199,7 @@ func TestAdminCreatesOpenAISubscriptionProviderResource(t *testing.T) {
 		Status:  StatusActive,
 		Healthy: true,
 	})
-	app := New(store).Handler()
+	app := newManagedTestServer(t, store).Handler()
 	idToken := testJWT(map[string]any{
 		"email": "codex.user@example.com",
 		"https://api.openai.com/auth": map[string]any{
@@ -272,7 +272,7 @@ func TestAdminCreatesOpenAISubscriptionProviderResource(t *testing.T) {
 }
 
 func TestProviderCredentialsAreEncryptedAndUsable(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	project := store.CreateProject(Project{Name: "Encrypted Credentials App"})
 	_, secret, err := store.CreateAPIKey(project.ID, APIKey{
 		Name:    "encrypted-key",
@@ -325,7 +325,7 @@ func TestProviderCredentialsAreEncryptedAndUsable(t *testing.T) {
 		Status:             StatusActive,
 	})
 	adapter := &captureAdapter{}
-	server := New(store)
+	server := newManagedTestServer(t, store)
 	server.adapterRegistry.Register("capture", adapter, AdapterCapabilityChat)
 	app := server.Handler()
 
@@ -347,7 +347,7 @@ func TestProviderCredentialsAreEncryptedAndUsable(t *testing.T) {
 }
 
 func TestOpenAISubscriptionResourceSuppliesRouteCredentials(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	project := store.CreateProject(Project{Name: "OpenAI Subscription App"})
 	_, secret, err := store.CreateAPIKey(project.ID, APIKey{
 		Name:    "openai-subscription-key",
@@ -387,7 +387,7 @@ func TestOpenAISubscriptionResourceSuppliesRouteCredentials(t *testing.T) {
 		Status:             StatusActive,
 	})
 	adapter := &captureAdapter{}
-	server := New(store)
+	server := newManagedTestServer(t, store)
 	server.adapterRegistry.Register("capture", adapter, AdapterCapabilityChat)
 	app := server.Handler()
 
@@ -411,7 +411,7 @@ func TestOpenAISubscriptionResourceSuppliesRouteCredentials(t *testing.T) {
 }
 
 func TestPluginAccountResourceStoresCredentialEnvelope(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	provider := store.AddProvider(Provider{ID: "prv_kimi_plugin", Name: "Kimi Plugin", Type: "kimi_subscription", Status: StatusActive, Healthy: true})
 	resource, err := store.AddProviderResource(ProviderResource{
 		ID:           "rsrc_kimi_account",
@@ -457,7 +457,7 @@ func TestPluginAccountResourceStoresCredentialEnvelope(t *testing.T) {
 }
 
 func TestPluginAccountResourceUpdatePreservesCredentialSummary(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	provider := store.AddProvider(Provider{ID: "prv_kimi_update", Name: "Kimi Plugin", Type: "kimi_subscription", Status: StatusActive, Healthy: true})
 	resource, err := store.AddProviderResource(ProviderResource{
 		ID:           "rsrc_kimi_update",
@@ -544,7 +544,7 @@ func TestOpenAISubscriptionResourceRefreshesBeforeGatewayCall(t *testing.T) {
 	openAIAccountOAuthTokenEndpoint = tokenServer.URL
 	defer func() { openAIAccountOAuthTokenEndpoint = previousEndpoint }()
 
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	project := store.CreateProject(Project{Name: "Refreshing Account App"})
 	_, secret, err := store.CreateAPIKey(project.ID, APIKey{
 		Name:    "refreshing-key",
@@ -586,7 +586,7 @@ func TestOpenAISubscriptionResourceRefreshesBeforeGatewayCall(t *testing.T) {
 		Status:             StatusActive,
 	})
 	adapter := &captureAdapter{}
-	server := New(store)
+	server := newManagedTestServer(t, store)
 	server.adapterRegistry.Register("capture", adapter, AdapterCapabilityChat)
 	store.ConfigureProviderResourceTypePolicy(map[string][]string{"capture": {ProviderResourceOpenAISubscription}})
 	store.ConfigureProviderCredentialRefreshHandlers([]providerResourceCredentialRefreshRegistration{{
@@ -621,8 +621,8 @@ func TestOpenAISubscriptionResourceRefreshesBeforeGatewayCall(t *testing.T) {
 }
 
 func TestOpenAIProviderAccountOAuthGenerateAuthURLAndCallback(t *testing.T) {
-	store := NewMemoryStore()
-	app := New(store).Handler()
+	store := newTestMemoryStore(t)
+	app := newManagedTestServer(t, store).Handler()
 
 	resp := doJSON(t, app, http.MethodPost, "/api/admin/provider-account-oauth/openai/generate-auth-url", map[string]any{
 		"return_url": "http://localhost:3001/providers",
@@ -671,7 +671,7 @@ func TestOpenAIProviderAccountOAuthGenerateAuthURLAndCallback(t *testing.T) {
 }
 
 func TestOpenAIProviderAccountOAuthCallbackSurfacesDatabaseFailure(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	session := providerAccountOAuthSession{
 		ID:           "oauth-db-error",
 		State:        "oauth-db-error-state",
@@ -681,7 +681,7 @@ func TestOpenAIProviderAccountOAuthCallbackSurfacesDatabaseFailure(t *testing.T)
 	if err := store.SaveProviderAccountOAuthSession(session); err != nil {
 		t.Fatal(err)
 	}
-	app := New(store).Handler()
+	app := newTestServerWithClosedDatabase(t, store, Config{AdminToken: "dev_admin_token"}).Handler()
 	sqlDB, err := store.db.DB()
 	if err != nil {
 		t.Fatal(err)
@@ -720,9 +720,9 @@ func TestOpenAIProviderAccountOAuthExchangeSurfacesSessionRestoreFailure(t *test
 	openAIAccountOAuthTokenEndpoint = tokenServer.URL
 	defer func() { openAIAccountOAuthTokenEndpoint = previousEndpoint }()
 
-	baseStore := NewMemoryStore()
+	baseStore := newTestMemoryStore(t)
 	store := &oauthRestoreFailureStore{GormStore: baseStore}
-	app := New(store).Handler()
+	app := newManagedTestServer(t, store).Handler()
 	generated := doJSON(t, app, http.MethodPost, "/api/admin/provider-account-oauth/openai/generate-auth-url", map[string]any{
 		"return_url": "http://localhost:3001/providers",
 	}, "")
@@ -785,8 +785,8 @@ func TestOpenAIProviderAccountOAuthExchangeCode(t *testing.T) {
 	openAIAccountOAuthTokenEndpoint = tokenServer.URL
 	defer func() { openAIAccountOAuthTokenEndpoint = previousEndpoint }()
 
-	store := NewMemoryStore()
-	app := New(store).Handler()
+	store := newTestMemoryStore(t)
+	app := newManagedTestServer(t, store).Handler()
 	generated := doJSON(t, app, http.MethodPost, "/api/admin/provider-account-oauth/openai/generate-auth-url", map[string]any{
 		"return_url": "http://localhost:3001/providers",
 	}, "")
@@ -820,7 +820,7 @@ func TestOpenAIProviderAccountOAuthExchangeCode(t *testing.T) {
 }
 
 func TestProviderAndResourceTestEndpoints(t *testing.T) {
-	app := newTestServer()
+	app := newTestServer(t)
 	provider := doJSON(t, app, http.MethodPost, "/api/admin/providers/prv_mock/test", nil, "")
 	if provider.Code != http.StatusOK {
 		t.Fatalf("expected provider test 200, got %d: %s", provider.Code, provider.Body)
@@ -851,12 +851,12 @@ func TestProviderTestPerformsUpstreamProbeWithoutResourceHeaders(t *testing.T) {
 	}))
 	defer upstream.Close()
 
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	provider := store.AddProvider(Provider{
 		ID: "prv_real_probe", Name: "Real probe", Type: ProviderOpenAICompatible, BaseURL: upstream.URL,
 		APIKey: "provider-secret", Status: StatusActive, Healthy: false,
 	})
-	response := doJSON(t, New(store).Handler(), http.MethodPost, "/api/admin/providers/"+provider.ID+"/test", nil, "")
+	response := doJSON(t, newManagedTestServer(t, store).Handler(), http.MethodPost, "/api/admin/providers/"+provider.ID+"/test", nil, "")
 	if response.Code != http.StatusOK {
 		t.Fatalf("provider test = %d: %s", response.Code, response.Body)
 	}
@@ -875,7 +875,7 @@ func TestProviderTestMarksProviderUnhealthyWhenAllResourceProbesFail(t *testing.
 	}))
 	defer upstream.Close()
 
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	provider := store.AddProvider(Provider{
 		ID: "prv_failed_resource_probe", Name: "Failed resource probe", Type: ProviderOpenAICompatible,
 		BaseURL: upstream.URL, Status: StatusActive, Healthy: true,
@@ -887,7 +887,7 @@ func TestProviderTestMarksProviderUnhealthyWhenAllResourceProbesFail(t *testing.
 		t.Fatal(err)
 	}
 
-	response := doJSON(t, New(store).Handler(), http.MethodPost, "/api/admin/providers/"+provider.ID+"/test", nil, "")
+	response := doJSON(t, newManagedTestServer(t, store).Handler(), http.MethodPost, "/api/admin/providers/"+provider.ID+"/test", nil, "")
 	if response.Code == http.StatusOK {
 		t.Fatalf("provider test unexpectedly succeeded: %s", response.Body)
 	}
@@ -898,7 +898,7 @@ func TestProviderTestMarksProviderUnhealthyWhenAllResourceProbesFail(t *testing.
 }
 
 func TestProviderResourceBulkOperations(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	if err := SeedDemoData(store); err != nil {
 		t.Fatal(err)
 	}
@@ -922,7 +922,7 @@ func TestProviderResourceBulkOperations(t *testing.T) {
 	if _, _, err := store.CheckProviderResourceCapacity(context.Background(), resource.ID); AsHTTPError(err).Code != "provider_resource_cooling_down" {
 		t.Fatalf("expected cooldown before clear_error, got %v", err)
 	}
-	app := New(store).Handler()
+	app := newManagedTestServer(t, store).Handler()
 
 	disabled := doJSON(t, app, http.MethodPost, "/api/admin/provider-resources/bulk", map[string]any{
 		"action": "disable",
@@ -976,12 +976,12 @@ func TestProviderResourceBulkOperations(t *testing.T) {
 }
 
 func TestProviderResourceImport(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	if err := SeedDemoData(store); err != nil {
 		t.Fatal(err)
 	}
 	provider := store.AddProvider(Provider{Name: "Import Provider", Type: ProviderMock, Status: StatusActive, Healthy: true})
-	app := New(store).Handler()
+	app := newManagedTestServer(t, store).Handler()
 
 	resp := doJSON(t, app, http.MethodPost, "/api/admin/provider-resources/import", map[string]any{
 		"resources": []map[string]any{

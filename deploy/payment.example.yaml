@@ -1,0 +1,39 @@
+# Copy this file to deploy/payment-local/payment.yaml, which Git ignores.
+# Set TOKENHUB_PAYMENT_CONFIG_FILE to its path. Credential paths are relative
+# to the YAML. Keep private keys and the API v3 key in separate files.
+# Remove a channel's section to disable it.
+# Enable after publishing a CNY exchange rate (USD per CNY) and testing the eligible models.
+# Personal-wallet calls are admitted when balance_micros is zero or positive,
+# then charged from actual usage; a negative balance rejects new calls with 402.
+prepaid_usage: false
+
+plans:
+  - id: cny-10
+    name: Recharge CNY 10
+    amount_fen: 1000
+
+wechat:
+  app_id: YOUR_WECHAT_APP_ID
+  merchant_id: YOUR_WECHAT_MERCHANT_ID
+  certificate_file: wechat-merchant-cert.pem
+  private_key_file: wechat-merchant-key.pem
+  public_key_id: YOUR_WECHAT_PAY_PUBLIC_KEY_ID
+  public_key_file: wechat-pay-public-key.pem
+  api_v3_key_file: wechat-api-v3-key
+  notify_url: https://api.example.com/api/payments/webhooks/wechat
+  refund_notify_url: https://api.example.com/api/payments/webhooks/wechat/refunds
+
+alipay:
+  # The first enabled method is the default for new orders.
+  # List precreate only if this app is authorized for face-to-face payments.
+  api_methods:
+    - alipay.trade.page.pay
+    # - alipay.trade.precreate
+  app_id: YOUR_ALIPAY_APP_ID
+  seller_id: YOUR_ALIPAY_SELLER_ID
+  private_key_file: alipay-app-key.pem
+  public_key_file: alipay-verification-public-key.pem
+  notify_url: https://api.example.com/api/payments/webhooks/alipay
+  # Browser navigation only; settlement still requires verified server notification.
+  return_url: https://app.example.com/maas/balance-recharge/
+  sandbox: false

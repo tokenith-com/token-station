@@ -1,4 +1,4 @@
-// Package dbcli implements the `tokenhub db` maintenance commands. The
+// Package dbcli implements the `tokenstation db` maintenance commands. The
 // commands expose the migration ledger, semantic verification, pending expand
 // migrations, dirty-migration repair, and contract execution with the
 // operator-verified preconditions. They never run the server.
@@ -54,7 +54,7 @@ func cliExecutor() string {
 	return "cli"
 }
 
-// Run executes one `tokenhub db <command>` invocation and returns the process
+// Run executes one `tokenstation db <command>` invocation and returns the process
 // exit code.
 func Run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 	if len(args) == 0 {
@@ -69,7 +69,7 @@ func Run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 	case "verify":
 		err = runVerify(ctx, config, stdout)
 	case "prepare":
-		err = runPrepare(config, stdout)
+		err = runPrepare(ctx, args[1:], config, stdout, stderr)
 	case "migrate":
 		err = runMigrate(ctx, config, stdout)
 	case "repair":
@@ -85,7 +85,7 @@ func Run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 		return 2
 	}
 	if err != nil {
-		_, _ = fmt.Fprintf(stderr, "tokenhub db %s: %v\n", args[0], err)
+		_, _ = fmt.Fprintf(stderr, "tokenstation db %s: %v\n", args[0], err)
 		return 1
 	}
 	return 0
@@ -180,15 +180,38 @@ func runVerify(ctx context.Context, config server.Config, stdout io.Writer) erro
 	return nil
 }
 
-// runPrepare executes the target release's serialized startup schema flow
-// without publishing a serving heartbeat. Managed upgrades use it to adopt a
-// supported pre-ledger database and apply expands before activation.
-func runPrepare(config server.Config, stdout io.Writer) error {
+// runPrepare prepares the database without starting a serving instance.
+func runPrepare(ctx context.Context, args []string, config server.Config, stdout, stderr io.Writer) error {
+	flags := flag.NewFlagSet("prepare", flag.ContinueOnError)
+	flags.SetOutput(stderr)
+	initialize := flags.Bool("initialize", false, "populate initial application data and provider catalog")
+	if err := flags.Parse(args); err != nil {
+		return err
+	}
+	if flags.NArg() != 0 {
+		return errors.New("prepare takes no positional arguments")
+	}
+	if *initialize {
+		prepared, err := config.PrepareForStartup()
+		if err != nil {
+			return err
+		}
+		config = prepared
+		if err := config.ValidateForStartup(); err != nil {
+			return err
+		}
+	}
 	store, err := server.OpenStoreForMaintenance(config.DatabaseURL, config)
 	if err != nil {
 		return err
 	}
-	if err := store.Close(); err != nil {
+	defer func() { _ = store.Close() }()
+	if *initialize {
+		if err := server.InitializeDatabase(ctx, store, config); err != nil {
+			return err
+		}
+	}
+	if err := server.RepairDatabaseData(ctx, store, config); err != nil {
 		return err
 	}
 	_, _ = fmt.Fprintln(stdout, "database prepared for this release")
@@ -205,7 +228,7 @@ func runMigrate(ctx context.Context, config server.Config, stdout io.Writer) err
 	if err != nil {
 		var schemaErr *dbschema.Error
 		if errors.As(err, &schemaErr) && schemaErr.Code == dbschema.ErrCodeBaselineMissing {
-			return errors.New("database has no adoption baseline; start the server once to adopt it, then retry")
+			return errors.New("database has no adoption baseline; run tokenstation db prepare")
 		}
 		return err
 	}
@@ -407,12 +430,12 @@ func heartbeatTableExists(ctx context.Context, s *session) (bool, error) {
 }
 
 func usage(w io.Writer) {
-	_, _ = fmt.Fprintln(w, `usage: tokenhub db <command> [flags]
+	_, _ = fmt.Fprintln(w, `usage: tokenstation db <command> [flags]
 
 commands:
   status                      show ledger, backfill, and instance state
   verify                      verify ledger checksums and semantic schema
-  prepare                     adopt a supported legacy database and apply expands
+  prepare [--initialize]      apply expands and repairs; optionally seed initial data
   migrate                     apply pending expand migrations
   repair --version <n>        clear a dirty migration via verified repair
   contract [--dry-run]

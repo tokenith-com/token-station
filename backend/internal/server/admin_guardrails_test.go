@@ -14,12 +14,12 @@ import (
 )
 
 func TestAdminGuardrailPolicyLifecycle(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	if err := SeedDemoData(store); err != nil {
 		t.Fatal(err)
 	}
 	secondProject := store.CreateProject(Project{Name: "Second project", Status: StatusActive})
-	app := New(store).Handler()
+	app := newManagedTestServer(t, store).Handler()
 
 	createdResponse := doJSON(t, app, http.MethodPost, "/api/admin/guardrail-policies", map[string]any{
 		"name":        "Outbound protection",
@@ -119,7 +119,7 @@ func TestGuardrailPolicyPutIsAllowedByCORS(t *testing.T) {
 	request.Header.Set("origin", "http://localhost:3000")
 	request.Header.Set("access-control-request-method", http.MethodPut)
 	response := httptest.NewRecorder()
-	New(NewMemoryStore()).Handler().ServeHTTP(response, request)
+	newManagedTestServer(t, newTestMemoryStore(t)).Handler().ServeHTTP(response, request)
 	if response.Code != http.StatusNoContent {
 		t.Fatalf("expected preflight 204, got %d: %s", response.Code, response.Body.String())
 	}
@@ -130,7 +130,7 @@ func TestGuardrailPolicyPutIsAllowedByCORS(t *testing.T) {
 }
 
 func TestGuardrailPolicyUpdateIsAtomic(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	project := store.CreateProject(Project{Name: "Atomic project", Status: StatusActive})
 	created, err := store.CreateGuardrailPolicy(testGuardrailPolicy("Original", project.ID))
 	if err != nil {
@@ -154,7 +154,7 @@ func TestGuardrailPolicyUpdateIsAtomic(t *testing.T) {
 }
 
 func TestGuardrailPoliciesComposeOnOneProject(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	project := store.CreateProject(Project{Name: "Shared project", Status: StatusActive})
 	for _, name := range []string{"Enterprise baseline", "Project protection"} {
 		if _, err := store.CreateGuardrailPolicy(testGuardrailPolicy(name, project.ID)); err != nil {
@@ -175,7 +175,7 @@ func TestGuardrailPoliciesComposeOnOneProject(t *testing.T) {
 }
 
 func TestAdminGuardrailPolicyReturnsStableValidationErrors(t *testing.T) {
-	app := newTestServer()
+	app := newTestServer(t)
 	tests := []struct {
 		name   string
 		mutate func(map[string]any)
@@ -211,7 +211,7 @@ func TestAdminGuardrailPolicyReturnsStableValidationErrors(t *testing.T) {
 }
 
 func TestGuardrailSchemaEnforcesUniqueBindings(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	for _, model := range []any{&guardrails.Policy{}, &guardrails.DetectionItem{}, &guardrails.Binding{}} {
 		if !store.db.Migrator().HasTable(model) {
 			t.Fatalf("guardrail table was not migrated for %T", model)

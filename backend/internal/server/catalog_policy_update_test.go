@@ -10,7 +10,7 @@ import (
 func TestImportedCatalogLifecycleDoesNotFollowProviderCatalogSwitch(t *testing.T) {
 	for _, legacy := range []bool{false, true} {
 		t.Run(map[bool]string{false: "new inventory", true: "legacy inventory"}[legacy], func(t *testing.T) {
-			store := NewMemoryStore()
+			store := newTestMemoryStore(t)
 			app := NewWithConfig(store, Config{AdminToken: "dev_admin_token", ProviderCatalogFile: "../../../data/provider-catalog.json"})
 			t.Cleanup(func() { _ = app.Shutdown(context.Background()) })
 			if _, err := app.InitializeProviderCatalog(context.Background()); err != nil {
@@ -69,7 +69,7 @@ func TestCurrentCatalogCanWithdrawPublicationRestrictions(t *testing.T) {
 		{"shutdown cutoff", map[string]string{"lifecycle_status": "deprecated", "shutdown_at": "2020-01-01T00:00:00Z"}, map[string]string{"lifecycle_status": "deprecated"}},
 	} {
 		t.Run(test.name, func(t *testing.T) {
-			store := NewMemoryStore()
+			store := newTestMemoryStore(t)
 			provider := store.AddProvider(Provider{ID: "catalog-update", Type: ProviderOpenAICompatible, Status: StatusActive, Healthy: true, Options: map[string]string{"catalog_id": "official"}})
 			store.AddModel(Model{Name: "current-chat", Modality: "chat", Status: StatusActive})
 			metadata := cloneStringMap(test.old)

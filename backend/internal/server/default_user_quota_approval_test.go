@@ -29,7 +29,7 @@ func setupDefaultUserQuotaApprovalTest(t *testing.T) (*GormStore, http.Handler, 
 			leader = user
 		}
 	}
-	return store, New(store).Handler(), leader, tokens["admin"], tokens["team_leader"]
+	return store, newManagedTestServer(t, store).Handler(), leader, tokens["admin"], tokens["team_leader"]
 }
 
 func TestDefaultUserQuotaApprovalsRequirePlatformAdministrator(t *testing.T) {
@@ -107,7 +107,7 @@ func TestDefaultUserQuotaCannotBeReplacedThroughProjectQuotaApproval(t *testing.
 	if approval, err := store.GetApprovalRequest(pending.ID); err != nil || approval.Status != "pending" {
 		t.Fatalf("rejected approval should remain pending: %+v err=%v", approval, err)
 	}
-	unchanged, err := New(store).findResource("quota-policies", template.ID)
+	unchanged, err := newManagedTestServer(t, store).findResource("quota-policies", template.ID)
 	if err != nil || !isDefaultUserQuotaPolicy(unchanged.Fields) || int64Field(unchanged.Fields, "daily_tokens") != 10 {
 		t.Fatalf("project approval changed the default template: %+v err=%v", unchanged, err)
 	}
@@ -117,14 +117,14 @@ func TestDefaultUserQuotaApprovalRejectsPartialTargetChangeByTeamLeader(t *testi
 	store, _, leader, _, _ := setupDefaultUserQuotaApprovalTest(t)
 	policy := store.CreateResource("quota-policies", AdminResource{Name: "Individual quota", Status: StatusActive,
 		Fields: map[string]any{"scope": "user", "scope_id": leader.ID, "daily_tokens": 10}})
-	_, err := New(store).applyApprovalRequest(ApprovalRequest{
+	_, err := newManagedTestServer(t, store).applyApprovalRequest(ApprovalRequest{
 		Trigger: "quota_increase", ResourceType: "quota-policies", ResourceID: policy.ID, Status: "pending",
 		Payload: snapshotJSON(map[string]any{"fields": map[string]any{"scope_id": allUsersQuotaScopeID}}),
 	}, leader)
 	if err == nil || AsHTTPError(err).Status != http.StatusForbidden || AsHTTPError(err).Code != "quota_forbidden" {
 		t.Fatalf("partial approval target must retain template authorization: %v", err)
 	}
-	unchanged, err := New(store).findResource("quota-policies", policy.ID)
+	unchanged, err := newManagedTestServer(t, store).findResource("quota-policies", policy.ID)
 	if err != nil || stringField(unchanged.Fields, "scope_id") != leader.ID || int64Field(unchanged.Fields, "daily_tokens") != 10 {
 		t.Fatalf("rejected partial approval changed the individual policy: %+v err=%v", unchanged, err)
 	}

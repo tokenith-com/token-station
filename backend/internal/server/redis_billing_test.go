@@ -14,7 +14,7 @@ import (
 func newRedisBillingTestStore(t *testing.T) (*GormStore, Project, APIKey) {
 	t.Helper()
 	redisServer := miniredis.RunT(t)
-	store := NewMemoryStoreWithConfig(Config{
+	store := newTestMemoryStoreWithConfig(t, Config{
 		BillingRedisURL: "redis://" + redisServer.Addr() + "/0",
 		SecretKey:       "redis-billing-test-secret",
 	})
@@ -158,7 +158,7 @@ func TestRedisBillingSettlesResponseJobReservations(t *testing.T) {
 }
 
 func TestRedisBillingPersistedJobsTolerateRedisDisabledAfterRestart(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	project := store.CreateProject(Project{ID: "prj_redis_restart", Name: "Redis restart", Status: StatusActive})
 	key, _, err := store.CreateAPIKey(project.ID, APIKey{ID: "key_redis_restart", Name: "Redis restart", Status: StatusActive}, "thk_redis_restart")
 	if err != nil {

@@ -130,7 +130,7 @@ func TestGatewayCacheHitEndpointsRunCanonicalStageOrder(t *testing.T) {
 }
 
 func TestGatewayChatRoutePathRunsCanonicalStageOrder(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	project := store.CreateProject(Project{Name: "Gateway Endpoint Order", Status: StatusActive})
 	_, secret, err := store.CreateAPIKey(project.ID, APIKey{
 		Name:    "endpoint-order-key",
@@ -160,7 +160,7 @@ func TestGatewayChatRoutePathRunsCanonicalStageOrder(t *testing.T) {
 			Weight:        100,
 		})
 	}
-	server := New(store)
+	server := newManagedTestServer(t, store)
 	got := recordGatewayRoutePathStages(t, server, map[string]any{
 		"id":      "chat_route_plugin",
 		"object":  "chat.completion",
@@ -220,7 +220,7 @@ func TestGatewayStreamingOpenAIEndpointsSkipCacheLookupAndWrite(t *testing.T) {
 		{
 			name: "responses",
 			send: func(t *testing.T, handler http.Handler) responseBody {
-				store := NewMemoryStore()
+				store := newTestMemoryStore(t)
 				project := store.CreateProject(Project{Name: "Streaming Cache Skip Responses", Status: StatusActive})
 				_, secret, err := store.CreateAPIKey(project.ID, APIKey{
 					Name:    "stream-cache-skip-responses-key",
@@ -239,7 +239,7 @@ func TestGatewayStreamingOpenAIEndpointsSkipCacheLookupAndWrite(t *testing.T) {
 					ID: "route_stream_cache_skip", ModelName: "gpt-stream-cache-skip",
 					ProviderID: provider.ID, ProviderModel: "upstream-responses", Status: StatusActive, Priority: 1, Weight: 100,
 				})
-				server := New(store)
+				server := newManagedTestServer(t, store)
 				server.adapterRegistry.Register("stream_cache_skip_responses", responsesStreamTransformAdapter{}, AdapterCapabilityResponses, AdapterCapabilityResponseStream)
 				registerUnexpectedCacheHooks(t, server)
 				return doJSON(t, server.Handler(), http.MethodPost, "/v1/responses", map[string]any{
@@ -412,7 +412,7 @@ func TestGatewayCacheWriteFailOpenOpenAICompatibleEndpointsPreserveProviderRespo
 }
 
 func TestForegroundCacheHitPersistsUsageLogAndPluginAudit(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	project := store.CreateProject(Project{Name: "Foreground Cache Hit", Status: StatusActive})
 	_, secret, err := store.CreateAPIKey(project.ID, APIKey{
 		Name:    "foreground-cache-hit-key",
@@ -423,7 +423,7 @@ func TestForegroundCacheHitPersistsUsageLogAndPluginAudit(t *testing.T) {
 		t.Fatal(err)
 	}
 	store.AddModel(Model{Name: "gpt-cache-hit-persistence", Modality: "chat", Status: StatusActive})
-	server := New(store)
+	server := newManagedTestServer(t, store)
 	hook := pluginmeta.GatewayHookDescriptor{
 		PluginID:      "tokenhub.test-cache-persistence",
 		HookID:        "lookup",
@@ -479,11 +479,11 @@ func TestForegroundCacheHitPersistsUsageLogAndPluginAudit(t *testing.T) {
 
 func newGatewayEndpointOrderTestServer(t *testing.T) *Server {
 	t.Helper()
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	if err := SeedDemoData(store); err != nil {
 		t.Fatal(err)
 	}
-	return New(store)
+	return newManagedTestServer(t, store)
 }
 
 func registerFailingCacheHook(t *testing.T, server *Server, stage pluginmeta.GatewayHookStage) *int {

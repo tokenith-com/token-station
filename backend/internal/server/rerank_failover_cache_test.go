@@ -22,7 +22,7 @@ func TestRerankFailoverCacheProbesEligibleRoutesInOrder(t *testing.T) {
 		writeJSON(w, 200, map[string]any{"results": []any{map[string]any{"index": 0, "relevance_score": 0.8}}, "meta": map[string]any{"billed_units": map[string]any{"search_units": 1}}})
 	}))
 	defer second.Close()
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	if err := SeedDemoData(store); err != nil {
 		t.Fatal(err)
 	}

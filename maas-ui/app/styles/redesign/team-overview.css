@@ -1,0 +1,173 @@
+.role-overview {
+  width: 100%;
+  min-width: 0;
+  display: grid;
+  gap: 12px;
+  color: #252d3b;
+}
+
+.role-overview-title {
+  min-height: 24px;
+}
+
+.role-overview-kpis {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.role-overview-kpis .platform-overview-kpi {
+  min-height: 121px;
+}
+
+.role-overview .usage-monitor-panel {
+  border-color: #e4e7ed;
+  border-radius: 6px;
+  box-shadow: 0 2px 8px rgba(31, 42, 66, 0.03);
+}
+
+.role-overview .usage-monitor-panel-head h2 {
+  color: #1d2129;
+  font-size: calc(14 * var(--content-font-unit, 1px));
+  font-weight: 600;
+}
+
+
+@media (max-width: 1180px) {
+  .role-overview-kpis {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .role-overview .usage-monitor-grid,
+  .role-overview .usage-monitor-bottom-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .role-overview .usage-monitor-panel.token-mix,
+  .role-overview .usage-monitor-panel.failures {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 760px) {
+  .role-overview-kpis,
+  .role-overview .usage-monitor-grid,
+  .role-overview .usage-monitor-bottom-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .role-overview .usage-monitor-panel.token-mix,
+  .role-overview .usage-monitor-panel.failures {
+    grid-column: auto;
+  }
+}
+
+/* TokenCube-style KPI cards with decorated icon tiles */
+.token-kpis .token-kpi-card {
+  --kpi-color: #8a5fc4;
+  --kpi-soft: rgba(138, 95, 196, 0.14);
+  position: relative;
+  min-height: 112px;
+  overflow: hidden;
+  border: 1px solid #e4e7ed;
+  border-top: 2px solid var(--kpi-color);
+  border-radius: 10px;
+  padding: 20px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(31, 42, 66, 0.04);
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.token-kpis .token-kpi-card:hover {
+  box-shadow: 0 6px 18px rgba(138, 95, 196, 0.14);
+  transform: translateY(-1px);
+}
+
+.token-kpis .token-kpi-card.purple { --kpi-color: #9a49b7; --kpi-soft: rgba(154, 73, 183, 0.14); }
+.token-kpis .token-kpi-card.indigo { --kpi-color: #121699; --kpi-soft: rgba(18, 22, 153, 0.1); }
+
+.token-kpis .token-kpi-deco {
+  position: absolute;
+  top: -34px;
+  right: -26px;
+  width: 104px;
+  height: 104px;
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--kpi-soft) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.token-kpis .token-kpi-icon {
+  position: relative;
+  flex: 0 0 auto;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, var(--kpi-soft), rgba(255, 255, 255, 0.4));
+  color: var(--kpi-color);
+  box-shadow: inset 0 0 0 1px var(--kpi-soft), 0 4px 10px var(--kpi-soft);
+}
+
+.token-kpis .token-kpi-icon::after {
+  content: "";
+  position: absolute;
+  top: -3px;
+  right: -3px;
+  width: 8px;
+  height: 8px;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  background: var(--kpi-color);
+}
+
+.token-kpis .token-kpi-copy {
+  position: relative;
+  min-width: 0;
+}
+
+.token-kpis .token-kpi-copy p {
+  margin: 0;
+}
+
+.token-kpis .token-kpi-label.dashboard-kpi-label {
+  color: #6b7280;
+  font-size: calc(12 * var(--content-font-unit, 1px));
+  font-weight: 500;
+}
+
+.token-kpis .token-kpi-value.dashboard-kpi-value {
+  margin: 2px 0 !important;
+  color: #111827;
+  font-size: calc(22 * var(--content-font-unit, 1px));
+  font-weight: 700;
+  line-height: 1.3;
+  white-space: nowrap;
+}
+
+.token-kpis .token-kpi-value.dashboard-kpi-value.accent {
+  color: var(--kpi-color);
+}
+
+.token-kpis .token-kpi-value em {
+  font-style: normal;
+}
+
+.token-kpis .token-kpi-value .dashboard-kpi-unit.dashboard-kpi-unit {
+  margin-left: 2px;
+  color: inherit;
+  font-size: inherit;
+  font-weight: inherit;
+}
+
+.token-kpis .token-kpi-detail {
+  color: #6b7280;
+  font-size: calc(11 * var(--content-font-unit, 1px));
+  line-height: 1.4;
+}

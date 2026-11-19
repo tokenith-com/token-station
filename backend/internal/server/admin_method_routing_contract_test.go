@@ -262,7 +262,7 @@ func TestAdminMethodRoutePreservesCORSPreflight(t *testing.T) {
 	request.Header.Set("access-control-request-headers", "authorization,content-type")
 	response := httptest.NewRecorder()
 
-	newTestServer().ServeHTTP(response, request)
+	newTestServer(t).ServeHTTP(response, request)
 
 	if response.Code != http.StatusNoContent {
 		t.Fatalf("OPTIONS /api/admin/overview: expected 204, got %d: %s", response.Code, response.Body.String())

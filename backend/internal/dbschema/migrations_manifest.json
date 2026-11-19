@@ -2,7 +2,7 @@
   "schema_version": 1,
   "baselines": {
     "postgres": "39778256e5e0c25c1c708d8ede7269d16f906e245db55a2125124f3d93c8290d",
-    "sqlite": "868083cd5191efa1bfcebd5dc37e152aa0d9955d4e427015dba17e51d87edb07"
+    "sqlite": "740dae071397b80e2a3cf8811684d085473cd862016087a24219c9b698d7da92"
   },
   "migrations": [
     {
@@ -94,6 +94,141 @@
       "checksum": "22670204472977364b5706f2c8f252cc624ff8f49339f7dfc0be3f72be4e057f",
       "lock_timeout_seconds": 30,
       "statement_budget": 10
+    },
+    {
+      "version": 12,
+      "name": "add-direct-payments-and-wallets",
+      "phase": "expand",
+      "dialect": "",
+      "checksum": "4c5e63dc35e61b5885895b414977ad59631c92a4d305fbed65e12cddadc6999a",
+      "lock_timeout_seconds": 30,
+      "statement_budget": 12
+    },
+    {
+      "version": 13,
+      "name": "add-payment-checkout-method-and-url",
+      "phase": "expand",
+      "dialect": "",
+      "checksum": "7d82635a877fcb295d057840ba271b7890253208625b941b48f3cd7894f2fffe",
+      "lock_timeout_seconds": 30,
+      "statement_budget": 3
+    },
+    {
+      "version": 14,
+      "name": "add-prepaid-usage",
+      "phase": "expand",
+      "dialect": "",
+      "checksum": "68d213593c89475c4e90f0c27fe29a19fde4b32bcb102b6141658267f900cdaa",
+      "lock_timeout_seconds": 30,
+      "statement_budget": 6
+    },
+    {
+      "version": 15,
+      "name": "add-consumer-email-activations",
+      "phase": "expand",
+      "dialect": "",
+      "checksum": "b6f1434bee010004bd19b58b626fe64abd58bb73836e793e036670844ccf9245",
+      "lock_timeout_seconds": 30,
+      "statement_budget": 3
+    },
+    {
+      "version": 16,
+      "name": "add-consumer-recharge",
+      "phase": "expand",
+      "dialect": "",
+      "checksum": "1d988929f4b9687eebe840833684903bd31620b5f34cf403025b431f08a01fad",
+      "lock_timeout_seconds": 30,
+      "statement_budget": 3
+    },
+    {
+      "version": 17,
+      "name": "add-api-key-ciphertext",
+      "phase": "expand",
+      "dialect": "",
+      "checksum": "5f1d88ee1c09d6b16645bbc0e46bf28f371d4e2390e9b8c56cfdec4464c67143",
+      "lock_timeout_seconds": 30,
+      "statement_budget": 3
+    },
+    {
+      "version": 18,
+      "name": "add-team-wallets",
+      "phase": "expand",
+      "dialect": "",
+      "checksum": "tokenhub-schema-team-wallets-v1",
+      "lock_timeout_seconds": 30,
+      "statement_budget": 4
+    },
+    {
+      "version": 19,
+      "name": "add-team-wallet-exchange-rate",
+      "phase": "expand",
+      "dialect": "",
+      "checksum": "tokenhub-schema-team-wallet-rate-v1",
+      "lock_timeout_seconds": 30,
+      "statement_budget": 3
+    },
+    {
+      "version": 20,
+      "name": "add-team-wallet-credit-metadata",
+      "phase": "expand",
+      "dialect": "",
+      "checksum": "tokenhub-schema-team-wallet-credit-metadata-v1",
+      "lock_timeout_seconds": 30,
+      "statement_budget": 8
+    },
+    {
+      "version": 21,
+      "name": "add-team-wallet-rate-history",
+      "phase": "expand",
+      "dialect": "",
+      "checksum": "tokenhub-schema-team-wallet-rate-history-v1",
+      "lock_timeout_seconds": 30,
+      "statement_budget": 2
+    },
+    {
+      "version": 22,
+      "name": "add-project-excluded-models",
+      "phase": "expand",
+      "dialect": "",
+      "checksum": "tokenhub-schema-project-excluded-models-v1",
+      "lock_timeout_seconds": 30,
+      "statement_budget": 3
+    },
+    {
+      "version": 23,
+      "name": "allow-postpaid-wallet-settlement",
+      "phase": "expand",
+      "dialect": "",
+      "checksum": "tokenhub-schema-wallet-postpaid-v1",
+      "lock_timeout_seconds": 30,
+      "statement_budget": 40
+    },
+    {
+      "version": 24,
+      "name": "add-team-wallet-call-snapshots",
+      "phase": "expand",
+      "dialect": "",
+      "checksum": "tokenhub-schema-team-wallet-call-snapshots-v1",
+      "lock_timeout_seconds": 30,
+      "statement_budget": 7
+    },
+    {
+      "version": 25,
+      "name": "add-team-wallet-micros",
+      "phase": "expand",
+      "dialect": "",
+      "checksum": "tokenhub-schema-team-wallet-micros-v1",
+      "lock_timeout_seconds": 30,
+      "statement_budget": 24
+    },
+    {
+      "version": 26,
+      "name": "canonicalize-platform-admin-role",
+      "phase": "expand",
+      "dialect": "",
+      "checksum": "0f1dd8f234028e4f53058c4cd5cad82e00f6a0ea3d12f5dc98b6961e3b2d023e",
+      "lock_timeout_seconds": 30,
+      "statement_budget": 50
     }
   ]
 }

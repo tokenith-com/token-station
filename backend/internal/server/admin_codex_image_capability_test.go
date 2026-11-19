@@ -282,7 +282,7 @@ func TestAdminCodexImageCapabilityInvalidatesReplacementCredentials(t *testing.T
 }
 
 func TestAdminCodexImageCapabilityReplacementScopesRouteInvalidation(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	syncBuiltInImageCapabilityProfilesForTest(store)
 	provider := store.AddProvider(Provider{ID: "prv_codex_route_scope", Name: "Codex Route Scope", Type: ProviderOpenAICodex, Status: StatusActive, Healthy: true})
 	newAccount := func(id, group string) ProviderResource {
@@ -620,7 +620,7 @@ func TestAdminCodexImageCapabilityRequiresReauthorizationWithoutRoute(t *testing
 }
 
 func TestCodexImageRouteBackfillPreservesDisabledRoute(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	provider := store.AddProvider(Provider{
 		ID: "prv_codex_backfill", Name: "Codex Backfill", Type: ProviderOpenAICodex, Status: StatusActive, Healthy: true,
 	})
@@ -631,8 +631,8 @@ func TestCodexImageRouteBackfillPreservesDisabledRoute(t *testing.T) {
 	}); err != nil {
 		t.Fatal(err)
 	}
-	server := NewWithConfig(store, Config{AdminToken: "dev_admin_token", SecretKey: "codex-image-backfill-secret"})
-	if err := server.Shutdown(context.Background()); err != nil {
+	config := Config{AdminToken: "dev_admin_token", SecretKey: "codex-image-backfill-secret"}
+	if err := RepairDatabaseData(context.Background(), store, config); err != nil {
 		t.Fatal(err)
 	}
 	routes := matchingCodexImageRoutes(store.ListRoutes(), provider.ID)
@@ -643,8 +643,7 @@ func TestCodexImageRouteBackfillPreservesDisabledRoute(t *testing.T) {
 	if _, err := store.UpdateRoute(routes[0].ID, routes[0]); err != nil {
 		t.Fatal(err)
 	}
-	restarted := NewWithConfig(store, Config{AdminToken: "dev_admin_token", SecretKey: "codex-image-backfill-secret"})
-	if err := restarted.Shutdown(context.Background()); err != nil {
+	if err := RepairDatabaseData(context.Background(), store, config); err != nil {
 		t.Fatal(err)
 	}
 	routes = matchingCodexImageRoutes(store.ListRoutes(), provider.ID)
@@ -658,8 +657,7 @@ func TestCodexImageRouteBackfillPreservesDisabledRoute(t *testing.T) {
 	if err := store.DeleteRoute(routes[0].ID); err != nil {
 		t.Fatal(err)
 	}
-	afterDeletion := NewWithConfig(store, Config{AdminToken: "dev_admin_token", SecretKey: "codex-image-backfill-secret"})
-	if err := afterDeletion.Shutdown(context.Background()); err != nil {
+	if err := RepairDatabaseData(context.Background(), store, config); err != nil {
 		t.Fatal(err)
 	}
 	if routes := matchingCodexImageRoutes(store.ListRoutes(), provider.ID); len(routes) != 0 {
@@ -668,7 +666,7 @@ func TestCodexImageRouteBackfillPreservesDisabledRoute(t *testing.T) {
 }
 
 func TestProviderImageRouteBackfillUsesPluginProfiles(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	profile := providerImageCapabilityRouteProfile{
 		ProviderType:        "kimi_subscription",
 		ResourceType:        "kimi_subscription_account",
@@ -708,7 +706,7 @@ func TestProviderImageRouteBackfillUsesPluginProfiles(t *testing.T) {
 }
 
 func TestProviderImageRouteProfilesComeFromPluginSync(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	if profiles := store.providerImageCapabilityRouteProfiles(); len(profiles) != 0 {
 		t.Fatalf("store image profiles = %+v, want none before plugin sync", profiles)
 	}
@@ -786,7 +784,7 @@ func syncBuiltInImageCapabilityProfilesForTest(store *GormStore) {
 
 func newCodexImageCapabilityTestServer(t *testing.T, baseURL string) (*GormStore, *Server, ProviderResource) {
 	t.Helper()
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	provider := store.AddProvider(Provider{
 		ID: "prv_codex_image_capability", Name: "Codex Image Capability", Type: ProviderOpenAICodex, Status: StatusActive, Healthy: true,
 	})

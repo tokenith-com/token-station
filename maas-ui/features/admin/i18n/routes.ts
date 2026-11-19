@@ -1,0 +1,40 @@
+export const routeTranslations: Record<"en" | "ja", Record<string, string>> = {
+  "en": {
+    "把模型目录中的对外模型映射到 Provider 已引入的上游模型，再配置流量比例、项目范围和故障转移。": "Map external models from Model Directory to imported Provider models, then configure traffic shares, project scope, and failover.",
+    "模型目录模型": "Model catalog model",
+    "从模型目录选择需要新增 Provider 线路的模型。": "Select the model from the catalog that needs a new Provider route.",
+    "Provider 模型": "Provider model",
+    "选择 Provider 后，只显示可用于该路由的上游模型。": "After selecting a Provider, only upstream models available to this route are shown.",
+    "流量权重": "Traffic weight",
+    "固定比例下决定目标占比；自适应策略下作为基础权重。": "Sets the target share for Fixed Ratio and the base weight for Adaptive routing.",
+    "项目作用域": "Project Scope",
+    "可让私有项目只命中内部 Provider，并让其他项目继续使用外部 Provider。": "Restrict private projects to internal Providers while other projects continue using external Providers.",
+    "指定项目": "Selected Projects",
+    "“仅指定项目”表示白名单；“排除指定项目”表示这些项目不能使用该线路。": "Include is an allowlist; Exclude prevents the selected projects from using this route.",
+    "路由标签，逗号分隔": "Route tags, comma-separated",
+    "作用域策略可要求候选路由同时具备这些标签。": "A scoped policy can require every eligible route to have these tags.",
+    "添加路由": "Add Route",
+    "所有项目": "All Projects",
+    "仅指定项目": "Include Projects",
+    "排除指定项目": "Exclude Projects"
+  },
+  "ja": {
+    "把模型目录中的对外模型映射到 Provider 已引入的上游模型，再配置流量比例、项目范围和故障转移。": "Model Directory の外部モデルを Provider の取り込み済みモデルへマッピングし、トラフィック比率、プロジェクトスコープ、フェイルオーバーを設定します。",
+    "模型目录模型": "モデルカタログのモデル",
+    "从模型目录选择需要新增 Provider 线路的模型。": "Provider ルートを追加するモデルをモデルカタログから選択します。",
+    "Provider 模型": "Provider モデル",
+    "选择 Provider 后，只显示可用于该路由的上游模型。": "Provider を選択すると、このルートで利用できる上流モデルだけが表示されます。",
+    "流量权重": "トラフィック重み",
+    "固定比例下决定目标占比；自适应策略下作为基础权重。": "固定比率では目標配分を決め、適応型では基本重みとして使用します。",
+    "项目作用域": "プロジェクトスコープ",
+    "可让私有项目只命中内部 Provider，并让其他项目继续使用外部 Provider。": "非公開プロジェクトを内部 Provider のみに制限し、他のプロジェクトは外部 Provider を継続利用できます。",
+    "指定项目": "指定プロジェクト",
+    "“仅指定项目”表示白名单；“排除指定项目”表示这些项目不能使用该线路。": "「指定プロジェクトのみ」は許可リスト、「指定プロジェクトを除外」は選択したプロジェクトでこのルートを禁止します。",
+    "路由标签，逗号分隔": "ルートタグ（カンマ区切り）",
+    "作用域策略可要求候选路由同时具备这些标签。": "スコープポリシーで、すべての候補ルートにこれらのタグを必須とすることができます。",
+    "添加路由": "ルートを追加",
+    "所有项目": "すべてのプロジェクト",
+    "仅指定项目": "指定プロジェクトのみ",
+    "排除指定项目": "指定プロジェクトを除外"
+  }
+};

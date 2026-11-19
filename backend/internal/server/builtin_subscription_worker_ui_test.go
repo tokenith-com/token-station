@@ -7,7 +7,7 @@ import (
 )
 
 func TestSubscriptionWorkerUIExposesOnlyRegisteredAccountCapabilities(t *testing.T) {
-	server := New(NewMemoryStore())
+	server := newManagedTestServer(t, newTestMemoryStore(t))
 	for _, definition := range subscriptionWorkerDefinitions() {
 		quota, checkin, options := false, false, false
 		for _, contribution := range server.adminUI.List() {

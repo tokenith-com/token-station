@@ -11,7 +11,7 @@ import (
 
 func TestExternalPrivacyHookWithoutIsolationIsQuarantinedBeforeExecution(t *testing.T) {
 	pluginDir := copyExternalPluginFixtureForServerTest(t, filepath.Join("..", "plugin", "testdata", "external-privacy-hook"))
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	project := store.CreateProject(Project{Name: "External Privacy Hook", Status: StatusActive})
 	_, secret, err := store.CreateAPIKey(project.ID, APIKey{
 		Name:    "external-privacy-key",
@@ -24,7 +24,7 @@ func TestExternalPrivacyHookWithoutIsolationIsQuarantinedBeforeExecution(t *test
 	provider := store.AddProvider(Provider{ID: "prv_external_privacy", Name: "External Privacy Provider", Type: ProviderMock, Status: StatusActive, Healthy: true})
 	store.AddModel(Model{Name: "gpt-privacy", Modality: "chat", Status: StatusActive})
 	store.AddRoute(ModelRoute{ID: "route_external_privacy", ModelName: "gpt-privacy", ProviderID: provider.ID, ProviderModel: "upstream-chat", Status: StatusActive, Priority: 1, Weight: 100})
-	app := NewWithConfig(store, Config{
+	app := newManagedTestServerWithConfig(t, store, Config{
 		AdminToken: "external-privacy-admin",
 		PluginDir:  pluginDir,
 	})

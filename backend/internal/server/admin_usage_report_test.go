@@ -24,7 +24,7 @@ func TestUsageReportCalendarRangesUseHalfOpenWindow(t *testing.T) {
 		{rangeName: "30d", days: 30, granularity: "day"},
 	} {
 		t.Run(test.rangeName, func(t *testing.T) {
-			store := NewMemoryStore()
+			store := newTestMemoryStore(t)
 			store.CreateResource("settings", AdminResource{ID: gatewaySettingsID, Status: StatusActive, Fields: map[string]any{dashboardTimezoneField: location.String()}})
 			start := time.Date(2026, 10, 8, 0, 0, 0, 0, location).AddDate(0, 0, 1-test.days).UTC()
 			for index, timestamp := range []time.Time{start.Add(-time.Second), start, now.Add(-time.Second), now, now.Add(time.Second)} {
@@ -46,7 +46,7 @@ func TestUsageReportCalendarRangesUseHalfOpenWindow(t *testing.T) {
 			if err := store.db.Create(&logs).Error; err != nil {
 				t.Fatal(err)
 			}
-			report, err := New(store).usageReportForUser(t.Context(), AdminUser{Role: "admin"}, test.rangeName, now)
+			report, err := newManagedTestServer(t, store).usageReportForUser(t.Context(), AdminUser{Role: "admin"}, test.rangeName, now)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -78,7 +78,7 @@ func TestUsageReportCalendarRangesUseHalfOpenWindow(t *testing.T) {
 }
 
 func TestUsageReportAllIncludesOldRecordsAndFailureOnlyMonths(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	now := time.Date(2026, 10, 8, 12, 0, 0, 0, time.UTC)
 	firstLog := time.Date(2025, 11, 20, 1, 0, 0, 0, time.UTC)
 	log := usageSummaryLog("old_failure", "project_report", "key_report", "", http.StatusBadGateway, firstLog)
@@ -91,7 +91,7 @@ func TestUsageReportAllIncludesOldRecordsAndFailureOnlyMonths(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	report, err := New(store).usageReportForUser(t.Context(), AdminUser{Role: "admin"}, "all", now)
+	report, err := newManagedTestServer(t, store).usageReportForUser(t.Context(), AdminUser{Role: "admin"}, "all", now)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -109,7 +109,7 @@ func TestUsageReportAllIncludesOldRecordsAndFailureOnlyMonths(t *testing.T) {
 }
 
 func TestUsageReportAllRetainsMoreThanThirtyOneDailyBuckets(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	store.CreateResource("settings", AdminResource{ID: gatewaySettingsID, Status: StatusActive, Fields: map[string]any{dashboardTimezoneField: "Asia/Shanghai"}})
 	now := time.Date(2026, 10, 8, 4, 0, 0, 0, time.UTC)
 	firstDay := time.Date(2026, 8, 29, 16, 0, 0, 0, time.UTC)
@@ -117,7 +117,7 @@ func TestUsageReportAllRetainsMoreThanThirtyOneDailyBuckets(t *testing.T) {
 	if err := store.db.Create(&record).Error; err != nil {
 		t.Fatal(err)
 	}
-	report, err := New(store).usageReportForUser(t.Context(), AdminUser{Role: "admin"}, "all", now)
+	report, err := newManagedTestServer(t, store).usageReportForUser(t.Context(), AdminUser{Role: "admin"}, "all", now)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -144,7 +144,7 @@ func TestUsageReportHourlyBucketsPreserveDSTCalls(t *testing.T) {
 		{name: "midnight fall back", zone: "America/Havana", now: "2025-11-03T04:30:00Z", calls: []string{"2025-11-02T04:30:00Z", "2025-11-02T05:30:00Z"}, wantLength: 25},
 	} {
 		t.Run(test.name, func(t *testing.T) {
-			store := NewMemoryStore()
+			store := newTestMemoryStore(t)
 			store.CreateResource("settings", AdminResource{ID: gatewaySettingsID, Status: StatusActive, Fields: map[string]any{dashboardTimezoneField: test.zone}})
 			for index, timestamp := range test.calls {
 				log := usageSummaryLog([]string{"first", "second"}[index], "project_report", "key_report", "", http.StatusBadGateway, mustParseUsageReportTime(t, timestamp))
@@ -152,7 +152,7 @@ func TestUsageReportHourlyBucketsPreserveDSTCalls(t *testing.T) {
 					t.Fatal(err)
 				}
 			}
-			report, err := New(store).usageReportForUser(t.Context(), AdminUser{Role: "admin"}, "today", mustParseUsageReportTime(t, test.now))
+			report, err := newManagedTestServer(t, store).usageReportForUser(t.Context(), AdminUser{Role: "admin"}, "today", mustParseUsageReportTime(t, test.now))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -175,7 +175,7 @@ func TestUsageReportHourlyBucketsPreserveDSTCalls(t *testing.T) {
 }
 
 func TestUsageReportDailyBucketsCrossMidnightDSTTransition(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	store.CreateResource("settings", AdminResource{ID: gatewaySettingsID, Status: StatusActive, Fields: map[string]any{dashboardTimezoneField: "America/Santiago"}})
 	now := mustParseUsageReportTime(t, "2026-09-10T12:00:00Z")
 	for index, timestamp := range []string{"2026-09-05T04:30:00Z", "2026-09-06T04:30:00Z", "2026-09-07T03:30:00Z"} {
@@ -184,7 +184,7 @@ func TestUsageReportDailyBucketsCrossMidnightDSTTransition(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	report, err := New(store).usageReportForUser(t.Context(), AdminUser{Role: "admin"}, "7d", now)
+	report, err := newManagedTestServer(t, store).usageReportForUser(t.Context(), AdminUser{Role: "admin"}, "7d", now)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -196,7 +196,7 @@ func TestUsageReportDailyBucketsCrossMidnightDSTTransition(t *testing.T) {
 }
 
 func TestUsageReportEmptyRangesAndDefault(t *testing.T) {
-	server := New(NewMemoryStore())
+	server := newManagedTestServer(t, newTestMemoryStore(t))
 	now := time.Date(2026, 10, 8, 12, 0, 0, 0, time.UTC)
 	for _, selectedRange := range []string{"", "today", "7d", "30d", "all"} {
 		report, err := server.usageReportForUser(t.Context(), AdminUser{Role: "admin"}, selectedRange, now)
@@ -214,8 +214,8 @@ func TestUsageReportEmptyRangesAndDefault(t *testing.T) {
 }
 
 func TestUsageReportEndpointRejectsInvalidRangeAndReportsReadFailure(t *testing.T) {
-	store := NewMemoryStore()
-	app := New(store).Handler()
+	store := newTestMemoryStore(t)
+	app := newManagedTestServer(t, store).Handler()
 	for _, selectedRange := range []string{"yesterday", "31d", "-1", "TODAY"} {
 		response := doJSON(t, app, http.MethodGet, "/api/admin/usage/report?range="+selectedRange, nil, "")
 		if response.Code != http.StatusBadRequest || !strings.Contains(response.Body, "invalid_usage_range") {
@@ -232,14 +232,14 @@ func TestUsageReportEndpointRejectsInvalidRangeAndReportsReadFailure(t *testing.
 }
 
 func TestUsageReportRedactsProviderBreakdownsForNonPlatformRoles(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	now := time.Date(2026, 10, 8, 12, 0, 0, 0, time.UTC)
 	record := UsageRecord{ID: "report_sensitive", AttributedUserID: "report_user", ProviderID: "sensitive_provider", ProviderResourceID: "sensitive_resource", CreatedAt: now.Add(-time.Hour)}
 	if err := store.db.Create(&record).Error; err != nil {
 		t.Fatal(err)
 	}
 	for _, role := range []string{"admin", "security_admin", "team_leader", "user"} {
-		report, err := New(store).usageReportForUser(t.Context(), AdminUser{ID: "report_user", Role: role}, "all", now)
+		report, err := newManagedTestServer(t, store).usageReportForUser(t.Context(), AdminUser{ID: "report_user", Role: role}, "all", now)
 		if err != nil {
 			t.Fatal(err)
 		}

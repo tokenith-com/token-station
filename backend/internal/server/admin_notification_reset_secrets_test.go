@@ -3,6 +3,7 @@ package server
 import (
 	"encoding/json"
 	"net/http"
+	"net/textproto"
 	"strings"
 	"testing"
 )
@@ -11,7 +12,7 @@ func TestPasswordResetSMTPFailuresRedactSavedCredentials(t *testing.T) {
 	for _, field := range []string{"smtp_password", "password"} {
 		for _, storage := range []string{"plaintext", "encrypted"} {
 			t.Run(field+"/"+storage, func(t *testing.T) {
-				store := NewMemoryStore()
+				store := newTestMemoryStore(t)
 				_, adminToken := createAdminIdentityAPIKeyMethodSession(t, store, AdminUser{Username: "notification-admin", Email: "admin@example.test", Role: "admin", Status: StatusActive})
 				team := store.CreateResource("teams", AdminResource{Name: "Notification test team", Status: StatusActive})
 				_, leaderToken := createAdminIdentityAPIKeyMethodSession(t, store, AdminUser{Username: "notification-leader", Email: "leader@example.test", Role: "team_leader", TeamID: team.ID, Status: StatusActive})
@@ -82,7 +83,7 @@ func TestPasswordResetSMTPFailuresRedactSavedCredentials(t *testing.T) {
 
 func assertRedactedSMTPRejection(t *testing.T, message, prefix string) {
 	t.Helper()
-	want := prefix + `535 "Rejected password ` + providerHeaderMask + `"`
+	want := prefix + (&textproto.Error{Code: 535, Msg: "Rejected password " + providerHeaderMask}).Error()
 	if message != want {
 		t.Errorf("SMTP rejection must contain only its status, safe text, and a credential mask: got %q", message)
 	}

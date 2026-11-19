@@ -8,7 +8,7 @@ import (
 )
 
 func TestRouteRankHookUsesRequestContext(t *testing.T) {
-	server := New(NewMemoryStore())
+	server := newManagedTestServer(t, newTestMemoryStore(t))
 	hook := pluginmeta.GatewayHookDescriptor{
 		PluginID:      "tokenhub.test-router",
 		HookID:        "ctx-aware-rank",
@@ -48,7 +48,7 @@ func TestRouteRankHookUsesRequestContext(t *testing.T) {
 }
 
 func TestRouteRankHookRequiresChainRegistration(t *testing.T) {
-	server := New(NewMemoryStore())
+	server := newManagedTestServer(t, newTestMemoryStore(t))
 	hook := pluginmeta.GatewayHookDescriptor{
 		PluginID:      "tokenhub.test-router",
 		HookID:        "unregistered-rank",

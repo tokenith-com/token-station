@@ -19,7 +19,7 @@ func TestCredentialReplacementRejectsLateSubscriptionQuota(t *testing.T) {
 }
 
 func testCredentialReplacementRejectsLateSubscriptionQuota(t *testing.T, priorReplacements int) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	server := New(store)
 	t.Cleanup(func() { _ = server.Shutdown(context.Background()) })
 	definition := subscriptionWorkerDefinition{"qoder", "Qoder"}
@@ -87,7 +87,7 @@ func TestCredentialReplacementRejectsLateSubscriptionModels(t *testing.T) {
 }
 
 func testCredentialReplacementRejectsLateSubscriptionModels(t *testing.T, priorReplacements int) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	server := New(store)
 	t.Cleanup(func() { _ = server.Shutdown(context.Background()) })
 	definition := subscriptionWorkerDefinition{"qoder", "Qoder"}
@@ -160,7 +160,7 @@ func replaceSubscriptionObservationCredentials(t *testing.T, server *Server, res
 func TestCredentialReplacementGenerationAllowsObservationAfterSessionRotation(t *testing.T) {
 	for _, capability := range []string{"quota.read", "models.read"} {
 		t.Run(capability, func(t *testing.T) {
-			store := NewMemoryStore()
+			store := newTestMemoryStore(t)
 			server := New(store)
 			t.Cleanup(func() { _ = server.Shutdown(context.Background()) })
 			definition := subscriptionWorkerDefinition{"qoder", "Qoder"}

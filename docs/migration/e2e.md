@@ -2,7 +2,7 @@
 
 ## Overview
 
-The E2E harness starts real LiteLLM and TokenHub services and validates a
+The E2E harness starts real LiteLLM and TokenStation services and validates a
 remote Admin API migration cycle against a mocked OpenAI-compatible upstream.
 Mailpit provides local SMTP delivery for the user-import password-reset flow.
 
@@ -15,12 +15,12 @@ Mailpit provides local SMTP delivery for the user-import password-reset flow.
 ## Running Locally
 
 ```bash
-cd backend && go build -o tokenhub-migrate ./cmd/tokenhub-migrate/
+cd backend && go build -o tokenstation-migrate ./cmd/tokenstation-migrate/
 docker compose -f deploy/docker-compose.migration-e2e.yml config
 docker compose -f deploy/docker-compose.migration-e2e.yml up -d --wait
 cd sdk/migration-e2e
 npm ci
-TOKENHUB_MIGRATE_BIN=../../backend/tokenhub-migrate npm run test:litellm
+TOKENHUB_MIGRATE_BIN=../../backend/tokenstation-migrate npm run test:litellm
 docker compose -f ../../deploy/docker-compose.migration-e2e.yml down -v
 ```
 
@@ -36,7 +36,7 @@ docker compose -f ../../deploy/docker-compose.migration-e2e.yml down -v
 The harness currently proves:
 1. LiteLLM stack boots from the checked-in fixture
 2. LiteLLM can answer a mocked chat-completion request
-3. TokenHub accepts the extracted bundle through the real Admin API
+3. TokenStation accepts the extracted bundle through the real Admin API
 4. `verify` passes after apply and re-apply creates and updates zero resources
 5. Checkpoint and one-time API key files are persisted
 6. Rollback removes created resources, including the imported user, and a

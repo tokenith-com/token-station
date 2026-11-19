@@ -1,0 +1,267 @@
+package main
+
+import (
+	"context"
+	"errors"
+	"fmt"
+	"io"
+	"log"
+	"net"
+	"net/http"
+	"os"
+	"os/signal"
+	"strings"
+	"syscall"
+	"time"
+
+	"github.com/joho/godotenv"
+	"gopkg.in/yaml.v3"
+	"tokenhub/backend/internal/dbcli"
+	"tokenhub/backend/internal/payment"
+	"tokenhub/backend/internal/paymentmock"
+	"tokenhub/backend/internal/server"
+)
+
+var (
+	buildVersion   = server.DefaultAppVersion
+	buildType      = "source"
+	deploymentType = "source"
+)
+
+func loadPayments(addr string, config server.Config) (*payment.Service, error) {
+	path := strings.TrimSpace(config.PaymentConfigFile)
+	if path == "" {
+		return nil, nil
+	}
+	contents, err := os.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+	var mode struct {
+		Mode string `yaml:"mode"`
+	}
+	if err := yaml.Unmarshal(contents, &mode); err != nil {
+		return nil, errors.New("invalid payment YAML")
+	}
+	if mode.Mode != "mock" {
+		return payment.Load(path)
+	}
+	if environment := strings.ToLower(strings.TrimSpace(config.Environment)); environment != "dev" && environment != "test" {
+		return nil, errors.New("mock payment is only available in dev or test environments")
+	}
+	host, _, err := net.SplitHostPort(addr)
+	if err != nil || host == "" || !isLoopbackHost(host) {
+		return nil, errors.New("mock payment requires a loopback HTTP address")
+	}
+	if strings.HasPrefix(strings.TrimSpace(config.DatabaseURL), "postgres") {
+		return nil, errors.New("mock payment requires a local SQLite database")
+	}
+	log.Printf("[TokenStation] local mock payment enabled")
+	return paymentmock.Load(path)
+}
+
+func isLoopbackHost(host string) bool {
+	if host == "localhost" {
+		return true
+	}
+	ip := net.ParseIP(host)
+	return ip != nil && ip.IsLoopback()
+}
+
+func main() {
+	loadDotEnv()
+	if len(os.Args) == 2 && os.Args[1] == "initial-admin-password" {
+		if err := printInitialAdminPassword(os.Stdout); err != nil {
+			log.Fatal(err)
+		}
+		return
+	}
+
+	if len(os.Args) > 1 && os.Args[1] == "db" {
+		dbcli.AppRelease = buildVersion
+		os.Exit(dbcli.Run(context.Background(), os.Args[2:], os.Stdout, os.Stderr))
+	}
+
+	addr := getenv("TOKENHUB_HTTP_ADDR", ":8080")
+	config := server.ConfigFromEnv()
+	config.AppVersion = buildVersion
+	config.BuildType = buildType
+	config.DeploymentType = deploymentType
+	if runtimeDeploymentType := os.Getenv("TOKENHUB_DEPLOYMENT_TYPE"); runtimeDeploymentType != "" {
+		config.DeploymentType = runtimeDeploymentType
+	}
+	if os.Getenv("TOKENHUB_PLUGIN_DIR") == "" {
+		config.PluginDir = server.DefaultPluginDir(config.DeploymentType, config.InstallRoot)
+	}
+	prepared, err := config.PrepareForStartup()
+	if err == nil {
+		config = prepared
+		err = config.ValidateForStartup()
+	}
+	var payments *payment.Service
+	if err == nil {
+		payments, err = loadPayments(addr, config)
+	}
+	if err != nil {
+		log.Printf("[TokenStation] startup blocked by configuration: %v", err)
+		if serveErr := serveStartupBlocked(addr, config.GracefulShutdownSeconds); serveErr != nil {
+			log.Fatal(serveErr)
+		}
+		return
+	}
+
+	// The managed-upgrade contract in docs/database-evolution.md keeps the
+	// target release guarded until its first boot runs the auto-rollback guard
+	// before any schema flow — a crashed boot
+	// re-activates the previous release once, breaking a crash loop before the
+	// new release touches the database.
+	guardCtx, cancelGuard := context.WithTimeout(context.Background(), 60*time.Second)
+	if err := server.RunStartupGuard(guardCtx, config); err != nil {
+		cancelGuard()
+		log.Fatalf("startup guard failed: %v", err)
+	}
+	cancelGuard()
+
+	store, err := server.OpenStoreWithConfig(config.DatabaseURL, config)
+	if err != nil {
+		log.Fatal(err)
+	}
+	dependencies := server.ApplicationDependenciesForStore(store)
+	dependencies.Payment = payments
+	app := server.NewWithConfigAndDependencies(store, config, dependencies)
+	if err := server.RecordStartupGuardSuccess(config); err != nil {
+		log.Fatalf("record startup guard success: %v", err)
+	}
+	app.StartBillingScheduler()
+	srv := &http.Server{
+		Addr:              addr,
+		Handler:           app.Handler(),
+		ReadHeaderTimeout: 10 * time.Second,
+		IdleTimeout:       120 * time.Second,
+	}
+
+	log.Printf("TokenStation backend listening on %s", addr)
+	serveErr := make(chan error, 1)
+	go func() {
+		serveErr <- srv.ListenAndServe()
+	}()
+	signalCtx, stopSignals := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stopSignals()
+	select {
+	case err := <-serveErr:
+		if err != nil && err != http.ErrServerClosed {
+			log.Fatal(err)
+		}
+		return
+	case <-signalCtx.Done():
+	}
+
+	shutdownTimeout := time.Duration(config.GracefulShutdownSeconds) * time.Second
+	if shutdownTimeout <= 0 {
+		shutdownTimeout = 150 * time.Second
+	}
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), shutdownTimeout)
+	defer cancel()
+	if err := srv.Shutdown(shutdownCtx); err != nil {
+		log.Printf("TokenStation graceful shutdown failed: %v", err)
+		_ = srv.Close()
+	}
+	if err := app.Shutdown(shutdownCtx); err != nil {
+		log.Printf("TokenStation image worker shutdown failed: %v", err)
+	}
+	if err := <-serveErr; err != nil && err != http.ErrServerClosed {
+		log.Printf("TokenStation server stopped with error: %v", err)
+	}
+}
+
+func printInitialAdminPassword(output io.Writer) error {
+	config, err := server.ConfigFromEnv().PrepareForStartup()
+	if err != nil {
+		return err
+	}
+	if err := config.ValidateForStartup(); err != nil {
+		return err
+	}
+	store, err := server.OpenStoreForMaintenance(config.DatabaseURL, config)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = store.Close() }()
+	password, available, err := store.InitialAdminPassword()
+	if err != nil {
+		return err
+	}
+	if !available {
+		return fmt.Errorf("generated initial admin password is not available")
+	}
+	_, err = fmt.Fprintln(output, password)
+	return err
+}
+
+func serveStartupBlocked(addr string, gracefulShutdownSeconds int) error {
+	srv := &http.Server{
+		Addr:              addr,
+		Handler:           server.NewStartupBlockedHandler(),
+		ReadHeaderTimeout: 10 * time.Second,
+		IdleTimeout:       120 * time.Second,
+	}
+	log.Printf("TokenStation backend listening on %s in configuration-required mode", addr)
+	serveErr := make(chan error, 1)
+	go func() {
+		serveErr <- srv.ListenAndServe()
+	}()
+	signalCtx, stopSignals := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stopSignals()
+	select {
+	case err := <-serveErr:
+		if err != nil && err != http.ErrServerClosed {
+			return err
+		}
+		return nil
+	case <-signalCtx.Done():
+	}
+
+	shutdownTimeout := time.Duration(gracefulShutdownSeconds) * time.Second
+	if shutdownTimeout <= 0 {
+		shutdownTimeout = 150 * time.Second
+	}
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), shutdownTimeout)
+	defer cancel()
+	if err := srv.Shutdown(shutdownCtx); err != nil {
+		_ = srv.Close()
+		return err
+	}
+	if err := <-serveErr; err != nil && err != http.ErrServerClosed {
+		return err
+	}
+	return nil
+}
+
+// loadDotEnv loads the .env file into environment variables from common locations.
+// It uses godotenv.Load (not Overload), so existing system environment variables
+// take precedence and are not overridden by .env.
+func loadDotEnv() {
+	candidates := []string{
+		".env",         // running from the backend directory
+		"backend/.env", // running from the repository root
+		"../.env",      // running from a subdirectory such as backend/cmd
+	}
+	for _, path := range candidates {
+		if _, err := os.Stat(path); err != nil {
+			continue
+		}
+		if err := godotenv.Load(path); err != nil {
+			log.Printf("[TokenStation] failed to load env file %s: %v", path, err)
+			continue
+		}
+		log.Printf("[TokenStation] loaded environment from %s", path)
+		return
+	}
+}
+
+func getenv(key, fallback string) string {
+	if value := os.Getenv(key); value != "" {
+		return value
+	}
+	return fallback
+}

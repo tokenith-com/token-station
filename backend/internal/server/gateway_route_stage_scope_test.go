@@ -8,7 +8,7 @@ import (
 )
 
 func TestGatewayRouteHooksForRouteFiltersRouteScopedStages(t *testing.T) {
-	server := New(NewMemoryStore())
+	server := newManagedTestServer(t, newTestMemoryStore(t))
 	stages := []pluginmeta.GatewayHookStage{
 		pluginmeta.StageRequestTransform,
 		pluginmeta.StageStreamTransform,
@@ -56,7 +56,7 @@ func TestGatewayRouteHooksForRouteFiltersRouteScopedStages(t *testing.T) {
 }
 
 func TestGatewayRouteHooksForRouteFiltersExplicitProviderScope(t *testing.T) {
-	server := New(NewMemoryStore())
+	server := newManagedTestServer(t, newTestMemoryStore(t))
 	matching := pluginmeta.GatewayHookDescriptor{
 		PluginID: "tokenhub.test-scope",
 		HookID:   "matching",
@@ -101,7 +101,7 @@ func TestGatewayRouteHooksForRouteFiltersExplicitProviderScope(t *testing.T) {
 }
 
 func TestRouteScopedResponsePostHookExecutorSkipsWrongProtocol(t *testing.T) {
-	server := New(NewMemoryStore())
+	server := newManagedTestServer(t, newTestMemoryStore(t))
 	hook := pluginmeta.GatewayHookDescriptor{
 		PluginID:      "tokenhub.test-scope",
 		HookID:        "image-post",

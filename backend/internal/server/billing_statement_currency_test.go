@@ -14,7 +14,7 @@ import (
 )
 
 func TestBillingStatementReportingCurrency(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	statementFixture(t, store, "converted", "project-a", time.Date(2020, 1, 3, 0, 0, 0, 0, time.UTC), "2", "3")
 	for _, test := range []struct {
 		currency, rate, tenant, provider, margin string
@@ -76,7 +76,7 @@ func TestBillingStatementReportingCurrencyValidatesHTTPInput(t *testing.T) {
 }
 
 func TestBillingStatementReportingCurrencyDoesNotChangeLegacyJSON(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	statementFixture(t, store, "legacy-json", "project-a", time.Date(2020, 1, 3, 0, 0, 0, 0, time.UTC), "2")
 	result, err := store.BillingStatement(context.Background(), statementTestQuery("tenant"))
 	if err != nil {
@@ -94,7 +94,7 @@ func TestBillingStatementReportingCurrencyDoesNotChangeLegacyJSON(t *testing.T) 
 }
 
 func TestBillingStatementReportingCurrencyPreservesUnknownAndDirectAmounts(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	at := time.Date(2020, 1, 3, 0, 0, 0, 0, time.UTC)
 	for _, record := range []billingstore.RecordRow{
 		{ID: "cny", Currency: "CNY", NetAmount: "5", UsageStartAt: at, UsageEndAt: at.Add(time.Hour), CreatedAt: at},

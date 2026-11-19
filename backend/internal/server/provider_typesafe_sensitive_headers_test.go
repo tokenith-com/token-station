@@ -35,7 +35,7 @@ func TestTypeSafeDiscoveryAndProbesRedactNormalizedSensitiveHeaders(t *testing.T
 				if mode == "connection HTTP" {
 					path = "/api/admin/providers/test-connection"
 				}
-				response := doJSON(t, newTestServer(), http.MethodPost, path, ProviderCreateRequest{Name: "Synthetic Header Preview", Type: provider.Type, BaseURL: provider.BaseURL, APIKey: provider.APIKey, Headers: provider.Headers, SensitiveHeaders: provider.SensitiveHeaders}, "")
+				response := doJSON(t, newTestServer(t), http.MethodPost, path, ProviderCreateRequest{Name: "Synthetic Header Preview", Type: provider.Type, BaseURL: provider.BaseURL, APIKey: provider.APIKey, Headers: provider.Headers, SensitiveHeaders: provider.SensitiveHeaders}, "")
 				if response.Code != http.StatusUnprocessableEntity || calls != 1 {
 					t.Fatalf("status=%d calls=%d", response.Code, calls)
 				}

@@ -13,7 +13,7 @@ func setupDefaultUserQuotaTest(t *testing.T, limits map[string]any) (*GormStore,
 	t.Helper()
 	store, project, keyA, keyB := setupUserQuotaTest(t, limits)
 	t.Cleanup(func() { _ = store.Close() })
-	policy, err := New(store).findResource("quota-policies", "quota_user_quota")
+	policy, err := newManagedTestServer(t, store).findResource("quota-policies", "quota_user_quota")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -200,7 +200,7 @@ func TestDefaultUserQuotaSkipsUnattributedAdmissions(t *testing.T) {
 func TestAdminAPIManagesDefaultUserQuotaPolicies(t *testing.T) {
 	store := NewMemoryStore()
 	t.Cleanup(func() { _ = store.Close() })
-	app := New(store).Handler()
+	app := newManagedTestServer(t, store).Handler()
 	created := doJSON(t, app, http.MethodPost, "/api/admin/resources/quota-policies", map[string]any{
 		"name": "Default user cap", "status": StatusActive,
 		"fields": map[string]any{"scope": "user", "scope_id": allUsersQuotaScopeID, "monthly_cost_usd": 10},
@@ -265,7 +265,7 @@ func TestDefaultUserQuotaPolicyRequiresPlatformAdministrator(t *testing.T) {
 	team := store.CreateResource("teams", AdminResource{Name: "Quota team", Status: StatusActive})
 	template := store.CreateResource("quota-policies", AdminResource{Name: "Protected default quota", Status: StatusActive,
 		Fields: map[string]any{"scope": "user", "scope_id": allUsersQuotaScopeID, "daily_tokens": 10}})
-	app := New(store).Handler()
+	app := newManagedTestServer(t, store).Handler()
 	for _, role := range []string{"team_leader", "user", "security_admin"} {
 		t.Run(role, func(t *testing.T) {
 			user, err := store.CreateAdminUser(AdminUser{Username: "quota-" + role, Email: "quota-" + role + "@example.test", Role: role, TeamID: team.ID, Status: StatusActive}, "QuotaRolePass123!")
@@ -312,7 +312,7 @@ func TestDefaultUserQuotaPolicyRequiresPlatformAdministrator(t *testing.T) {
 			}
 		})
 	}
-	unchanged, err := New(store).findResource("quota-policies", template.ID)
+	unchanged, err := newManagedTestServer(t, store).findResource("quota-policies", template.ID)
 	if err != nil || unchanged.Status != StatusActive || snapshotJSON(unchanged.Fields) != snapshotJSON(template.Fields) {
 		t.Fatalf("forbidden mutations changed template: %+v err=%v", unchanged, err)
 	}

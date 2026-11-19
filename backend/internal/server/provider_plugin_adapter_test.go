@@ -426,7 +426,7 @@ printf '{"response":{"id":"chatcmpl_stdio","object":"chat.completion","choices":
 `), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	project := store.CreateProject(Project{Name: "Provider Plugin Project", Status: StatusActive})
 	_, secret, err := store.CreateAPIKey(project.ID, APIKey{Name: "Provider Plugin Key", Allowed: []string{"plugin-chat"}, Status: StatusActive}, "thk_provider_plugin")
 	if err != nil {
@@ -442,7 +442,7 @@ printf '{"response":{"id":"chatcmpl_stdio","object":"chat.completion","choices":
 		Weight:        100,
 		Status:        StatusActive,
 	})
-	server := NewWithConfig(store, Config{AdminToken: "plugin-admin"})
+	server := newManagedTestServerWithConfig(t, store, Config{AdminToken: "plugin-admin"})
 	allowUnsandboxedProviderCommandsForTest(t, server.adapterRegistry, root)
 
 	response := doJSON(t, server.Handler(), http.MethodPost, "/v1/chat/completions", map[string]any{
@@ -480,7 +480,7 @@ esac
 `), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	project := store.CreateProject(Project{Name: "Provider Plugin Account Project", Status: StatusActive})
 	_, secret, err := store.CreateAPIKey(project.ID, APIKey{Name: "Provider Plugin Account Key", Allowed: []string{"plugin-account-chat"}, Status: StatusActive}, "thk_provider_plugin_account")
 	if err != nil {
@@ -515,7 +515,7 @@ esac
 		Weight:             100,
 		Status:             StatusActive,
 	})
-	server := NewWithConfig(store, Config{AdminToken: "plugin-admin"})
+	server := newManagedTestServerWithConfig(t, store, Config{AdminToken: "plugin-admin"})
 	allowUnsandboxedProviderCommandsForTest(t, server.adapterRegistry, root)
 
 	response := doJSON(t, server.Handler(), http.MethodPost, "/v1/chat/completions", map[string]any{
@@ -547,7 +547,7 @@ JSON
 `), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	project := store.CreateProject(Project{Name: "Provider Plugin Stream Project", Status: StatusActive})
 	_, secret, err := store.CreateAPIKey(project.ID, APIKey{Name: "Provider Plugin Stream Key", Allowed: []string{"plugin-stream-chat"}, Status: StatusActive}, "thk_provider_plugin_stream")
 	if err != nil {
@@ -563,7 +563,7 @@ JSON
 		Weight:        100,
 		Status:        StatusActive,
 	})
-	server := NewWithConfig(store, Config{AdminToken: "plugin-admin"})
+	server := newManagedTestServerWithConfig(t, store, Config{AdminToken: "plugin-admin"})
 	allowUnsandboxedProviderCommandsForTest(t, server.adapterRegistry, root)
 
 	response := doJSON(t, server.Handler(), http.MethodPost, "/v1/chat/completions", map[string]any{
@@ -724,7 +724,7 @@ JSON
 `), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	project := store.CreateProject(Project{Name: "Provider Plugin Responses Stream Project", Status: StatusActive})
 	_, secret, err := store.CreateAPIKey(project.ID, APIKey{Name: "Provider Plugin Responses Stream Key", Allowed: []string{"plugin-responses-stream"}, Status: StatusActive}, "thk_provider_plugin_responses_stream")
 	if err != nil {
@@ -740,7 +740,7 @@ JSON
 		Weight:        100,
 		Status:        StatusActive,
 	})
-	server := NewWithConfig(store, Config{AdminToken: "plugin-admin"})
+	server := newManagedTestServerWithConfig(t, store, Config{AdminToken: "plugin-admin"})
 	allowUnsandboxedProviderCommandsForTest(t, server.adapterRegistry, root)
 
 	response := doJSON(t, server.Handler(), http.MethodPost, "/v1/responses", map[string]any{
@@ -827,7 +827,7 @@ esac
 `), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	project := store.CreateProject(Project{Name: "Provider Plugin Compact Project", Status: StatusActive})
 	_, secret, err := store.CreateAPIKey(project.ID, APIKey{Name: "Provider Plugin Compact Key", Allowed: []string{"plugin-compact"}, Status: StatusActive}, "thk_provider_plugin_compact")
 	if err != nil {
@@ -843,7 +843,7 @@ esac
 		Weight:        100,
 		Status:        StatusActive,
 	})
-	server := NewWithConfig(store, Config{AdminToken: "plugin-admin"})
+	server := newManagedTestServerWithConfig(t, store, Config{AdminToken: "plugin-admin"})
 	allowUnsandboxedProviderCommandsForTest(t, server.adapterRegistry, root)
 
 	response := doJSON(t, server.Handler(), http.MethodPost, "/v1/responses/compact", map[string]any{
@@ -883,7 +883,7 @@ esac
 `), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	project := store.CreateProject(Project{Name: "Provider Plugin Bridge Project", Status: StatusActive})
 	_, secret, err := store.CreateAPIKey(project.ID, APIKey{Name: "Provider Plugin Bridge Key", Allowed: []string{"plugin-chat-bridge"}, Status: StatusActive}, "thk_provider_plugin_bridge")
 	if err != nil {
@@ -899,7 +899,7 @@ esac
 		Weight:        100,
 		Status:        StatusActive,
 	})
-	server := NewWithConfig(store, Config{AdminToken: "plugin-admin"})
+	server := newManagedTestServerWithConfig(t, store, Config{AdminToken: "plugin-admin"})
 	allowUnsandboxedProviderCommandsForTest(t, server.adapterRegistry, root)
 
 	response := doJSON(t, server.Handler(), http.MethodPost, "/v1/chat/completions", map[string]any{
@@ -940,7 +940,7 @@ esac
 `), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	project := store.CreateProject(Project{Name: "Provider Plugin Compact Affinity Project", Status: StatusActive})
 	_, secret, err := store.CreateAPIKey(project.ID, APIKey{Name: "Provider Plugin Compact Affinity Key", Allowed: []string{"plugin-affinity-compact"}, Status: StatusActive}, "thk_provider_plugin_compact_affinity")
 	if err != nil {
@@ -968,7 +968,7 @@ esac
 		Weight:             100,
 		Status:             StatusActive,
 	})
-	server := NewWithConfig(store, Config{AdminToken: "plugin-admin", SecretKey: "plugin-compact-affinity-secret"})
+	server := newManagedTestServerWithConfig(t, store, Config{AdminToken: "plugin-admin", SecretKey: "plugin-compact-affinity-secret"})
 	allowUnsandboxedProviderCommandsForTest(t, server.adapterRegistry, root)
 
 	request := httptest.NewRequest(http.MethodPost, "/v1/responses/compact", strings.NewReader(
@@ -1069,7 +1069,7 @@ esac
 	if err := os.WriteFile(filepath.Join(pluginDir, "provider.sh"), []byte(script), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	project := store.CreateProject(Project{Name: "Provider Plugin Image Project", Status: StatusActive})
 	_, secret, err := store.CreateAPIKey(project.ID, APIKey{Name: "Provider Plugin Image Key", Allowed: []string{openAIImageModelName}, Status: StatusActive}, "thk_provider_plugin_image")
 	if err != nil {
@@ -1085,7 +1085,7 @@ esac
 		Weight:        100,
 		Status:        StatusActive,
 	})
-	server := NewWithConfig(store, Config{AdminToken: "plugin-admin"})
+	server := newManagedTestServerWithConfig(t, store, Config{AdminToken: "plugin-admin"})
 	allowUnsandboxedProviderCommandsForTest(t, server.adapterRegistry, root)
 
 	response := doImageJSON(t, server.Handler(), http.MethodPost, "/v1/images/generations", map[string]any{

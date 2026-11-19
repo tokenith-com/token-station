@@ -1,6 +1,6 @@
 # OpenAI-Compatible
 
-Built-in provider integration plugin for TokenHub.
+Built-in provider integration plugin for TokenStation.
 
 - Plugin ID: `tokenhub.provider.openai-compatible`
 - Configuration: Provider management

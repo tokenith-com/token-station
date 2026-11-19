@@ -82,10 +82,11 @@ function repositoryRoot() {
   return git(["rev-parse", "--show-toplevel"]).trim();
 }
 
-/** Every path git tracks, which is the correct notion of "on disk" for this gate. */
+/** Tracked paths present in the checkout, including unstaged deletions. */
 function trackedPaths(root) {
   const output = git(["ls-files", "-z"], root);
-  return new Set(output.split("\0").filter((path) => path !== ""));
+  const deleted = new Set(git(["ls-files", "--deleted", "-z"], root).split("\0"));
+  return new Set(output.split("\0").filter((path) => path !== "" && !deleted.has(path)));
 }
 
 function commitExists(root, sha) {
@@ -207,7 +208,8 @@ function main() {
     ["diff", "--name-status", "-z", "--no-renames", base, head, "--", "*.md"],
     root,
   );
-  failures.push(...checkCoChange(parseNameStatus(diff)));
+  const basePaths = new Set(git(["ls-tree", "-r", "--name-only", "-z", base], root).split("\0"));
+  failures.push(...checkCoChange(parseNameStatus(diff), basePaths));
 
   if (failures.length > 0) {
     report(failures);

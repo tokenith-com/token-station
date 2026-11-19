@@ -25,8 +25,8 @@ func TestCopilotSubscriptionEnterpriseHostValidation(t *testing.T) {
 }
 
 func TestCopilotSubscriptionEnterpriseOAuthBindsAccountHost(t *testing.T) {
-	store := NewMemoryStore()
-	server := New(store)
+	store := newTestMemoryStore(t)
+	server := newManagedTestServer(t, store)
 	adapter, ok := resolveTypedAdapter[*CopilotSubscriptionAdapter](server.adapterRegistry, ProviderGitHubCopilotSubscription)
 	if !ok {
 		t.Fatal("Copilot adapter missing")

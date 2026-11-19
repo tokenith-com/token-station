@@ -2,7 +2,7 @@
 
 Language: English | [简体中文](zh-CN/kubernetes.md) | [日本語](ja/kubernetes.md)
 
-TokenHub ships a Helm chart at `deploy/helm/tokenhub` for Kubernetes clusters. It deploys the single TokenHub container image in `all` run mode: every pod serves both the Go API and gateway on port 8080 and the Next.js admin console on port 3000, the same process layout as the default Docker Compose deployment.
+TokenStation ships a Helm chart at `deploy/helm/tokenstation` for Kubernetes clusters. It deploys the single TokenStation container image in `all` run mode: every pod serves both the Go API and gateway on port 8080 and the Next.js admin console on port 3000, the same process layout as the default Docker Compose deployment.
 
 ## Requirements
 
@@ -20,8 +20,8 @@ For throwaway clusters and smoke tests, enable the bundled `bitnami/postgresql` 
 # Chart.lock pins the subchart but does not register its repository.
 helm repo add bitnami https://charts.bitnami.com/bitnami
 helm repo update
-helm dependency build deploy/helm/tokenhub
-helm install tokenhub deploy/helm/tokenhub \
+helm dependency build deploy/helm/tokenstation
+helm install tokenstation deploy/helm/tokenstation \
   --set postgresql.enabled=true \
   --set postgresql.auth.password=quick-test-password \
   --set secretEnv.TOKENHUB_SECRET_KEY="$(openssl rand -hex 32)" \
@@ -35,7 +35,7 @@ The chart composes the database URL from the subchart service. Without an ingres
 Point `database.url` at a managed PostgreSQL service such as RDS, Cloud SQL, or Azure Database, keep `postgresql.enabled=false`, and enable the ingress:
 
 ```bash
-helm install tokenhub deploy/helm/tokenhub \
+helm install tokenstation deploy/helm/tokenstation \
   --set ingress.enabled=true \
   --set ingress.host=tokenhub.example.com \
   --set secretEnv.TOKENHUB_SECRET_KEY="$(openssl rand -hex 32)" \
@@ -53,7 +53,7 @@ With the ingress enabled the chart derives the console's browser-facing API URL 
 The first login is username `admin` with the bootstrap password you configured in `secretEnv.TOKENHUB_BOOTSTRAP_ADMIN_PASSWORD`:
 
 ```bash
-kubectl get secret tokenhub-tokenhub-credentials -o jsonpath='{.data.TOKENHUB_BOOTSTRAP_ADMIN_PASSWORD}' | base64 -d
+kubectl get secret tokenstation-tokenstation-credentials -o jsonpath='{.data.TOKENHUB_BOOTSTRAP_ADMIN_PASSWORD}' | base64 -d
 ```
 
 The chart never generates this password: set a stable value through `secretEnv` and keep it unchanged across upgrades, since the bootstrap seed only runs on an empty database. Setting it through `extraEnv` instead would duplicate the Secret-backed entry the chart already renders. Change the password in the admin console after first login.
@@ -63,7 +63,7 @@ The chart sets `TOKENHUB_ENV=prod` by default. Production startup rejects the bu
 Credentials can also come from existing secrets instead of inline values:
 
 ```bash
-helm install tokenhub deploy/helm/tokenhub \
+helm install tokenstation deploy/helm/tokenstation \
   --set ingress.enabled=true --set ingress.host=tokenhub.example.com \
   --set credentialsSecret=tokenhub-auth \
   --set database.existingSecret=tokenhub-database
@@ -75,7 +75,7 @@ The referenced auth secret must provide `TOKENHUB_SECRET_KEY` and `TOKENHUB_BOOT
 
 | Resource | Purpose |
 | --- | --- |
-| Deployment | One pod per replica runs both processes via `tokenhub-run`; environment entries are rendered directly into the pod spec |
+| Deployment | One pod per replica runs both processes via `tokenstation-run`; environment entries are rendered directly into the pod spec |
 | Secrets | `<release>-credentials` for the auth keys and optional admin credentials, `<release>-database` for the composed database URL (each only when the chart manages it) |
 | Service | `api` port (8080) and `console` port (3000) |
 | PersistentVolumeClaim | Generated image storage, only when `imageStorage.type` is `pvc` (see below) |
@@ -94,7 +94,7 @@ The default ingress annotations turn response buffering off and raise the read/s
 
 ## Health and shutdown
 
-`tokenhub-run` supervises both processes and exits the container when either dies, so Kubernetes restarts the pod on any process failure. The startup and readiness probes HTTP-check the API `/readyz` endpoint, so pods stop receiving traffic while the database is unreachable; the liveness probe checks API `/livez`. The default `terminationGracePeriodSeconds` of 180 covers the backend's default 150-second graceful shutdown window, so in-flight streaming requests drain before the pod is removed. The rollout uses the `Recreate` strategy: during upgrades and `kubectl rollout restart` the old pod fully terminates before the replacement starts, so two pods never serve at the same time and capacity dips for one startup window. This keeps image-job recovery safe even with the published `0.8.0` image (see below).
+`tokenstation-run` supervises both processes and exits the container when either dies, so Kubernetes restarts the pod on any process failure. The startup and readiness probes HTTP-check the API `/readyz` endpoint, so pods stop receiving traffic while the database is unreachable; the liveness probe checks API `/livez`. The default `terminationGracePeriodSeconds` of 180 covers the backend's default 150-second graceful shutdown window, so in-flight streaming requests drain before the pod is removed. The rollout uses the `Recreate` strategy: during upgrades and `kubectl rollout restart` the old pod fully terminates before the replacement starts, so two pods never serve at the same time and capacity dips for one startup window. This keeps image-job recovery safe even with the published `0.8.0` image (see below).
 
 ## Stateless by default
 
@@ -104,7 +104,7 @@ The chart is stateless by default:
 - **Releases:** the container materializes its own release bundle into an ephemeral directory on every start. Model and provider catalogs ship inside the image and seed the database on first start; catalog changes made in the admin console live in PostgreSQL and survive pod replacement. In-application self-update is disabled (`TOKENHUB_MANAGED_UPDATES=false`); upgrade by changing `image.tag`:
 
 ```bash
-helm upgrade tokenhub deploy/helm/tokenhub --reuse-values --set image.tag=<new-tag>
+helm upgrade tokenstation deploy/helm/tokenstation --reuse-values --set image.tag=<new-tag>
 ```
 
 - **Data:** the PostgreSQL server holds all durable state. Back it up with your PostgreSQL tooling; see [PostgreSQL setup](postgresql-setup.md).
@@ -129,7 +129,7 @@ When the cluster runs [Prometheus Operator](https://prometheus-operator.dev/), e
 `extraEnv` is replaced wholesale on every upgrade — `--reuse-values` does not merge it — so restate the entries you already set (the trusted-proxy list from the production install above) alongside the new one:
 
 ```bash
-helm upgrade tokenhub deploy/helm/tokenhub --reuse-values \
+helm upgrade tokenstation deploy/helm/tokenstation --reuse-values \
   --set 'extraEnv[0].name=TOKENHUB_TRUSTED_PROXY_CIDRS' \
   --set 'extraEnv[0].value=10.0.0.0/8\,172.16.0.0/12\,192.168.0.0/16' \
   --set 'extraEnv[1].name=TOKENHUB_METRICS_ENABLED' \
@@ -150,7 +150,7 @@ When the cluster runs the [External Secrets Operator](https://external-secrets.i
 Migrating an existing release needs the previously configured credential and database values cleared, because `--reuse-values` keeps them and they conflict with this mode:
 
 ```bash
-helm upgrade tokenhub deploy/helm/tokenhub --reuse-values \
+helm upgrade tokenstation deploy/helm/tokenstation --reuse-values \
   --set externalSecret.enabled=true \
   --set externalSecret.secretStore=aws-secrets-manager \
   --set externalSecret.sourceSecretId=tokenhub/prod \
@@ -181,7 +181,7 @@ With AWS Secrets Manager as the example, the three values map to:
 2. Create a `ClusterSecretStore` once per cluster; its metadata name is `externalSecret.secretStore`. With IRSA authentication it references the chart's service account, so annotate that account with the role:
 
    ```bash
-   helm upgrade tokenhub deploy/helm/tokenhub --reuse-values \
+   helm upgrade tokenstation deploy/helm/tokenstation --reuse-values \
      --set serviceAccount.annotations."eks\.amazonaws\.com/role-arn"=arn:aws:iam::123456789012:role/tokenhub-external-secrets
    ```
 
@@ -198,7 +198,7 @@ With AWS Secrets Manager as the example, the three values map to:
          auth:
            jwt:
              serviceAccountRef:
-               name: tokenhub-tokenhub # the chart's service account
+               name: tokenstation-tokenstation # the chart's service account
                namespace: tokenhub
    ```
 
@@ -210,6 +210,6 @@ The remote secret is extracted 1:1 into the chart credentials secret and must pr
 
 ## Values
 
-See the annotated [values.yaml](../deploy/helm/tokenhub/values.yaml) for the full list. Any `TOKENHUB_*` variable documented in [Deployment](deployment.md#backend-environment-variables) can be added through the standard `extraEnv` list and is rendered directly into the pod environment; secret values go through `secretEnv`.
+See the annotated [values.yaml](../deploy/helm/tokenstation/values.yaml) for the full list. Any `TOKENHUB_*` variable documented in [Deployment](deployment.md#backend-environment-variables) can be added through the standard `extraEnv` list and is rendered directly into the pod environment; secret values go through `secretEnv`.
 
-For chart development notes, see the [chart README](../deploy/helm/tokenhub/README.md).
+For chart development notes, see the [chart README](../deploy/helm/tokenstation/README.md).

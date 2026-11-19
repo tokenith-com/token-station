@@ -1,10 +1,10 @@
-# TokenHub 移行フレームワーク
+# TokenStation 移行フレームワーク
 
-TokenHub 移行フレームワークは、競合 AI ゲートウェイを TokenHub に移行するための反復可能で冪等なワークフローを提供します。
+TokenStation 移行フレームワークは、競合 AI ゲートウェイを TokenStation に移行するための反復可能で冪等なワークフローを提供します。
 
 ## 現在の状態
 
-現在のブランチには、動作する canonical bundle、store-backed と remote Admin API-backed の両方を備えた TokenHub sink、LiteLLM のファイルベースアダプター、および `extract`、`plan`、`apply`、`verify`、`rollback` を実行できる CLI フローが含まれます。
+現在のブランチには、動作する canonical bundle、store-backed と remote Admin API-backed の両方を備えた TokenStation sink、LiteLLM のファイルベースアダプター、および `extract`、`plan`、`apply`、`verify`、`rollback` を実行できる CLI フローが含まれます。
 
 ## ドキュメント
 

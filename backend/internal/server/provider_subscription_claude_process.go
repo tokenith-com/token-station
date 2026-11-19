@@ -68,7 +68,7 @@ func (a *ClaudeSubscriptionAdapter) start(ctx context.Context, provider Provider
 	if executable == "" {
 		executable, err = exec.LookPath("claude")
 		if err != nil {
-			return nil, NewHTTPError(503, "claude_cli_unavailable", "Install the genuine Claude Code CLI on the TokenHub host")
+			return nil, NewHTTPError(503, "claude_cli_unavailable", "Install the genuine Claude Code CLI on the TokenStation host")
 		}
 	}
 	resourceID := provider.Options["resource_id"]

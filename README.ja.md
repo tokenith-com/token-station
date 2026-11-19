@@ -1,372 +1,162 @@
 <p align="center">
-  <img src="frontend/public/brand/tokenhub-logo.png" alt="TokenHub" width="96" />
+  <img src="maas-ui/public/brand/tokenstation-readme-logo.png" alt="TokenStation" width="96" />
 </p>
 
-<h1 align="center">TokenHub</h1>
+<h1 align="center">TokenStation</h1>
 
 <p align="center">
-  TokenHub は、AI 時代のエンタープライズ Token Governance 基盤です。モデルルーティング、権限管理、Token コスト最適化、Provider 照合、あらゆる上流モデル Provider への統制されたアクセスを提供します。
-</p>
-
-<p align="center">
-  <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache--2.0-blue.svg" alt="License" /></a>
-  <img src="https://img.shields.io/badge/Go-1.26-00ADD8?logo=go&logoColor=white" alt="Go 1.26" />
-  <img src="https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white" alt="Docker Compose" />
-  <img src="https://img.shields.io/badge/OpenAI-Compatible-10A37F" alt="OpenAI Compatible" />
+  企業チームと個人開発者のための Model-as-a-Service プラットフォーム。<br />
+  モデルアクセス、API キー、利用量課金、企業の Token ガバナンスを一元化します。
 </p>
 
 <p align="center">
   <a href="README.md">English</a> | <a href="README.zh-CN.md">简体中文</a> | 日本語
 </p>
 
-## ❤️ スポンサー
+## 製品概要
 
-> [ここに掲載しませんか？](mailto:xiemengjun@gmail.com)
+TokenStation は、モデルの検索、Playground、API アクセス、コストの可視化を 1 つのプラットフォームに統合します。企業チームはプロジェクトと共有ウォレットを通じてモデルアクセスを割り当て、個人開発者は個人キーの管理、残高のチャージ、利用状況の確認を行えます。プラットフォーム運営者は、プロバイダーの認証情報をユーザーへ配布することなく、上流プロバイダー、ルーティング、権限、課金、監査を一元管理できます。
 
-<table>
-  <tr>
-    <td width="180"><a href="https://aicoding.inc/i/tokhub"><img src="docs/assets/sponsors/aicoding.svg" alt="AICoding" width="150" /></a></td>
-    <td>本プロジェクトをご支援いただいている AICoding に感謝いたします！<a href="https://aicoding.inc/i/tokhub">AICoding</a> —— 世界の主要 AI モデルをお得に利用できる API 中継サービス！Claude Code は通常価格の 19%、GPT はわずか 1%！数百社の企業にコストパフォーマンスの高い AI サービスを提供しています。Claude Code、GPT、Gemini、中国の主要モデルに対応し、エンタープライズ向けの高い同時処理性能、迅速な請求書発行、24 時間・年中無休の専任テクニカルサポートを提供します。<a href="https://aicoding.inc/i/tokhub">こちらのリンク</a>から登録した TokenHub ユーザーは、初回チャージが 10% オフになります！</td>
-  </tr>
-  <tr>
-    <td width="180"><a href="https://subsub.cn/i/tokhub"><img src="docs/assets/sponsors/subsub.svg" alt="SubSub" width="150" /></a></td>
-    <td><a href="https://subsub.cn/i/tokhub">SubSub</a> は、ChatGPT の各種プランのサブスクリプションのアップグレードと更新に対応し、注文状況も確認できます。ぜひ<a href="https://subsub.cn/i/tokhub">こちらからご登録ください</a>！</td>
-  </tr>
-</table>
+製品は Go API バックエンドと MaaS コンソールで構成されます。プラットフォーム管理者、チームユーザー、個人開発者が同じサインイン画面を使用します。
 
-## エンタープライズ Token ガバナンス
+リポジトリには従来の管理コンソールも残されています。バックエンドは共通ですが、MaaS コンソールとはフロントエンドのビルド方法とデプロイ経路が異なります。
 
-TokenHub は、Provider 接続、プロジェクト Key、ルーティングポリシー、利用主体の特定、予算管理、請求照合まで、AI モデルライフサイクルのためのガバナンス層を企業に提供します。
+## ユーザーロール
 
-本当に解きたいのは、企業内の AI アプリケーションとモデルが増え続けたあと、Token をどう管理するかです。TokenHub は、すべてのモデル呼び出しの手前に次のガバナンス制御を置きます。
+| ロール | 主なワークフロー |
+| --- | --- |
+| プラットフォーム管理者 | プロバイダー、モデル、ルート、ID、アクセスポリシー、ウォレット、プラットフォーム運用の設定 |
+| チーム管理者 | チームのプロジェクト、メンバー、API キー、利用レポートの管理、共有ウォレットの確認 |
+| チームメンバー | 利用可能なモデルの検索、Playground の利用、権限内のキーの管理、個人利用状況の確認 |
+| 個人開発者 | 登録・サインイン、個人キーの作成、モデルの呼び出し、チャージ、費用明細の確認 |
 
-- モデルルーティング: シナリオ、コスト、性能、ヘルス状態、フェイルオーバー方針に応じて適切なモデルを選びます。
-- 権限管理: 人、チーム、プロジェクト、アプリケーションの間で Token アクセスを割り当て、制御します。
-- Token 節約: キャッシュ、モデル選択、クォータ、呼び出し戦略によって企業の AI コストを下げます。
-- Provider 照合: 社内の実利用量と Provider 請求を突き合わせ、財務、プラットフォーム、事業チームが AI コストを説明できるようにします。
+メニューと API 認可は、ユーザーのロールとリソース範囲に従います。
 
-## TokenHub が選ばれる理由
+## 主な機能
 
-多くのオープンソース AI ゲートウェイは Provider 集約に重点を置いています。つまり、1 つのエンドポイントから複数の上流を呼び出す仕組みです。これは開発者のモデル接続には役立ちますが、企業運用の課題をそれだけで解決できるわけではありません。TokenHub は、その不足しているガバナンス層を中心に設計されています。
+### モデルサービス
 
-- Token 配布をプロジェクトとチームで管理し、生の Provider Key を各アプリケーションへ散在させません。
-- モデルアクセス、ルーティング、フェイルオーバーを管理者がポリシーとして変更でき、クライアントコードの変更を抑えられます。
-- 請求とリクエスト履歴を社内の所有関係へ紐づけ、財務、プラットフォーム、事業チームが AI コストを説明できます。
-- ユーザー、チームリーダー、管理者のワークスペースを分け、日常利用、承認、コスト配賦、プラットフォーム運用を責任ごとに整理します。
+- 利用可能なモデルを検索し、機能と価格を確認できます。
+- 認可済みの API キーで Playground からモデルを試し、会話履歴と利用量のフィードバックを確認できます。
+- OpenAI 互換および Anthropic 互換 API を通じてアプリケーションを統合できます。
+- プロバイダーアダプターを通じて、ホスト型プロバイダー、ローカルモデル、サブスクリプションチャネル、カスタム上流に接続できます。
+- モデルルーティング、優先度、重み、フェイルオーバー、ヘルス診断を一元設定できます。
 
-## スクリーンショット
+### 企業ガバナンス
 
-<p align="center">
-  <img src="docs/assets/screenshots/tokenhub-tour.webp" alt="TokenHub 製品ツアー：ログイン、概要、API ドキュメント、Provider チャネル、モデルカタログ、ルーティングポリシー、利用分析、システム設定" width="100%">
-</p>
+- チーム、プロジェクト、メンバー、プロジェクト単位の API キーごとにアクセスを管理できます。
+- モデル権限、クォータ、レート制限、同時実行数の制御を適用できます。
+- 利用額をユーザー、プロジェクト、チーム、モデル、コストセンターに紐づけられます。
+- リクエストログ、利用分析、プロバイダーコスト、照合ワークフローを確認できます。
+- 企業向け OAuth/OIDC サインイン、ロールベースのアクセス制御、監査記録を設定できます。
 
-## 3つのロールを中心に設計
+### ウォレットと課金
 
-TokenHub は、日常的なモデル利用、チームガバナンス、プラットフォーム運用を明確に分け、企業ユーザーが自分の責任に合ったワークフローへすぐ入れるようにします。
+- **チームウォレット：** 共有の人民元残高、管理者による入金記録、利用量に基づく精算、ウォレット台帳に対応します。チーム管理者は所属チームの残高と取引を確認できますが、自ら入金を記録することはできません。
+- **個人のオンライン決済：** 設定済みの WeChat Pay と Alipay の連携によるチャージ注文、決済コールバック、個人ウォレット記録、返金、照合に対応します。
+- **アカウント残高のチャージ：** 個人ポータルには独立した consumer チャージフローも残されています。その台帳とオンライン決済ウォレットは独立しており、残高が自動的に合算・移動されることはありません。
+- チームに課金される呼び出しでは、設定済みのチームウォレットが個人のプリペイドウォレットより優先され、両方から課金されることはありません。
 
-| ロール | ワークスペースの重点 | ガイド |
-| --- | --- | --- |
-| ユーザー | 利用可能なモデルの確認、プロジェクト Key の作成、モデル API の呼び出し、個人利用状況の確認 | [ユーザーガイド](docs/ja/user-guide.md) |
-| チームリーダー | プロジェクトスペース、プロジェクトメンバー、プロジェクト Key、チームレポート、プロジェクト別コスト配賦の管理 | [チームリーダーガイド](docs/ja/team-leader-guide.md) |
-| 管理者 | Provider、モデルカタログ、ルーティングポリシー、ID ソース、RBAC、監査、コスト制御の設定 | [管理者ガイド](docs/ja/administrator-guide.md) |
+決済の受け付けには、運営者による設定と決済プロバイダーの認証情報が必要です。コンソールを起動するだけでは有効になりません。チーム課金にも、有効な価格設定と為替レート設定が必要です。[管理者ガイド](docs/ja/administrator-guide.md)と[課金ガイド](docs/ja/billing-pricing.md)を参照してください。
 
-## プラットフォーム機能
+## モデル API
 
-- プロジェクト単位の Key 管理: チーム所有、メンバー権限、クォータ、並行数制限に対応。
-- モデルカタログとルーティングポリシー: 優先度、重み、フェイルオーバー順序、シナリオ別選択、ルートヘルス診断に対応。
-- ユーザー、プロジェクト、チーム、モデル、コストセンターに紐づく利用分析とリクエストログ。
-- コストガバナンス: Token 予算、Provider 支出比較、モデル選択、将来的なキャッシュによる節約戦略を扱います。
-- OAuth/OIDC によるエンタープライズサインイン、RBAC、監査証跡に対応する ID ソース設定。
-- OpenAI-Compatible モデル API: `/v1/chat/completions`、`/v1/responses`、`/v1/embeddings`。Anthropic Messages API: `/v1/messages`、`/v1/messages/count_tokens`。
-- テキスト検索: `/v1/embeddings` の[密ベクトル埋め込み](docs/ja/embeddings.md)と `/v1/rerank` の[文書再ランキング](docs/ja/rerank.md)。実際の Provider プロトコルを設定できます。
-- OpenAI-Compatible の画像生成および参照画像編集 API: `/v1/images/generations`、`/v1/images/edits`。非同期ジョブとサーバー側の画像保持に対応します。
-- クリーンなコンソール: ロール別ナビゲーション、グローバル検索、ライト/ダーク切り替え、左ナビ + 右詳細の API ドキュメント。
-- SQLite-first のプライベートデプロイ向けに、ネイティブ systemd と Docker Compose の両方をサポート。
-- PostgreSQL はマルチインスタンス構成に対応します。リモート PostgreSQL で状態を共有し、フロントエンドとバックエンドのレプリカを水平スケールできるほか、コネクションプールも設定できます。[デプロイガイド](docs/ja/deployment.md)を参照してください。
-- 管理コンソールは英語、中国語、日本語、ロシア語の切り替えに対応。
+| API 分類 | エンドポイント |
+| --- | --- |
+| チャットとレスポンス | `/v1/chat/completions`、`/v1/responses` |
+| Anthropic Messages | `/v1/messages`、`/v1/messages/count_tokens` |
+| 検索 | `/v1/embeddings`、`/v1/rerank` |
+| 画像 | `/v1/images/generations`、`/v1/images/edits` |
 
-## Provider エコシステム
+利用可否は、設定されたモデル、上流プロバイダー、ユーザー権限によって異なります。画像ワークフローは非同期ジョブとサーバー側の保持に対応しています。プロバイダー別のプロトコル対応については、[ドキュメント](docs/ja/README.md)を参照してください。
 
-Provider は TokenHub の接続境界です。ホスト型 API、サブスクリプションチャネル、ローカルモデル、カスタム上流は Provider 抽象を通じて接続され、同じエンタープライズポリシーであらゆるモデル経路を統制できます。
+## リポジトリ構成
 
-ルーティング、権限、Token 節約、利用主体の特定、監査、照合の制御を整えたうえで、TokenHub はその管理されたワークフローを OpenAI、Azure OpenAI、Anthropic、Gemini、DeepSeek、Qwen、Codex サブスクリプション、ローカルモデル、カスタム OpenAI-Compatible 上流へ接続します。
+| ディレクトリ | 用途 |
+| --- | --- |
+| `backend/` | Go API、認証、ルーティング、永続化、課金、決済サービス |
+| `maas-ui/` | MaaS の企業・個人ポータル。Next.js 静的エクスポート |
+| `frontend/` | 上流の Next.js 管理コンソール |
+| `data/model-catalog.yaml` | バージョン管理対象のモデルカタログ |
+| `deploy/` | コンテナおよびネイティブデプロイの設定 |
+| `sdk/` | API 統合のスモークテスト |
+| `docs/` | 製品、管理、開発、デプロイのガイド |
 
-TokenHub は、OpenAI、Azure OpenAI、Anthropic、Gemini、DeepSeek、Qwen、Codex サブスクリプション、ローカルモデル向けのネイティブ Provider アダプターに加え、150 以上の Provider テンプレートを備えています。主な接続先：
+## ローカル開発
 
-<p align="center">
-  <img src="docs/assets/provider-showcase.svg" alt="商用モデル、サブスクリプションモデル、ローカルモデル、カスタム上流を含む TokenHub の主な Provider 接続先。" width="100%">
-</p>
+`.nvmrc` の Node バージョンと、バックエンドで宣言された Go ツールチェーンを使用してください。シークレットはローカルで設定し、実際の認証情報や実行時データベースをコミットしないでください。
 
-Provider テンプレートは、利用可能な場合は対応するネイティブアダプターを使用し、それ以外は OpenAI-Compatible エンドポイントへ接続します。利用可能なモデルと機能は、上流サービスおよびアカウントによって異なり、企業側のポリシーは TokenHub に集約されます。
+### バックエンドと MaaS コンソールの起動
 
-## クイックスタート
-
-Linux systemd ホストでネイティブ Release を使用する場合:
+リポジトリのルートで実行します。
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/astaxie/TokenHub/main/deploy/native/install.sh \
-  -o /tmp/tokenhub-install.sh
-sudo bash /tmp/tokenhub-install.sh install
+./start.sh
 ```
 
-リポジトリのチェックアウトから Docker Compose を使用する場合:
+デフォルトのアドレス：
+
+- MaaS コンソール — `http://localhost:5199`
+- バックエンド API：`http://localhost:8080`
+- ヘルスチェック：`http://localhost:8080/healthz`
+
+製品の起動スクリプトは `maas-ui/` を使用します。
+
+### MaaS コンソールの起動
+
+バックエンドを起動した状態で、別のターミナルを開きます。
+
+```bash
+cd maas-ui
+npm ci
+NEXT_PUBLIC_TOKENHUB_API_BASE_URL=http://localhost:8080 npm run dev -- --port 3001
+```
+
+バックエンドの CORS でコンソールのオリジンを許可してください。パスワード、設定済みのシングルサインオン、メール登録を同じ入口から利用できます。
+
+既存の `TOKENHUB_*` および `NEXT_PUBLIC_TOKENHUB_*` 環境変数名は、引き続き互換性のための契約です。製品ブランドに合わせて改名せず、環境変数テンプレートの名前を使用してください。
+
+## デプロイ
+
+### MaaS 静的コンソール
+
+`maas-ui/` でビルドします。例の API アドレスは実際のバックエンド URL に置き換えてください。
+
+```bash
+NEXT_PUBLIC_TOKENHUB_API_BASE_URL=https://api.example.com npm run build
+```
+
+環境ごとに 1 つの `out/` をビルドして公開します。API URL と任意のパスプレフィックスはビルド時に固定されます。デプロイ先のオリジンに合わせて、HTTPS、静的ルートの処理、バックエンドの CORS を設定してください。[MaaS 静的デプロイガイド](maas-ui/docs/static-deploy.md)を参照してください。
+
+### 既存のマネージド構成
+
+現在のネイティブおよび Docker のデプロイ経路では、MaaS 静的コンソールではなく従来のコンソールがパッケージ化されます。既存の Docker 構成を使用する場合は、リポジトリのルートで実行します。
 
 ```bash
 cp deploy/.env.example deploy/.env
-# deploy/.env のすべての change-me 値を強いシークレットに置き換えます。
+# Configure the image/version and replace all change-me secrets before starting.
 ./deploy/install.sh
 ```
 
-アクセス先:
+デプロイ前にイメージとリリースの取得元を確認してください。既存のデフォルト設定は、個別に公開された TokenStation MaaS リリースではなく、上流の配布チャネルを参照している可能性があります。それらにこのブランチの変更が含まれていると想定しないでください。
 
-- 管理コンソール: `http://localhost:3000`
-- バックエンド API: `http://localhost:8080`
-- ヘルスチェック: `http://localhost:8080/healthz`
+SQLite は単一インスタンスのインストールに適しています。PostgreSQL はマルチインスタンス構成で永続データを共有できますが、レプリカ間の協調とコネクションプールを明示的に設定する必要があります。[デプロイガイド](docs/ja/deployment.md)と [PostgreSQL ガイド](docs/ja/postgresql-setup.md)に従ってください。
 
-初期管理者ログイン:
-
-- ユーザー名: `admin`
-- ネイティブインストールのパスワード: インストーラーが一度だけ表示
-- Docker のパスワード: `TOKENHUB_BOOTSTRAP_ADMIN_PASSWORD` の設定値
-
-ネイティブインストーラーは Release のチェックサムを検証し、systemd サービスをインストールして、バージョンパネルから直接更新、ロールバック、再起動できるようにします。デフォルトの Docker デプロイは、バックエンドと管理コンソールを 1 つの管理対象コンテナで実行し、Docker Socket をマウントせずに同じ直接操作を提供します。Release バンドルは `tokenhub-releases` ボリュームへ保存されるため、通常のコンテナ再起動や再作成でも画面から適用した更新は保持されます。マルチインスタンス Docker では、全レプリカを同時に切り替えるため Compose による運用更新を維持します。詳細は[デプロイガイド](docs/ja/deployment.md)を参照してください。
+既存のデータベースをアップグレードする前に、バックアップを作成し、対象バージョンとマイグレーション履歴を照合してください。分岐した開発ブランチから競合するマイグレーションを適用済みの場合は、アップグレード前に履歴の整合性を確保する必要があります。チェックサム検証を回避したり、マイグレーション記録を上書きしたりしないでください。
 
 ## ドキュメント
 
 - [ドキュメントホーム](docs/ja/README.md)
-- [全体アーキテクチャ](docs/ja/architecture.md)
 - [ユーザーガイド](docs/ja/user-guide.md)
 - [チームリーダーガイド](docs/ja/team-leader-guide.md)
 - [管理者ガイド](docs/ja/administrator-guide.md)
-- [コントリビューションガイド](CONTRIBUTING.ja.md)
+- [アーキテクチャ](docs/ja/architecture.md)
+- [課金と価格設定](docs/ja/billing-pricing.md)
+- [MaaS 静的デプロイ](maas-ui/docs/static-deploy.md)
+- [開発・コントリビューションガイド](CONTRIBUTING.ja.md)
 
-## Contributors
+## ライセンス
 
-TokenHub は、実際のエンタープライズ利用からのフィードバック、ゲートウェイ連携、ドキュメント、テスト、継続的なメンテナンスによって育っています。プロジェクトをより信頼できるものにしてくれるすべての方に感謝します。
+このリポジトリには [TokenHub](https://github.com/astaxie/TokenHub) に由来する成果物が含まれています。再配布する際は、適用される上流の著作権表示と帰属表示を保持してください。
 
-<!-- readme: contributors -start -->
-
-<table>
-  <tr>
-    <td align="center" valign="top" width="12.5%">
-      <a href="https://github.com/astaxie">
-        <img src="https://avatars.githubusercontent.com/u/233907?v=4" width="80px" alt="astaxie" />
-        <br /><sub><b>astaxie</b></sub>
-      </a>
-    </td>
-    <td align="center" valign="top" width="12.5%">
-      <a href="https://github.com/deepjerry-ai">
-        <img src="https://avatars.githubusercontent.com/u/262369278?v=4" width="80px" alt="deepjerry-ai" />
-        <br /><sub><b>deepjerry-ai</b></sub>
-      </a>
-    </td>
-    <td align="center" valign="top" width="12.5%">
-      <a href="https://github.com/legendtkl">
-        <img src="https://avatars.githubusercontent.com/u/2370761?v=4" width="80px" alt="legendtkl" />
-        <br /><sub><b>legendtkl</b></sub>
-      </a>
-    </td>
-    <td align="center" valign="top" width="12.5%">
-      <a href="https://github.com/Mr0bean">
-        <img src="https://avatars.githubusercontent.com/u/19573968?v=4" width="80px" alt="Mr0bean" />
-        <br /><sub><b>Mr0bean</b></sub>
-      </a>
-    </td>
-    <td align="center" valign="top" width="12.5%">
-      <a href="https://github.com/bailu-ZZ">
-        <img src="https://avatars.githubusercontent.com/u/311096537?v=4" width="80px" alt="bailu-ZZ" />
-        <br /><sub><b>bailu-ZZ</b></sub>
-      </a>
-    </td>
-    <td align="center" valign="top" width="12.5%">
-      <a href="https://github.com/cngump">
-        <img src="https://avatars.githubusercontent.com/u/108251?v=4" width="80px" alt="cngump" />
-        <br /><sub><b>cngump</b></sub>
-      </a>
-    </td>
-    <td align="center" valign="top" width="12.5%">
-      <a href="https://github.com/coldbrewtea">
-        <img src="https://avatars.githubusercontent.com/u/6879314?v=4" width="80px" alt="coldbrewtea" />
-        <br /><sub><b>coldbrewtea</b></sub>
-      </a>
-    </td>
-    <td align="center" valign="top" width="12.5%">
-      <a href="https://github.com/kiddyt00">
-        <img src="https://avatars.githubusercontent.com/u/22384775?v=4" width="80px" alt="kiddyt00" />
-        <br /><sub><b>kiddyt00</b></sub>
-      </a>
-    </td>
-  </tr>
-  <tr>
-    <td align="center" valign="top" width="12.5%">
-      <a href="https://github.com/excniesNIED">
-        <img src="https://avatars.githubusercontent.com/u/61446002?v=4" width="80px" alt="excniesNIED" />
-        <br /><sub><b>excniesNIED</b></sub>
-      </a>
-    </td>
-    <td align="center" valign="top" width="12.5%">
-      <a href="https://github.com/imaben">
-        <img src="https://avatars.githubusercontent.com/u/3390195?v=4" width="80px" alt="imaben" />
-        <br /><sub><b>imaben</b></sub>
-      </a>
-    </td>
-    <td align="center" valign="top" width="12.5%">
-      <a href="https://github.com/samz406">
-        <img src="https://avatars.githubusercontent.com/u/3055810?v=4" width="80px" alt="samz406" />
-        <br /><sub><b>samz406</b></sub>
-      </a>
-    </td>
-    <td align="center" valign="top" width="12.5%">
-      <a href="https://github.com/FaustMont">
-        <img src="https://avatars.githubusercontent.com/u/9304306?v=4" width="80px" alt="FaustMont" />
-        <br /><sub><b>FaustMont</b></sub>
-      </a>
-    </td>
-    <td align="center" valign="top" width="12.5%">
-      <a href="https://github.com/wangle201210">
-        <img src="https://avatars.githubusercontent.com/u/19949348?v=4" width="80px" alt="wangle201210" />
-        <br /><sub><b>wangle201210</b></sub>
-      </a>
-    </td>
-    <td align="center" valign="top" width="12.5%">
-      <a href="https://github.com/jackiesre721">
-        <img src="https://avatars.githubusercontent.com/u/8868514?v=4" width="80px" alt="jackiesre721" />
-        <br /><sub><b>jackiesre721</b></sub>
-      </a>
-    </td>
-    <td align="center" valign="top" width="12.5%">
-      <a href="https://github.com/CLukeLi">
-        <img src="https://avatars.githubusercontent.com/u/252523101?v=4" width="80px" alt="CLukeLi" />
-        <br /><sub><b>CLukeLi</b></sub>
-      </a>
-    </td>
-    <td align="center" valign="top" width="12.5%">
-      <a href="https://github.com/myssl">
-        <img src="https://avatars.githubusercontent.com/u/27838738?v=4" width="80px" alt="myssl" />
-        <br /><sub><b>myssl</b></sub>
-      </a>
-    </td>
-  </tr>
-  <tr>
-    <td align="center" valign="top" width="12.5%">
-      <a href="https://github.com/exgliuzhi">
-        <img src="https://avatars.githubusercontent.com/u/6261701?v=4" width="80px" alt="exgliuzhi" />
-        <br /><sub><b>exgliuzhi</b></sub>
-      </a>
-    </td>
-    <td align="center" valign="top" width="12.5%">
-      <a href="https://github.com/ACwisdom">
-        <img src="https://avatars.githubusercontent.com/u/212327199?v=4" width="80px" alt="ACwisdom" />
-        <br /><sub><b>ACwisdom</b></sub>
-      </a>
-    </td>
-    <td align="center" valign="top" width="12.5%">
-      <a href="https://github.com/wozhenbang2004">
-        <img src="https://avatars.githubusercontent.com/u/113896798?v=4" width="80px" alt="wozhenbang2004" />
-        <br /><sub><b>wozhenbang2004</b></sub>
-      </a>
-    </td>
-    <td align="center" valign="top" width="12.5%">
-      <a href="https://github.com/hoorayman">
-        <img src="https://avatars.githubusercontent.com/u/73151874?v=4" width="80px" alt="hoorayman" />
-        <br /><sub><b>hoorayman</b></sub>
-      </a>
-    </td>
-    <td align="center" valign="top" width="12.5%">
-      <a href="https://github.com/debin-ge">
-        <img src="https://avatars.githubusercontent.com/u/21329997?v=4" width="80px" alt="debin-ge" />
-        <br /><sub><b>debin-ge</b></sub>
-      </a>
-    </td>
-    <td align="center" valign="top" width="12.5%">
-      <a href="https://github.com/ocass-chen">
-        <img src="https://avatars.githubusercontent.com/u/172055494?v=4" width="80px" alt="ocass-chen" />
-        <br /><sub><b>ocass-chen</b></sub>
-      </a>
-    </td>
-    <td align="center" valign="top" width="12.5%">
-      <a href="https://github.com/tangsong404">
-        <img src="https://avatars.githubusercontent.com/u/131441711?v=4" width="80px" alt="tangsong404" />
-        <br /><sub><b>tangsong404</b></sub>
-      </a>
-    </td>
-    <td align="center" valign="top" width="12.5%">
-      <a href="https://github.com/desertsurge">
-        <img src="https://avatars.githubusercontent.com/u/1735018?v=4" width="80px" alt="desertsurge" />
-        <br /><sub><b>desertsurge</b></sub>
-      </a>
-    </td>
-  </tr>
-  <tr>
-    <td align="center" valign="top" width="12.5%">
-      <a href="https://github.com/susunola">
-        <img src="https://avatars.githubusercontent.com/u/38539169?v=4" width="80px" alt="susunola" />
-        <br /><sub><b>susunola</b></sub>
-      </a>
-    </td>
-    <td align="center" valign="top" width="12.5%">
-      <a href="https://github.com/lxm">
-        <img src="https://avatars.githubusercontent.com/u/1918195?v=4" width="80px" alt="lxm" />
-        <br /><sub><b>lxm</b></sub>
-      </a>
-    </td>
-    <td align="center" valign="top" width="12.5%">
-      <a href="https://github.com/longzhang83">
-        <img src="https://avatars.githubusercontent.com/u/38556219?v=4" width="80px" alt="longzhang83" />
-        <br /><sub><b>longzhang83</b></sub>
-      </a>
-    </td>
-    <td align="center" valign="top" width="12.5%">
-      <a href="https://github.com/yujiewanwan">
-        <img src="https://avatars.githubusercontent.com/u/268286250?v=4" width="80px" alt="yujiewanwan" />
-        <br /><sub><b>yujiewanwan</b></sub>
-      </a>
-    </td>
-    <td align="center" valign="top" width="12.5%">
-      <a href="https://github.com/mvanhorn">
-        <img src="https://avatars.githubusercontent.com/u/455140?v=4" width="80px" alt="mvanhorn" />
-        <br /><sub><b>mvanhorn</b></sub>
-      </a>
-    </td>
-    <td align="center" valign="top" width="12.5%">
-      <a href="https://github.com/DeanHH">
-        <img src="https://avatars.githubusercontent.com/u/1842770?v=4" width="80px" alt="DeanHH" />
-        <br /><sub><b>DeanHH</b></sub>
-      </a>
-    </td>
-    <td align="center" valign="top" width="12.5%">
-      <a href="https://github.com/codex">
-        <img src="https://avatars.githubusercontent.com/u/267193182?v=4" width="80px" alt="codex" />
-        <br /><sub><b>codex</b></sub>
-      </a>
-    </td>
-    <td align="center" valign="top" width="12.5%">
-      <a href="https://github.com/AnxForever">
-        <img src="https://avatars.githubusercontent.com/u/130662349?v=4" width="80px" alt="AnxForever" />
-        <br /><sub><b>AnxForever</b></sub>
-      </a>
-    </td>
-  </tr>
-</table>
-
-<!-- readme: contributors -end -->
-
-<p align="center">
-  <a href="https://github.com/astaxie/TokenHub/graphs/contributors">すべてのコントリビューターを見る</a>
-  ·
-  <a href="CONTRIBUTING.ja.md">コントリビュートを始める</a>
-</p>
-
-## Star History
-
-<a href="https://www.star-history.com/?repos=astaxie%2Ftokenhub&type=date&legend=top-left">
- <picture>
-   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=astaxie/tokenhub&type=date&theme=dark&legend=top-left&sealed_token=hWH3kDnssTf49CCLxzq3NVqEp0WTL-HFhsdpQJJz1DUuZt0D-nu1jgXLnhCxrUrMYujv6IJJk12B1wCp5qiU2bU_J03ECSYvb3Y9Pv-gqX7RuwS4SehRrQ" />
-   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=astaxie/tokenhub&type=date&legend=top-left&sealed_token=hWH3kDnssTf49CCLxzq3NVqEp0WTL-HFhsdpQJJz1DUuZt0D-nu1jgXLnhCxrUrMYujv6IJJk12B1wCp5qiU2bU_J03ECSYvb3Y9Pv-gqX7RuwS4SehRrQ" />
-   <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=astaxie/tokenhub&type=date&legend=top-left&sealed_token=hWH3kDnssTf49CCLxzq3NVqEp0WTL-HFhsdpQJJz1DUuZt0D-nu1jgXLnhCxrUrMYujv6IJJk12B1wCp5qiU2bU_J03ECSYvb3Y9Pv-gqX7RuwS4SehRrQ" />
- </picture>
-</a>
-
-## License
-
-TokenHub は [Apache License 2.0](LICENSE) の下で提供されています。
+TokenStation は [Apache License 2.0](LICENSE) の下で配布されています。

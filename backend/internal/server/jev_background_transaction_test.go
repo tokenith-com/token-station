@@ -8,7 +8,7 @@ import (
 )
 
 func TestJevBackgroundBindingAtomicCompletion(t *testing.T) {
-	testJevBackgroundBindingAtomicCompletion(t, NewMemoryStore())
+	testJevBackgroundBindingAtomicCompletion(t, newTestMemoryStore(t))
 }
 
 func testJevBackgroundBindingAtomicCompletion(t *testing.T, store *GormStore) {

@@ -13,7 +13,7 @@ func TestSubscriptionObservationsRejectRecreatedOrMovedAccount(t *testing.T) {
 	for _, operation := range []string{"quota.read", "models.read"} {
 		for _, mutation := range []string{"recreate", "move"} {
 			t.Run(operation+"/"+mutation, func(t *testing.T) {
-				store := NewMemoryStore()
+				store := newTestMemoryStore(t)
 				server := New(store)
 				t.Cleanup(func() { _ = server.Shutdown(context.Background()) })
 				definition := subscriptionWorkerDefinition{"qoder", "Qoder"}
@@ -93,7 +93,7 @@ func (a observationIdentityModelAdapter) ResourceModels(context.Context, Provide
 }
 
 func TestRecreatedAccountDoesNotReuseNotModifiedCatalog(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	server := New(store)
 	t.Cleanup(func() { _ = server.Shutdown(context.Background()) })
 	provider := store.AddProvider(Provider{Name: "Cached subscription", Type: ProviderChatGPTSubscription, Status: StatusActive})

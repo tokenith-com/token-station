@@ -51,7 +51,7 @@ func TestQuotaTimezoneBoundaries(t *testing.T) {
 		{"fall DST repeated hour", "America/New_York", "2026-11-01T06:30:00Z", "2026-11-01", "2026-11"},
 		{"fall DST next midnight", "America/New_York", "2026-11-02T05:00:00Z", "2026-11-02", "2026-11"},
 	}
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	t.Setenv("TZ", "Pacific/Auckland")
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -197,7 +197,7 @@ func TestQuotaTimezoneSettlementSurvivesSettingChange(t *testing.T) {
 }
 
 func TestQuotaTimezoneLegacyAdmissionAndValidation(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	setQuotaTimezone(t, store, "Asia/Shanghai")
 	at := time.Date(2026, 9, 30, 16, 0, 0, 0, time.UTC)
 	payload, err := json.Marshal(meteringRequestSnapshot{RequestID: "legacy"})
@@ -215,7 +215,7 @@ func TestQuotaTimezoneLegacyAdmissionAndValidation(t *testing.T) {
 	}
 	for _, zone := range []string{"Nope/Nowhere", "Local", "../UTC"} {
 		req := AdminResource{ID: gatewaySettingsID, Name: "Gateway", Fields: map[string]any{quotaTimezoneField: zone}}
-		response := doJSON(t, New(store).Handler(), http.MethodPatch, "/api/admin/resources/settings/"+gatewaySettingsID, req, "")
+		response := doJSON(t, newManagedTestServer(t, store).Handler(), http.MethodPatch, "/api/admin/resources/settings/"+gatewaySettingsID, req, "")
 		if response.Code != http.StatusBadRequest || !strings.Contains(response.Body, "invalid_quota_timezone") {
 			t.Fatalf("invalid zone %s response = %d %s", zone, response.Code, response.Body)
 		}

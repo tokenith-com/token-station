@@ -16,7 +16,7 @@ import (
 )
 
 func TestGuardrailsRejectPathologicalDeterministicWorkBeforeRouting(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	if err := SeedDemoData(store); err != nil {
 		t.Fatal(err)
 	}
@@ -38,7 +38,7 @@ func TestGuardrailsRejectPathologicalDeterministicWorkBeforeRouting(t *testing.T
 		t.Fatal(err)
 	}
 	usageBefore := len(store.ListUsageRecords())
-	response := doGuardrailProtocolRequest(t, New(store).Handler(), "/v1/chat/completions", map[string]any{
+	response := doGuardrailProtocolRequest(t, newManagedTestServer(t, store).Handler(), "/v1/chat/completions", map[string]any{
 		"model":    "gpt-4.1-mini",
 		"messages": []any{map[string]any{"role": "user", "content": strings.Repeat("a", 64*1024)}},
 	}, "thk_demo_local")
@@ -51,7 +51,7 @@ func TestGuardrailsRejectPathologicalDeterministicWorkBeforeRouting(t *testing.T
 }
 
 func TestGuardrailsBlockAllSupportedOutboundProtocolsBeforeRouting(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	if err := SeedDemoData(store); err != nil {
 		t.Fatal(err)
 	}
@@ -66,7 +66,7 @@ func TestGuardrailsBlockAllSupportedOutboundProtocolsBeforeRouting(t *testing.T)
 	}); err != nil {
 		t.Fatal(err)
 	}
-	app := New(store).Handler()
+	app := newManagedTestServer(t, store).Handler()
 
 	tests := []struct {
 		name              string
@@ -210,7 +210,7 @@ func assertGuardrailProtocolError(t *testing.T, response *httptest.ResponseRecor
 }
 
 func TestGuardrailsBlockAdminPlaygroundBeforeRouting(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	if err := SeedDemoData(store); err != nil {
 		t.Fatal(err)
 	}
@@ -224,12 +224,13 @@ func TestGuardrailsBlockAdminPlaygroundBeforeRouting(t *testing.T) {
 	}); err != nil {
 		t.Fatal(err)
 	}
-	app := New(store).Handler()
+	app := newManagedTestServer(t, store).Handler()
+	keyID := createPlaygroundTestKey(t, store, "prj_demo", "")
 	expectedRequestIDs := map[string]bool{}
 	for _, path := range []string{"/api/admin/playground/chat", "/api/admin/playground/chat/stream"} {
 		t.Run(path, func(t *testing.T) {
 			response := doGuardrailProtocolRequest(t, app, path, map[string]any{
-				"project_id": "prj_demo",
+				"api_key_id": keyID,
 				"model":      "gpt-4.1-mini",
 				"messages":   []any{map[string]any{"role": "user", "content": "call 13312341234"}},
 			}, "dev_admin_token")
@@ -266,8 +267,8 @@ func TestGuardrailsBlockAdminPlaygroundBeforeRouting(t *testing.T) {
 	}
 }
 
-func TestAdminPlaygroundRejectsUnauthorizedGuardrailProjectContext(t *testing.T) {
-	store := NewMemoryStore()
+func TestAdminPlaygroundRejectsAPIKeyOwnedByAnotherUser(t *testing.T) {
+	store := newTestMemoryStore(t)
 	if err := SeedDemoData(store); err != nil {
 		t.Fatal(err)
 	}
@@ -282,34 +283,36 @@ func TestAdminPlaygroundRejectsUnauthorizedGuardrailProjectContext(t *testing.T)
 	if err != nil {
 		t.Fatal(err)
 	}
-	app := New(store).Handler()
+	otherKeyID := createPlaygroundTestKey(t, store, "prj_demo", playgroundTestAdminID(store))
+	app := newManagedTestServer(t, store).Handler()
 	for _, path := range []string{"/api/admin/playground/chat", "/api/admin/playground/chat/stream"} {
 		t.Run(path, func(t *testing.T) {
 			response := doGuardrailProtocolRequest(t, app, path, map[string]any{
-				"project_id": "prj_demo",
+				"api_key_id": otherKeyID,
 				"model":      "gpt-4.1-mini",
 				"messages":   []any{map[string]any{"role": "user", "content": "inspect me"}},
 			}, session.Token)
-			if response.Code != http.StatusForbidden || !strings.Contains(response.Body.String(), `"code":"project_forbidden"`) {
-				t.Fatalf("expected project access failure, got %d: %s", response.Code, response.Body.String())
+			if response.Code != http.StatusNotFound || !strings.Contains(response.Body.String(), `"code":"api_key_not_found"`) {
+				t.Fatalf("expected foreign API key to be rejected, got %d: %s", response.Code, response.Body.String())
 			}
 		})
 	}
 }
 
-func TestAdminPlaygroundRequiresGuardrailProjectContext(t *testing.T) {
-	store := NewMemoryStore()
+func TestAdminPlaygroundRequiresAPIKey(t *testing.T) {
+	store := newTestMemoryStore(t)
 	if err := SeedDemoData(store); err != nil {
 		t.Fatal(err)
 	}
-	app := New(store).Handler()
+	app := newManagedTestServer(t, store).Handler()
 	for _, path := range []string{"/api/admin/playground/chat", "/api/admin/playground/chat/stream"} {
 		t.Run(path, func(t *testing.T) {
 			response := doGuardrailProtocolRequest(t, app, path, map[string]any{
-				"model": "gpt-4.1-mini", "messages": []any{map[string]any{"role": "user", "content": "inspect me"}},
+				"project_id": "prj_demo",
+				"model":      "gpt-4.1-mini", "messages": []any{map[string]any{"role": "user", "content": "inspect me"}},
 			}, "dev_admin_token")
-			if response.Code != http.StatusBadRequest || !strings.Contains(response.Body.String(), `"code":"missing_project"`) {
-				t.Fatalf("expected missing project failure, got %d: %s", response.Code, response.Body.String())
+			if response.Code != http.StatusBadRequest || !strings.Contains(response.Body.String(), `"code":"missing_api_key"`) {
+				t.Fatalf("expected missing API key failure, got %d: %s", response.Code, response.Body.String())
 			}
 		})
 	}
@@ -325,7 +328,7 @@ func TestGuardrailModelDetectorRunsOnlyAfterAPIKeyAdmission(t *testing.T) {
 	}))
 	defer model.Close()
 
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	if err := SeedDemoData(store); err != nil {
 		t.Fatal(err)
 	}
@@ -340,7 +343,7 @@ func TestGuardrailModelDetectorRunsOnlyAfterAPIKeyAdmission(t *testing.T) {
 	}); err != nil {
 		t.Fatal(err)
 	}
-	app := NewWithConfig(store, Config{AdminToken: "dev_admin_token", GuardrailModelURL: model.URL}).Handler()
+	app := newManagedTestServerWithConfig(t, store, Config{AdminToken: "dev_admin_token", GuardrailModelURL: model.URL}).Handler()
 	tests := []struct {
 		name    string
 		request func() *httptest.ResponseRecorder
@@ -397,7 +400,7 @@ func TestGuardrailModelDetectorRunsOnlyAfterAPIKeyAdmission(t *testing.T) {
 }
 
 func TestGuardrailsMaskAdminPlaygroundBeforeRouting(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	if err := SeedDemoData(store); err != nil {
 		t.Fatal(err)
 	}
@@ -411,11 +414,12 @@ func TestGuardrailsMaskAdminPlaygroundBeforeRouting(t *testing.T) {
 	}); err != nil {
 		t.Fatal(err)
 	}
-	app := New(store).Handler()
+	app := newManagedTestServer(t, store).Handler()
+	keyID := createPlaygroundTestKey(t, store, "prj_demo", "")
 	for _, path := range []string{"/api/admin/playground/chat", "/api/admin/playground/chat/stream"} {
 		t.Run(path, func(t *testing.T) {
 			response := doJSON(t, app, http.MethodPost, path, map[string]any{
-				"project_id": "prj_demo",
+				"api_key_id": keyID,
 				"model":      "gpt-4.1-mini",
 				"messages":   []any{map[string]any{"role": "user", "content": "contact demo@example.com"}},
 			}, "")
@@ -427,7 +431,7 @@ func TestGuardrailsMaskAdminPlaygroundBeforeRouting(t *testing.T) {
 }
 
 func TestGuardrailsMaskChatTextAndDoNotPersistMatchedInput(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	if err := SeedDemoData(store); err != nil {
 		t.Fatal(err)
 	}
@@ -441,7 +445,7 @@ func TestGuardrailsMaskChatTextAndDoNotPersistMatchedInput(t *testing.T) {
 	}); err != nil {
 		t.Fatal(err)
 	}
-	response := doJSON(t, New(store).Handler(), http.MethodPost, "/v1/chat/completions", map[string]any{
+	response := doJSON(t, newManagedTestServer(t, store).Handler(), http.MethodPost, "/v1/chat/completions", map[string]any{
 		"model": "gpt-4.1-mini", "messages": []any{map[string]any{"role": "user", "content": "email demo@example.com"}},
 	}, "thk_demo_local")
 	if response.Code != http.StatusOK || !strings.Contains(response.Body, "email [REDACTED]") {
@@ -457,7 +461,7 @@ func TestGuardrailsMaskChatTextAndDoNotPersistMatchedInput(t *testing.T) {
 }
 
 func TestGuardrailsMaskResponsesCompactBeforeRouting(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	if err := SeedDemoData(store); err != nil {
 		t.Fatal(err)
 	}
@@ -497,7 +501,7 @@ func TestGuardrailsMaskResponsesCompactBeforeRouting(t *testing.T) {
 		ProviderModel: "gpt-compact-upstream", Status: StatusActive,
 	})
 
-	server := NewWithConfig(store, Config{AdminToken: "dev_admin_token", SecretKey: "compact-mask-secret"})
+	server := newManagedTestServerWithConfig(t, store, Config{AdminToken: "dev_admin_token", SecretKey: "compact-mask-secret"})
 	mustCodexSubscriptionAdapterForTest(t, server).MaxRequestRetries = 0
 	var upstreamPayload map[string]any
 	mustCodexSubscriptionAdapterForTest(t, server).Client = &http.Client{Transport: roundTripperFunc(func(req *http.Request) (*http.Response, error) {
@@ -537,7 +541,7 @@ func TestGuardrailsMaskResponsesCompactBeforeRouting(t *testing.T) {
 }
 
 func TestGuardrailsMaskResponsesCompactPreservesOpaqueNumbers(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	if err := SeedDemoData(store); err != nil {
 		t.Fatal(err)
 	}
@@ -577,7 +581,7 @@ func TestGuardrailsMaskResponsesCompactPreservesOpaqueNumbers(t *testing.T) {
 		ProviderModel: "gpt-compact-upstream", Status: StatusActive,
 	})
 
-	server := NewWithConfig(store, Config{AdminToken: "dev_admin_token", SecretKey: "compact-number-secret"})
+	server := newManagedTestServerWithConfig(t, store, Config{AdminToken: "dev_admin_token", SecretKey: "compact-number-secret"})
 	mustCodexSubscriptionAdapterForTest(t, server).MaxRequestRetries = 0
 	var upstreamRawBody string
 	mustCodexSubscriptionAdapterForTest(t, server).Client = &http.Client{Transport: roundTripperFunc(func(req *http.Request) (*http.Response, error) {
@@ -628,8 +632,8 @@ func TestGuardrailsMaskResponsesCompactPreservesOpaqueNumbers(t *testing.T) {
 }
 
 func TestAdminGuardrailPolicyTestUsesUnsavedPolicyWithoutPersistingSample(t *testing.T) {
-	store := NewMemoryStore()
-	app := New(store).Handler()
+	store := newTestMemoryStore(t)
+	app := newManagedTestServer(t, store).Handler()
 	response := doJSON(t, app, http.MethodPost, "/api/admin/guardrail-policies/test", map[string]any{
 		"policy": map[string]any{
 			"name": "Unsaved policy", "status": "disabled",
@@ -670,8 +674,8 @@ func TestAdminGuardrailPolicyTestUsesConfiguredQwenDetector(t *testing.T) {
 		})
 	}))
 	defer model.Close()
-	store := NewMemoryStore()
-	app := NewWithConfig(store, Config{AdminToken: "dev_admin_token", GuardrailModelURL: model.URL}).Handler()
+	store := newTestMemoryStore(t)
+	app := newManagedTestServerWithConfig(t, store, Config{AdminToken: "dev_admin_token", GuardrailModelURL: model.URL}).Handler()
 	response := doJSON(t, app, http.MethodPost, "/api/admin/guardrail-policies/test", map[string]any{
 		"policy": map[string]any{
 			"name": "Model policy", "status": "active",

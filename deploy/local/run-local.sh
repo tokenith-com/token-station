@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Run TokenHub locally from a production build, without Docker, root or systemd.
+# Run TokenStation locally from a production build, without Docker, root or systemd.
 #
 # Everything stays inside the repository: the binary, the console bundle, the
 # SQLite database, the logs and the pid files all live under .tokenhub/, which is
@@ -20,11 +20,10 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 BACKEND_DIR="$REPO_ROOT/backend"
-FRONTEND_DIR="$REPO_ROOT/frontend"
+FRONTEND_DIR="$REPO_ROOT/maas-ui"
 # Lays the bundle out exactly like a release, so what runs here matches what a
 # deployment would run.
-# shellcheck source=standalone-bundle.sh
-. "$SCRIPT_DIR/standalone-bundle.sh"
+
 
 RUN_DIR="${TOKENHUB_LOCAL_DIR:-$REPO_ROOT/.tokenhub}"
 BACKEND_PORT="${TOKENHUB_LOCAL_BACKEND_PORT:-8080}"
@@ -32,7 +31,7 @@ CONSOLE_PORT="${TOKENHUB_LOCAL_CONSOLE_PORT:-3000}"
 STATE_DIR="$RUN_DIR/run"
 LOG_DIR="$RUN_DIR/logs"
 WEB_DIR="$RUN_DIR/web"
-BACKEND_BIN="$RUN_DIR/bin/tokenhub"
+BACKEND_BIN="$RUN_DIR/bin/tokenstation"
 DB_PATH="$RUN_DIR/data/tokenhub.db"
 READY_TIMEOUT=90
 
@@ -45,8 +44,8 @@ FOLLOW=false
 BACKEND_PID=""
 CONSOLE_PID=""
 
-log() { printf '[tokenhub] %s\n' "$*"; }
-error() { printf '[tokenhub] ERROR: %s\n' "$*" >&2; }
+log() { printf '[tokenstation] %s\n' "$*"; }
+error() { printf '[tokenstation] ERROR: %s\n' "$*" >&2; }
 
 usage() {
   cat <<'EOF'
@@ -70,7 +69,7 @@ Options:
 
 All runtime state lives in .tokenhub/ inside the repository; delete that
 directory to reset. Building may also refresh the usual ignored frontend
-artefacts (frontend/node_modules, frontend/.next).
+artefacts (maas-ui/node_modules, maas-ui/.next).
 EOF
 }
 
@@ -264,15 +263,15 @@ case "$ACTION" in
     fi
     for service in backend console; do
       if pid="$(service_pid "$service")"; then
-        printf '[tokenhub] %-8s running (pid %s)\n' "$service" "$pid"
+        printf '[tokenstation] %-8s running (pid %s)\n' "$service" "$pid"
       else
-        printf '[tokenhub] %-8s not running\n' "$service"
+        printf '[tokenstation] %-8s not running\n' "$service"
       fi
     done
-    printf '[tokenhub] console  http://127.0.0.1:%s\n' "$CONSOLE_PORT"
-    printf '[tokenhub] backend  http://127.0.0.1:%s\n' "$BACKEND_PORT"
-    printf '[tokenhub] data     %s\n' "$DB_PATH"
-    printf '[tokenhub] logs     %s\n' "$LOG_DIR"
+    printf '[tokenstation] console  http://127.0.0.1:%s\n' "$CONSOLE_PORT"
+    printf '[tokenstation] backend  http://127.0.0.1:%s\n' "$BACKEND_PORT"
+    printf '[tokenstation] data     %s\n' "$DB_PATH"
+    printf '[tokenstation] logs     %s\n' "$LOG_DIR"
     exit 0
     ;;
   logs)
@@ -359,7 +358,7 @@ needs_backend_build() {
 if needs_backend_build; then
   log "Building backend"
   # cgo is required: the SQLite driver fails at runtime without it.
-  (cd "$BACKEND_DIR" && CGO_ENABLED=1 go build -o "$BACKEND_BIN" ./cmd/tokenhub)
+  (cd "$BACKEND_DIR" && CGO_ENABLED=1 go build -o "$BACKEND_BIN" ./cmd/tokenstation)
 else
   log "Backend binary is current"
 fi
@@ -372,7 +371,7 @@ fi
 needs_console_build() {
   [ "$REBUILD" = true ] && return 0
   local build_id="$FRONTEND_DIR/.next/BUILD_ID"
-  [ -f "$build_id" ] || return 0
+  [ -f "$build_id" ] && [ -f "$FRONTEND_DIR/out/index.html" ] && [ "$(cat "$WEB_DIR/backend-port" 2>/dev/null)" = "$BACKEND_PORT" ] || return 0
   local input
   for input in package.json package-lock.json next.config.ts tsconfig.json; do
     [ -e "$FRONTEND_DIR/$input" ] && [ "$FRONTEND_DIR/$input" -nt "$build_id" ] && return 0
@@ -380,13 +379,13 @@ needs_console_build() {
   # Every source directory, not a hardcoded three: a new top-level directory would
   # otherwise never trigger a rebuild.
   [ -n "$(find "$FRONTEND_DIR" -mindepth 1 -maxdepth 1 -type d \
-    ! -name node_modules ! -name .next \
+    ! -name node_modules ! -name .next ! -name out \
     -exec find {} -newer "$build_id" -print -quit \; 2>/dev/null)" ]
 }
 
 if needs_console_build; then
   log "Building console (production build, not a dev server)"
-  (cd "$FRONTEND_DIR" && npm run build)
+  (cd "$FRONTEND_DIR" && NEXT_PUBLIC_TOKENHUB_API_BASE_URL="http://127.0.0.1:$BACKEND_PORT" npm run build)
   rm -rf "$WEB_DIR"
 else
   log "Console build is current"
@@ -394,9 +393,11 @@ fi
 
 # Also reassemble when .next was rebuilt by something else (npm run build),
 # otherwise an older bundle would be served while looking current.
-if [ ! -f "$WEB_DIR/server.js" ] || [ "$FRONTEND_DIR/.next/BUILD_ID" -nt "$WEB_DIR/server.js" ]; then
+if [ ! -f "$WEB_DIR/server.mjs" ] || [ "$FRONTEND_DIR/.next/BUILD_ID" -nt "$WEB_DIR/server.mjs" ]; then
   log "Assembling console bundle"
-  assemble_standalone_bundle "$FRONTEND_DIR" "$WEB_DIR" || exit 1
+  mkdir -p "$WEB_DIR"
+  cp "$FRONTEND_DIR/scripts/serve-static.mjs" "$WEB_DIR/server.mjs"
+  printf '%s\n' "$BACKEND_PORT" > "$WEB_DIR/backend-port"
 fi
 
 if [ "$RESET" = true ] && [ -f "$DB_PATH" ]; then
@@ -423,6 +424,7 @@ BACKEND_ENV=(
 )
 
 CONSOLE_ENV=(
+  TOKENHUB_STATIC_ROOT="$FRONTEND_DIR/out"
   NODE_ENV=production
   TOKENHUB_API_BASE_URL="http://127.0.0.1:$BACKEND_PORT"
   HOSTNAME=127.0.0.1
@@ -447,6 +449,7 @@ trap abort_startup INT TERM EXIT
 
 # Detached services write to log files; a foreground run inherits the terminal so
 # the output is visible as it happens.
+env "${BACKEND_ENV[@]}" "$BACKEND_BIN" db prepare --initialize
 log "Starting backend on 127.0.0.1:$BACKEND_PORT"
 if [ "$DETACH" = true ]; then
   if [ "$HAVE_SETSID" = true ]; then
@@ -495,14 +498,10 @@ wait_for_http "http://127.0.0.1:$BACKEND_PORT/readyz" "Backend" "$BACKEND_PID" \
   || startup_failed "Backend did not start"
 
 log "Starting console on 127.0.0.1:$CONSOLE_PORT"
-# node server.js, not `next start`: Next refuses to serve an output: "standalone"
-# build through `next start`. This is the same entrypoint the systemd unit uses.
-# Always to a file, in both modes: Next's startup output is noisy enough that
-# interleaving it with the backend's would make a foreground run hard to read.
 if [ "$HAVE_SETSID" = true ]; then
-  setsid env "${CONSOLE_ENV[@]}" node "$WEB_DIR/server.js" >>"$(log_file console)" 2>&1 </dev/null &
+  setsid env "${CONSOLE_ENV[@]}" node "$WEB_DIR/server.mjs" >>"$(log_file console)" 2>&1 </dev/null &
 else
-  env "${CONSOLE_ENV[@]}" node "$WEB_DIR/server.js" >>"$(log_file console)" 2>&1 </dev/null &
+  env "${CONSOLE_ENV[@]}" node "$WEB_DIR/server.mjs" >>"$(log_file console)" 2>&1 </dev/null &
 fi
 CONSOLE_PID=$!
 record_pid console "$CONSOLE_PID" || { kill "$CONSOLE_PID" 2>/dev/null; exit 1; }
@@ -513,7 +512,7 @@ wait_for_http "http://127.0.0.1:$CONSOLE_PORT/" "Console" "$CONSOLE_PID" \
 print_summary() {
   cat <<EOF
 
-TokenHub is running locally.
+TokenStation is running locally.
 
   Console:  http://127.0.0.1:$CONSOLE_PORT
   Backend:  http://127.0.0.1:$BACKEND_PORT

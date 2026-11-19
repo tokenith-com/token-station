@@ -3,28 +3,19 @@ ARG NODE_IMAGE=node:22.23.1-bookworm-slim
 FROM ${NODE_IMAGE} AS frontend-deps
 
 WORKDIR /src/frontend
-COPY frontend/package.json frontend/package-lock.json ./
+COPY maas-ui/package.json maas-ui/package-lock.json ./
 RUN npm ci
 
 FROM ${NODE_IMAGE} AS frontend-builder
 
 WORKDIR /src/frontend
 COPY --from=frontend-deps /src/frontend/node_modules ./node_modules
-COPY frontend/ ./
+COPY maas-ui/ ./
 # The production build type-checks test fixtures that import the shared inventory.
 COPY tools/magpie-subscription-coverage.json /src/tools/magpie-subscription-coverage.json
-RUN npm run build && \
-    server_path="$(find .next/standalone -type f -name server.js -exec sh -c \
-      'for candidate do candidate_root=${candidate%/*}; if [ -d "$candidate_root/.next" ] && [ -f "$candidate_root/package.json" ]; then echo "$candidate"; fi; done' \
-      sh {} +)" && \
-    test -n "$server_path" && \
-    test "$(printf '%s\n' "$server_path" | wc -l)" -eq 1 && \
-    standalone_root="$(dirname "$server_path")" && \
-    mkdir -p /out/frontend/.next && \
-    cp -a "$standalone_root/." /out/frontend/ && \
-    cp -a .next/static /out/frontend/.next/static && \
-    cp -a public /out/frontend/public && \
-    test -f /out/frontend/server.js
+ARG NEXT_PUBLIC_TOKENHUB_API_BASE_URL=http://localhost:8080
+ARG NEXT_PUBLIC_TOKENHUB_BASE_PATH
+RUN npm run build && mkdir -p /out/frontend && cp -r out /out/frontend/out && cp scripts/serve-static.mjs /out/frontend/server.js && echo '{"type":"module"}' > /out/frontend/package.json
 
 FROM golang:1.26-alpine AS backend-builder
 
@@ -44,7 +35,7 @@ RUN cd backend && \
       -tags "netgo osusergo" \
       -trimpath \
       -ldflags="-s -w -linkmode external -extldflags '-static' -X main.buildVersion=${TOKENHUB_VERSION} -X main.buildType=${TOKENHUB_BUILD_TYPE} -X main.deploymentType=container" \
-      -o /out/tokenhub ./cmd/tokenhub
+      -o /out/tokenstation ./cmd/tokenstation
 
 FROM ${NODE_IMAGE}
 
@@ -64,26 +55,28 @@ ENV NODE_ENV=production \
     TOKENHUB_RUN_MODE=all
 
 WORKDIR /app
-COPY --from=backend-builder --chown=node:node /out/tokenhub /usr/local/lib/tokenhub-image/bin/tokenhub
-COPY --from=frontend-builder --chown=node:node /usr/local/bin/node /usr/local/lib/tokenhub-image/bin/node
-COPY --from=frontend-builder --chown=node:node /out/frontend /usr/local/lib/tokenhub-image/frontend
-COPY --chown=node:node deploy/native/tokenhub-run /usr/local/lib/tokenhub-image/bin/tokenhub-run
-COPY --chown=node:node deploy/native/tokenhub.service /usr/local/lib/tokenhub-image/deploy/tokenhub.service
-COPY --chown=node:node data/model-catalog.yaml /usr/local/lib/tokenhub-image/catalog/model-catalog.yaml
-COPY --chown=node:node data/provider-catalog.json /usr/local/lib/tokenhub-image/catalog/provider-catalog.json
-COPY --chown=node:node data/builtin-plugins /usr/local/lib/tokenhub-image/catalog/builtin-plugins
-COPY deploy/container/tokenhub-build-id /usr/local/bin/tokenhub-build-id
-COPY deploy/container/tokenhub-entrypoint /usr/local/bin/tokenhub-entrypoint
+COPY --from=backend-builder --chown=node:node /out/tokenstation /usr/local/lib/tokenstation-image/bin/tokenstation
+COPY --from=frontend-builder --chown=node:node /usr/local/bin/node /usr/local/lib/tokenstation-image/bin/node
+COPY --from=frontend-builder --chown=node:node /out/frontend /usr/local/lib/tokenstation-image/frontend
+COPY --chown=node:node deploy/native/tokenstation-run /usr/local/lib/tokenstation-image/bin/tokenstation-run
+COPY --chown=node:node deploy/native/tokenstation.service /usr/local/lib/tokenstation-image/deploy/tokenstation.service
+COPY --chown=node:node data/model-catalog.yaml /usr/local/lib/tokenstation-image/catalog/model-catalog.yaml
+COPY --chown=node:node data/provider-catalog.json /usr/local/lib/tokenstation-image/catalog/provider-catalog.json
+COPY --chown=node:node data/builtin-plugins /usr/local/lib/tokenstation-image/catalog/builtin-plugins
+COPY deploy/container/tokenstation-build-id /usr/local/bin/tokenstation-build-id
+COPY deploy/container/tokenstation-entrypoint /usr/local/bin/tokenstation-entrypoint
 
-RUN printf '%s\n' "$TOKENHUB_VERSION" >/usr/local/lib/tokenhub-image/VERSION && \
+RUN printf '%s\n' '#!/bin/sh' 'exec "$(dirname "$0")/tokenstation-run" "$@"' >/usr/local/lib/tokenstation-image/bin/tokenhub-run && \
+    chmod 0755 /usr/local/lib/tokenstation-image/bin/tokenhub-run && \
+    printf '%s\n' "$TOKENHUB_VERSION" >/usr/local/lib/tokenstation-image/VERSION && \
     chmod 0755 \
-      /usr/local/bin/tokenhub-build-id \
-      /usr/local/bin/tokenhub-entrypoint \
-      /usr/local/lib/tokenhub-image/bin/node \
-      /usr/local/lib/tokenhub-image/bin/tokenhub \
-      /usr/local/lib/tokenhub-image/bin/tokenhub-run && \
-    tokenhub-build-id /usr/local/lib/tokenhub-image && \
-    chown -R node:node /usr/local/lib/tokenhub-image && \
+      /usr/local/bin/tokenstation-build-id \
+      /usr/local/bin/tokenstation-entrypoint \
+      /usr/local/lib/tokenstation-image/bin/node \
+      /usr/local/lib/tokenstation-image/bin/tokenstation \
+      /usr/local/lib/tokenstation-image/bin/tokenstation-run && \
+    tokenstation-build-id /usr/local/lib/tokenstation-image && \
+    chown -R node:node /usr/local/lib/tokenstation-image && \
     mkdir -p /app/data /app/plugins /opt/tokenhub && \
     chown node:node /app/data /app/plugins /opt/tokenhub
 
@@ -91,4 +84,4 @@ EXPOSE 8080 3000
 HEALTHCHECK --interval=10s --timeout=5s --start-period=20s --retries=12 \
   CMD node -e "Promise.all([fetch('http://127.0.0.1:8080/healthz'),fetch('http://127.0.0.1:3000')]).then(rs=>process.exit(rs.every(r=>r.ok)?0:1)).catch(()=>process.exit(1))"
 
-ENTRYPOINT ["/usr/local/bin/tokenhub-entrypoint"]
+ENTRYPOINT ["/usr/local/bin/tokenstation-entrypoint"]

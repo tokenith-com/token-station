@@ -10,8 +10,8 @@ import (
 )
 
 func TestAdminRepeatedCatalogCreatePreservesExistingProvider(t *testing.T) {
-	store := NewMemoryStore()
-	app := New(store).Handler()
+	store := newTestMemoryStore(t)
+	app := newManagedTestServer(t, store).Handler()
 	var created []Provider
 	for index := range 2 {
 		response := doJSON(t, app, http.MethodPost, "/api/admin/providers", map[string]any{
@@ -49,8 +49,8 @@ func TestAdminRepeatedCatalogCreatePreservesExistingProvider(t *testing.T) {
 }
 
 func TestAdminProviderCreateRejectsExistingExplicitID(t *testing.T) {
-	store := NewMemoryStore()
-	app := New(store).Handler()
+	store := newTestMemoryStore(t)
+	app := newManagedTestServer(t, store).Handler()
 	original := store.AddProvider(Provider{ID: "prv_preserved", Name: "Original", Type: ProviderOpenAICompatible, APIKey: "synthetic-original-key", BaseURL: "https://original.example/v1"})
 	store.AddProviderModel(ProviderModel{ProviderID: original.ID, UpstreamModel: "original-model", Status: StatusActive})
 	response := doJSON(t, app, http.MethodPost, "/api/admin/providers", map[string]any{
@@ -81,7 +81,7 @@ func TestAdminProviderCreateRejectsExistingExplicitID(t *testing.T) {
 }
 
 func TestCreateProviderConcurrentDuplicateID(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	var wg sync.WaitGroup
 	results := make(chan error, 2)
 	for index := range 2 {

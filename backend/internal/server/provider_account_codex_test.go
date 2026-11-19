@@ -122,7 +122,7 @@ func TestCodexSubscriptionModelsUsesGPT6CapableClientFingerprint(t *testing.T) {
 }
 
 func TestCodexModelCatalogUsesETagAndPersistedSnapshot(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	provider := store.AddProvider(Provider{
 		ID:      "prv_models_etag",
 		Name:    "Codex Models ETag",
@@ -143,7 +143,7 @@ func TestCodexModelCatalogUsesETagAndPersistedSnapshot(t *testing.T) {
 		t.Fatal(err)
 	}
 	requests := 0
-	server := New(store)
+	server := newManagedTestServer(t, store)
 	mustCodexSubscriptionAdapterForTest(t, server).ModelsURL = "https://chatgpt.example/backend-api/codex/models"
 	mustCodexSubscriptionAdapterForTest(t, server).Client = &http.Client{Transport: roundTripperFunc(func(req *http.Request) (*http.Response, error) {
 		requests++
@@ -196,7 +196,7 @@ func TestCodexModelCatalogUsesETagAndPersistedSnapshot(t *testing.T) {
 }
 
 func TestCodexRouteFilteringUsesPerAccountModels(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	provider := store.AddProvider(Provider{
 		ID:      "prv_codex_pool",
 		Name:    "Codex Pool",
@@ -240,7 +240,7 @@ func TestCodexRouteFilteringUsesPerAccountModels(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	filtered, err := New(store).filterCodexRoutesByModel(context.Background(), "gpt-5.6-sol", routes)
+	filtered, err := newManagedTestServer(t, store).filterCodexRoutesByModel(context.Background(), "gpt-5.6-sol", routes)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -250,7 +250,7 @@ func TestCodexRouteFilteringUsesPerAccountModels(t *testing.T) {
 }
 
 func TestProviderAccountRouteFilteringUsesPluginAccountModels(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	provider := store.AddProvider(Provider{
 		ID:      "prv_kimi_pool",
 		Name:    "Kimi Pool",
@@ -294,7 +294,7 @@ func TestProviderAccountRouteFilteringUsesPluginAccountModels(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	filtered, err := New(store).filterProviderAccountRoutesByModel("kimi-sol", routes)
+	filtered, err := newManagedTestServer(t, store).filterProviderAccountRoutesByModel("kimi-sol", routes)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -304,8 +304,8 @@ func TestProviderAccountRouteFilteringUsesPluginAccountModels(t *testing.T) {
 }
 
 func TestProviderAccountRouteFilteringIgnoresUndeclaredPluginResourceTypes(t *testing.T) {
-	store := NewMemoryStore()
-	server := New(store)
+	store := newTestMemoryStore(t)
+	server := newManagedTestServer(t, store)
 	store.ConfigureProviderResourceTypePolicy(map[string][]string{
 		"kimi_subscription": {"kimi_subscription_account"},
 	})
@@ -362,7 +362,7 @@ func TestProviderAccountRouteFilteringIgnoresUndeclaredPluginResourceTypes(t *te
 }
 
 func TestCodexRouteFilteringUsesPersistedAccountCatalog(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	provider := store.AddProvider(Provider{
 		ID:      "prv_codex_live_pool",
 		Name:    "Codex Live Pool",
@@ -409,7 +409,7 @@ func TestCodexRouteFilteringUsesPersistedAccountCatalog(t *testing.T) {
 		Status:        StatusActive,
 	})
 
-	server := New(store)
+	server := newManagedTestServer(t, store)
 	mustCodexSubscriptionAdapterForTest(t, server).ModelsURL = "https://chatgpt.example/backend-api/codex/models"
 	modelRequests := 0
 	mustCodexSubscriptionAdapterForTest(t, server).Client = &http.Client{Transport: roundTripperFunc(func(req *http.Request) (*http.Response, error) {
@@ -458,7 +458,7 @@ func TestCodexRouteFilteringUsesPersistedAccountCatalog(t *testing.T) {
 }
 
 func TestCodexUnsupportedModelFailsOverAndUpdatesAccountModels(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	provider := store.AddProvider(Provider{
 		ID:      "prv_codex_failover",
 		Name:    "Codex Failover Pool",
@@ -507,7 +507,7 @@ func TestCodexUnsupportedModelFailsOverAndUpdatesAccountModels(t *testing.T) {
 		Status:        StatusActive,
 	})
 
-	server := New(store)
+	server := newManagedTestServer(t, store)
 	mustCodexSubscriptionAdapterForTest(t, server).Client = &http.Client{Transport: roundTripperFunc(func(req *http.Request) (*http.Response, error) {
 		if req.Header.Get("ChatGPT-Account-ID") == "account_unsupported" {
 			return &http.Response{
@@ -590,7 +590,7 @@ func TestResponsesRawGenerationControlsAreFilteredOnlyForCodex(t *testing.T) {
 	}))
 	t.Cleanup(normalUpstream.Close)
 
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	project := store.CreateProject(Project{Name: "Codex raw controls"})
 	_, secret, err := store.CreateAPIKey(project.ID, APIKey{
 		Name:    "Codex raw controls key",
@@ -657,7 +657,7 @@ func TestResponsesRawGenerationControlsAreFilteredOnlyForCodex(t *testing.T) {
 		Strategy:      "priority_only",
 	})
 
-	server := New(store)
+	server := newManagedTestServer(t, store)
 	var codexPayloads []map[string]any
 	mustCodexSubscriptionAdapterForTest(t, server).MaxRequestRetries = 1
 	mustCodexSubscriptionAdapterForTest(t, server).Client = &http.Client{Transport: roundTripperFunc(func(req *http.Request) (*http.Response, error) {
@@ -711,7 +711,7 @@ func TestResponsesRawGenerationControlsAreFilteredOnlyForCodex(t *testing.T) {
 }
 
 func TestCodexSessionAffinityPersistsRebindsAndPreservesProtocol(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	project := store.CreateProject(Project{Name: "Codex Session Project", Status: StatusActive})
 	_, secret, err := store.CreateAPIKey(project.ID, APIKey{
 		Name:    "Codex Session Key",
@@ -801,7 +801,7 @@ func TestCodexSessionAffinityPersistsRebindsAndPreservesProtocol(t *testing.T) {
 	})
 
 	newServer := func() *Server {
-		server := NewWithConfig(store, Config{AdminToken: "dev_admin_token", SecretKey: "session-affinity-secret"})
+		server := newManagedTestServerWithConfig(t, store, Config{AdminToken: "dev_admin_token", SecretKey: "session-affinity-secret"})
 		mustCodexSubscriptionAdapterForTest(t, server).Client = &http.Client{Transport: transport}
 		mustCodexSubscriptionAdapterForTest(t, server).MaxRequestRetries = 1
 		return server
@@ -952,7 +952,7 @@ func TestCodexResponsesLiteEnvelopePreservesReasoningFields(t *testing.T) {
 }
 
 func TestCodexSessionBindingCommitsAfterClientCancellation(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	provider := store.AddProvider(Provider{
 		ID:      "prv_cancelled_session",
 		Name:    "Cancelled Session",
@@ -1001,7 +1001,7 @@ func TestCodexSessionBindingCommitsAfterClientCancellation(t *testing.T) {
 }
 
 func TestCodexCompactConvergesFingerprintAcrossRetriesAndPreservesUpstreamMetadata(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	project := store.CreateProject(Project{Name: "Compact Project", Status: StatusActive})
 	_, secret, err := store.CreateAPIKey(project.ID, APIKey{
 		Name:    "Compact Key",
@@ -1042,7 +1042,7 @@ func TestCodexCompactConvergesFingerprintAcrossRetriesAndPreservesUpstreamMetada
 		Status:        StatusActive,
 	})
 
-	server := NewWithConfig(store, Config{AdminToken: "dev_admin_token", SecretKey: "compact-secret"})
+	server := newManagedTestServerWithConfig(t, store, Config{AdminToken: "dev_admin_token", SecretKey: "compact-secret"})
 	mustCodexSubscriptionAdapterForTest(t, server).MaxRequestRetries = 1
 	var fingerprintHeaders []http.Header
 	mustCodexSubscriptionAdapterForTest(t, server).Client = &http.Client{Transport: roundTripperFunc(func(req *http.Request) (*http.Response, error) {

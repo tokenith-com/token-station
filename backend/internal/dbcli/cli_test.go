@@ -3,6 +3,7 @@ package dbcli
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -40,7 +41,53 @@ func TestStatusAndMigrateOnUnadoptedDatabase(t *testing.T) {
 	}
 	code, output = runCLI(t, "migrate")
 	if code != 1 || !strings.Contains(output, "adoption baseline") {
-		t.Fatalf("migrate before adoption must point at server startup, got %d %q", code, output)
+		t.Fatalf("migrate before adoption must require preparation, got %d %q", code, output)
+	}
+}
+
+func TestServingRequiresPreparationAndDoesNotInitializeData(t *testing.T) {
+	databaseURL := cliTestEnv(t)
+	config := server.ConfigFromEnv()
+	if store, err := server.OpenStoreWithConfig(databaseURL, config); err == nil {
+		_ = store.Close()
+		t.Fatal("serving unexpectedly prepared the database")
+	} else if !strings.Contains(err.Error(), "tokenstation db prepare") {
+		t.Fatalf("missing preparation instructions: %v", err)
+	}
+
+	if code, output := runCLI(t, "prepare"); code != 0 {
+		t.Fatalf("prepare: code=%d output=%q", code, output)
+	}
+	store, err := server.OpenStoreWithConfig(databaseURL, config)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, ok := store.GetProject("prj_default"); ok {
+		t.Error("serving seeded the default project")
+	}
+	if _, _, _, found, err := store.LoadProviderCatalogSnapshot(false); err != nil || found {
+		t.Errorf("serving seeded the provider catalog or could not inspect it: found=%v err=%v", found, err)
+	}
+	if err := store.Close(); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("TOKENHUB_SEED_DEMO", "true")
+	if code, output := runCLI(t, "prepare", "--initialize"); code != 0 {
+		t.Fatalf("initialize: code=%d output=%q", code, output)
+	}
+	store, err = server.OpenStoreWithConfig(databaseURL, config)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = store.Close() }()
+	if _, ok := store.GetProject("prj_default"); !ok {
+		t.Error("explicit initialization did not seed the default project")
+	}
+	if _, _, _, found, err := store.LoadProviderCatalogSnapshot(false); err != nil || !found {
+		t.Errorf("explicit initialization did not seed the provider catalog: found=%v err=%v", found, err)
+	}
+	if len(store.ListProviderModels()) == 0 {
+		t.Error("explicit initialization did not prepare the demo provider inventory")
 	}
 }
 
@@ -100,7 +147,7 @@ func TestCommandsOnAdoptedDatabase(t *testing.T) {
 	}
 
 	code, output := runCLI(t, "status")
-	if code != 0 || !strings.Contains(output, "baseline recorded:   true") || !strings.Contains(output, "current version:     11") {
+	if code != 0 || !strings.Contains(output, "baseline recorded:   true") || !strings.Contains(output, fmt.Sprintf("current version:     %d", server.CurrentCompatibilityManifest().TargetVersion)) {
 		t.Fatalf("status on adopted database: code=%d output=%q", code, output)
 	}
 	code, output = runCLI(t, "verify")
@@ -157,6 +204,9 @@ func TestSQLiteContractBackupStoreDoesNotPublishHeartbeat(t *testing.T) {
 	config.DatabaseURL = databaseURL
 	config.SQLiteBackupDir = t.TempDir()
 
+	if code, output := runCLI(t, "prepare"); code != 0 {
+		t.Fatalf("prepare: code=%d output=%q", code, output)
+	}
 	runtimeStore, err := server.OpenStoreWithConfig(databaseURL, config)
 	if err != nil {
 		t.Fatal(err)

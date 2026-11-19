@@ -540,7 +540,7 @@ func geminiModelObject(model Model) map[string]any {
 		"baseModelId":                model.Name,
 		"version":                    model.Name,
 		"displayName":                model.Name,
-		"description":                "TokenHub routed model",
+		"description":                "TokenStation routed model",
 		"inputTokenLimit":            inputLimit,
 		"outputTokenLimit":           32768,
 		"supportedGenerationMethods": []string{"generateContent", "streamGenerateContent", "countTokens"},

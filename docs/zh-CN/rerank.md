@@ -1,6 +1,6 @@
 # 文本重排
 
-`POST /v1/rerank` 根据查询对候选文档排序，接入 API Key、模型权限、限流、适用安全策略、插件、路由和审计。对外模型必须为 `rerank`，调用时要求渠道协议及租户价格配置完整；新线路发布还要求配置供应商价格。
+`POST /v1/rerank` 根据查询对候选文档排序，接入 TokenStation API Key、模型权限、限流、适用安全策略、插件、路由和审计。对外模型必须为 `rerank`，调用时要求渠道协议及租户价格配置完整；新线路发布还要求配置供应商价格。
 
 ```json
 {"model":"public-reranker","query":"如何续费证书？","documents":["证书续费说明","无关内容"],"top_n":1,"return_documents":true}

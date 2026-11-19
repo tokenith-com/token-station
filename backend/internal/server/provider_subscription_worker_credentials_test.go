@@ -8,7 +8,7 @@ import (
 )
 
 func TestSubscriptionSessionRefreshSummaryEnablesRenewalWithoutExposingTokens(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	provider := store.AddProvider(Provider{ID: "grok-refresh-summary", Name: "Grok", Type: "grok_subscription", Status: StatusActive})
 	session := `{"type":"oauth","access":"synthetic-summary-access","refresh":"synthetic-summary-refresh"}`
 	resource, err := store.AddProviderResource(ProviderResource{Name: "Renewable Grok account", ProviderID: provider.ID,

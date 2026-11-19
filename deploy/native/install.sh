@@ -6,9 +6,9 @@ INSTALL_ROOT="${TOKENHUB_INSTALL_ROOT:-/opt/tokenhub}"
 CONFIG_DIR="${TOKENHUB_CONFIG_DIR:-/etc/tokenhub}"
 STATE_DIR="${TOKENHUB_STATE_DIR:-/var/lib/tokenhub}"
 SYSTEMD_DIR="${TOKENHUB_SYSTEMD_DIR:-/etc/systemd/system}"
-SERVICE_USER="${TOKENHUB_SERVICE_USER:-tokenhub}"
+SERVICE_USER="${TOKENHUB_SERVICE_USER:-tokenstation}"
 SERVICE_GROUP="${TOKENHUB_SERVICE_GROUP:-}"
-SERVICE_NAME="${TOKENHUB_SERVICE_NAME:-tokenhub}"
+SERVICE_NAME="${TOKENHUB_SERVICE_NAME:-tokenstation}"
 BACKEND_PORT="${TOKENHUB_BACKEND_PORT:-8080}"
 FRONTEND_PORT="${TOKENHUB_FRONTEND_PORT:-3000}"
 VERSION=""
@@ -48,7 +48,7 @@ Environment:
   TOKENHUB_BACKEND_PORT        Backend port (default: 8080)
   TOKENHUB_FRONTEND_PORT       Admin console port (default: 3000)
   TOKENHUB_DATABASE_URL        Database URL written on first install (default: SQLite)
-  TOKENHUB_SERVICE_USER        Linux service user (default: tokenhub)
+  TOKENHUB_SERVICE_USER        Linux service user (default: tokenstation)
 EOF
 }
 
@@ -58,11 +58,11 @@ fail() {
 }
 
 info() {
-  printf '[TokenHub] %s\n' "$*"
+  printf '[TokenStation] %s\n' "$*"
 }
 
 warn() {
-  printf '[TokenHub] Warning: %s\n' "$*" >&2
+  printf '[TokenStation] Warning: %s\n' "$*" >&2
 }
 
 cleanup() {
@@ -318,6 +318,7 @@ require_platform() {
   for command in curl tar sed awk find grep install od tr wc; do
     command -v "$command" >/dev/null 2>&1 || fail "missing required command: $command"
   done
+  resolve_existing_service
   load_existing_release_repository
   [[ "$GITHUB_REPOSITORY" =~ ^[A-Za-z0-9-]+/[A-Za-z0-9._-]+$ ]] ||
     fail "TOKENHUB_RELEASE_REPOSITORY must use owner/repository form"
@@ -330,6 +331,66 @@ require_platform() {
   validate_port "$FRONTEND_PORT" "TOKENHUB_FRONTEND_PORT"
   [[ "$SERVICE_READY_ATTEMPTS" =~ ^[1-9][0-9]*$ ]] ||
     fail "TOKENHUB_INSTALLER_READY_ATTEMPTS must be a positive integer"
+}
+
+resolve_existing_service() {
+  local name
+  local found=""
+  local unit
+  local marker="$INSTALL_ROOT/$MANAGED_DIRECTORY_MARKER"
+  local marked=""
+  if [ ! -f "$marker" ]; then
+    marker="$CONFIG_DIR/$MANAGED_DIRECTORY_MARKER"
+  fi
+  if [ -f "$marker" ] && [ ! -L "$marker" ]; then
+    marked="$(sed -n 's/^service=//p' "$marker")"
+    [[ "$marked" =~ ^[A-Za-z0-9][A-Za-z0-9_.@-]*$ ]] || fail "invalid managed service marker"
+  fi
+  for name in tokenstation tokenhub "${marked:-$SERVICE_NAME}" "$SERVICE_NAME"; do
+    unit="$SYSTEMD_DIR/$name.service"
+    if [ -f "$unit" ] || systemctl is-active --quiet "$name" 2>/dev/null; then
+      [ -z "$found" ] || [ "$found" = "$name" ] ||
+        fail "conflicting native services: $found and $name; remove the duplicate service before continuing"
+      found="$name"
+    fi
+  done
+  found="${found:-$marked}"
+  if [ -n "$found" ]; then
+    [ -z "${TOKENHUB_SERVICE_NAME:-}" ] || [ "$TOKENHUB_SERVICE_NAME" = "$found" ] ||
+      fail "existing service $found conflicts with TOKENHUB_SERVICE_NAME"
+    SERVICE_NAME="$found"
+    unit="$SYSTEMD_DIR/$found.service"
+    if [ -f "$unit" ]; then
+      name="$(sed -n 's/^User=//p' "$unit")"
+      if [ -n "$name" ]; then
+        [ -z "${TOKENHUB_SERVICE_USER:-}" ] || [ "$TOKENHUB_SERVICE_USER" = "$name" ] ||
+          fail "existing service user $name conflicts with TOKENHUB_SERVICE_USER"
+        SERVICE_USER="$name"
+      fi
+      if [ -z "${TOKENHUB_SERVICE_GROUP:-}" ]; then
+        SERVICE_GROUP="$(sed -n 's/^Group=//p' "$unit")"
+      fi
+    elif [ -f "$CONFIG_DIR/.service-user-created" ]; then
+      IFS=: read -r SERVICE_USER _ <"$CONFIG_DIR/.service-user-created"
+    elif [ "$found" = tokenhub ]; then
+      SERVICE_USER="${TOKENHUB_SERVICE_USER:-tokenhub}"
+    fi
+  fi
+}
+
+resolve_release_layout() {
+  local root="$1"
+  local name
+  for name in tokenstation tokenhub; do
+    if [ -f "$root/bin/$name" ] && [ -f "$root/bin/$name-run" ] &&
+      [ -f "$root/deploy/$name.service" ]; then
+      RELEASE_BINARY="bin/$name"
+      RELEASE_RUNNER="bin/$name-run"
+      RELEASE_SERVICE="deploy/$name.service"
+      return
+    fi
+  done
+  fail "release archive has no complete tokenstation or tokenhub layout"
 }
 
 platform_arch() {
@@ -772,15 +833,18 @@ download_release() {
   local expected
   local actual
   arch="$(platform_arch)"
-  asset="tokenhub_${version}_linux_${arch}.tar.gz"
+  asset="tokenstation_${version}_linux_${arch}.tar.gz"
   base_url="https://github.com/${GITHUB_REPOSITORY}/releases/download/v${version}"
   TEMP_DIR="$(mktemp -d)"
-  archive="$TEMP_DIR/$asset"
   checksums="$TEMP_DIR/checksums.txt"
 
-  info "Downloading TokenHub v${version} for linux/${arch}"
-  download_file "$base_url/$asset" "$archive" "$MAX_NATIVE_ARCHIVE_BYTES" "$asset"
+  info "Downloading TokenStation v${version} for linux/${arch}"
   download_file "$base_url/checksums.txt" "$checksums" "$MAX_NATIVE_CHECKSUM_BYTES" "checksums.txt"
+  if ! awk -v file="$asset" '$2 == file || $2 == "*" file { found=1 } END { exit !found }' "$checksums"; then
+    asset="tokenhub_${version}_linux_${arch}.tar.gz"
+  fi
+  archive="$TEMP_DIR/$asset"
+  download_file "$base_url/$asset" "$archive" "$MAX_NATIVE_ARCHIVE_BYTES" "$asset"
 
   expected="$(awk -v file="$asset" '$2 == file || $2 == "*" file { print $1; exit }' "$checksums")"
   [[ "$expected" =~ ^[0-9a-fA-F]{64}$ ]] || fail "checksums.txt has no valid entry for $asset"
@@ -853,14 +917,15 @@ validate_staged_release() {
 
   link="$(find "$staging" -type l -print -quit)"
   [ -z "$link" ] || fail "release archive contains a symbolic link"
+  resolve_release_layout "$staging"
   for path in \
-    bin/tokenhub \
+    "$RELEASE_BINARY" \
     bin/node \
-    bin/tokenhub-run \
+    "$RELEASE_RUNNER" \
     frontend/server.js \
     catalog/model-catalog.yaml \
     catalog/provider-catalog.json \
-    deploy/tokenhub.service \
+    "$RELEASE_SERVICE" \
     VERSION; do
     [ -f "$staging/$path" ] || fail "release archive is missing regular file $path"
   done
@@ -883,7 +948,7 @@ activate_release() {
   tar --no-same-owner --no-same-permissions -xzf "$archive" -C "$staging"
   validate_staged_release "$staging" "$version"
 
-  chmod 0755 "$staging/bin/tokenhub" "$staging/bin/node" "$staging/bin/tokenhub-run"
+  chmod 0755 "$staging/$RELEASE_BINARY" "$staging/bin/node" "$staging/$RELEASE_RUNNER"
   "$staging/bin/node" --version >/dev/null 2>&1 ||
     fail "bundled Node.js runtime cannot run on this host"
   chown -R "$SERVICE_USER:$SERVICE_GROUP" "$staging"
@@ -904,7 +969,8 @@ activate_release() {
 install_service() {
   local template
   local unit
-  template="$INSTALL_ROOT/current/deploy/tokenhub.service"
+  resolve_release_layout "$INSTALL_ROOT/current"
+  template="$INSTALL_ROOT/current/$RELEASE_SERVICE"
   unit="$SYSTEMD_DIR/${SERVICE_NAME}.service"
   sed \
     -e "s|@SERVICE_USER@|$SERVICE_USER|g" \

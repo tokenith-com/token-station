@@ -476,7 +476,7 @@ func TestCheckRuntimeBudgetScopes(t *testing.T) {
 		},
 	} {
 		t.Run(test.name, func(t *testing.T) {
-			store := NewMemoryStore()
+			store := newTestMemoryStore(t)
 			project := test.setup(t, store)
 			for index, fields := range test.budgets(project) {
 				addRuntimeBudgetResource(t, store, "budget-"+strconv.Itoa(index), fields)
@@ -514,7 +514,7 @@ func TestCheckRuntimeBudgetSkipsLookupsWithoutApplicableBudgets(t *testing.T) {
 		},
 	} {
 		t.Run(test.name, func(t *testing.T) {
-			store := NewMemoryStore()
+			store := newTestMemoryStore(t)
 			// The project resolves its cost center through a team and a quota
 			// policy, which must stay unread while no budget can enforce.
 			store.CreateResource("teams", AdminResource{ID: "team_free", Name: "Free", Status: StatusActive})
@@ -547,7 +547,7 @@ func TestCheckRuntimeBudgetUsesConstantQueries(t *testing.T) {
 	now := runtimeBudgetNow(t)
 	build := func(t *testing.T, projects int, records int, budgetsPerScope int) (*MemoryStore, Project) {
 		t.Helper()
-		store := NewMemoryStore()
+		store := newTestMemoryStore(t)
 		store.CreateResource("teams", AdminResource{ID: "team_scale", Name: "Scale", Status: StatusActive})
 		project := addRuntimeBudgetProject(t, store, Project{Name: "Scale Primary", TeamID: "team_scale", CostCenter: "CC-SCALE"})
 		for index := 0; index < projects; index++ {
@@ -602,7 +602,7 @@ func TestCheckRuntimeBudgetResolvesPeriodFromCallerClock(t *testing.T) {
 	now := runtimeBudgetNow(t)
 	previousPeriod := periodStart(now.Format("2006-01")).Add(-time.Hour)
 
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	project := addRuntimeBudgetProject(t, store, Project{Name: "Period Clock"})
 	addRuntimeBudgetUsage(t, store, project.ID, 10, previousPeriod)
 	addRuntimeBudgetResource(t, store, "global-budget", map[string]any{"scope": "global", "amount_usd": 5})

@@ -108,7 +108,7 @@ func (s *StoreSink) Apply(b *bundle.CanonicalMigrationBundle) (*ApplyResult, err
 	s.newKeys = map[string]string{}
 	s.refIndex = newRefIndex()
 	if len(b.QuotaPolicies) > 0 {
-		return nil, fmt.Errorf("quota_policies are not implemented by the TokenHub sink foundation")
+		return nil, fmt.Errorf("quota_policies are not implemented by the TokenStation sink foundation")
 	}
 	result := &ApplyResult{}
 
@@ -1102,6 +1102,8 @@ func sameAdminUser(existing server.AdminUser, desired server.AdminUser) bool {
 func normalizeMigrationAdminRole(role string) string {
 	role = strings.ToLower(strings.TrimSpace(role))
 	switch role {
+	case "system_admin":
+		return "admin"
 	case "security":
 		return "security_admin"
 	case "project_admin", "teamlead":
@@ -1114,9 +1116,9 @@ func normalizeMigrationAdminRole(role string) string {
 }
 
 func sameProject(left server.Project, right server.Project) bool {
-	if strings.TrimSpace(right.ModelAccessMode) != "" || right.AllowedModels != nil {
-		leftMode, leftAllowed := normalizedMigrationModelAccess(left.ModelAccessMode, left.AllowedModels)
-		rightMode, rightAllowed := normalizedMigrationModelAccess(right.ModelAccessMode, right.AllowedModels)
+	if strings.TrimSpace(right.ModelAccessMode) != "" || right.AllowedModels != nil || right.ExcludedModels != nil {
+		leftMode, leftAllowed := normalizedMigrationProjectModelAccess(left)
+		rightMode, rightAllowed := normalizedMigrationProjectModelAccess(right)
 		if leftMode != rightMode || !slices.Equal(leftAllowed, rightAllowed) {
 			return false
 		}
@@ -1264,6 +1266,15 @@ func normalizeHeaderMap(headers map[string]string, sensitive []string) map[strin
 		result[name] = value
 	}
 	return result
+}
+
+func normalizedMigrationProjectModelAccess(project server.Project) (string, []string) {
+	mode := strings.ToLower(strings.TrimSpace(project.ModelAccessMode))
+	_, excluded := normalizedMigrationModelAccess(server.ModelAccessModeRestricted, project.ExcludedModels)
+	if mode == server.ModelAccessModeExcluded || (mode == "" && len(excluded) > 0) {
+		return server.ModelAccessModeExcluded, excluded
+	}
+	return normalizedMigrationModelAccess(mode, project.AllowedModels)
 }
 
 func normalizedMigrationModelAccess(mode string, allowed []string) (string, []string) {

@@ -26,7 +26,7 @@ func newMetricsTestServer(t *testing.T, projectLabel bool) (*GormStore, *Server,
 		MetricsEnabled:      true,
 		MetricsProjectLabel: projectLabel,
 	}
-	server := NewWithConfig(store, config)
+	server := newManagedTestServerWithConfig(t, store, config)
 	if server.metrics == nil {
 		t.Fatal("expected metrics to be enabled")
 	}
@@ -320,7 +320,7 @@ func TestMetricsEndpointServesExposition(t *testing.T) {
 
 func TestMetricsEndpointUsesDedicatedToken(t *testing.T) {
 	store, _, _ := newResourceRoutedStore(t, ProviderMock)
-	server := NewWithConfig(store, Config{
+	server := newManagedTestServerWithConfig(t, store, Config{
 		AdminToken:     "dev_admin_token",
 		MetricsToken:   "scrape-token",
 		MetricsEnabled: true,
@@ -339,7 +339,7 @@ func TestMetricsEndpointUsesDedicatedToken(t *testing.T) {
 
 func TestMetricsDisabledHidesEndpoint(t *testing.T) {
 	store, _, _ := newResourceRoutedStore(t, ProviderMock)
-	server := NewWithConfig(store, Config{AdminToken: "dev_admin_token", MetricsEnabled: false})
+	server := newManagedTestServerWithConfig(t, store, Config{AdminToken: "dev_admin_token", MetricsEnabled: false})
 	if server.metrics != nil {
 		t.Fatal("metrics must not be constructed when disabled")
 	}
@@ -492,7 +492,7 @@ func TestMetricsRejectedStreamingCallKeepsStreamLabel(t *testing.T) {
 // NewWithConfig so the /metrics endpoint is available.
 func newMetricsFailoverGateway(t *testing.T, primaryURL string, secondaryURL string) (*Server, string) {
 	t.Helper()
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	project := store.CreateProject(Project{Name: "metrics-failover", Status: StatusActive})
 	const model = "metrics-failover-model"
 	_, secret, err := store.CreateAPIKey(project.ID, APIKey{
@@ -539,7 +539,7 @@ func newMetricsFailoverGateway(t *testing.T, primaryURL string, secondaryURL str
 			Strategy:           RouteStrategyPriorityOnly,
 		})
 	}
-	server := NewWithConfig(store, Config{
+	server := newManagedTestServerWithConfig(t, store, Config{
 		AdminToken:     "dev_admin_token",
 		MetricsEnabled: true,
 	})
@@ -753,7 +753,7 @@ func TestMetricsRejectedRequestAddsNoAttemptSeries(t *testing.T) {
 // once and the routed attempts produce attempt, upstream-duration and overhead
 // series, so the failover-depth ratio is not diluted by image traffic.
 func TestMetricsImageJobAttributesAttempts(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	project := store.CreateProject(Project{Name: "Metrics Image Project", Status: StatusActive})
 	_, secret, err := store.CreateAPIKey(project.ID, APIKey{
 		Name: "metrics-image-key", Allowed: []string{openAIImageModelName}, Status: StatusActive,

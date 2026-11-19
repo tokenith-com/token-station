@@ -34,5 +34,5 @@ test("the bundled proxy routes gateway documentation endpoints to the backend", 
   assert.match(config, /docs/);
   assert.match(config, /openapi\\\.json/);
   assert.match(config, /openapi\\\.yaml/);
-  assert.match(backendLocation, /proxy_pass \$tokenhub_backend;/);
+  assert.match(backendLocation, /proxy_pass \$tokenstation_backend;/);
 });

@@ -1,14 +1,14 @@
-# TokenHub Plugin Architecture and Development Guide
+# TokenStation Plugin Architecture and Development Guide
 
 Language: English | [简体中文](../zh-CN/plugin-development/guide.md) | [日本語](../ja/plugin-development/guide.md)
 
-This guide describes the current TokenHub plugin direction and how to build against it. It is written for plugin authors, platform engineers, and operators.
+This guide describes the current TokenStation plugin direction and how to build against it. It is written for plugin authors, platform engineers, and operators.
 
-The guide starts with the smallest working plugin and then explains the complete contract. In the same way that WordPress discovers a plugin from its main-file header, TokenHub discovers, validates, and loads a package from `plugin.yaml` at the package root. TokenHub additionally requires every plugin to declare its placement, capabilities, and least-privilege permissions.
+The guide starts with the smallest working plugin and then explains the complete contract. In the same way that WordPress discovers a plugin from its main-file header, TokenStation discovers, validates, and loads a package from `plugin.yaml` at the package root. TokenStation additionally requires every plugin to declare its placement, capabilities, and least-privilege permissions.
 
 > **Current implementation boundary:** Plugin API v2 is the current manifest contract; the v1 adapter remains available for existing packages. The runtime cannot yet enforce host-level process, network, and resource isolation, so it rejects every runtime-loaded external Provider, gateway hook, background job, and management action command before launch. The command examples in this guide define development contracts rather than currently deployable integrations. UI templates are declarative theme and layout capabilities, not an arbitrary React or JavaScript extension mechanism. Every built-in plugin has inspectable package files. A Settings route appears only when the manifest declares real editable settings; source files remain read-only previews and plugin code cannot be edited in the admin console.
 
-TokenHub keeps the core small:
+TokenStation keeps the core small:
 
 - the core owns auth, routing, billing, auditing, compatibility, and upgrade safety
 - plugins own the parts that change more often
@@ -17,7 +17,7 @@ TokenHub keeps the core small:
 
 ## Managing Installed Plugins
 
-TokenHub uses Office Add-ins as the reference for enterprise governance and Obsidian as the reference for plugin-management interaction. Plugin Management has two primary destinations: **Installed Plugins** owns search, status filters, versions, updates, and lifecycle actions; **Browse Plugins** lists available plugins and contains marketplace access, URL installation, ZIP upload, checksum verification, and permission-diff preview. The Installed view places four category filters directly beside the unified list: Provider Integrations, Request Pipeline, UI Templates, and Automation. There is no separate Extension Types table.
+TokenStation uses Office Add-ins as the reference for enterprise governance and Obsidian as the reference for plugin-management interaction. Plugin Management has two primary destinations: **Installed Plugins** owns search, status filters, versions, updates, and lifecycle actions; **Browse Plugins** lists available plugins and contains marketplace access, URL installation, ZIP upload, checksum verification, and permission-diff preview. The Installed view places four category filters directly beside the unified list: Provider Integrations, Request Pipeline, UI Templates, and Automation. There is no separate Extension Types table.
 
 In the installed list, the plugin name and **Details** open the overview. **Settings** appears only when the plugin has editable settings and opens them directly. In the UI-template list, clicking a template with editable theme tokens opens Settings; other templates open Details. Changing the active default remains a separate action, so opening configuration never changes the live interface by accident. This hierarchy follows the WordPress [installation, update, and management pattern](https://www.waimaob2c.com/wordpress-plugins), without copying online code editing or automatic-update behavior that does not fit an enterprise gateway.
 
@@ -30,18 +30,18 @@ In the installed list, the plugin name and **Details** open the overview. **Sett
 
 The overview does not expose raw capability values or serialized JSON. **Developer Information** is collapsed by default; when expanded, each capability, hook, UI contribution, action, and background job includes a short explanation before its technical identifiers.
 
-The Files page intentionally differs from the WordPress Plugin File Editor. TokenHub never exposes absolute package paths and does not edit installed executable code. It skips symbolic links and blocks previews of binary, runtime-state, hidden, credential, secret, private, and oversized files. This keeps package inspection useful without turning the admin console into a remote-code-execution surface.
+The Files page intentionally differs from the WordPress Plugin File Editor. TokenStation never exposes absolute package paths and does not edit installed executable code. It skips symbolic links and blocks previews of binary, runtime-state, hidden, credential, secret, private, and oversized files. This keeps package inspection useful without turning the admin console into a remote-code-execution surface.
 
 The authenticated inspection API is read-only:
 
 - `GET /api/admin/plugins/{plugin_id}/detail`
 - `GET /api/admin/plugins/{plugin_id}/file?path={package-relative-path}`
 
-Built-in and external plugins both expose an inspectable package inventory with file count, total size, file kinds, and eligible manifest, README, license, source, configuration, and schema content. The conceptual reference is WordPress's [plugin management documentation](https://wordpress.org/documentation/article/manage-plugins/); TokenHub retains its own manifest, permissions, and security model.
+Built-in and external plugins both expose an inspectable package inventory with file count, total size, file kinds, and eligible manifest, README, license, source, configuration, and schema content. The conceptual reference is WordPress's [plugin management documentation](https://wordpress.org/documentation/article/manage-plugins/); TokenStation retains its own manifest, permissions, and security model.
 
 ## 1. Plugin Families
 
-TokenHub now organizes plugins into a few clear families.
+TokenStation now organizes plugins into a few clear families.
 
 | Family | What it owns | Examples |
 | --- | --- | --- |
@@ -70,7 +70,7 @@ schema_version: 2
 id: tokenhub.provider.kimi-go
 name: Kimi Subscription Go Provider
 version: 1.0.0
-summary: Connect TokenHub to a Kimi subscription account.
+summary: Connect TokenStation to a Kimi subscription account.
 description: Reference Go Provider plugin using the stdio-json-v1 transport.
 category: provider_integration
 tokenhub:
@@ -111,7 +111,7 @@ Important fields:
 
 ## 3. Runtime Surfaces
 
-TokenHub uses three core runtime surfaces, plus one transitional compatibility surface.
+TokenStation uses three core runtime surfaces, plus one transitional compatibility surface.
 
 - `ServeProvider`
 - `ServeGatewayHook`
@@ -182,7 +182,7 @@ The safest workflow is:
 5. Add contract tests.
 6. Run the package locally.
 7. Publish to the marketplace.
-8. Install to verify package inspection and lifecycle reporting inside TokenHub.
+8. Install to verify package inspection and lifecycle reporting inside TokenStation.
 
 Before writing code, answer:
 
@@ -230,9 +230,9 @@ The Plugin Devkit includes a local harness:
 
 ```bash
 go test ./...
-go run ./cmd/tokenhub-plugin-test provider --package "$PWD/examples/provider-kimi-go"
-go run ./cmd/tokenhub-plugin-test hook --package "$PWD/examples/hook-trace-go"
-go run ./cmd/tokenhub-plugin-test background --package "$PWD/examples/background-heartbeat-go"
+go run ./cmd/tokenstation-plugin-test provider --package "$PWD/examples/provider-kimi-go"
+go run ./cmd/tokenstation-plugin-test hook --package "$PWD/examples/hook-trace-go"
+go run ./cmd/tokenstation-plugin-test background --package "$PWD/examples/background-heartbeat-go"
 ```
 
 Replace `--package` with your plugin directory.
@@ -243,7 +243,7 @@ The fastest starting point is the tracked heartbeat background-job sample:
 
 ```text
 plugin-devkit/
-├── cmd/tokenhub-plugin-test/          # Local contract test tool
+├── cmd/tokenstation-plugin-test/          # Local contract test tool
 ├── sdk/go/tokenhubplugin/             # Go protocol helpers
 └── examples/background-heartbeat-go/
     ├── main.go
@@ -257,11 +257,11 @@ cd plugin-devkit
 mkdir -p examples/background-heartbeat-go/bin
 go build -o examples/background-heartbeat-go/bin/background-heartbeat-go \
   ./examples/background-heartbeat-go
-go run ./cmd/tokenhub-plugin-test background \
+go run ./cmd/tokenstation-plugin-test background \
   --package "$PWD/examples/background-heartbeat-go"
 ```
 
-The sample manifest keeps the plugin identity and its callable TokenHub contract together:
+The sample manifest keeps the plugin identity and its callable TokenStation contract together:
 
 ```yaml
 schema_version: 2
@@ -366,7 +366,7 @@ Run the sample unchanged first. Then change the plugin ID, job ID, input/output 
 
 ### 5.1 Provider plugins
 
-Provider plugins connect TokenHub to a model service or subscription account.
+Provider plugins connect TokenStation to a model service or subscription account.
 
 They usually declare:
 
@@ -426,8 +426,8 @@ schema_version: 2
 id: example.sim.operations
 name: Operations UI Template
 version: 1.0.0
-description: A compact operations template for TokenHub.
-summary: Apply a compact operations layout to TokenHub.
+description: A compact operations template for TokenStation.
+summary: Apply a compact operations layout to TokenStation.
 category: ui_template
 tokenhub:
   plugin_api: v2
@@ -552,7 +552,7 @@ Rules:
 
 ## 6. Packaging and Distribution
 
-TokenHub uses one package shape for built-in and external plugins.
+TokenStation uses one package shape for built-in and external plugins.
 
 Typical package contents:
 
@@ -571,7 +571,7 @@ Distribution metadata should include:
 - license
 - compatibility metadata
 
-The plugin marketplace URL is unset by default. Configure a working HTTP or HTTPS marketplace website to show its external Browse link. An online JSON index is discovery-only until its detached signature and revocation feed are verified; operators can install from an offline mirror or a direct ZIP URL and validate its checksum. TokenHub immediately reevaluates package validation and lifecycle state; this may activate supported declarative contributions, but it does not enable external command execution.
+The plugin marketplace URL is unset by default. Configure a working HTTP or HTTPS marketplace website to show its external Browse link. An online JSON index is discovery-only until its detached signature and revocation feed are verified; operators can install from an offline mirror or a direct ZIP URL and validate its checksum. TokenStation immediately reevaluates package validation and lifecycle state; this may activate supported declarative contributions, but it does not enable external command execution.
 
 The ZIP may place `plugin.yaml` at the archive root or inside one top-level plugin directory; exactly one manifest must be discoverable. Do not include symlinks. Preserve executable permissions on the runtime entry, and keep `entry.backend.command` relative to the plugin directory.
 
@@ -587,7 +587,7 @@ cd ../../..
 shasum -a 256 background-heartbeat-go.zip
 ```
 
-In the admin console, open **Plugin Management > Browse Plugins > Manual Install** and upload the ZIP, or provide an HTTPS `download_url` and lowercase SHA-256 checksum. TokenHub reevaluates the package after a successful install. Declarative presentation contributions may activate, while a package with an external command records `failed_startup`, stays inspectable, and publishes no runtime capabilities. Use the Devkit for executable contract tests.
+In the admin console, open **Plugin Management > Browse Plugins > Manual Install** and upload the ZIP, or provide an HTTPS `download_url` and lowercase SHA-256 checksum. TokenStation reevaluates the package after a successful install. Declarative presentation contributions may activate, while a package with an external command records `failed_startup`, stays inspectable, and publishes no runtime capabilities. Use the Devkit for executable contract tests.
 
 ## 7. Versioning and Compatibility
 
@@ -595,7 +595,7 @@ Treat versioning as three separate concerns:
 
 | Version | Meaning |
 | --- | --- |
-| Core version | TokenHub product version |
+| Core version | TokenStation product version |
 | Plugin API version | Plugin protocol and envelope contract version |
 | Plugin package version | The plugin package's own version |
 
@@ -624,7 +624,7 @@ Recommended order:
 2. Manifest parsing tests
 3. Contract tests
 4. Package-level tests
-5. TokenHub integration tests
+5. TokenStation integration tests
 6. Marketplace and compatibility checks
 7. Install, file inspection, and lifecycle-failure validation
 
@@ -652,7 +652,7 @@ This approach keeps upgrades safe because each step can ship independently and b
 ## 10. A Simple Decision Tree
 
 ```text
-Does it connect TokenHub to a model or subscription account?
+Does it connect TokenStation to a model or subscription account?
   -> Provider plugin
 
 Does it affect the path from user token request to provider response?

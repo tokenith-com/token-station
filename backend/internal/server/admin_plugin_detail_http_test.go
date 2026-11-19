@@ -30,7 +30,7 @@ entry:
 	writeAdminPluginDetailFile(t, packageDir, "ui/schema.json", `{"schema_version":1,"contributions":[]}`)
 	writeAdminPluginDetailFile(t, packageDir, "src/main.go", "package main\n")
 	writeAdminPluginDetailFile(t, packageDir, "private-secret.txt", "not-visible\n")
-	server := NewWithConfig(NewMemoryStore(), Config{AdminToken: "dev_admin_token", PluginDir: pluginDir})
+	server := newManagedTestServerWithConfig(t, newTestMemoryStore(t), Config{AdminToken: "dev_admin_token", PluginDir: pluginDir})
 
 	response := doJSON(t, server.Handler(), http.MethodGet, "/api/admin/plugins/example.detail/detail", nil, "dev_admin_token")
 	if response.Code != http.StatusOK {
@@ -89,7 +89,7 @@ permissions:
     write: []
 `)
 	writeAdminPluginDetailFile(t, packageDir, "bin/run", "#!/bin/sh\nprintf '{}'")
-	server := NewWithConfig(NewMemoryStore(), Config{AdminToken: "dev_admin_token", PluginDir: pluginDir})
+	server := newManagedTestServerWithConfig(t, newTestMemoryStore(t), Config{AdminToken: "dev_admin_token", PluginDir: pluginDir})
 
 	response := doJSON(t, server.Handler(), http.MethodGet, "/api/admin/plugins/example.command/detail", nil, "dev_admin_token")
 	if response.Code != http.StatusOK {
@@ -160,7 +160,7 @@ permissions:
     write: []
 `)
 	writeAdminPluginDetailFile(t, packageDir, "run.sh", "#!/bin/sh\nprintf '{}'")
-	server := NewWithConfig(NewMemoryStore(), Config{AdminToken: "dev_admin_token", PluginDir: pluginDir})
+	server := newManagedTestServerWithConfig(t, newTestMemoryStore(t), Config{AdminToken: "dev_admin_token", PluginDir: pluginDir})
 
 	plugin := requireAdminPluginDescriptor(t, server, "tokenhub.sim.default")
 	if plugin.Name != "Quarantined Default SIM Override" || plugin.Version != "2.0.0" ||
@@ -223,7 +223,7 @@ permissions:
     write: []
 `)
 	writeAdminPluginDetailFile(t, packageDir, "run.sh", "#!/bin/sh\nprintf '{}'")
-	server := NewWithConfig(NewMemoryStore(), Config{AdminToken: "dev_admin_token", PluginDir: pluginDir})
+	server := newManagedTestServerWithConfig(t, newTestMemoryStore(t), Config{AdminToken: "dev_admin_token", PluginDir: pluginDir})
 
 	plugin := requireAdminPluginDescriptor(t, server, "tokenhub.provider.openai-codex")
 	if plugin.Status != pluginmeta.StatusFailedStartup || len(plugin.Kinds) != 1 || plugin.Kinds[0] != pluginmeta.KindSIM {
@@ -257,7 +257,7 @@ kinds: [extension]
 `)
 	writeAdminPluginDetailFile(t, packageDir, "src/main.go", "package main\n")
 	writeAdminPluginDetailFile(t, packageDir, "credentials.json", `{"token":"not-visible"}`)
-	server := NewWithConfig(NewMemoryStore(), Config{AdminToken: "dev_admin_token", PluginDir: pluginDir})
+	server := newManagedTestServerWithConfig(t, newTestMemoryStore(t), Config{AdminToken: "dev_admin_token", PluginDir: pluginDir})
 
 	path := "/api/admin/plugins/example.files/file?path=" + url.QueryEscape("src/main.go")
 	response := doJSON(t, server.Handler(), http.MethodGet, path, nil, "dev_admin_token")

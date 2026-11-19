@@ -19,8 +19,8 @@ func (unsupportedModelResponsesAdapter) Responses(context.Context, Provider, str
 }
 
 func TestProviderResourceModelUnsupportedErrorRemovesPluginAccountModel(t *testing.T) {
-	store := NewMemoryStore()
-	server := New(store)
+	store := newTestMemoryStore(t)
+	server := newManagedTestServer(t, store)
 	providerType := "plugin_unsupported_model"
 	if err := server.adapterRegistry.RegisterPlugin(pluginmeta.Descriptor{
 		ID:      "tokenhub.provider.unsupported-model-cleanup",

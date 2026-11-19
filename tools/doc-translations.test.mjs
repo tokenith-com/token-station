@@ -142,6 +142,12 @@ describe("co-change rule", () => {
     assert.match(failures[0].detail, /deleted but .* was modified/);
   });
 
+  it("allows removing a source whose translation was already absent", () => {
+    const changes = new Map([["docs/legacy.md", "D"]]);
+    const base = new Set(["docs/legacy.md", "docs/ja/legacy.md"]);
+    assert.deepEqual(checkCoChange(changes, base).map(failure => failure.locale), ["ja"]);
+  });
+
   it("treats a rename as delete-plus-add on both sides", () => {
     // --no-renames means git reports a rename this way; the old translation paths
     // must be cleaned up and the new ones created.
@@ -347,6 +353,20 @@ describe("checker end to end", () => {
     assert.equal(result.code, 1);
     assert.match(result.output, /\[existence\]/);
     assert.match(result.output, /docs\/newthing\.md has no zh-CN translation/);
+  });
+
+  it("accepts removing a legacy untranslated source before and after it is committed", () => {
+    const repo = newRepo();
+    seed(repo);
+    write(repo, "docs/legacy.md", "legacy note\n");
+    const base = commit(repo, "add untranslated legacy note");
+    rmSync(join(repo, "docs/legacy.md"));
+
+    const local = run(repo, ["--existence-only"]);
+    assert.equal(local.code, 0, local.output);
+    const head = commit(repo, "remove legacy note");
+    const result = run(repo, ["--base", base, "--head", head]);
+    assert.equal(result.code, 0, result.output);
   });
 
   it("ignores documents that are deliberately English-only", () => {

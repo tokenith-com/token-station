@@ -24,6 +24,7 @@ const (
 	RouteStrategyPriorityOnly     = "priority_only"
 	ModelAccessModeInherit        = "inherit"
 	ModelAccessModeRestricted     = "restricted"
+	ModelAccessModeExcluded       = "excluded"
 
 	RouteProjectScopeAll     = "all"
 	RouteProjectScopeInclude = "include"
@@ -107,6 +108,7 @@ type Project struct {
 	CostCenter      string        `json:"cost_center,omitempty" gorm:"index"`
 	ModelAccessMode string        `json:"model_access_mode"`
 	AllowedModels   []string      `json:"allowed_models" gorm:"serializer:json"`
+	ExcludedModels  []string      `json:"excluded_models" gorm:"serializer:json"`
 	Status          string        `json:"status"`
 	CreatedAt       time.Time     `json:"created_at"`
 	UpdatedAt       time.Time     `json:"updated_at"`
@@ -129,6 +131,7 @@ type APIKey struct {
 	Name            string            `json:"name"`
 	Group           string            `json:"group,omitempty" gorm:"index"`
 	KeyHash         string            `json:"-" gorm:"uniqueIndex"`
+	KeyCiphertext   string            `json:"-" gorm:"column:key_ciphertext;-:migration"`
 	KeyPrefix       string            `json:"key_prefix"`
 	KeySuffix       string            `json:"key_suffix"`
 	AllowedModels   map[string]bool   `json:"-" gorm:"-"`
@@ -1069,6 +1072,7 @@ func (r ChatCompletionRequest) requestedMaxTokens() int64 {
 }
 
 type PlaygroundChatResponse struct {
+	Wallet    *walletUsageReceipt      `json:"wallet,omitempty"`
 	Response  any                      `json:"response"`
 	Route     PlaygroundRouteSummary   `json:"route"`
 	Usage     Usage                    `json:"usage"`
@@ -1304,6 +1308,8 @@ type RoutedCall struct {
 }
 
 type CallContext struct {
+	walletPayer string
+
 	// Cache keys bind retrieval results to their input, caller and route contracts.
 	RerankCacheKey             string
 	EmbeddingCacheKey          string
@@ -1335,10 +1341,12 @@ type CallContext struct {
 	measuredAt time.Time
 	// RateLimitHeaders is calculated atomically with minute-bucket admission so
 	// every compatible HTTP surface reports the same effective limits.
-	RateLimitHeaders  map[string]string
-	TokenLimitBucket  string
-	MinuteRequestHeld bool
-	ReservedTokens    int64
+	RateLimitHeaders         map[string]string
+	TokenLimitBucket         string
+	MinuteRequestHeld        bool
+	ReservedTokens           int64
+	TeamWalletEnabled        bool
+	TeamWalletReservedMicros int64
 	// UserQuotaID identifies the durable aggregate bucket when a user-scoped
 	// quota policy applies. It is intentionally internal and never exposed to
 	// gateway clients.

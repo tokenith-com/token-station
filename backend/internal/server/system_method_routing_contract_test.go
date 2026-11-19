@@ -51,7 +51,7 @@ func TestSystemMethodRoutesAuthenticateAllowedMethods(t *testing.T) {
 
 func TestSystemMethodRoutesPreserveRBACForAllowedMethods(t *testing.T) {
 	config := Config{AdminToken: "system-method-routing-token"}
-	store := NewMemoryStoreWithConfig(config)
+	store := newTestMemoryStoreWithConfig(t, config)
 	user, err := store.CreateAdminUser(AdminUser{
 		Username: "system-method-routing-user",
 		Name:     "System Method Routing User",
@@ -66,7 +66,7 @@ func TestSystemMethodRoutesPreserveRBACForAllowedMethods(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	app := NewWithConfig(store, config).Handler()
+	app := newManagedTestServerWithConfig(t, store, config).Handler()
 
 	for _, test := range systemMethodRouteContracts() {
 		t.Run(test.name, func(t *testing.T) {
@@ -155,7 +155,7 @@ func TestDBStatusMethodRouteReachesHandler(t *testing.T) {
 
 func TestDBStatusMethodRoutePreservesRBAC(t *testing.T) {
 	config := Config{AdminToken: "db-status-method-routing-token"}
-	store := NewMemoryStoreWithConfig(config)
+	store := newTestMemoryStoreWithConfig(t, config)
 	user, err := store.CreateAdminUser(AdminUser{
 		Username: "db-status-method-routing-user",
 		Name:     "DB Status Method Routing User",
@@ -170,7 +170,7 @@ func TestDBStatusMethodRoutePreservesRBAC(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	app := NewWithConfig(store, config).Handler()
+	app := newManagedTestServerWithConfig(t, store, config).Handler()
 
 	response := methodRoutingRequest(app, http.MethodGet, "/api/admin/system/db-status", session.Token)
 	assertJSONError(t, response, http.StatusForbidden, "admin_forbidden")
@@ -195,8 +195,8 @@ func TestSystemRollbackMethodRouteRecordsCompatibilityFailure(t *testing.T) {
 		DeploymentType: nativeDeploymentType,
 		InstallRoot:    root,
 	}
-	store := NewMemoryStoreWithConfig(config)
-	app := NewWithConfig(store, config)
+	store := newTestMemoryStoreWithConfig(t, config)
+	app := newManagedTestServerWithConfig(t, store, config)
 	app.versions = nativeTestVersionService(root, "0.4.1", releases)
 
 	response := methodRoutingJSONRequest(t, app.Handler(), http.MethodPost, "/api/admin/system/rollback", map[string]any{
@@ -209,7 +209,7 @@ func TestSystemRollbackMethodRouteRecordsCompatibilityFailure(t *testing.T) {
 
 func TestMetricsMethodRoutePreservesDisabledState(t *testing.T) {
 	config := Config{AdminToken: "metrics-method-routing-token", MetricsEnabled: false}
-	app := NewWithConfig(NewMemoryStoreWithConfig(config), config).Handler()
+	app := newManagedTestServerWithConfig(t, newTestMemoryStoreWithConfig(t, config), config).Handler()
 
 	for _, method := range []string{http.MethodGet, http.MethodPost} {
 		t.Run(method, func(t *testing.T) {
@@ -230,7 +230,7 @@ func TestMetricsMethodRoutePreservesDisabledState(t *testing.T) {
 
 func TestMetricsMethodRouteRejectsWrongMethodsBeforeTokenValidation(t *testing.T) {
 	config := Config{AdminToken: "metrics-method-routing-token", MetricsEnabled: true}
-	app := NewWithConfig(NewMemoryStoreWithConfig(config), config).Handler()
+	app := newManagedTestServerWithConfig(t, newTestMemoryStoreWithConfig(t, config), config).Handler()
 
 	for _, token := range []string{"", "wrong-token", "metrics-method-routing-token"} {
 		response := methodRoutingRequest(app, http.MethodPost, "/metrics", token)
@@ -247,7 +247,7 @@ func TestMetricsMethodRouteRejectsWrongMethodsBeforeTokenValidation(t *testing.T
 
 func TestMetricsMethodRouteHidesEnabledEndpointWithoutUsableToken(t *testing.T) {
 	config := Config{MetricsEnabled: true}
-	app := NewWithConfig(NewMemoryStoreWithConfig(config), config).Handler()
+	app := newManagedTestServerWithConfig(t, newTestMemoryStoreWithConfig(t, config), config).Handler()
 
 	response := methodRoutingRequest(app, http.MethodGet, "/metrics", "")
 	if response.Code != http.StatusNotFound {
@@ -258,7 +258,7 @@ func TestMetricsMethodRouteHidesEnabledEndpointWithoutUsableToken(t *testing.T) 
 
 func TestMetricsMethodRouteRejectsWrongMethodWithoutUsableToken(t *testing.T) {
 	config := Config{MetricsEnabled: true}
-	app := NewWithConfig(NewMemoryStoreWithConfig(config), config).Handler()
+	app := newManagedTestServerWithConfig(t, newTestMemoryStoreWithConfig(t, config), config).Handler()
 
 	response := methodRoutingRequest(app, http.MethodPost, "/metrics", "")
 	assertJSONError(t, response, http.StatusMethodNotAllowed, "method_not_allowed")

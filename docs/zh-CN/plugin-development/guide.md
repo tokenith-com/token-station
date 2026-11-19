@@ -1,14 +1,14 @@
-# TokenHub 插件架构与开发指南
+# TokenStation 插件架构与开发指南
 
 Language: [English](../../plugin-development/guide.md) | 简体中文 | [日本語](../../ja/plugin-development/guide.md)
 
-这份文档说明当前 TokenHub 的插件方向，以及如何在这个方向上开发插件。它面向插件作者、平台工程师和运维人员。
+这份文档说明当前 TokenStation 的插件方向，以及如何在这个方向上开发插件。它面向插件作者、平台工程师和运维人员。
 
-本文采用“先做出最小插件，再解释完整契约”的顺序。和 WordPress 通过插件主文件头发现插件类似，TokenHub 通过包根目录的 `plugin.yaml` 发现、校验和加载插件；区别是 TokenHub 插件必须显式声明运行位置、能力和最小权限。
+本文采用“先做出最小插件，再解释完整契约”的顺序。和 WordPress 通过插件主文件头发现插件类似，TokenStation 通过包根目录的 `plugin.yaml` 发现、校验和加载插件；区别是 TokenStation 插件必须显式声明运行位置、能力和最小权限。
 
 > **当前实现边界：** Plugin API v2 是当前 Manifest 契约；现有插件仍可通过 v1 适配器运行。运行时目前还不能强制执行宿主级进程、网络和资源隔离，因此会在启动前拒绝所有动态加载的外部 Provider、请求链 Hook、后台任务和管理动作命令。本指南中的命令示例定义的是开发契约，而不是当前可部署的集成。界面模板是声明式主题和布局能力，并不是任意 React/JavaScript 扩展机制。每个内置插件都有可检查的包文件。只有 Manifest 声明了真实可编辑设置时才显示设置路由；源码仍只供只读预览，管理后台不能修改插件代码。
 
-TokenHub 会把 core 保持得很小：
+TokenStation 会把 core 保持得很小：
 
 - core 负责鉴权、路由、计费、审计、兼容性和升级安全
 - 变化更快的部分交给 plugin
@@ -17,7 +17,7 @@ TokenHub 会把 core 保持得很小：
 
 ## 管理已安装插件
 
-TokenHub 以 Office Add-ins 作为企业治理参考，以 Obsidian 作为插件管理交互参考。插件管理有两个一级入口：“已安装插件”负责搜索、状态筛选、版本、更新和生命周期操作；“浏览插件”列出可用插件，并集中提供市场入口、URL 安装、ZIP 上传、checksum 与权限差异预览。“已安装插件”左侧直接提供四个分类筛选：Provider 集成、请求链路、UI 模板和自动化，不再保留单独的“扩展类型”表格。
+TokenStation 以 Office Add-ins 作为企业治理参考，以 Obsidian 作为插件管理交互参考。插件管理有两个一级入口：“已安装插件”负责搜索、状态筛选、版本、更新和生命周期操作；“浏览插件”列出可用插件，并集中提供市场入口、URL 安装、ZIP 上传、checksum 与权限差异预览。“已安装插件”左侧直接提供四个分类筛选：Provider 集成、请求链路、UI 模板和自动化，不再保留单独的“扩展类型”表格。
 
 已安装列表中的插件名称和“详情”进入概览页。只有插件确实有可编辑设置时才显示“设置”并直接进入设置页。界面模板有可编辑主题 Token 时，点击模板主体进入“设置”；否则进入“详情”。“设为默认模板”是独立操作，因此打开设置不会意外切换当前生效界面。这个层级参考了 WordPress 的[安装、更新和管理模式](https://www.waimaob2c.com/wordpress-plugins)，但不会照搬在线代码编辑和不适合企业网关的自动更新行为。
 
@@ -30,18 +30,18 @@ TokenHub 以 Office Add-ins 作为企业治理参考，以 Obsidian 作为插件
 
 概览不会显示原始能力值或序列化 JSON。“开发者信息”默认折叠；展开后，每项能力、Hook、界面扩展、管理动作和后台任务都会先说明用途，再显示技术标识。
 
-“文件”页有意不照搬 WordPress 的插件文件编辑器。TokenHub 不暴露包的绝对路径，也不允许在线修改已安装的可执行代码；符号链接会被跳过，二进制、运行状态、隐藏文件、凭证、secret、private 以及过大文件都不能预览。这样既能检查插件包的实现，又不会把管理后台变成远程代码执行入口。
+“文件”页有意不照搬 WordPress 的插件文件编辑器。TokenStation 不暴露包的绝对路径，也不允许在线修改已安装的可执行代码；符号链接会被跳过，二进制、运行状态、隐藏文件、凭证、secret、private 以及过大文件都不能预览。这样既能检查插件包的实现，又不会把管理后台变成远程代码执行入口。
 
 经过管理员认证的检查 API 都是只读的：
 
 - `GET /api/admin/plugins/{plugin_id}/detail`
 - `GET /api/admin/plugins/{plugin_id}/file?path={包内相对路径}`
 
-内置插件与外部插件都会展示可检查的包文件清单，包括文件数、总大小、文件类型，以及符合安全条件的 Manifest、README、许可证、源码、配置和 Schema 内容。整体交互参考 WordPress 的[插件开发文档](https://codex.wordpress.org/zh-cn:%E5%BC%80%E5%8F%91%E4%B8%80%E4%B8%AA%E6%8F%92%E4%BB%B6)，但 TokenHub 保留自己的 Manifest、权限和安全模型。
+内置插件与外部插件都会展示可检查的包文件清单，包括文件数、总大小、文件类型，以及符合安全条件的 Manifest、README、许可证、源码、配置和 Schema 内容。整体交互参考 WordPress 的[插件开发文档](https://codex.wordpress.org/zh-cn:%E5%BC%80%E5%8F%91%E4%B8%80%E4%B8%AA%E6%8F%92%E4%BB%B6)，但 TokenStation 保留自己的 Manifest、权限和安全模型。
 
 ## 1. 插件家族
 
-TokenHub 现在把插件分成几个清晰的家族。
+TokenStation 现在把插件分成几个清晰的家族。
 
 | 家族 | 负责什么 | 示例 |
 | --- | --- | --- |
@@ -70,7 +70,7 @@ schema_version: 2
 id: tokenhub.provider.kimi-go
 name: Kimi Subscription Go Provider
 version: 1.0.0
-summary: Connect TokenHub to a Kimi subscription account.
+summary: Connect TokenStation to a Kimi subscription account.
 description: Reference Go Provider plugin using the stdio-json-v1 transport.
 category: provider_integration
 tokenhub:
@@ -111,7 +111,7 @@ distribution:
 
 ## 3. 运行时能力面
 
-TokenHub 目前有三个核心运行时能力面，再加一个过渡兼容能力面。
+TokenStation 目前有三个核心运行时能力面，再加一个过渡兼容能力面。
 
 - `ServeProvider`
 - `ServeGatewayHook`
@@ -182,7 +182,7 @@ Admin UI 贡献不是一个独立运行时能力面。它是声明式的面板�
 5. 添加 contract tests
 6. 本地运行
 7. 发布到 marketplace
-8. 安装后在 TokenHub 中验证包检查与生命周期呈现
+8. 安装后在 TokenStation 中验证包检查与生命周期呈现
 
 写代码之前，先回答：
 
@@ -230,9 +230,9 @@ Plugin Devkit 里提供了本地 harness：
 
 ```bash
 go test ./...
-go run ./cmd/tokenhub-plugin-test provider --package "$PWD/examples/provider-kimi-go"
-go run ./cmd/tokenhub-plugin-test hook --package "$PWD/examples/hook-trace-go"
-go run ./cmd/tokenhub-plugin-test background --package "$PWD/examples/background-heartbeat-go"
+go run ./cmd/tokenstation-plugin-test provider --package "$PWD/examples/provider-kimi-go"
+go run ./cmd/tokenstation-plugin-test hook --package "$PWD/examples/hook-trace-go"
+go run ./cmd/tokenstation-plugin-test background --package "$PWD/examples/background-heartbeat-go"
 ```
 
 把 `--package` 换成你自己的插件目录。
@@ -243,7 +243,7 @@ go run ./cmd/tokenhub-plugin-test background --package "$PWD/examples/background
 
 ```text
 plugin-devkit/
-├── cmd/tokenhub-plugin-test/          # 本地契约测试工具
+├── cmd/tokenstation-plugin-test/          # 本地契约测试工具
 ├── sdk/go/tokenhubplugin/             # Go 协议辅助包
 └── examples/background-heartbeat-go/
     ├── main.go
@@ -257,11 +257,11 @@ cd plugin-devkit
 mkdir -p examples/background-heartbeat-go/bin
 go build -o examples/background-heartbeat-go/bin/background-heartbeat-go \
   ./examples/background-heartbeat-go
-go run ./cmd/tokenhub-plugin-test background \
+go run ./cmd/tokenstation-plugin-test background \
   --package "$PWD/examples/background-heartbeat-go"
 ```
 
-这个样例的 manifest 把“插件是什么”和“TokenHub 可以怎样调用它”写在一起：
+这个样例的 manifest 把“插件是什么”和“TokenStation 可以怎样调用它”写在一起：
 
 ```yaml
 schema_version: 2
@@ -366,7 +366,7 @@ func handle(_ context.Context, invocation tokenhubplugin.BackgroundJobInvocation
 
 ### 5.1 Provider 插件
 
-Provider 插件把 TokenHub 接到某个模型服务或订阅账户上。
+Provider 插件把 TokenStation 接到某个模型服务或订阅账户上。
 
 通常会声明：
 
@@ -426,8 +426,8 @@ schema_version: 2
 id: example.sim.operations
 name: Operations UI Template
 version: 1.0.0
-description: A compact operations template for TokenHub.
-summary: Apply a compact operations layout to TokenHub.
+description: A compact operations template for TokenStation.
+summary: Apply a compact operations layout to TokenStation.
 category: ui_template
 tokenhub:
   plugin_api: v2
@@ -552,7 +552,7 @@ Schema 可声明的 control type 包括 `text`、`secret`、`url`、`select`、`
 
 ## 6. 打包与分发
 
-TokenHub 对 built-in 和 external 插件使用同一种包形态。
+TokenStation 对 built-in 和 external 插件使用同一种包形态。
 
 典型包内容：
 
@@ -571,7 +571,7 @@ TokenHub 对 built-in 和 external 插件使用同一种包形态。
 - 许可证
 - 兼容性元数据
 
-插件市场网站地址默认留空。配置可用的 HTTP 或 HTTPS 市场网站后，界面才会显示外部浏览链接。在线 JSON 索引在完成分离签名和吊销源验证前仅用于发现；运维可以从离线镜像或直接 ZIP URL 安装插件包并校验 checksum。 TokenHub 会立即重新评估插件包的校验与生命周期状态；这可以激活受支持的声明式贡献，但不会启用外部命令执行。
+插件市场网站地址默认留空。配置可用的 HTTP 或 HTTPS 市场网站后，界面才会显示外部浏览链接。在线 JSON 索引在完成分离签名和吊销源验证前仅用于发现；运维可以从离线镜像或直接 ZIP URL 安装插件包并校验 checksum。 TokenStation 会立即重新评估插件包的校验与生命周期状态；这可以激活受支持的声明式贡献，但不会启用外部命令执行。
 
 ZIP 可以把 `plugin.yaml` 放在归档根目录，也可以只包一层插件目录；归档中必须且只能发现一个 `plugin.yaml`。不要包含 symlink。运行入口必须保留可执行权限，并且 `entry.backend.command` 必须是插件目录内的相对路径。
 
@@ -587,7 +587,7 @@ cd ../../..
 shasum -a 256 background-heartbeat-go.zip
 ```
 
-在管理后台打开「插件管理 > 浏览插件 > 手动安装」，可上传 ZIP，或提供 HTTPS `download_url` 与小写 SHA-256 checksum。安装成功后 TokenHub 会重新评估插件包。声明式界面贡献可以生效；带外部命令的包会记录 `failed_startup`，保持可检查，并且不发布任何运行时能力。可执行契约测试必须使用 Devkit。
+在管理后台打开「插件管理 > 浏览插件 > 手动安装」，可上传 ZIP，或提供 HTTPS `download_url` 与小写 SHA-256 checksum。安装成功后 TokenStation 会重新评估插件包。声明式界面贡献可以生效；带外部命令的包会记录 `failed_startup`，保持可检查，并且不发布任何运行时能力。可执行契约测试必须使用 Devkit。
 
 ## 7. 版本与兼容性
 
@@ -595,7 +595,7 @@ shasum -a 256 background-heartbeat-go.zip
 
 | 版本 | 含义 |
 | --- | --- |
-| Core version | TokenHub 产品版本 |
+| Core version | TokenStation 产品版本 |
 | Plugin API version | 插件协议和 envelope 契约版本 |
 | Plugin package version | 插件包自己的版本 |
 
@@ -624,7 +624,7 @@ shasum -a 256 background-heartbeat-go.zip
 2. manifest 解析测试
 3. contract tests
 4. 包级测试
-5. TokenHub 集成测试
+5. TokenStation 集成测试
 6. marketplace 和兼容性检查
 7. 安装、文件检查与生命周期失败验证
 
@@ -652,7 +652,7 @@ shasum -a 256 background-heartbeat-go.zip
 ## 10. 一个简单的判断树
 
 ```text
-它是把 TokenHub 接到某个模型或订阅账户上吗？
+它是把 TokenStation 接到某个模型或订阅账户上吗？
   -> Provider 插件
 
 它影响的是用户 token 请求到 provider 响应的路径吗？

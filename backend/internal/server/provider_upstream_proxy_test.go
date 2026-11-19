@@ -479,7 +479,7 @@ func TestProviderProxyAuthenticationFailureHasSafeStageError(t *testing.T) {
 }
 
 func TestProviderProxyPolicyRefreshesSharedSettingsWithinFiveSeconds(t *testing.T) {
-	base := NewMemoryStore()
+	base := newTestMemoryStore(t)
 	setting := AdminResource{ID: gatewaySettingsID, Name: "Gateway", Status: StatusActive, Fields: map[string]any{}}
 	setConfiguredProxyFields(t, setting.Fields, "http://proxy-one.example:8080")
 	base.CreateResource("settings", setting)
@@ -507,7 +507,7 @@ func TestProviderProxyPolicyRefreshesSharedSettingsWithinFiveSeconds(t *testing.
 }
 
 func TestProviderProxyPolicyKeepsLastKnownConfigurationOnTemporaryReadFailure(t *testing.T) {
-	base := NewMemoryStore()
+	base := newTestMemoryStore(t)
 	setting := AdminResource{ID: gatewaySettingsID, Name: "Gateway", Status: StatusActive, Fields: map[string]any{}}
 	setConfiguredProxyFields(t, setting.Fields, "http://proxy-known.example:8080")
 	base.CreateResource("settings", setting)
@@ -526,7 +526,7 @@ func TestProviderProxyPolicyKeepsLastKnownConfigurationOnTemporaryReadFailure(t 
 }
 
 func TestProviderProxyPolicyFailsClosedBeforeFirstSuccessfulLoad(t *testing.T) {
-	store := &providerProxySettingsStore{Store: NewMemoryStore(), fail: true}
+	store := &providerProxySettingsStore{Store: newTestMemoryStore(t), fail: true}
 	policy := newProviderProxyPolicy(store)
 	request, _ := http.NewRequest(http.MethodGet, "https://provider.example/v1/models", nil)
 	proxyURL, err := policy.proxyForRequest(request)

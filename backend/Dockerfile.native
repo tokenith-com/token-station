@@ -1,9 +1,10 @@
 FROM golang:1.26-alpine AS builder
 
 WORKDIR /src
-ARG GOPROXY=https://proxy.golang.org,direct
+ARG GOPROXY=https://goproxy.cn,direct
 ARG TOKENHUB_VERSION
-ENV GOPROXY=$GOPROXY
+ENV GOPROXY=${GOPROXY}
+RUN sed -i 's|https://dl-cdn.alpinelinux.org|https://mirrors.aliyun.com|g' /etc/apk/repositories
 RUN apk add --no-cache gcc musl-dev
 COPY backend/go.mod ./backend/go.mod
 COPY backend/go.sum ./backend/go.sum
@@ -15,7 +16,7 @@ RUN test -n "$TOKENHUB_VERSION" && \
       -tags "netgo osusergo" \
       -trimpath \
       -ldflags="-s -w -linkmode external -extldflags '-static' -X main.buildVersion=${TOKENHUB_VERSION} -X main.buildType=release -X main.deploymentType=native" \
-      -o /out/tokenhub ./cmd/tokenhub
+      -o /out/tokenstation ./cmd/tokenstation
 
 FROM scratch AS artifact
-COPY --from=builder /out/tokenhub /tokenhub
+COPY --from=builder /out/tokenstation /tokenstation

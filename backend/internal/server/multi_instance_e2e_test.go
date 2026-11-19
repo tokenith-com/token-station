@@ -828,11 +828,11 @@ func testClusterWideHTTPEnforcement(t *testing.T, storeA *GormStore, storeB *Gor
 
 	release := make(chan struct{})
 	blocking := &multiInstanceBlockingAdapter{started: make(chan struct{}), release: release}
-	serverA := NewWithConfig(storeA, config)
+	serverA := newManagedTestServerWithConfig(t, storeA, config)
 	registerTestAdapter(serverA, ProviderMock, blocking)
 	httpA := httptest.NewServer(serverA.Handler())
 	defer httpA.Close()
-	httpB := httptest.NewServer(NewWithConfig(storeB, config).Handler())
+	httpB := httptest.NewServer(newManagedTestServerWithConfig(t, storeB, config).Handler())
 	defer httpB.Close()
 
 	firstStatus := make(chan int, 1)
@@ -1126,9 +1126,9 @@ func testSharedOAuthAndRefresh(t *testing.T, storeA *GormStore, storeB *GormStor
 	openAIAccountOAuthTokenEndpoint = tokenServer.URL
 	defer func() { openAIAccountOAuthTokenEndpoint = previousEndpoint }()
 
-	httpA := httptest.NewServer(NewWithConfig(storeA, config).Handler())
+	httpA := httptest.NewServer(newManagedTestServerWithConfig(t, storeA, config).Handler())
 	defer httpA.Close()
-	httpB := httptest.NewServer(NewWithConfig(storeB, config).Handler())
+	httpB := httptest.NewServer(newManagedTestServerWithConfig(t, storeB, config).Handler())
 	defer httpB.Close()
 
 	generatePayload := map[string]any{

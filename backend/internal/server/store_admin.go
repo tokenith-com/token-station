@@ -45,6 +45,11 @@ func (s *GormStore) createResourceLocked(kind string, resource AdminResource, up
 		resource.Fields = map[string]any{}
 	}
 	resource.Kind = kind
+	if kind == "role-configs" {
+		if err := prepareRoleConfig(&resource); err != nil {
+			return AdminResource{}, err
+		}
+	}
 	resource.RoutingPolicyBindingKey = nil
 	if kind == routingPolicyResourceKind {
 		resource.RoutingPolicyBindingKey = routingPolicyBindingKey(resource.Fields)
@@ -96,6 +101,11 @@ func (s *GormStore) UpdateResource(kind string, id string, patch AdminResource) 
 	}
 	if patch.Fields != nil {
 		resource.Fields = patch.Fields
+	}
+	if kind == "role-configs" {
+		if err := prepareRoleConfig(&resource); err != nil {
+			return AdminResource{}, err
+		}
 	}
 	resource.RoutingPolicyBindingKey = nil
 	if kind == routingPolicyResourceKind {
@@ -397,6 +407,7 @@ func updateAdminUser(db *gorm.DB, id string, patch AdminUser, password string) (
 	if patch.Role != "" {
 		user.Role = patch.Role
 	}
+	user.Role = canonicalAdminAccountRole(user.Role)
 	user.TeamID = patch.TeamID
 	user.TeamIDs = normalizedTeamIDs(patch.TeamID, patch.TeamIDs)
 	if patch.Status != "" {
@@ -451,14 +462,13 @@ func (s *GormStore) DeleteAdminUser(id string) error {
 }
 
 func activePlatformAdmin(user AdminUser) bool {
-	role := strings.ToLower(strings.TrimSpace(user.Role))
-	return user.Status == StatusActive && (role == "admin" || role == "system_admin")
+	return user.Status == StatusActive && isPlatformAdminRole(user.Role)
 }
 
 func ensureAnotherActivePlatformAdmin(db *gorm.DB, excludedUserID string) error {
 	var count int64
 	if err := db.Model(&AdminUser{}).
-		Where("id <> ? AND status = ? AND lower(role) IN ?", excludedUserID, StatusActive, []string{"admin", "system_admin"}).
+		Where("id <> ? AND status = ? AND LOWER(TRIM(role)) = ?", excludedUserID, StatusActive, "admin").
 		Count(&count).Error; err != nil {
 		return err
 	}

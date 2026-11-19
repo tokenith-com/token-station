@@ -31,6 +31,7 @@ bin/
 *.test
 coverage.out
 backend/tokenhub
+backend/tokenstation
 
 # Local runtime data
 data/*
@@ -43,9 +44,14 @@ backend/data/
 backend/internal/server/data/
 
 # Environment
+/config.yaml
+/backend/config.yaml
+/maas-ui/config.yaml
+/dist/
 .env
 .env.*
 !.env.example
+/deploy/payment-local/
 
 # Logs
 *.log
@@ -63,7 +69,8 @@ yarn-error.log*
 .spec-workflow/
 CLAUDE.md
 backend/tokenhub-migrate
+backend/tokenstation-migrate
 sdk/migration-e2e/report.json
 
 # Vendored Helm subchart archives (rebuilt by helm dependency build)
-deploy/helm/tokenhub/charts/
+deploy/helm/tokenstation/charts/

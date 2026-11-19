@@ -10,7 +10,7 @@ import (
 )
 
 func TestAdapterSessionBindingExpiresAfterOneHour(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	provider := store.AddProvider(Provider{
 		ID:      "prv_expiring_session",
 		Name:    "Expiring Session",
@@ -65,7 +65,7 @@ func TestAdapterSessionBindingExpiresAfterOneHour(t *testing.T) {
 }
 
 func TestAdapterSessionBindingSuccessfulUseRefreshesExpiration(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	provider := store.AddProvider(Provider{
 		ID:      "prv_refreshing_session",
 		Name:    "Refreshing Session",
@@ -121,7 +121,7 @@ func TestAdapterSessionBindingSuccessfulUseRefreshesExpiration(t *testing.T) {
 }
 
 func TestProviderSessionAffinityPersistsBinding(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	provider := store.AddProvider(Provider{
 		ID: "prv_provider_session", Name: "Provider Session", Type: "sticky_provider",
 		Status: StatusActive, Healthy: true,
@@ -166,7 +166,7 @@ func TestProviderSessionAffinityPersistsBinding(t *testing.T) {
 }
 
 func TestChatGatewayAffinityUsesAdapterCapability(t *testing.T) {
-	server := New(NewMemoryStore())
+	server := newManagedTestServer(t, newTestMemoryStore(t))
 	server.adapterRegistry.Register("sticky_provider", MockAdapter{}, AdapterCapabilityChat, AdapterCapabilityAffinity)
 	headers := make(http.Header)
 	headers.Set("x-tokenhub-session-id", "sticky-session")
@@ -191,7 +191,7 @@ func TestChatGatewayAffinityUsesAdapterCapability(t *testing.T) {
 }
 
 func TestChatGatewayAffinityUsesPluginPolicyKind(t *testing.T) {
-	server := New(NewMemoryStore())
+	server := newManagedTestServer(t, newTestMemoryStore(t))
 	providerType := "legacy_sticky_provider"
 	if err := server.adapterRegistry.RegisterPlugin(pluginmeta.Descriptor{
 		ID:      "tokenhub.provider.legacy-sticky",

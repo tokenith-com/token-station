@@ -1,6 +1,6 @@
 # Text embeddings
 
-TokenHub exposes `POST /v1/embeddings` with the normal API-key permissions, routing, limits and request audit. Send `model` and either one text or an array of independent texts. A batch returns one dense vector per input, preserving `index`; malformed upstream counts, indices and dimensions are errors.
+TokenStation exposes `POST /v1/embeddings` with the normal API-key permissions, routing, limits and request audit. Send `model` and either one text or an array of independent texts. A batch returns one dense vector per input, preserving `index`; malformed upstream counts, indices and dimensions are errors.
 
 Optional parameters are `dimensions`, `encoding_format` (`float` or `base64`), `input_type` (`query` or `document`), `task`, `normalized`, `truncation`, `late_chunking` and `user`. Availability depends on the selected protocol. Unsupported options are rejected rather than silently discarded. Sparse, quantized and multimodal inputs/outputs and asynchronous Batch jobs are outside this endpoint's current scope. Token ID inputs remain available on compatible upstreams.
 
@@ -25,7 +25,7 @@ Use the provider's documented regional URL. A catalog listing or passing HTTP co
 
 ## Vector compatibility
 
-By default, sources must match the Provider, upstream model, adapter type, effective Base URL, embedding protocol and endpoint path. Resource overrides participate in this identity; different deployments need an explicit shared space. To permit verified equivalent deployments, configure `embedding_spaces` as a JSON mapping from **upstream model ID** to an administrator-confirmed space ID, for example `{"my-embedding-model":"space-v1"}`. Every participating deployment must use equivalent model versions and encoding behavior. Equal dimensions alone are insufficient. Changing spaces requires rebuilding the application's stored vector index; TokenHub never edits that external index.
+By default, sources must match the Provider, upstream model, adapter type, effective Base URL, embedding protocol and endpoint path. Resource overrides participate in this identity; different deployments need an explicit shared space. To permit verified equivalent deployments, configure `embedding_spaces` as a JSON mapping from **upstream model ID** to an administrator-confirmed space ID, for example `{"my-embedding-model":"space-v1"}`. Every participating deployment must use equivalent model versions and encoding behavior. Equal dimensions alone are insufficient. Changing spaces requires rebuilding the application's stored vector index; TokenStation never edits that external index.
 
 Missing upstream usage remains unreported in metering evidence, distinct from reported zero. Estimates are not substituted for measured tokens. Provider costs and tenant prices remain separate.
 
@@ -35,7 +35,7 @@ New or republished routes require configured tenant and provider prices. The ten
 {"model":"public-embedding","input":["first document","second document"],"dimensions":1024,"encoding_format":"float"}
 ```
 
-OpenAI SDK clients can use `client.embeddings.create`. Configure the public model name and TokenHub base URL in Dify or the relevant LangChain/LlamaIndex integration. Actual client/version acceptance is separate from local protocol tests.
+OpenAI SDK clients can use `client.embeddings.create`. Configure the public model name and TokenStation base URL in Dify or the relevant LangChain/LlamaIndex integration. Actual client/version acceptance is separate from local protocol tests.
 
 Model discovery prefers explicit `type`, `modality` or `model_type`. When absent, established BGE, GTE, E5, Voyage and sentence-transformer names are recognized as embedding candidates; reranker names take precedence. Inferred type still does not prove deployed capability.
 

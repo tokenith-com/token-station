@@ -10,7 +10,7 @@ import (
 )
 
 func TestExternalStatementBoundaryRowsDoNotConsumeLimit(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	from := time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC)
 	rows := make([]billingstore.RecordRow, statementRowLimit+1)
 	for index := range rows {

@@ -62,11 +62,35 @@ func findPlaygroundSSEEvent(t *testing.T, events []playgroundSSEEvent, name stri
 
 func newPlaygroundTestServer(t *testing.T) (*Server, *GormStore) {
 	t.Helper()
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	if err := SeedDemoData(store); err != nil {
 		t.Fatal(err)
 	}
-	return New(store), store
+	return newManagedTestServer(t, store), store
+}
+
+// playgroundTestAdminID returns the user ID that test requests sent with the
+// configured admin token (empty in tests) authenticate as.
+func playgroundTestAdminID(store Store) string {
+	if users := store.ListAdminUsers(); len(users) > 0 {
+		return users[0].ID
+	}
+	return "dev_admin"
+}
+
+// createPlaygroundTestKey creates an active API key in projectID owned by
+// ownerUserID and returns its ID for use as a playground api_key_id. An empty
+// ownerUserID assigns the key to the admin-token test caller.
+func createPlaygroundTestKey(t *testing.T, store Store, projectID, ownerUserID string) string {
+	t.Helper()
+	if ownerUserID == "" {
+		ownerUserID = playgroundTestAdminID(store)
+	}
+	key, _, err := store.CreateAPIKey(projectID, APIKey{Name: "Playground test key", Status: StatusActive, OwnerUserID: ownerUserID}, "")
+	if err != nil {
+		t.Fatalf("create playground test key: %v", err)
+	}
+	return key.ID
 }
 
 func newPlaygroundTestSink() *playgroundDeltaSink {
@@ -96,9 +120,9 @@ func TestPlaygroundDeltaSinkRejectsMalformedJSONFrame(t *testing.T) {
 }
 
 func TestAdminPlaygroundStreamEmitsDeltasAndDiagnostics(t *testing.T) {
-	server, _ := newPlaygroundTestServer(t)
+	server, store := newPlaygroundTestServer(t)
 	response := doJSON(t, server.Handler(), http.MethodPost, "/api/admin/playground/chat/stream", map[string]any{
-		"project_id": "prj_demo",
+		"api_key_id": createPlaygroundTestKey(t, store, "prj_demo", ""),
 		"model":      "gpt-4.1-mini",
 		"messages": []map[string]any{
 			{"role": "system", "content": "Be concise."},
@@ -157,7 +181,7 @@ func TestAdminPlaygroundStreamEmitsDeltasAndDiagnostics(t *testing.T) {
 }
 
 func TestAdminPlaygroundResponsesStreamAppliesStreamTransformHook(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	project := store.CreateProject(Project{Name: "Playground Responses Stream", Status: StatusActive})
 	provider := store.AddProvider(Provider{
 		ID: "prv_playground_responses_stream_transform", Name: "Playground Responses Stream",
@@ -168,7 +192,7 @@ func TestAdminPlaygroundResponsesStreamAppliesStreamTransformHook(t *testing.T) 
 		ID: "route_playground_responses_stream_transform", ModelName: "gpt-playground-responses-stream-transform",
 		ProviderID: provider.ID, ProviderModel: "upstream-responses", Status: StatusActive, Priority: 1, Weight: 100,
 	})
-	server := New(store)
+	server := newManagedTestServer(t, store)
 	if err := server.adapterRegistry.RegisterPlugin(pluginmeta.Descriptor{
 		ID:      "tokenhub.provider.playground-responses-stream-transform",
 		Name:    "Playground Responses Stream Transform",
@@ -209,7 +233,7 @@ func TestAdminPlaygroundResponsesStreamAppliesStreamTransformHook(t *testing.T) 
 	}
 
 	response := doJSON(t, server.Handler(), http.MethodPost, "/api/admin/playground/chat/stream", map[string]any{
-		"project_id": project.ID,
+		"api_key_id": createPlaygroundTestKey(t, store, project.ID, ""),
 		"model":      "gpt-playground-responses-stream-transform",
 		"messages": []map[string]any{
 			{"role": "user", "content": "hello"},
@@ -238,11 +262,12 @@ type playgroundCaptureAdapter struct {
 func TestAdminPlaygroundNeverForwardsCaseInsensitiveProjectContext(t *testing.T) {
 	for _, path := range []string{"/api/admin/playground/chat", "/api/admin/playground/chat/stream"} {
 		t.Run(path, func(t *testing.T) {
-			server, _ := newPlaygroundTestServer(t)
+			server, store := newPlaygroundTestServer(t)
 			adapter := &playgroundCaptureAdapter{}
 			server.adapterRegistry.Register(ProviderMock, adapter, AdapterCapabilityChat)
 			response := doJSON(t, server.Handler(), http.MethodPost, path, map[string]any{
 				"PROJECT_ID": "prj_demo",
+				"API_KEY_ID": createPlaygroundTestKey(t, store, "prj_demo", ""),
 				"model":      "gpt-4.1-mini",
 				"messages":   []map[string]any{{"role": "user", "content": "do not leak context"}},
 			}, "")
@@ -258,7 +283,7 @@ func TestAdminPlaygroundNeverForwardsCaseInsensitiveProjectContext(t *testing.T)
 				t.Fatal(err)
 			}
 			for key := range fields {
-				if strings.EqualFold(key, "project_id") {
+				if strings.EqualFold(key, "project_id") || strings.EqualFold(key, "api_key_id") {
 					t.Fatalf("playground project context leaked to the provider as %q: %s", key, forwarded)
 				}
 			}
@@ -276,11 +301,11 @@ func (a *playgroundCaptureAdapter) ChatStream(_ context.Context, _ Provider, _ s
 }
 
 func TestAdminPlaygroundStreamFallsBackToBufferedWithoutFakeTTFT(t *testing.T) {
-	server, _ := newPlaygroundTestServer(t)
+	server, store := newPlaygroundTestServer(t)
 	adapter := &playgroundCaptureAdapter{}
 	server.adapterRegistry.Register(ProviderMock, adapter, AdapterCapabilityChat)
 	response := doJSON(t, server.Handler(), http.MethodPost, "/api/admin/playground/chat/stream", map[string]any{
-		"project_id":        "prj_demo",
+		"api_key_id":        createPlaygroundTestKey(t, store, "prj_demo", ""),
 		"model":             "gpt-4.1-mini",
 		"messages":          []map[string]any{{"role": "user", "content": "buffer me"}},
 		"presence_penalty":  0.4,
@@ -318,7 +343,7 @@ func TestAdminPlaygroundStreamFallsBackToBufferedWithoutFakeTTFT(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if strings.Contains(string(forwarded), "project_id") {
+	if strings.Contains(string(forwarded), "project_id") || strings.Contains(string(forwarded), "api_key_id") {
 		t.Fatalf("playground project context leaked to the provider: %s", forwarded)
 	}
 }
@@ -330,7 +355,7 @@ func TestAdminPlaygroundStreamForwardsMultimodalContent(t *testing.T) {
 	server.adapterRegistry.Register(ProviderMock, adapter, AdapterCapabilityChat)
 	dataURI := "data:image/png;base64,YWJj"
 	response := doJSON(t, server.Handler(), http.MethodPost, "/api/admin/playground/chat/stream", map[string]any{
-		"project_id": project.ID,
+		"api_key_id": createPlaygroundTestKey(t, store, project.ID, ""),
 		"model":      "gpt-4.1-mini",
 		"messages": []map[string]any{{"role": "user", "content": []any{
 			map[string]any{"type": "text", "text": "describe"},
@@ -367,8 +392,9 @@ func TestUserPlaygroundStreamRedactsRouteInternals(t *testing.T) {
 		Name: "Playground Project Member", Status: StatusActive,
 		Fields: map[string]any{"project_id": "prj_demo", "user_id": user.ID, "role": "developer"},
 	})
+	keyID := createPlaygroundTestKey(t, store, "prj_demo", user.ID)
 	response := doJSON(t, server.Handler(), http.MethodPost, "/api/admin/playground/chat/stream", map[string]any{
-		"project_id": "prj_demo",
+		"api_key_id": keyID,
 		"model":      "gpt-4.1-mini",
 		"messages":   []map[string]any{{"role": "user", "content": "redact route"}},
 	}, session.Token)
@@ -394,7 +420,7 @@ func TestUserPlaygroundStreamRedactsRouteInternals(t *testing.T) {
 	}
 
 	legacy := doJSON(t, server.Handler(), http.MethodPost, "/api/admin/playground/chat", map[string]any{
-		"project_id": "prj_demo",
+		"api_key_id": keyID,
 		"model":      "gpt-4.1-mini",
 		"messages":   []map[string]any{{"role": "user", "content": "legacy redaction"}},
 	}, session.Token)

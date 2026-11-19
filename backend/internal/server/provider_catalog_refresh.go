@@ -15,11 +15,9 @@ const (
 	providerCatalogUpstreamURL     = "https://raw.githubusercontent.com/ThinkInAIXYZ/PublicProviderConf/dev/dist/all.json"
 	providerCatalogUpstreamTimeout = 15 * time.Second
 	providerCatalogMaxBytes        = 16 << 20
-	// defaultProviderCatalogSyncIntervalSeconds backs the daily background
-	// refresh of the public catalog. Operators can override it with
-	// TOKENHUB_PROVIDER_CATALOG_SYNC_INTERVAL_SECONDS; zero disables the
-	// scheduler entirely for air-gapped deployments.
-	defaultProviderCatalogSyncIntervalSeconds = 24 * 60 * 60
+	// Keep scheduled refresh opt-in for existing deployments. An unset or
+	// invalid interval preserves the previous manual-refresh behavior.
+	defaultProviderCatalogSyncIntervalSeconds = 0
 )
 
 // providerCatalogFreshInterval is how long a previously fetched upstream

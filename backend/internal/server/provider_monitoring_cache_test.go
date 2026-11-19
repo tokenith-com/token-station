@@ -170,7 +170,7 @@ func TestProviderMonitoringHTTPErrorAndAuthorization(t *testing.T) {
 		}
 	})
 	store := &monitoringFailureStore{Store: underlying}
-	server := New(store)
+	server := newManagedTestServer(t, store)
 	for _, authorized := range []bool{false, true} {
 		req := httptest.NewRequest(http.MethodGet, "/api/admin/providers/monitoring", nil)
 		if authorized {

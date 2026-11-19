@@ -15,7 +15,7 @@ import (
 )
 
 func TestNotificationChannelTestUsesSavedWebhookWithoutCreatingAlert(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	var received map[string]any
 	webhook := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost || r.URL.Path != "/saved-secret" || r.URL.Query().Get("token") != "query-secret" {
@@ -98,7 +98,7 @@ func TestNotificationChannelTestRevealsStoredWebhookSecret(t *testing.T) {
 }
 
 func TestNotificationChannelTestEmailUsesSavedRecipients(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	messages := configureTestSMTPChannel(t, store)
 	channel := store.ListResources("notification-channels")[0]
 	channel.Fields["email_to"] = "ops@example.test,admin@example.test"
@@ -113,7 +113,7 @@ func TestNotificationChannelTestEmailUsesSavedRecipients(t *testing.T) {
 	}
 	select {
 	case message := <-messages:
-		for _, marker := range []string{"ops@example.test", "admin@example.test", "notification_channel_test", "This is a TokenHub test notification"} {
+		for _, marker := range []string{"ops@example.test", "admin@example.test", "notification_channel_test", "This is a TokenStation test notification"} {
 			if !strings.Contains(message, marker) {
 				t.Errorf("email missing %q: %s", marker, message)
 			}
@@ -144,7 +144,7 @@ func TestNotificationChannelTestFailuresAreRecordedAndRedacted(t *testing.T) {
 		{"unsupported_type", map[string]any{"type": "unknown"}, "unsupported notification channel"},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
-			store := NewMemoryStore()
+			store := newTestMemoryStore(t)
 			channel := store.CreateResource("notification-channels", AdminResource{Name: tt.name, Status: StatusActive, Fields: tt.fields})
 			server := New(store)
 			t.Cleanup(func() { _ = server.Shutdown(t.Context()) })
@@ -161,7 +161,7 @@ func TestNotificationChannelTestFailuresAreRecordedAndRedacted(t *testing.T) {
 func TestNotificationChannelTestAuthorizationAndMethods(t *testing.T) {
 	store, app := newMethodRoutingAdminServer(t, "notification-test-password")
 	channel := store.CreateResource("notification-channels", AdminResource{Name: "Missing target", Status: StatusActive, Fields: map[string]any{"type": "webhook"}})
-	for _, role := range []string{"admin", "system_admin", "security_admin", "team_leader", "user"} {
+	for _, role := range []string{"admin", "security_admin", "team_leader", "user"} {
 		token := createAdminOperationMethodRoutingSession(t, store, "notification-test-"+role, role)
 		for _, method := range []string{http.MethodPost, http.MethodGet, http.MethodPut, http.MethodPatch, http.MethodDelete, http.MethodHead} {
 			t.Run(role+"/"+method, func(t *testing.T) {
@@ -183,8 +183,8 @@ func TestNotificationChannelTestAuthorizationAndMethods(t *testing.T) {
 	}
 	response := methodRoutingRequest(app, http.MethodPost, notificationTestPath("missing"), "dev_admin_token")
 	assertJSONError(t, response, http.StatusNotFound, "resource_not_found")
-	if got := len(store.ListAlertDeliveries()); got != 3 {
-		t.Fatalf("unauthorized or invalid requests created deliveries: got %d, want 3", got)
+	if got := len(store.ListAlertDeliveries()); got != 2 {
+		t.Fatalf("unauthorized or invalid requests created deliveries: got %d, want 2", got)
 	}
 }
 

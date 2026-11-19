@@ -242,7 +242,7 @@ func validateCoreVersionRange(minCore string, maxCore string) error {
 			return pluginContractErrorf(PluginErrorCoreVersionInvalid, "tokenhub.min_core is invalid: %v", err)
 		}
 		if comparePluginCoreVersion(current, minimum) < 0 {
-			return pluginContractErrorf(PluginErrorCoreVersionUnsupported, "plugin requires TokenHub core %s or newer", strings.TrimSpace(minCore))
+			return pluginContractErrorf(PluginErrorCoreVersionUnsupported, "plugin requires TokenStation core %s or newer", strings.TrimSpace(minCore))
 		}
 	}
 	if strings.TrimSpace(maxCore) != "" {
@@ -251,7 +251,7 @@ func validateCoreVersionRange(minCore string, maxCore string) error {
 			return pluginContractErrorf(PluginErrorCoreVersionInvalid, "tokenhub.max_core is invalid: %v", err)
 		}
 		if comparePluginCoreVersion(current, maximum) > 0 {
-			return pluginContractErrorf(PluginErrorCoreVersionUnsupported, "plugin supports TokenHub core up to %s", strings.TrimSpace(maxCore))
+			return pluginContractErrorf(PluginErrorCoreVersionUnsupported, "plugin supports TokenStation core up to %s", strings.TrimSpace(maxCore))
 		}
 		if strings.TrimSpace(minCore) != "" {
 			minimum, _ := parsePluginCoreVersion(minCore)

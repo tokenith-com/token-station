@@ -30,6 +30,7 @@ func (s *Server) handleChatCompletions(w http.ResponseWriter, r *http.Request) {
 		writeError(w, r, NewHTTPError(400, "missing_model", "model is required"))
 		return
 	}
+	r = r.WithContext(context.WithValue(r.Context(), prepaidChatContextKey{}, true))
 	admittedAt := time.Now().UTC()
 	call, err := s.admitRoutedCall(w, r, project, key, req.Model, req.Stream, requestTokenReservation(req))
 	if err != nil {
@@ -87,7 +88,7 @@ func (s *Server) handleChatCompletions(w http.ResponseWriter, r *http.Request) {
 		writeError(w, r, err)
 		return
 	}
-	if !req.Stream {
+	if !req.Stream && call.walletPayer == "" {
 		resp, usage, hit, err := s.runGatewayCacheLookupHooks(r.Context(), call, req)
 		if err != nil {
 			s.finishFailedRoutedCall(r, RoutedCall{Call: call}, nil, Usage{}, err, auditPayload)
@@ -149,6 +150,11 @@ func (s *Server) handleChatCompletions(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if err := s.reserveChatWallet(r.Context(), routed.Call, &req); err != nil {
+		s.finishFailedRoutedCall(r, routed, nil, Usage{}, err, auditPayload)
+		writeError(w, r, err)
+		return
+	}
 	if req.Stream {
 		tracker := &streamWriteTracker{writer: w}
 		allowEffortFallback := normalizedReasoningEffort(req.ReasoningEffort) != nil
@@ -526,16 +532,13 @@ func (s *Server) handleAdminPlaygroundChat(w http.ResponseWriter, r *http.Reques
 	}
 	req.Stream = false
 	req.StreamOptions = nil
-	guardrailProjectID, err := s.resolvePlaygroundGuardrailProjectID(user, playgroundReq.ProjectID)
-	if err != nil {
-		writeError(w, r, err)
+	startedAt := time.Now()
+	call, ok := s.admitPlaygroundCall(w, r, user, playgroundReq.APIKeyID, req, startedAt)
+	if !ok {
 		return
 	}
-
-	startedAt := time.Now()
-	call := s.newPlaygroundCallContext(user, req.Model, startedAt)
+	guardrailProjectID := call.Project.ID
 	requestID := call.RequestID
-	w.Header().Set("x-request-id", requestID)
 	if err := s.runGatewayAuthContextHooks(r.Context(), &call, r.Header); err != nil {
 		httpErr := AsHTTPError(err)
 		requestAuditPayload := guardrailAuditSummary{Model: req.Model}
@@ -618,6 +621,7 @@ func (s *Server) handleAdminPlaygroundChat(w http.ResponseWriter, r *http.Reques
 		})
 		writeError(w, r, routeErr)
 	}
+	var err error
 	routed.Call.Model, err = resolvePlaygroundModelPricing(s.store, routed.Call.Model)
 	if err != nil {
 		finishRoutingFailure(err)
@@ -657,15 +661,19 @@ func (s *Server) handleAdminPlaygroundChat(w http.ResponseWriter, r *http.Reques
 		return
 	}
 	routed.Routes = s.planRouteOrderWithContext(r.Context(), routed.Call, routes)
+	if err := s.reserveChatWallet(r.Context(), routed.Call, &req); err != nil {
+		finishRoutingFailure(err)
+		return
+	}
 	resp, route, usage, attempts, err := s.executeRoutedPlaygroundChat(r, routed, req)
 	if err != nil {
 		httpErr := AsHTTPError(err)
 		route = lastAttemptRoute(attempts)
 		s.finishRoutedCall(r, GatewayCallCompletion{
-			Kind:            CompletionKindPlayground,
-			Call:            routed.Call,
-			Route:           route,
-			Attempts:        attempts,
+			Kind:     CompletionKindPlayground,
+			Call:     routed.Call,
+			Route:    route,
+			Attempts: attempts, Usage: usage,
 			StatusCode:      httpErr.Status,
 			ErrorCode:       httpErr.Code,
 			ErrorMessage:    httpErr.Message,
@@ -701,6 +709,7 @@ func (s *Server) handleAdminPlaygroundChat(w http.ResponseWriter, r *http.Reques
 	})
 	w.Header().Set("x-request-id", requestID)
 	writeJSON(w, http.StatusOK, PlaygroundChatResponse{
+		Wallet:    s.playgroundWalletReceipt(routed.Call),
 		Response:  resp,
 		Route:     playgroundRouteForUser(user, route, usage),
 		Usage:     playgroundUsageForUser(user, usage),
@@ -721,6 +730,8 @@ func executeRoutedWithStore[T any](
 	call func(context.Context, RouteSelection, bool, int) (T, Usage, error),
 ) (T, RouteSelection, Usage, []RouteAttempt, error) {
 	callerCtx := ctx
+	ctx, cancel := prepaidDispatchContext(ctx, routed.Call)
+	defer cancel()
 	ctx = withSubscriptionCaller(ctx, routed.Call.Project.ID, routed.Call.Key.ID)
 	var zero T
 	var lastErr error = ErrProviderMissing
@@ -1475,18 +1486,4 @@ func (s *Server) authenticate(r *http.Request) (Project, APIKey, error) {
 		return s.store.ValidateAPIKey(apiKey, s.clientIP(r))
 	}
 	return Project{}, APIKey{}, ErrInvalidAPIKey
-}
-
-// playgroundModel resolves the catalog entry for a playground request so its usage
-// is priced like any other call. It falls back to a name-only model when the catalog
-// does not know the name, which keeps the console usable against a model that was
-// just removed.
-func playgroundModel(store Store, name string) Model {
-	name = strings.TrimSpace(name)
-	for _, model := range store.ListModels() {
-		if model.Name == name {
-			return model
-		}
-	}
-	return Model{Name: name, Status: StatusActive}
 }

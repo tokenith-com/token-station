@@ -17,12 +17,14 @@ import (
 	"tokenhub/backend/internal/billing"
 	billingadapters "tokenhub/backend/internal/billing/adapters"
 	"tokenhub/backend/internal/guardrails"
+	"tokenhub/backend/internal/payment"
 	pluginmeta "tokenhub/backend/internal/plugin"
 	"tokenhub/backend/internal/reconciliation"
 	reconciliationpersistence "tokenhub/backend/internal/reconciliation/persistence"
 )
 
 type Server struct {
+	payments                         *paymentService
 	monitoringObservations           monitoringObservationCache
 	semanticRouter                   semanticEvaluator
 	pluginRuntimeMu                  sync.RWMutex
@@ -84,6 +86,11 @@ type Server struct {
 	// production dial validates the server certificate against the platform
 	// roots; tests inject the in-process fake server's certificate here.
 	smtpRootCAs *x509.CertPool
+	// consumerCaptcha holds in-memory registration CAPTCHA challenges keyed by
+	// challenge id. It is intentionally ephemeral: a restart simply invalidates
+	// outstanding challenges.
+	consumerCaptchaMu sync.Mutex
+	consumerCaptcha   map[string]consumerCaptchaChallenge
 }
 
 func New(store Store) *Server {
@@ -97,6 +104,7 @@ func NewWithConfig(store Store, config Config) *Server {
 // ApplicationDependencies are the domain capabilities supplied by the
 // composition root. They are deliberately separate from Store.
 type ApplicationDependencies struct {
+	Payment              *payment.Service
 	Repository           billing.Repository
 	ReconciliationReader reconciliationpersistence.BillingSource
 	ReconciliationStore  reconciliation.Store
@@ -248,10 +256,10 @@ func newWithConfig(store Store, config Config, dependencies ApplicationDependenc
 	s.pluginBackgroundRunner.SetSchedulerSnapshotLocker(s.pluginRuntimeMu.RLocker())
 	s.installServerPluginHandlers(&pluginBootstrap)
 	if err := pluginmeta.NewRuntime(config.PluginDir).CompleteRuntimeRestart(); err != nil {
-		panic(fmt.Errorf("complete TokenHub plugin runtime restart: %w", err))
+		panic(fmt.Errorf("complete TokenStation plugin runtime restart: %w", err))
 	}
 	if err := s.publishServerPluginStoreConfiguration(&pluginBootstrap); err != nil {
-		panic(fmt.Errorf("publish TokenHub plugin store configuration: %w", err))
+		panic(fmt.Errorf("publish TokenStation plugin store configuration: %w", err))
 	}
 	s.billingAdmin = admin.NewBillingHandler(dependencies.Repository, s.billing, admin.BillingTransport{
 		DecodeJSON:         s.decodeJSON,
@@ -288,9 +296,6 @@ func newWithConfig(store Store, config Config, dependencies ApplicationDependenc
 	if gormStore, ok := store.(*GormStore); ok {
 		s.stopHeartbeat = gormStore.StartInstanceHeartbeat(config.AppVersion)
 	}
-	backfillProviderModelsFromRoutes(store)
-	backfillExternalModelRolesFromRoutes(store)
-	backfillCodexImageRoutes(store)
 	if config.MetricsEnabled {
 		s.metrics = NewGatewayMetrics(config.MetricsProjectLabel)
 		// Assert against the narrow MetricsSink interface rather than *GormStore, and
@@ -303,6 +308,11 @@ func newWithConfig(store Store, config Config, dependencies ApplicationDependenc
 		}
 	}
 	s.installTraceEmitter(config)
+	if db, ok := store.(*GormStore); ok && dependencies.Payment != nil {
+		db.prepaidUsage = dependencies.Payment.PrepaidUsage
+		s.payments = &paymentService{config: dependencies.Payment, store: db}
+		s.payments.start()
+	}
 	s.routes()
 	if config.ResponseWorkerStartupEnabled {
 		// Every replica must poll the durable queue even when it was empty at startup.
@@ -584,5 +594,5 @@ func modelDescription(model Model) string {
 	}
 	modality := firstNonEmpty(model.Modality, "chat")
 	family := firstNonEmpty(model.Family, model.Category, "custom")
-	return fmt.Sprintf("TokenHub %s model in the %s family.", modality, family)
+	return fmt.Sprintf("TokenStation %s model in the %s family.", modality, family)
 }

@@ -1,0 +1,61 @@
+.dashboard-section-heading.dashboard-section-heading {
+  color: #324558;
+  font-weight: 500;
+}
+
+.dashboard-kpi-label.dashboard-kpi-label {
+  color: #4c5e70;
+  font-size: calc(14 * var(--content-font-unit, 1px));
+  line-height: calc(22 * var(--content-font-unit, 1px));
+}
+
+.dashboard-kpi-value.dashboard-kpi-value {
+  color: #1d2129;
+  font-size: calc(26 * var(--content-font-unit, 1px));
+  font-weight: 900;
+  letter-spacing: 0;
+  line-height: calc(30 * var(--content-font-unit, 1px));
+}
+
+.dashboard-kpi-unit.dashboard-kpi-unit {
+  margin-left: 4px;
+  color: #1d2129;
+  font-size: calc(14 * var(--content-font-unit, 1px));
+  font-weight: 500;
+}
+
+.dashboard-kpi-detail.dashboard-kpi-detail {
+  color: #4c5e70;
+  font-size: calc(12 * var(--content-font-unit, 1px));
+}
+
+.dashboard-segmented-control {
+  box-sizing: border-box;
+  height: calc(28 * var(--content-font-unit, 1px));
+  padding: calc(2 * var(--content-font-unit, 1px));
+}
+
+.dashboard-segmented-control button {
+  height: calc(22 * var(--content-font-unit, 1px));
+  min-height: 0;
+  color: #324558;
+  font-size: calc(13 * var(--content-font-unit, 1px));
+  line-height: 1;
+}
+
+.dashboard-segmented-control button:hover,
+.dashboard-segmented-control button.active,
+.dashboard-segmented-control button[aria-selected="true"] {
+  color: #4d67be;
+}
+
+[data-theme="dark"] .dashboard-section-heading.dashboard-section-heading,
+[data-theme="dark"] .dashboard-kpi-value.dashboard-kpi-value,
+[data-theme="dark"] .dashboard-kpi-unit.dashboard-kpi-unit {
+  color: var(--ink);
+}
+
+[data-theme="dark"] .dashboard-kpi-label.dashboard-kpi-label,
+[data-theme="dark"] .dashboard-kpi-detail.dashboard-kpi-detail {
+  color: var(--ink-2);
+}

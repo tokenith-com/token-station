@@ -56,7 +56,7 @@ func TestRetrievalUpgradeKeepsPublishedLocalModelsCallable(t *testing.T) {
 				_, _ = io.WriteString(w, response)
 			}))
 			defer upstream.Close()
-			store := NewMemoryStore()
+			store := newTestMemoryStore(t)
 			project := store.CreateProject(Project{Name: "upgrade", Status: StatusActive})
 			store.AddModel(Model{Name: name, Modality: tc.modality, Status: StatusActive, EmbeddingPriceUSDPer1M: 1, InputPriceUSDPer1M: 1})
 			provider := store.AddProvider(Provider{ID: "local-provider", Type: tc.kind, BaseURL: upstream.URL + "/v1", Healthy: true, Status: StatusActive, Options: map[string]string{tc.modality + "_protocol": tc.protocol, "catalog_id": tc.catalog}})
@@ -66,7 +66,7 @@ func TestRetrievalUpgradeKeepsPublishedLocalModelsCallable(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			app := New(store)
+			app := newManagedTestServer(t, store)
 			defer func() { _ = app.Shutdown(context.Background()) }()
 			gateway := httptest.NewServer(app.Handler())
 			defer gateway.Close()

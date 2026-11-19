@@ -1364,7 +1364,7 @@ func TestResponsesStreamingRejectsRoutesWithoutCapability(t *testing.T) {
 
 func newReasoningEffortGateway(t *testing.T, upstreamURL string, providerTypes ...string) (*Server, *GormStore, string) {
 	t.Helper()
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	project := store.CreateProject(Project{Name: "Reasoning Effort Project"})
 	_, secret, err := store.CreateAPIKey(project.ID, APIKey{
 		Name:    "reasoning-effort-key",
@@ -1402,7 +1402,7 @@ func newReasoningEffortGateway(t *testing.T, upstreamURL string, providerTypes .
 			Strategy:      RouteStrategyPriorityOnly,
 		})
 	}
-	return New(store), store, secret
+	return newManagedTestServer(t, store), store, secret
 }
 
 func addReasoningProviderResource(t *testing.T, store *GormStore, upstreamURL string, rateLimitRPM int64, maxConcurrency int64) ProviderResource {

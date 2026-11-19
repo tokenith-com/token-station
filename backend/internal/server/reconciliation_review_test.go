@@ -12,7 +12,7 @@ import (
 )
 
 func TestReconciliationScopesUsageToBillingConnectorProvider(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	connector := createReconciliationTestConnector(t, store, "bcon_reconciliation_scope")
 	connector.Config = map[string]string{"provider_id": "provider-a"}
 	if _, err := store.BillingRepository().UpdateBillingConnector(connector.ID, connector); err != nil {
@@ -29,7 +29,7 @@ func TestReconciliationScopesUsageToBillingConnectorProvider(t *testing.T) {
 		{ID: "use_provider_b", ProviderID: "provider-b", ModelName: "model-scope", ProviderCostUSD: 5, CreatedAt: periodStart.Add(time.Minute)},
 	})
 
-	app := New(store).Handler()
+	app := newManagedTestServer(t, store).Handler()
 	rule := createReconciliationReviewRule(t, app, connector.ID, ReconciliationGranularityDay, []string{"model", "currency"})
 	run := runReconciliationTestRule(t, app, rule.ID, periodStart, periodStart.Add(24*time.Hour))
 	assertReconciliationCounts(t, run, 1, 0, 0, 0)
@@ -39,13 +39,13 @@ func TestReconciliationScopesUsageToBillingConnectorProvider(t *testing.T) {
 }
 
 func TestReconciliationRequiresExplicitConnectorScope(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	connector := createReconciliationTestConnector(t, store, "bcon_reconciliation_missing_scope")
 	connector.Config = map[string]string{}
 	if _, err := store.BillingRepository().UpdateBillingConnector(connector.ID, connector); err != nil {
 		t.Fatal(err)
 	}
-	response := doJSON(t, New(store).Handler(), http.MethodPost, "/api/admin/billing/reconciliation-rules", map[string]any{
+	response := doJSON(t, newManagedTestServer(t, store).Handler(), http.MethodPost, "/api/admin/billing/reconciliation-rules", map[string]any{
 		"name": "Missing scope", "connector_id": connector.ID, "granularity": ReconciliationGranularityDay,
 		"match_dimensions": []string{"model", "currency"}, "timezone": "UTC",
 	}, "")
@@ -55,7 +55,7 @@ func TestReconciliationRequiresExplicitConnectorScope(t *testing.T) {
 }
 
 func TestReconciliationKeepsScopedUsageWhenBillingPeriodIsEmpty(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	connector := createReconciliationTestConnector(t, store, "bcon_reconciliation_empty_billing")
 	connector.Config = map[string]string{"provider_id": "provider-a"}
 	if _, err := store.BillingRepository().UpdateBillingConnector(connector.ID, connector); err != nil {
@@ -65,7 +65,7 @@ func TestReconciliationKeepsScopedUsageWhenBillingPeriodIsEmpty(t *testing.T) {
 	createReconciliationUsageRecords(t, store, []UsageRecord{{
 		ID: "use_without_bill", ProviderID: "provider-a", ModelName: "model-scope", ProviderCostUSD: 1, CreatedAt: periodStart.Add(time.Minute),
 	}})
-	app := New(store).Handler()
+	app := newManagedTestServer(t, store).Handler()
 	rule := createReconciliationReviewRule(t, app, connector.ID, ReconciliationGranularityDay, []string{"model", "currency"})
 	run := runReconciliationTestRule(t, app, rule.ID, periodStart, periodStart.Add(24*time.Hour))
 	assertReconciliationCounts(t, run, 0, 0, 1, 0)
@@ -75,7 +75,7 @@ func TestReconciliationKeepsScopedUsageWhenBillingPeriodIsEmpty(t *testing.T) {
 }
 
 func TestReconciliationSnapshotsScopeForMigrationAndRecalculation(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	connector := createReconciliationTestConnector(t, store, "bcon_reconciliation_snapshot")
 	connector.Config = map[string]string{"provider_id": "provider-a", "provider_resource_id": "resource-a"}
 	if _, err := store.BillingRepository().UpdateBillingConnector(connector.ID, connector); err != nil {
@@ -90,7 +90,7 @@ func TestReconciliationSnapshotsScopeForMigrationAndRecalculation(t *testing.T) 
 		{ID: "use_snapshot_a", ProviderID: "provider-a", ProviderResourceID: "resource-a", ModelName: "model-snapshot", ProviderCostUSD: 1, CreatedAt: periodStart.Add(time.Minute)},
 		{ID: "use_snapshot_b", ProviderID: "provider-b", ProviderResourceID: "resource-b", ModelName: "model-snapshot", ProviderCostUSD: 9, CreatedAt: periodStart.Add(time.Minute)},
 	})
-	app := New(store).Handler()
+	app := newManagedTestServer(t, store).Handler()
 	rule := createReconciliationReviewRule(t, app, connector.ID, ReconciliationGranularityDay, []string{"model", "currency"})
 	if rule.ProviderResourceID != "" {
 		t.Fatalf("rule API exposed connector resource scope: %#v", rule)
@@ -145,7 +145,7 @@ func TestReconciliationSnapshotsScopeForMigrationAndRecalculation(t *testing.T) 
 }
 
 func TestReconciliationAPIRedactsResourceAccountIdentifiers(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	connector := createReconciliationTestConnector(t, store, "bcon_reconciliation_api_redaction")
 	resourceScope := "resource-scope-must-stay-secret"
 	billingAccount := "billing-account-must-stay-secret"
@@ -155,7 +155,7 @@ func TestReconciliationAPIRedactsResourceAccountIdentifiers(t *testing.T) {
 	if _, err := store.BillingRepository().UpdateBillingConnector(connector.ID, connector); err != nil {
 		t.Fatal(err)
 	}
-	app := New(store).Handler()
+	app := newManagedTestServer(t, store).Handler()
 	created := doJSON(t, app, http.MethodPost, "/api/admin/billing/reconciliation-rules", map[string]any{
 		"name": "Redacted scope", "connector_id": connector.ID, "granularity": ReconciliationGranularityDay,
 		"match_dimensions": []string{"model", "currency"}, "timezone": "UTC",
@@ -228,9 +228,9 @@ func assertReconciliationResponseRedacted(t *testing.T, action string, response 
 func TestReconciliationRejectsMalformedCurrencyCodes(t *testing.T) {
 	for _, currency := range []string{"123", "1$!"} {
 		t.Run(currency, func(t *testing.T) {
-			store := NewMemoryStore()
+			store := newTestMemoryStore(t)
 			connector := createReconciliationTestConnector(t, store, "bcon_reconciliation_currency_"+currency)
-			response := doJSON(t, New(store).Handler(), http.MethodPost, "/api/admin/billing/reconciliation-rules", map[string]any{
+			response := doJSON(t, newManagedTestServer(t, store).Handler(), http.MethodPost, "/api/admin/billing/reconciliation-rules", map[string]any{
 				"name": "Invalid currency", "connector_id": connector.ID, "granularity": ReconciliationGranularityDay,
 				"match_dimensions": []string{"model", "currency"}, "timezone": "UTC", "currency": currency,
 			}, "")
@@ -242,7 +242,7 @@ func TestReconciliationRejectsMalformedCurrencyCodes(t *testing.T) {
 }
 
 func TestReconciliationAccumulatesSubMicroAmountsBeforeRounding(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	connector := createReconciliationTestConnector(t, store, "bcon_reconciliation_precision")
 	periodStart := time.Date(2026, time.July, 1, 0, 0, 0, 0, time.UTC)
 	createReconciliationBillingRecords(t, store, []BillingRecord{{
@@ -258,7 +258,7 @@ func TestReconciliationAccumulatesSubMicroAmountsBeforeRounding(t *testing.T) {
 	}
 	createReconciliationUsageRecords(t, store, usages)
 
-	app := New(store).Handler()
+	app := newManagedTestServer(t, store).Handler()
 	rule := createReconciliationReviewRule(t, app, connector.ID, ReconciliationGranularityDay, []string{"model", "currency"})
 	run := runReconciliationTestRule(t, app, rule.ID, periodStart, periodStart.Add(24*time.Hour))
 	assertReconciliationCounts(t, run, 1, 0, 0, 0)
@@ -268,7 +268,7 @@ func TestReconciliationAccumulatesSubMicroAmountsBeforeRounding(t *testing.T) {
 }
 
 func TestNewAPIBillingConnectorRejectsDetailReconciliation(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	connector := createReconciliationTestConnector(t, store, "bcon_reconciliation_newapi")
 	var row persistence.ConnectorRow
 	if err := store.db.First(&row, "id = ?", connector.ID).Error; err != nil {
@@ -278,7 +278,7 @@ func TestNewAPIBillingConnectorRejectsDetailReconciliation(t *testing.T) {
 	if err := store.db.Save(&row).Error; err != nil {
 		t.Fatal(err)
 	}
-	response := doJSON(t, New(store).Handler(), http.MethodPost, "/api/admin/billing/reconciliation-rules", map[string]any{
+	response := doJSON(t, newManagedTestServer(t, store).Handler(), http.MethodPost, "/api/admin/billing/reconciliation-rules", map[string]any{
 		"name": "Unsupported detail", "connector_id": connector.ID, "granularity": ReconciliationGranularityDetail,
 		"match_dimensions": []string{"request_id", "currency"}, "timezone": "UTC",
 	}, "")
@@ -288,7 +288,7 @@ func TestNewAPIBillingConnectorRejectsDetailReconciliation(t *testing.T) {
 }
 
 func TestFailedRecalculationPreservesSuccessfulRunAndAuditsFailure(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	connector := createReconciliationTestConnector(t, store, "bcon_reconciliation_recalculate_failure")
 	periodStart := time.Date(2026, time.July, 1, 0, 0, 0, 0, time.UTC)
 	createReconciliationBillingRecords(t, store, []BillingRecord{{
@@ -298,7 +298,7 @@ func TestFailedRecalculationPreservesSuccessfulRunAndAuditsFailure(t *testing.T)
 	createReconciliationUsageRecords(t, store, []UsageRecord{{
 		ID: "use_recalculate", ProviderID: BillingConnectorOneAPI, ModelName: "model-recalculate", ProviderCostUSD: 1, CreatedAt: periodStart.Add(time.Minute),
 	}})
-	app := New(store).Handler()
+	app := newManagedTestServer(t, store).Handler()
 	rule := createReconciliationReviewRule(t, app, connector.ID, ReconciliationGranularityDay, []string{"model", "currency"})
 	run := runReconciliationTestRule(t, app, rule.ID, periodStart, periodStart.Add(24*time.Hour))
 	before := getReconciliationTestDetail(t, app, run.ID)
@@ -322,9 +322,9 @@ func TestFailedRecalculationPreservesSuccessfulRunAndAuditsFailure(t *testing.T)
 }
 
 func TestReconciliationFailureAuditPaginationAndRedaction(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	connector := createReconciliationTestConnector(t, store, "bcon_reconciliation_audit")
-	app := New(store).Handler()
+	app := newManagedTestServer(t, store).Handler()
 	sensitiveSource := "sensitive-billing-account"
 	sensitiveTarget := "sensitive-tokenhub-resource"
 	connector.Config["provider_resource_id"] = sensitiveTarget

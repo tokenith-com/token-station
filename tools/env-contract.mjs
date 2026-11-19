@@ -133,7 +133,7 @@ export function stripGoComments(source) {
  * string concatenation.
  *
  * Both the shared helpers in internal/server/config.go and the separate local helper
- * in cmd/tokenhub/main.go are matched, along with direct os.Getenv calls.
+ * in cmd/tokenstation/main.go are matched, along with direct os.Getenv calls.
  *
  * Known and accepted limitations, both of which fail by missing a variable rather than
  * inventing one, and neither of which occurs in this repository:

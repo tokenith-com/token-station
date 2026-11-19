@@ -28,7 +28,7 @@ permissions:
 	}))
 	defer upstream.Close()
 	pluginDir := t.TempDir()
-	server := NewWithConfig(NewMemoryStore(), Config{AdminToken: "dev_admin_token", PluginDir: pluginDir})
+	server := newManagedTestServerWithConfig(t, newTestMemoryStore(t), Config{AdminToken: "dev_admin_token", PluginDir: pluginDir})
 	server.pluginInstallClient = upstream.Client()
 
 	response := doJSON(t, server.Handler(), http.MethodPost, "/api/admin/plugins/permission-diff", map[string]any{
@@ -89,7 +89,7 @@ permissions:
 		_, _ = w.Write(candidateArchive)
 	}))
 	defer upstream.Close()
-	server := NewWithConfig(NewMemoryStore(), Config{AdminToken: "dev_admin_token", PluginDir: pluginDir})
+	server := newManagedTestServerWithConfig(t, newTestMemoryStore(t), Config{AdminToken: "dev_admin_token", PluginDir: pluginDir})
 	server.pluginInstallClient = upstream.Client()
 
 	response := doJSON(t, server.Handler(), http.MethodPost, "/api/admin/plugins/tokenhub.permission.update/permission-diff", map[string]any{
@@ -136,7 +136,7 @@ func TestAdminPluginPermissionDiffUpdatePreviewRejectsPluginIDMismatch(t *testin
 		_, _ = w.Write(candidateArchive)
 	}))
 	defer upstream.Close()
-	server := NewWithConfig(NewMemoryStore(), Config{AdminToken: "dev_admin_token", PluginDir: pluginDir})
+	server := newManagedTestServerWithConfig(t, newTestMemoryStore(t), Config{AdminToken: "dev_admin_token", PluginDir: pluginDir})
 	server.pluginInstallClient = upstream.Client()
 
 	response := doJSON(t, server.Handler(), http.MethodPost, "/api/admin/plugins/tokenhub.permission.current/permission-diff", map[string]any{
@@ -149,7 +149,7 @@ func TestAdminPluginPermissionDiffUpdatePreviewRejectsPluginIDMismatch(t *testin
 }
 
 func TestAdminPluginPermissionDiffUpdatePreviewRejectsMissingInstalledPlugin(t *testing.T) {
-	server := NewWithConfig(NewMemoryStore(), Config{AdminToken: "dev_admin_token", PluginDir: t.TempDir()})
+	server := newManagedTestServerWithConfig(t, newTestMemoryStore(t), Config{AdminToken: "dev_admin_token", PluginDir: t.TempDir()})
 
 	response := doJSON(t, server.Handler(), http.MethodPost, "/api/admin/plugins/tokenhub.permission.missing/permission-diff", map[string]any{
 		"download_url":    "https://plugins.example/missing.zip",
@@ -176,7 +176,7 @@ func TestAdminPluginPermissionDiffPreviewVerifiesSignedMarketplaceArtifact(t *te
 		}
 	}))
 	defer upstream.Close()
-	server := NewWithConfig(NewMemoryStore(), Config{AdminToken: "dev_admin_token", PluginDir: t.TempDir()})
+	server := newManagedTestServerWithConfig(t, newTestMemoryStore(t), Config{AdminToken: "dev_admin_token", PluginDir: t.TempDir()})
 	server.pluginInstallClient = upstream.Client()
 
 	response := doJSON(t, server.Handler(), http.MethodPost, "/api/admin/plugins/permission-diff", map[string]any{
@@ -227,7 +227,7 @@ permissions:
 		}
 	}))
 	defer upstream.Close()
-	server := NewWithConfig(NewMemoryStore(), Config{AdminToken: "dev_admin_token", PluginDir: t.TempDir()})
+	server := newManagedTestServerWithConfig(t, newTestMemoryStore(t), Config{AdminToken: "dev_admin_token", PluginDir: t.TempDir()})
 	server.pluginInstallClient = upstream.Client()
 	checksum := adminSHA256Hex(archive)
 

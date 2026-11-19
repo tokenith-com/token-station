@@ -132,7 +132,7 @@ func TestDefaultSystemPromptTransformPolicyFollowsAdapterDescriptor(t *testing.T
 }
 
 func TestAdminProviderSystemPromptTransformDefaultsOnlyOnCreate(t *testing.T) {
-	app := newTestServer()
+	app := newTestServer(t)
 	thirdParty := doJSON(t, app, http.MethodPost, "/api/admin/providers", map[string]any{
 		"id":       "prv_default_strip",
 		"name":     "Default Strip",
@@ -171,7 +171,7 @@ func TestAdminProviderSystemPromptTransformDefaultsOnlyOnCreate(t *testing.T) {
 		t.Fatalf("unknown Anthropic default policy = %q, want preserve", got)
 	}
 
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	store.AddProvider(Provider{
 		ID:      "prv_legacy_attribution",
 		Name:    "Legacy Attribution",
@@ -181,7 +181,7 @@ func TestAdminProviderSystemPromptTransformDefaultsOnlyOnCreate(t *testing.T) {
 		Healthy: true,
 		Options: map[string]string{"region": "legacy"},
 	})
-	legacyApp := New(store).Handler()
+	legacyApp := newManagedTestServer(t, store).Handler()
 	patched := doJSON(t, legacyApp, http.MethodPatch, "/api/admin/providers/prv_legacy_attribution", map[string]any{
 		"name": "Legacy Attribution Updated",
 	}, "")
@@ -441,7 +441,7 @@ func TestAnthropicStreamingAttributionPolicyAppliesPerFailoverResource(t *testin
 }
 
 func TestAdminProviderSystemPromptTransformPolicyPreservesOtherOptions(t *testing.T) {
-	app := newTestServer()
+	app := newTestServer(t)
 	created := doJSON(t, app, http.MethodPost, "/api/admin/providers", map[string]any{
 		"id":                             "prv_attribution_policy",
 		"name":                           "Attribution Policy",
@@ -481,7 +481,7 @@ func TestAdminProviderSystemPromptTransformPolicyPreservesOtherOptions(t *testin
 }
 
 func TestAdminLegacyClaudeCodeAttributionPolicyNormalizesOptions(t *testing.T) {
-	app := newTestServer()
+	app := newTestServer(t)
 	created := doJSON(t, app, http.MethodPost, "/api/admin/providers", map[string]any{
 		"id":                             "prv_legacy_attribution_policy",
 		"name":                           "Legacy Attribution Policy",
@@ -527,7 +527,7 @@ func TestAdminLegacyClaudeCodeAttributionPolicyNormalizesOptions(t *testing.T) {
 }
 
 func TestAdminRejectsInvalidSystemPromptTransformPolicies(t *testing.T) {
-	app := newTestServer()
+	app := newTestServer(t)
 	providerField := doJSON(t, app, http.MethodPost, "/api/admin/providers", map[string]any{
 		"name":                           "Invalid Transform Policy",
 		"type":                           ProviderOpenAICompatible,
@@ -571,7 +571,7 @@ func TestAdminRejectsInvalidSystemPromptTransformPolicies(t *testing.T) {
 
 func newAnthropicAttributionFailoverGateway(t *testing.T, primaryURL string, secondaryURL string) (http.Handler, *GormStore, string) {
 	t.Helper()
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	project := store.CreateProject(Project{Name: "Claude attribution", Status: StatusActive})
 	_, secret, err := store.CreateAPIKey(project.ID, APIKey{
 		Name:    "claude-attribution-key",
@@ -622,7 +622,7 @@ func newAnthropicAttributionFailoverGateway(t *testing.T, primaryURL string, sec
 			Strategy:           RouteStrategyPriorityOnly,
 		})
 	}
-	return New(store).Handler(), store, secret
+	return newManagedTestServer(t, store).Handler(), store, secret
 }
 
 func upstreamSystemMessage(payload map[string]any) string {

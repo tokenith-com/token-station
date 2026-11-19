@@ -9,7 +9,7 @@ import (
 )
 
 func TestAdminPluginImageVirtualModelRouteUsesPluginDeclaredValidationErrors(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	const (
 		providerType  = "plugin_image_route"
 		publicModel   = "plugin-image-model"
@@ -24,7 +24,7 @@ func TestAdminPluginImageVirtualModelRouteUsesPluginDeclaredValidationErrors(t *
 		ID: "prv_plugin_image_other", Name: "Plugin Image Other", Type: ProviderOpenAI,
 		Status: StatusActive, Healthy: true,
 	})
-	server := New(store)
+	server := newManagedTestServer(t, store)
 	pluginID := "tokenhub.provider.plugin-image-route"
 	if err := server.adapterRegistry.RegisterPlugin(pluginmeta.BuiltInProvider(pluginID, "Plugin Image Route", []string{providerType}, []string{string(AdapterCapabilityImageGenerate)}), AdapterRegistration{
 		Type:         providerType,

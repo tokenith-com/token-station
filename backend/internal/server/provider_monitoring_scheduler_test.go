@@ -8,7 +8,7 @@ import (
 )
 
 func TestProviderMonitoringSchedulerRunsOncePerRevision(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	runs := 0
 	scheduler := newProviderMonitoringScheduler(store, func(context.Context) error {
 		runs++
@@ -34,7 +34,7 @@ func TestProviderMonitoringSchedulerRunsOncePerRevision(t *testing.T) {
 }
 
 func TestProviderMonitoringSchedulerRetriesFailedRevision(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	runs := 0
 	scheduler := newProviderMonitoringScheduler(store, func(context.Context) error {
 		runs++

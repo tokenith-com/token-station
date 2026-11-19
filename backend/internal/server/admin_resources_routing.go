@@ -16,7 +16,7 @@ func (s *Server) handleAdminResources(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	kind := parts[0]
-	if kind == openAIAccountQuotaResetOperationKind {
+	if kind == openAIAccountQuotaResetOperationKind || kind == paymentSettingsKind {
 		writeError(w, r, NewHTTPError(http.StatusNotFound, "not_found", "Not found"))
 		return
 	}
@@ -90,6 +90,10 @@ func (s *Server) serveAdminResourceCollectionPost(w http.ResponseWriter, r *http
 		writeError(w, r, err)
 		return
 	}
+	if req.ID == teamWalletRateID {
+		writeError(w, r, reservedTeamWalletRateError())
+		return
+	}
 	if req.Name == "" {
 		writeError(w, r, NewHTTPError(400, "invalid_resource", "name is required"))
 		return
@@ -147,6 +151,10 @@ func (s *Server) serveAdminResourceCollectionPost(w http.ResponseWriter, r *http
 }
 
 func (s *Server) serveAdminResourcePatch(w http.ResponseWriter, r *http.Request, user AdminUser, kind string, resourceID string) {
+	if resourceID == teamWalletRateID {
+		writeError(w, r, reservedTeamWalletRateError())
+		return
+	}
 	if kind == "settings" && resourceID == gatewaySettingsID {
 		s.syntheticDNSSetting.Lock()
 		defer s.syntheticDNSSetting.Unlock()
@@ -213,6 +221,10 @@ func (s *Server) serveAdminResourcePatch(w http.ResponseWriter, r *http.Request,
 }
 
 func (s *Server) serveAdminResourceDelete(w http.ResponseWriter, r *http.Request, user AdminUser, kind string, resourceID string) {
+	if resourceID == teamWalletRateID {
+		writeError(w, r, reservedTeamWalletRateError())
+		return
+	}
 	if kind == "quota-policies" && !isPlatformAdminRole(user.Role) {
 		item, err := s.findResource(kind, resourceID)
 		if err != nil {
@@ -263,7 +275,7 @@ func (s *Server) handleAdminResourceCollectionPost(w http.ResponseWriter, r *htt
 
 func (s *Server) handleAdminResourceCollectionRoute(w http.ResponseWriter, r *http.Request, handler adminResourceCollectionHandler) {
 	kind := r.PathValue("kind")
-	if kind == "" || kind == openAIAccountQuotaResetOperationKind {
+	if kind == "" || kind == openAIAccountQuotaResetOperationKind || kind == paymentSettingsKind {
 		s.handleAdminResources(w, r)
 		return
 	}
@@ -285,7 +297,7 @@ func (s *Server) handleAdminResourceDelete(w http.ResponseWriter, r *http.Reques
 func (s *Server) handleAdminResourceItemRoute(w http.ResponseWriter, r *http.Request, handler adminResourceItemHandler) {
 	kind := r.PathValue("kind")
 	resourceID := r.PathValue("resource_id")
-	if kind == "" || resourceID == "" || kind == openAIAccountQuotaResetOperationKind {
+	if kind == "" || resourceID == "" || kind == openAIAccountQuotaResetOperationKind || kind == paymentSettingsKind {
 		s.handleAdminResources(w, r)
 		return
 	}
@@ -300,7 +312,7 @@ func (s *Server) adminResourceMethodNotAllowed(allowedMethods string) http.Handl
 	reject := jsonMethodNotAllowed(allowedMethods)
 	return func(w http.ResponseWriter, r *http.Request) {
 		kind := r.PathValue("kind")
-		if kind == "" || kind == openAIAccountQuotaResetOperationKind {
+		if kind == "" || kind == openAIAccountQuotaResetOperationKind || kind == paymentSettingsKind {
 			s.handleAdminResources(w, r)
 			return
 		}

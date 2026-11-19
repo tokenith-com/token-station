@@ -1,6 +1,6 @@
 services:
-  tokenhub-postgres:
-    container_name: tokenhub-postgres
+  tokenstation-postgres:
+    container_name: tokenstation-postgres
     image: postgres:16-alpine
     restart: unless-stopped
     environment:
@@ -19,15 +19,17 @@ services:
       retries: 12
       start_period: 10s
     networks:
-      - tokenhub
+      - tokenstation
 
-  tokenhub-backend:
-    container_name: tokenhub-backend
+  tokenstation-backend:
+    container_name: tokenstation-backend
     image: ghcr.io/astaxie/tokenhub-backend:${TOKENHUB_IMAGE_TAG:-latest}
     build:
       context: ..
       dockerfile: backend/Dockerfile
       args:
+        NEXT_PUBLIC_TOKENHUB_API_BASE_URL: ${NEXT_PUBLIC_TOKENHUB_API_BASE_URL:-http://localhost:8080}
+        NEXT_PUBLIC_TOKENHUB_BASE_PATH: ${NEXT_PUBLIC_TOKENHUB_BASE_PATH:-}
         GOPROXY: ${GOPROXY:-https://goproxy.cn,direct}
     restart: unless-stopped
     mem_limit: ${TOKENHUB_CONTAINER_MEMORY_LIMIT:-4g}
@@ -60,7 +62,7 @@ services:
       # Use TOKENHUB_DATABASE_URL if provided; otherwise construct from separate fields.
       # Separate fields avoid URL-encoding issues when passwords contain special characters (#?%/).
       TOKENHUB_DATABASE_URL: ${TOKENHUB_DATABASE_URL:-}
-      TOKENHUB_DB_HOST: ${TOKENHUB_DB_HOST:-tokenhub-postgres}
+      TOKENHUB_DB_HOST: ${TOKENHUB_DB_HOST:-tokenstation-postgres}
       TOKENHUB_DB_PORT: ${TOKENHUB_DB_PORT:-5432}
       TOKENHUB_DB_USER: ${TOKENHUB_DB_USER:-${POSTGRES_USER:-tokenhub}}
       TOKENHUB_DB_PASSWORD: ${TOKENHUB_DB_PASSWORD:-${POSTGRES_PASSWORD:-change-me-postgres-password}}
@@ -110,7 +112,7 @@ services:
       - tokenhub-plugins:/app/plugins
       - tokenhub-releases:/opt/tokenhub
     depends_on:
-      tokenhub-postgres:
+      tokenstation-postgres:
         condition: service_healthy
     healthcheck:
       test:
@@ -124,7 +126,7 @@ services:
       start_period: 20s
     stop_grace_period: ${TOKENHUB_STOP_GRACE_PERIOD:-180s}
     networks:
-      - tokenhub
+      - tokenstation
 
 volumes:
   tokenhub-postgres-data:
@@ -135,5 +137,5 @@ volumes:
     name: tokenhub-releases
 
 networks:
-  tokenhub:
-    name: tokenhub
+  tokenstation:
+    name: tokenstation

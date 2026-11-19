@@ -1,6 +1,6 @@
 # CodeArts
 
-Connect an explicitly authorized CodeArts account to TokenHub.
+Connect an explicitly authorized CodeArts account to TokenStation.
 
 - Plugin ID: `tokenhub.provider.codearts-subscription`
 - Configuration: Provider management, with a separate account resource

@@ -154,7 +154,7 @@ func TestNativeCodexImageEditMapsOversizedJSONBody(t *testing.T) {
 
 func newNativeCodexImageEditTestServer(t *testing.T) (*Server, *MemoryStore, string) {
 	t.Helper()
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	project := store.CreateProject(Project{Name: "Native Codex Image Edit Project"})
 	_, secret, err := store.CreateAPIKey(project.ID, APIKey{
 		Name: "native-codex-image-edit", Allowed: []string{codexImageModelName}, Status: StatusActive,

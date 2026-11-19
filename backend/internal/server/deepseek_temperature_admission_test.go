@@ -25,7 +25,7 @@ func TestDeepSeekTemperatureRequestsRemainEligible(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	for _, model := range standard {
 		if model.Name == "deepseek-flash" || model.Name == "deepseek-v4-flash" || model.Name == "deepseek-v4-pro" {
 			store.AddModel(model)

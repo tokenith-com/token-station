@@ -67,7 +67,7 @@ func registerBuiltinAdminUIDefinitions(registry *pluginmeta.Registry, adminUI *p
 	}
 	mustRegisterPlugin(registry, builtinAdminUIDescriptor(pluginmeta.Descriptor{
 		ID:         "tokenhub.admin.plugin-ecosystem",
-		Name:       "TokenHub Plugin Ecosystem Dashboard",
+		Name:       "TokenStation Plugin Ecosystem Dashboard",
 		Version:    pluginmeta.BuiltInVersion,
 		Source:     pluginmeta.SourceBuiltIn,
 		Kinds:      []pluginmeta.Kind{pluginmeta.KindAdminUI},
@@ -115,7 +115,7 @@ func registerBuiltinAdminUIDefinitions(registry *pluginmeta.Registry, adminUI *p
 	}
 	mustRegisterPlugin(registry, builtinAdminUIDescriptor(pluginmeta.Descriptor{
 		ID:         "tokenhub.admin.core-provider",
-		Name:       "TokenHub Core Provider Settings",
+		Name:       "TokenStation Core Provider Settings",
 		Version:    pluginmeta.BuiltInVersion,
 		Source:     pluginmeta.SourceBuiltIn,
 		Kinds:      []pluginmeta.Kind{pluginmeta.KindAdminUI},

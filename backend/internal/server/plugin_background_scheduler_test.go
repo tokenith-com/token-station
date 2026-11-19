@@ -8,7 +8,7 @@ import (
 )
 
 func TestPluginBackgroundSchedulerStartsAndRestartsWithServerLifecycle(t *testing.T) {
-	server := New(NewMemoryStore())
+	server := New(newTestMemoryStore(t))
 
 	server.StartBillingScheduler()
 	state := server.pluginBackgroundRunner.SchedulerState()

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="1000" height="672" viewBox="0 0 1000 672" role="img" aria-labelledby="title description">
-  <title id="title">Popular TokenHub provider integrations</title>
+  <title id="title">Popular TokenStation provider integrations</title>
   <desc id="description">Codex Subscription, OpenAI, Anthropic, Google Gemini, Azure OpenAI, Amazon Bedrock, Google Vertex AI, xAI / Grok, DeepSeek, Qwen / DashScope, Moonshot AI / Kimi, Z.AI / GLM, MiniMax, Doubao, SiliconFlow, ModelScope, OpenRouter, Groq, Together AI, Fireworks AI, Mistral AI, Cohere, Perplexity, Hugging Face, NVIDIA NIM, GitHub Models, GitHub Copilot, Vercel AI Gateway, Cloudflare AI Gateway, Ollama, LM Studio, vLLM / Custom, Llama</desc>
   <defs>
     <filter id="monochrome" color-interpolation-filters="sRGB">

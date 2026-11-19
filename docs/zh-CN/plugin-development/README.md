@@ -1,10 +1,10 @@
-# TokenHub 插件开发
+# TokenStation 插件开发
 
 Language: [English](../../plugin-development/README.md) | 简体中文 | [日本語](../../ja/plugin-development/README.md)
 
-这个目录是 TokenHub 插件开发的统一文档入口。可执行 SDK、契约测试工具和参考包位于 [`plugin-devkit`](../../../plugin-devkit/README.md)；安装后的插件位于 `TOKENHUB_PLUGIN_DIR`。线上 Marketplace 是独立的分发索引，不是这个 Devkit。
+这个目录是 TokenStation 插件开发的统一文档入口。可执行 SDK、契约测试工具和参考包位于 [`plugin-devkit`](../../../plugin-devkit/README.md)；安装后的插件位于 `TOKENHUB_PLUGIN_DIR`。线上 Marketplace 是独立的分发索引，不是这个 Devkit。
 
-> **当前运行时限制：** Devkit 与 Manifest Schema 定义了外部命令契约，但 TokenHub 目前还不能强制执行所需的宿主级进程、网络和资源隔离。因此，运行时采用失败关闭策略，在启动前拒绝所有动态加载的外部 Provider、请求链 Hook、后台任务和管理动作命令。插件包仍可安装和检查，声明式界面贡献仍然可用，进程内置插件不受影响。
+> **当前运行时限制：** Devkit 与 Manifest Schema 定义了外部命令契约，但 TokenStation 目前还不能强制执行所需的宿主级进程、网络和资源隔离。因此，运行时采用失败关闭策略，在启动前拒绝所有动态加载的外部 Provider、请求链 Hook、后台任务和管理动作命令。插件包仍可安装和检查，声明式界面贡献仍然可用，进程内置插件不受影响。
 
 ## 从这里开始
 
@@ -25,7 +25,7 @@ Language: [English](../../plugin-development/README.md) | 简体中文 | [日本
 docs/plugin-development/     文档与导航
 plugin-devkit/               SDK、契约工具、fixture 和 Examples
 your-plugin-repository/      真实插件源码与发布流程
-TOKENHUB_PLUGIN_DIR/         TokenHub 实例已安装的插件包
+TOKENHUB_PLUGIN_DIR/         TokenStation 实例已安装的插件包
 marketplace index            发布版本、URL、checksum 和签名
 ```
 

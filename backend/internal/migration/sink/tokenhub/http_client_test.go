@@ -14,6 +14,37 @@ import (
 	"tokenhub/backend/internal/server"
 )
 
+func TestProjectRequestsCarryExcludedModels(t *testing.T) {
+	var bodies []map[string]any
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var payload map[string]any
+		if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+			t.Error(err)
+		}
+		bodies = append(bodies, payload)
+		_, _ = w.Write([]byte(`{"id":"project-a"}`))
+	}))
+	defer ts.Close()
+	client, err := NewAdminAPIClient(ts.URL, "test", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	project := server.Project{Name: "Test", ModelAccessMode: server.ModelAccessModeExcluded, ExcludedModels: []string{"model-a"}}
+	if _, err := client.CreateProject(t.Context(), project); err != nil {
+		t.Fatal(err)
+	}
+	project.ExcludedModels = []string{}
+	if _, err := client.UpdateProject(t.Context(), "project-a", project); err != nil {
+		t.Fatal(err)
+	}
+	for i, payload := range bodies {
+		values, ok := payload["excluded_models"].([]any)
+		if !ok || len(values) != 1-i || payload["model_access_mode"] != server.ModelAccessModeExcluded {
+			t.Fatalf("unexpected request %d: %v", i, payload)
+		}
+	}
+}
+
 // TestProviderRequestsCarryAPIKey guards against server.Provider being
 // marshalled directly: its APIKey field is tagged `json:"-"`, which would
 // silently drop the resolved credential from create and update requests.

@@ -1,0 +1,7 @@
+body:has(.app-shell) {
+  --content-font-unit: 1px;
+}
+
+.sidebar {
+  --content-font-unit: 1px;
+}

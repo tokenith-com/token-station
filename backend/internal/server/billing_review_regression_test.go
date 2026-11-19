@@ -27,7 +27,7 @@ func TestModelPricePatchRejectsNegativeBasePrices(t *testing.T) {
 	if _, err := store.UpdateModel(original.Name, original); err != nil {
 		t.Fatal(err)
 	}
-	app := New(store).Handler()
+	app := newManagedTestServer(t, store).Handler()
 	for _, field := range []string{"input_price_usd_per_1m", "output_price_usd_per_1m", "embedding_price_usd_per_1m", "cache_read_price_usd_per_1m", "cache_write_price_usd_per_1m", "cache_write_5m_price_usd_per_1m", "cache_write_1h_price_usd_per_1m"} {
 		t.Run(field, func(t *testing.T) {
 			response := doJSON(t, app, "PATCH", "/api/admin/models/"+url.PathEscape(original.Name), map[string]any{field: -1}, "")

@@ -11,8 +11,8 @@ import (
 type storeContractOnlyDecorator struct{ Store }
 
 func TestNewAcceptsStoreContractOnlyDecorator(t *testing.T) {
-	base := NewMemoryStore()
-	server := New(storeContractOnlyDecorator{Store: base})
+	base := newTestMemoryStore(t)
+	server := newManagedTestServer(t, storeContractOnlyDecorator{Store: base})
 	if server == nil || server.billing == nil || server.reconciliation == nil {
 		t.Fatal("expected server services to be initialized")
 	}
@@ -23,7 +23,7 @@ func TestNewAcceptsStoreContractOnlyDecorator(t *testing.T) {
 }
 
 func TestNewWithConfigAndBillingDependenciesSupportsStoreDecorator(t *testing.T) {
-	base := NewMemoryStoreWithConfig(Config{SecretKey: "billing-composition-test-secret"})
+	base := newTestMemoryStoreWithConfig(t, Config{SecretKey: "billing-composition-test-secret"})
 	decorated := storeContractOnlyDecorator{Store: base}
 	dependencies := ApplicationDependenciesForStore(base)
 	dependencies.ReconciliationStore = nil
@@ -47,7 +47,7 @@ func TestNewWithConfigAndBillingDependenciesSupportsStoreDecorator(t *testing.T)
 }
 
 func TestNewWithConfigAndBillingDependenciesRejectsMissingBilling(t *testing.T) {
-	server := NewWithConfigAndBillingDependencies(NewMemoryStore(), Config{AdminToken: "dev_admin_token"}, BillingDependencies{})
+	server := NewWithConfigAndBillingDependencies(newTestMemoryStore(t), Config{AdminToken: "dev_admin_token"}, BillingDependencies{})
 	response := doJSON(t, server.Handler(), http.MethodGet, "/api/admin/billing/connectors", nil, "dev_admin_token")
 	if response.Code != http.StatusServiceUnavailable || !strings.Contains(response.Body, "billing_repository_unavailable") {
 		t.Fatalf("missing billing dependency response = %d %s", response.Code, response.Body)
@@ -59,7 +59,7 @@ func TestNewWithConfigAndBillingDependenciesRejectsMissingBilling(t *testing.T) 
 }
 
 func TestReconciliationCompositionAllowsReadEndpointsWithoutBillingReader(t *testing.T) {
-	base := NewMemoryStore()
+	base := newTestMemoryStore(t)
 	dependencies := ApplicationDependenciesForStore(base)
 	dependencies.Repository = nil
 	dependencies.ReconciliationReader = nil

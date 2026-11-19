@@ -1,0 +1,99 @@
+.personal-api-keys-toolbar {
+  min-height: 28px;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+}
+
+.personal-api-keys-toolbar .platform-account-create:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.personal-api-key-table {
+  min-width: 860px;
+}
+
+.personal-api-key-table th:nth-child(1) {
+  width: 18%;
+}
+
+.personal-api-key-table th:nth-child(2) {
+  width: 32%;
+}
+
+.personal-api-key-table th:nth-child(3) {
+  width: 13%;
+}
+
+.personal-api-key-table th:nth-child(4) {
+  width: 22%;
+}
+
+.personal-api-key-table th:nth-child(5) {
+  width: 15%;
+}
+
+.personal-api-key-table tbody td:nth-child(4) {
+  color: #4c5e70;
+  font-weight: 400;
+}
+
+.personal-api-key-value {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(72px, 1fr) auto auto;
+  align-items: center;
+  gap: 7px;
+}
+
+.personal-api-key-value > span {
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  color: #4c5e70;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.personal-api-key-value button {
+  width: calc(16 * var(--content-font-unit, 1px));
+  height: calc(20 * var(--content-font-unit, 1px));
+  border: 0;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  color: #7b8794;
+  cursor: pointer;
+}
+
+.personal-api-key-value button:hover,
+.personal-api-key-value button.is-copied {
+  color: #3f7cf3;
+}
+
+.personal-api-key-copy-notice {
+  grid-column: 1 / -1;
+  min-width: 0;
+  font-style: normal;
+  font-size: calc(12 * var(--content-font-unit, 1px));
+  line-height: 1.5;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.personal-api-key-copy-notice.is-ok {
+  color: #16a34a;
+}
+
+.personal-api-key-copy-notice.is-error {
+  color: #dc2626;
+}
+
+@media (max-width: 780px) {
+  .personal-api-key-table {
+    min-width: 760px;
+  }
+}

@@ -49,7 +49,7 @@ func googleSubscriptionLocationFailure(status int, detail map[string]any) error 
 		}
 		// Regional eligibility does not invalidate OAuth credentials. Use a fixed
 		// diagnostic so upstream messages and account metadata stay private.
-		failure := NewHTTPError(http.StatusBadGateway, "google_subscription_location_unsupported", "Google subscription access is unavailable in the location associated with this request. Check the account's regional eligibility and the TokenHub server's outbound location.")
+		failure := NewHTTPError(http.StatusBadGateway, "google_subscription_location_unsupported", "Google subscription access is unavailable in the location associated with this request. Check the account's regional eligibility and the TokenStation server's outbound location.")
 		failure.UpstreamStatus = status
 		return &ProviderInvocationError{Err: failure, Disposition: ProviderErrorResourceBroken}
 	}

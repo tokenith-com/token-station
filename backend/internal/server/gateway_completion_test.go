@@ -35,19 +35,25 @@ func (e *recordingTraceEmitter) take() []GatewayCallCompletion {
 
 func newTracedTestServer(t *testing.T) (http.Handler, *recordingTraceEmitter) {
 	t.Helper()
-	store := NewMemoryStore()
+	app, emitter, _ := newTracedTestServerWithStore(t)
+	return app, emitter
+}
+
+func newTracedTestServerWithStore(t *testing.T) (http.Handler, *recordingTraceEmitter, Store) {
+	t.Helper()
+	store := newTestMemoryStore(t)
 	if err := SeedDemoData(store); err != nil {
 		t.Fatal(err)
 	}
-	app := New(store)
+	app := newManagedTestServer(t, store)
 	emitter := &recordingTraceEmitter{}
 	app.traceEmitter = emitter
-	return app.Handler(), emitter
+	return app.Handler(), emitter, store
 }
 
 func TestGatewayCompletionRunsTraceExportHooks(t *testing.T) {
-	store := NewMemoryStore()
-	app := New(store)
+	store := newTestMemoryStore(t)
+	app := newManagedTestServer(t, store)
 	hook := pluginmeta.GatewayHookDescriptor{
 		PluginID: "tokenhub.test-trace",
 		HookID:   "capture",
@@ -98,7 +104,7 @@ func TestGatewayCompletionRunsTraceExportHooks(t *testing.T) {
 }
 
 func TestGatewayCompletionTraceExportRequiresChainRegistration(t *testing.T) {
-	app := New(NewMemoryStore())
+	app := newManagedTestServer(t, newTestMemoryStore(t))
 	hook := pluginmeta.GatewayHookDescriptor{
 		PluginID: "tokenhub.test-trace",
 		HookID:   "unregistered-capture",
@@ -133,8 +139,8 @@ func TestGatewayCompletionTraceExportRequiresChainRegistration(t *testing.T) {
 }
 
 func TestGatewayCompletionTraceExportFailureIsObserveOnly(t *testing.T) {
-	store := NewMemoryStore()
-	app := New(store)
+	store := newTestMemoryStore(t)
+	app := newManagedTestServer(t, store)
 	emitter := &recordingTraceEmitter{}
 	app.traceEmitter = emitter
 	hook := pluginmeta.GatewayHookDescriptor{
@@ -176,8 +182,8 @@ func TestGatewayCompletionTraceExportFailureIsObserveOnly(t *testing.T) {
 
 func TestGatewayCompletionTraceExportOmitsAttemptErrorText(t *testing.T) {
 	const upstreamError = "upstream body sentinel must not leak to trace export"
-	store := NewMemoryStore()
-	app := New(store)
+	store := newTestMemoryStore(t)
+	app := newManagedTestServer(t, store)
 	emitter := &recordingTraceEmitter{}
 	app.traceEmitter = emitter
 	hook := pluginmeta.GatewayHookDescriptor{
@@ -245,6 +251,9 @@ func TestGatewayCallEmitsExactlyOneCompletion(t *testing.T) {
 		payload      map[string]any
 		expectStatus int
 		expectKind   CompletionKind
+		// playgroundKeyProject, when set, adds an api_key_id for a key owned by
+		// the admin test caller in that project.
+		playgroundKeyProject string
 	}{
 		{
 			name:  "chat completion",
@@ -293,18 +302,21 @@ func TestGatewayCallEmitsExactlyOneCompletion(t *testing.T) {
 			path:  "/api/admin/playground/chat",
 			token: "",
 			payload: map[string]any{
-				"project_id": "prj_demo",
-				"model":      "gpt-4.1-mini",
-				"messages":   []map[string]any{{"role": "user", "content": "hello"}},
+				"model":    "gpt-4.1-mini",
+				"messages": []map[string]any{{"role": "user", "content": "hello"}},
 			},
-			expectStatus: http.StatusOK,
-			expectKind:   CompletionKindPlayground,
+			playgroundKeyProject: "prj_demo",
+			expectStatus:         http.StatusOK,
+			expectKind:           CompletionKindPlayground,
 		},
 	}
 
 	for _, testCase := range cases {
 		t.Run(testCase.name, func(t *testing.T) {
-			app, emitter := newTracedTestServer(t)
+			app, emitter, store := newTracedTestServerWithStore(t)
+			if testCase.playgroundKeyProject != "" {
+				testCase.payload["api_key_id"] = createPlaygroundTestKey(t, store, testCase.playgroundKeyProject, "")
+			}
 			response := doJSON(t, app, http.MethodPost, testCase.path, testCase.payload, testCase.token)
 			if response.Code != testCase.expectStatus {
 				t.Fatalf("expected %d, got %d: %s", testCase.expectStatus, response.Code, response.Body)
@@ -449,7 +461,7 @@ func (a partialUsageFailingAdapter) Embeddings(context.Context, Provider, string
 // needs: the losing candidate's tokens must survive the failover instead of being
 // replaced by the winner's.
 func TestFailoverAttemptsCarryTheirOwnUsage(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	project := store.CreateProject(Project{Name: "Failover App"})
 	_, secret, err := store.CreateAPIKey(project.ID, APIKey{
 		Name:    "failover-key",
@@ -471,7 +483,7 @@ func TestFailoverAttemptsCarryTheirOwnUsage(t *testing.T) {
 	store.AddRoute(ModelRoute{ID: "route_partial", ModelName: "gpt-4.1-mini", ProviderID: failing.ID, ProviderModel: "partial-chat", Priority: 1, Weight: 100, Status: StatusActive, Strategy: "priority_only"})
 	store.AddRoute(ModelRoute{ID: "route_backup", ModelName: "gpt-4.1-mini", ProviderID: backup.ID, ProviderModel: "backup-chat", Priority: 2, Weight: 100, Status: StatusActive, Strategy: "priority_only"})
 
-	server := New(store)
+	server := newManagedTestServer(t, store)
 	server.adapterRegistry.Register("partial_usage_mock", partialUsageFailingAdapter{}, AdapterCapabilityChat)
 	emitter := &recordingTraceEmitter{}
 	server.traceEmitter = emitter

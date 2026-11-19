@@ -21,7 +21,7 @@ func TestPRRetrievalTokenizedPatches(t *testing.T) {
 
 func TestPRRetrievalEmbeddingAdmissionRejectsWrongModelAndPrice(t *testing.T) {
 	for _, modality := range []string{"chat", "embedding"} {
-		store := NewMemoryStore()
+		store := newTestMemoryStore(t)
 		project := store.CreateProject(Project{Name: "p", Status: StatusActive})
 		store.AddModel(Model{Name: "m", Modality: modality, Status: StatusActive})
 		provider := store.AddProvider(Provider{Type: ProviderMock, Status: StatusActive, Healthy: true})

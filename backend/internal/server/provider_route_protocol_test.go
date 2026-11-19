@@ -22,7 +22,7 @@ func providerPluginDescriptorWithRouteProtocol(pluginID string, name string, pro
 }
 
 func TestRouteModelProtocolUsesPluginDeclaredProtocols(t *testing.T) {
-	server := NewWithConfig(NewMemoryStore(), Config{AdminToken: "admin"})
+	server := newManagedTestServerWithConfig(t, newTestMemoryStore(t), Config{AdminToken: "admin"})
 	const providerType = "native_plugin_protocol"
 	pluginDescriptor := providerPluginDescriptorWithRouteProtocol(
 		"tokenhub.provider.native-protocol",
@@ -55,7 +55,7 @@ func TestRouteModelProtocolUsesPluginDeclaredProtocols(t *testing.T) {
 }
 
 func TestRouteModelProtocolUsesDescriptorPolicy(t *testing.T) {
-	server := NewWithConfig(NewMemoryStore(), Config{AdminToken: "admin"})
+	server := newManagedTestServerWithConfig(t, newTestMemoryStore(t), Config{AdminToken: "admin"})
 	descriptor := AdapterDescriptor{
 		Type:         "descriptor_native_protocol",
 		Capabilities: []AdapterCapability{AdapterCapabilityChat},

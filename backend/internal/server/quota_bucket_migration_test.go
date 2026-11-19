@@ -6,7 +6,7 @@ import (
 )
 
 func TestQuotaBucketMigrationPreservesUnknownAndUserScopedHistory(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	if err := store.db.Exec("DROP TABLE quota_buckets").Error; err != nil {
 		t.Fatal(err)
 	}
@@ -88,11 +88,24 @@ PRIMARY KEY (key_id, scope, bucket)
 	if err := store.db.Exec("INSERT INTO quota_buckets (key_id, scope, bucket, total_tokens) VALUES (?, ?, ?, ?)", "key_legacy", "day", "2026-08-20", 12).Error; err != nil {
 		t.Fatal(err)
 	}
-	if err := store.db.Exec("DROP TABLE schema_migrations").Error; err != nil {
-		t.Fatal(err)
-	}
-	if err := store.db.Exec("DROP TABLE migration_attempts").Error; err != nil {
-		t.Fatal(err)
+	// The legacy schema predates the ledger and the payment expansions.
+	// Remove dependent tables before their referenced tables.
+	for _, statement := range []string{
+		"DROP TABLE team_wallet_calls",
+		"DROP TABLE team_wallet_entries",
+		"DROP TABLE team_wallets",
+		"DROP TABLE wallet_usage",
+		"DROP TABLE wallet_transactions",
+		"DROP TABLE payment_refunds",
+		"DROP TABLE payment_orders",
+		"DROP TABLE user_wallets",
+		"DROP TABLE schema_migrations",
+		"DROP TABLE migration_attempts",
+	} {
+		if err := store.db.Exec(statement).Error; err != nil {
+			t.Fatal(err)
+		}
+
 	}
 	if err := store.Close(); err != nil {
 		t.Fatalf("close seed store: %v", err)

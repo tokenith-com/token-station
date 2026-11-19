@@ -18,7 +18,7 @@ import (
 var openAPI31Schema []byte
 
 func TestOpenAPIEndpointsServeRuntimeServerAndSelfHostedDocs(t *testing.T) {
-	app := NewWithConfig(NewMemoryStore(), Config{
+	app := newManagedTestServerWithConfig(t, newTestMemoryStore(t), Config{
 		AppVersion:    "9.8.7-test",
 		PublicBaseURL: "https://gateway.example.com/base",
 	}).Handler()
@@ -55,7 +55,7 @@ func TestOpenAPIEndpointsServeRuntimeServerAndSelfHostedDocs(t *testing.T) {
 		}
 	}
 	for _, want := range []string{
-		"TokenHub API Reference",
+		"TokenStation API Reference",
 		"/base/openapi.json",
 		"/base/docs/swagger-ui.css",
 		"/base/docs/swagger-ui-bundle.js",
@@ -102,7 +102,7 @@ func TestOpenAPIEndpointsServeRuntimeServerAndSelfHostedDocs(t *testing.T) {
 }
 
 func TestOpenAPIUsesTrustedForwardedOriginWhenPublicBaseURLIsUnset(t *testing.T) {
-	app := NewWithConfig(NewMemoryStore(), Config{
+	app := newManagedTestServerWithConfig(t, newTestMemoryStore(t), Config{
 		TrustedProxyCIDRs: []string{"192.0.2.10/32"},
 	}).Handler()
 	request := httptest.NewRequest(http.MethodGet, "/openapi.json", nil)
@@ -664,7 +664,7 @@ func documentedGatewayOperations(document map[string]any) map[gatewayOperation]b
 
 func registeredGatewayOperations(t *testing.T) map[gatewayOperation]bool {
 	t.Helper()
-	server := NewWithConfig(NewMemoryStore(), Config{AdminToken: "test_admin_token"})
+	server := newManagedTestServerWithConfig(t, newTestMemoryStore(t), Config{AdminToken: "test_admin_token"})
 	operations := make(map[gatewayOperation]bool, len(server.publicGatewayOperations))
 	for operation := range server.publicGatewayOperations {
 		operations[operation] = true

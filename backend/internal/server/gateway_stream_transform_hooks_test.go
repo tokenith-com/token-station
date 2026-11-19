@@ -14,11 +14,11 @@ import (
 )
 
 func TestChatStreamTransformHookCanRewriteSSEEventData(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	if err := SeedDemoData(store); err != nil {
 		t.Fatal(err)
 	}
-	server := New(store)
+	server := newManagedTestServer(t, store)
 	hook := pluginmeta.GatewayHookDescriptor{
 		PluginID:      "tokenhub.test-stream",
 		HookID:        "rewrite-chat-chunks",
@@ -65,7 +65,7 @@ func TestChatStreamTransformHookCanRewriteSSEEventData(t *testing.T) {
 }
 
 func TestResponsesStreamTransformHookCanRewriteSSEEventData(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	project := store.CreateProject(Project{Name: "Stream Transform Responses App", Status: StatusActive})
 	_, secret, err := store.CreateAPIKey(project.ID, APIKey{
 		Name:    "stream-transform-responses-key",
@@ -84,7 +84,7 @@ func TestResponsesStreamTransformHookCanRewriteSSEEventData(t *testing.T) {
 		ID: "route_stream_transform_responses", ModelName: "gpt-stream-transform-responses",
 		ProviderID: provider.ID, ProviderModel: "upstream-responses", Status: StatusActive, Priority: 1, Weight: 100,
 	})
-	server := New(store)
+	server := newManagedTestServer(t, store)
 	server.adapterRegistry.Register("stream_transform_responses", responsesStreamTransformAdapter{}, AdapterCapabilityResponses, AdapterCapabilityResponseStream)
 	hook := pluginmeta.GatewayHookDescriptor{
 		PluginID:      "tokenhub.test-stream",
@@ -127,7 +127,7 @@ func TestResponsesStreamTransformHookCanRewriteSSEEventData(t *testing.T) {
 }
 
 func TestResponsesStreamRequestTransformHookRewritesRequestBeforeUpstream(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	project := store.CreateProject(Project{Name: "Stream Request Transform Responses App", Status: StatusActive})
 	_, secret, err := store.CreateAPIKey(project.ID, APIKey{
 		Name:    "stream-request-transform-responses-key",
@@ -146,7 +146,7 @@ func TestResponsesStreamRequestTransformHookRewritesRequestBeforeUpstream(t *tes
 		ID: "route_stream_request_transform_responses", ModelName: "gpt-stream-request-transform-responses",
 		ProviderID: provider.ID, ProviderModel: "upstream-responses", Status: StatusActive, Priority: 1, Weight: 100,
 	})
-	server := New(store)
+	server := newManagedTestServer(t, store)
 	adapter := &responsesRequestTransformStreamAdapter{}
 	server.adapterRegistry.Register("stream_request_transform_responses", adapter, AdapterCapabilityResponses, AdapterCapabilityResponseStream)
 	hook := pluginmeta.GatewayHookDescriptor{
@@ -360,11 +360,11 @@ func TestAnthropicOpenAIStreamTransformHookCanRewriteSSEEventData(t *testing.T) 
 }
 
 func TestPlaygroundChatStreamTransformHookCanRewriteSSEEventData(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	if err := SeedDemoData(store); err != nil {
 		t.Fatal(err)
 	}
-	server := New(store)
+	server := newManagedTestServer(t, store)
 	hook := pluginmeta.GatewayHookDescriptor{
 		PluginID:      "tokenhub.test-stream",
 		HookID:        "rewrite-playground-chunks",
@@ -393,7 +393,7 @@ func TestPlaygroundChatStreamTransformHookCanRewriteSSEEventData(t *testing.T) {
 	}
 
 	resp := doJSON(t, server.Handler(), http.MethodPost, "/api/admin/playground/chat/stream", map[string]any{
-		"project_id": defaultProjectID,
+		"api_key_id": createPlaygroundTestKey(t, store, defaultProjectID, ""),
 		"model":      "gpt-4.1-mini",
 		"messages": []map[string]any{
 			{"role": "user", "content": "hello"},
@@ -418,7 +418,7 @@ func TestStreamTransformHookFailurePolicyHandlesInvalidPatches(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			server := New(NewMemoryStore())
+			server := newManagedTestServer(t, newTestMemoryStore(t))
 			hook := streamTransformHook(tt.failurePolicy)
 			if err := server.gatewayChain.RegisterHook(hook); err != nil {
 				t.Fatalf("register stream transform hook: %v", err)
@@ -455,7 +455,7 @@ name"}`)},
 }
 
 func TestStreamTransformHookCanDropEventAndRewriteMultilineData(t *testing.T) {
-	server := New(NewMemoryStore())
+	server := newManagedTestServer(t, newTestMemoryStore(t))
 	hook := streamTransformHook(pluginmeta.FailurePolicyFailClosed)
 	if err := server.gatewayChain.RegisterHook(hook); err != nil {
 		t.Fatalf("register stream transform hook: %v", err)
@@ -506,7 +506,7 @@ func TestStreamTransformHookCanDropEventAndRewriteMultilineData(t *testing.T) {
 }
 
 func TestStreamTransformWriterPassesThroughCommentEvents(t *testing.T) {
-	server := New(NewMemoryStore())
+	server := newManagedTestServer(t, newTestMemoryStore(t))
 	hook := streamTransformHook(pluginmeta.FailurePolicyFailClosed)
 	if err := server.gatewayChain.RegisterHook(hook); err != nil {
 		t.Fatalf("register stream transform hook: %v", err)
@@ -536,8 +536,8 @@ func TestStreamTransformWriterPassesThroughCommentEvents(t *testing.T) {
 }
 
 func TestStreamTransformHookDenyReturnsForbiddenAndRecordsAuditEvent(t *testing.T) {
-	store := NewMemoryStore()
-	server := New(store)
+	store := newTestMemoryStore(t)
+	server := newManagedTestServer(t, store)
 	hook := streamTransformHook(pluginmeta.FailurePolicyFailClosed)
 	if err := server.gatewayChain.RegisterHook(hook); err != nil {
 		t.Fatalf("register stream transform hook: %v", err)

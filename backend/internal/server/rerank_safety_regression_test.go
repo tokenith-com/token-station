@@ -58,7 +58,7 @@ func TestAdminRerankLoadsProviderAndResourceExecutionConfig(t *testing.T) {
 				writeJSON(w, 200, body)
 			}))
 			defer upstream.Close()
-			store := NewMemoryStore()
+			store := newTestMemoryStore(t)
 			if err := SeedDemoData(store); err != nil {
 				t.Fatal(err)
 			}
@@ -71,7 +71,7 @@ func TestAdminRerankLoadsProviderAndResourceExecutionConfig(t *testing.T) {
 				}
 				payload["resource_id"] = resource.ID
 			}
-			response := doJSON(t, New(store).Handler(), http.MethodPost, "/api/admin/playground/rerank", payload, "")
+			response := doJSON(t, newManagedTestServer(t, store).Handler(), http.MethodPost, "/api/admin/playground/rerank", payload, "")
 			if response.Code != 200 || calls != 1 {
 				t.Fatalf("status=%d calls=%d body=%s", response.Code, calls, response.Body)
 			}

@@ -11,7 +11,7 @@ import (
 )
 
 func TestAdminPluginProviderCatalogPostUsesModelsPreviewAction(t *testing.T) {
-	server := NewWithConfig(NewMemoryStore(), Config{AdminToken: "plugin-catalog-admin"})
+	server := newManagedTestServerWithConfig(t, newTestMemoryStore(t), Config{AdminToken: "plugin-catalog-admin"})
 	providerType := "preview_catalog_provider"
 	pluginID := "tokenhub.provider.preview-catalog"
 	if err := server.adapterRegistry.RegisterPlugin(pluginmeta.Descriptor{
@@ -77,7 +77,7 @@ func TestAdminPluginProviderCatalogPostUsesModelsPreviewAction(t *testing.T) {
 }
 
 func TestAdminProviderTestConnectionAllowsPluginOptionalAPIKey(t *testing.T) {
-	server := NewWithConfig(NewMemoryStore(), Config{AdminToken: "plugin-test-admin"})
+	server := newManagedTestServerWithConfig(t, newTestMemoryStore(t), Config{AdminToken: "plugin-test-admin"})
 	providerType := "optional_key_provider"
 	pluginID := "tokenhub.provider.optional-key"
 	if err := server.adapterRegistry.RegisterPlugin(pluginmeta.Descriptor{
@@ -125,7 +125,7 @@ func TestAdminProviderTestConnectionAllowsPluginOptionalAPIKey(t *testing.T) {
 }
 
 func TestAdminProviderTestConnectionUsesPluginHealthProber(t *testing.T) {
-	server := NewWithConfig(NewMemoryStore(), Config{AdminToken: "plugin-test-admin"})
+	server := newManagedTestServerWithConfig(t, newTestMemoryStore(t), Config{AdminToken: "plugin-test-admin"})
 	providerType := "health_preview_provider"
 	adapter := &pluginHealthProbeAdapter{}
 	pluginID := "tokenhub.provider.health-preview"
@@ -174,7 +174,7 @@ func TestAdminProviderTestConnectionUsesPluginHealthProber(t *testing.T) {
 }
 
 func TestProviderCatalogMultiMethodRouteIDsComeFromModelsPreviewPlugins(t *testing.T) {
-	server := NewWithConfig(NewMemoryStore(), Config{AdminToken: "plugin-catalog-admin"})
+	server := newManagedTestServerWithConfig(t, newTestMemoryStore(t), Config{AdminToken: "plugin-catalog-admin"})
 	providerType := "preview_route_provider"
 	pluginID := "tokenhub.provider.preview-route"
 	if err := server.adapterRegistry.RegisterPlugin(pluginmeta.Descriptor{

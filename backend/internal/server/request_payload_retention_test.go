@@ -64,7 +64,7 @@ func TestConfiguredAuditRetentionDaysRequiresGatewaySetting(t *testing.T) {
 }
 
 func TestRequestPayloadRetentionDeletesExpiredPayloadsInBatchesAndPreservesRequestLogs(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	store.CreateResource("settings", AdminResource{
 		ID:     gatewaySettingsID,
 		Status: StatusActive,
@@ -152,7 +152,7 @@ func payloadLogIDs(logs []RequestPayloadLog) []string {
 }
 
 func TestRequestPayloadRetentionInvalidConfigurationDoesNotDelete(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	store.CreateResource("settings", AdminResource{
 		ID:     gatewaySettingsID,
 		Status: StatusActive,
@@ -180,7 +180,7 @@ func TestRequestPayloadRetentionInvalidConfigurationDoesNotDelete(t *testing.T) 
 }
 
 func TestRequestPayloadRetentionDisabledConfigurationDoesNotDelete(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	store.CreateResource("settings", AdminResource{
 		ID:     gatewaySettingsID,
 		Status: StatusDisabled,
@@ -235,7 +235,7 @@ func TestRequestPayloadRetentionFailureRetriesSameHour(t *testing.T) {
 }
 
 func TestRequestPayloadRetentionIndexColumns(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	var columns []requestPayloadRetentionIndexColumn
 	if err := store.db.Raw("PRAGMA index_info('idx_request_payload_logs_created_at_id')").Scan(&columns).Error; err != nil {
 		t.Fatal(err)

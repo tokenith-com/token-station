@@ -47,7 +47,7 @@ func (r *Runner) PlanContract(ctx context.Context) (ContractPlan, error) {
 	// migrations have been applied; executing them against an unexpanded
 	// schema would drop or reshape structures their expands never created.
 	if pending := r.pendingByPhase(applied, PhaseExpand); len(pending) > 0 {
-		return ContractPlan{}, newError(ErrCodeExpandPending, 0, fmt.Errorf("%d expand migration(s) still pending; run tokenhub db migrate or restart the server first", len(pending)))
+		return ContractPlan{}, newError(ErrCodeExpandPending, 0, fmt.Errorf("%d expand migration(s) still pending; run tokenstation db migrate or restart the server first", len(pending)))
 	}
 	return ContractPlan{Migrations: r.pendingByPhase(applied, PhaseContract)}, nil
 }

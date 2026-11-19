@@ -1,6 +1,6 @@
 # Qoder China
 
-Connect an explicitly authorized Qoder China account to TokenHub.
+Connect an explicitly authorized Qoder China account to TokenStation.
 
 - Plugin ID: `tokenhub.provider.qoder-cn-subscription`
 - Configuration: Provider management, with a separate account resource

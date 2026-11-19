@@ -18,16 +18,17 @@ type CompatibilityManifest struct {
 	MaxCompatible int64 `json:"max_compatible"`
 }
 
-// CurrentCompatibilityManifest is this release's declaration. This release
-// requires all registered expansions, including version 10's persistent OAuth
-// tables and version 11's Responses image continuations. Startup applies these
-// additive tables before admitting requests; historical releases keep their
-// existing compatibility declarations.
+// CurrentCompatibilityManifest declares the schema required by this release.
+// Versions 12–14 retain the payment branch history; consumer and team wallet
+// expansions follow at versions 15–21, with project model access at version 22,
+// postpaid wallet settlement at version 23, team wallet call snapshots at
+// version 24, team wallet micros at version 25, and canonical administrator
+// roles at version 26. Database preparation applies pending expansions.
 func CurrentCompatibilityManifest() CompatibilityManifest {
 	return CompatibilityManifest{
-		TargetVersion: 11,
-		MinCompatible: 11,
-		MaxCompatible: 11,
+		TargetVersion: 26,
+		MinCompatible: 26,
+		MaxCompatible: 26,
 	}
 }
 

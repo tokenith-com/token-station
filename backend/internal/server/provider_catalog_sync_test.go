@@ -17,7 +17,7 @@ import (
 
 func catalogSyncTestService(t *testing.T, upstreamBody []byte, fetches *atomic.Int64) *providerCatalogService {
 	t.Helper()
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	catalogFile := filepath.Join(t.TempDir(), "provider-catalog.json")
 	writeProviderCatalogFixture(t, catalogFile)
 	upstreamContent, err := os.ReadFile(catalogFile)
@@ -130,7 +130,7 @@ func TestProviderCatalogRefreshFallsBackToLocalWhenUpstreamFails(t *testing.T) {
 	providerCatalogFreshInterval = 0
 	t.Cleanup(func() { providerCatalogFreshInterval = original })
 
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	catalogFile := filepath.Join(t.TempDir(), "provider-catalog.json")
 	writeProviderCatalogFixture(t, catalogFile)
 	service := newProviderCatalogService(store, catalogFile)
@@ -152,7 +152,7 @@ func TestProviderCatalogRefreshFallsBackToLocalWhenUpstreamFails(t *testing.T) {
 }
 
 func TestProviderCatalogSchedulerRunDueRunsOncePerDay(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	var runs atomic.Int64
 	scheduler := newProviderCatalogScheduler(store, func(context.Context) error {
 		runs.Add(1)
@@ -176,7 +176,7 @@ func TestProviderCatalogSchedulerRunDueRunsOncePerDay(t *testing.T) {
 }
 
 func TestProviderCatalogSyncDisabledWithoutUpstreamURL(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	catalogFile := filepath.Join(t.TempDir(), "provider-catalog.json")
 	writeProviderCatalogFixture(t, catalogFile)
 	service := newProviderCatalogService(store, catalogFile)
@@ -464,7 +464,7 @@ func (s *pausingSnapshotStore) SaveProviderCatalogSnapshot(entries []ProviderCat
 // fresh reload save its merge. Its merge was built from the pre-sync snapshot, so without
 // shared coordination the imported provider is silently deleted.
 func TestProviderCatalogFreshReloadDoesNotOverwriteConcurrentUpstreamSync(t *testing.T) {
-	base := NewMemoryStore()
+	base := newTestMemoryStore(t)
 	catalogFile := filepath.Join(t.TempDir(), "provider-catalog.json")
 	writeProviderCatalogFixture(t, catalogFile)
 
@@ -555,7 +555,7 @@ func TestProviderCatalogFreshReloadDoesNotOverwriteConcurrentUpstreamSync(t *tes
 // scheduled run that reuses the interactive freshness window can consume a day without
 // contacting the upstream. A forced fetch is what keeps one download per day.
 func TestProviderCatalogScheduledSyncFetchesDespiteFreshSnapshot(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	catalogFile := filepath.Join(t.TempDir(), "provider-catalog.json")
 	writeProviderCatalogFixture(t, catalogFile)
 	service := newProviderCatalogService(store, catalogFile)
@@ -595,7 +595,7 @@ func TestProviderCatalogScheduledSyncFetchesDespiteFreshSnapshot(t *testing.T) {
 // therefore makes the next day's tick still look fresh; if the scheduled run honoured
 // that window it would return without fetching and the day's sync would be consumed.
 func TestProviderCatalogSchedulerRunDueDoesNotBurnTheDayAtTheFreshnessBoundary(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	catalogFile := filepath.Join(t.TempDir(), "provider-catalog.json")
 	writeProviderCatalogFixture(t, catalogFile)
 	service := newProviderCatalogService(store, catalogFile)

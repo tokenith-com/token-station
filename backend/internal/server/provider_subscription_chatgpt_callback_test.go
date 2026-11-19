@@ -16,7 +16,7 @@ import (
 
 func chatGPTCallbackFixture(t *testing.T, publicBase string, automatic bool) (*Server, *MemoryStore, map[string]any) {
 	t.Helper()
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	server := NewWithConfig(store, Config{PublicBaseURL: publicBase})
 	t.Cleanup(func() { _ = server.Shutdown(context.Background()) })
 	started, err := subscriptionActionFixture(t, server, ProviderChatGPTSubscription, "oauth.start", "administrator", map[string]any{"automatic_callback": automatic})

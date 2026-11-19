@@ -2,7 +2,7 @@
 
 Language: English | [简体中文](kubernetes.md) | [日本語](../ja/kubernetes.md)
 
-TokenHub 在 `deploy/helm/tokenhub` 提供 Helm chart,用于 Kubernetes 集群部署。它以 `all` 运行模式部署单个 TokenHub 容器镜像:每个 Pod 同时承载 8080 端口上的 Go API/网关和 3000 端口上的 Next.js 管理后台,与默认的 Docker Compose 部署进程布局一致。
+TokenStation 在 `deploy/helm/tokenstation` 提供 Helm chart,用于 Kubernetes 集群部署。它以 `all` 运行模式部署单个 TokenStation 容器镜像:每个 Pod 同时承载 8080 端口上的 Go API/网关和 3000 端口上的 Next.js 管理后台,与默认的 Docker Compose 部署进程布局一致。
 
 ## 前置条件
 
@@ -20,8 +20,8 @@ TokenHub 在 `deploy/helm/tokenhub` 提供 Helm chart,用于 Kubernetes 集群�
 # Chart.lock 固定了子 chart 版本,但不会注册它的仓库。
 helm repo add bitnami https://charts.bitnami.com/bitnami
 helm repo update
-helm dependency build deploy/helm/tokenhub
-helm install tokenhub deploy/helm/tokenhub \
+helm dependency build deploy/helm/tokenstation
+helm install tokenstation deploy/helm/tokenstation \
   --set postgresql.enabled=true \
   --set postgresql.auth.password=quick-test-password \
   --set secretEnv.TOKENHUB_SECRET_KEY="$(openssl rand -hex 32)" \
@@ -35,7 +35,7 @@ chart 会根据子 chart 的 Service 组合出数据库 URL。没有 Ingress 时
 把 `database.url` 指向托管 PostgreSQL 服务(RDS、Cloud SQL、Azure Database 等),保持 `postgresql.enabled=false`,并启用 Ingress:
 
 ```bash
-helm install tokenhub deploy/helm/tokenhub \
+helm install tokenstation deploy/helm/tokenstation \
   --set ingress.enabled=true \
   --set ingress.host=tokenhub.example.com \
   --set secretEnv.TOKENHUB_SECRET_KEY="$(openssl rand -hex 32)" \
@@ -53,7 +53,7 @@ helm install tokenhub deploy/helm/tokenhub \
 首次登录使用用户名 `admin` 和你在 `secretEnv.TOKENHUB_BOOTSTRAP_ADMIN_PASSWORD` 中设置的 bootstrap 密码:
 
 ```bash
-kubectl get secret tokenhub-tokenhub-credentials -o jsonpath='{.data.TOKENHUB_BOOTSTRAP_ADMIN_PASSWORD}' | base64 -d
+kubectl get secret tokenstation-tokenstation-credentials -o jsonpath='{.data.TOKENHUB_BOOTSTRAP_ADMIN_PASSWORD}' | base64 -d
 ```
 
 chart 不会自动生成该密码:请通过 `secretEnv` 设置一个稳定的值,并在后续升级中保持不变,bootstrap 种子只在空数据库上运行。改走 `extraEnv` 会与 chart 已渲染的 Secret 环境项重复。首次登录后在管理后台修改密码。
@@ -63,7 +63,7 @@ chart 默认设置 `TOKENHUB_ENV=prod`。生产模式下启动会拒绝内置的
 凭据也可以来自已有的 Secret 而不是内联值:
 
 ```bash
-helm install tokenhub deploy/helm/tokenhub \
+helm install tokenstation deploy/helm/tokenstation \
   --set ingress.enabled=true --set ingress.host=tokenhub.example.com \
   --set credentialsSecret=tokenhub-auth \
   --set database.existingSecret=tokenhub-database
@@ -75,7 +75,7 @@ helm install tokenhub deploy/helm/tokenhub \
 
 | 资源 | 用途 |
 | --- | --- |
-| Deployment | 每个 Pod 副本通过 `tokenhub-run` 同时运行两个进程;环境变量直接渲染进 Pod spec |
+| Deployment | 每个 Pod 副本通过 `tokenstation-run` 同时运行两个进程;环境变量直接渲染进 Pod spec |
 | Secrets | `<release>-credentials` 存放鉴权密钥和可选管理凭据,`<release>-database` 存放组合出的数据库 URL(各自仅在 chart 托管时创建) |
 | Service | `api` 端口(8080)和 `console` 端口(3000) |
 | PersistentVolumeClaim | 生成图片存储,仅在 `imageStorage.type` 为 `pvc` 时创建(见下文) |
@@ -94,7 +94,7 @@ Ingress 路由与 `deploy/nginx.multi-instance.conf` 一致:
 
 ## 健康检查与停机
 
-`tokenhub-run` 会监管两个进程,任一进程退出都会让容器退出,因此 Kubernetes 会在进程故障时重启 Pod。startup 和 readiness 探针通过 HTTP 检查 API 的 `/readyz`,数据库不可达时 Pod 会停止接收流量;liveness 探针检查 API 的 `/livez`。默认 `terminationGracePeriodSeconds` 为 180 秒,覆盖后端默认 150 秒的优雅停机窗口,进行中的流式请求可以在 Pod 移除前排空。滚动更新采用 `Recreate` 策略:升级和 `kubectl rollout restart` 期间,旧 Pod 会先完全终止,替换 Pod 才会启动,因此不会有两个 Pod 同时对外服务,容量会在一个启动窗口内短暂下降。这样即使使用已发布的 `0.8.0` 镜像,镜像任务的恢复也是安全的(见下文)。
+`tokenstation-run` 会监管两个进程,任一进程退出都会让容器退出,因此 Kubernetes 会在进程故障时重启 Pod。startup 和 readiness 探针通过 HTTP 检查 API 的 `/readyz`,数据库不可达时 Pod 会停止接收流量;liveness 探针检查 API 的 `/livez`。默认 `terminationGracePeriodSeconds` 为 180 秒,覆盖后端默认 150 秒的优雅停机窗口,进行中的流式请求可以在 Pod 移除前排空。滚动更新采用 `Recreate` 策略:升级和 `kubectl rollout restart` 期间,旧 Pod 会先完全终止,替换 Pod 才会启动,因此不会有两个 Pod 同时对外服务,容量会在一个启动窗口内短暂下降。这样即使使用已发布的 `0.8.0` 镜像,镜像任务的恢复也是安全的(见下文)。
 
 ## 默认无状态
 
@@ -104,7 +104,7 @@ Chart 默认是无状态的:
 - **Release:** 容器每次启动都会把镜像内的 release bundle 物化到临时目录。模型目录和 provider 目录随镜像分发,并在首次启动时种子进数据库;管理后台里做的目录变更存放在 PostgreSQL 中,pod 重建不丢失。应用内自更新被禁用(`TOKENHUB_MANAGED_UPDATES=false`);升级方式是修改 `image.tag`:
 
 ```bash
-helm upgrade tokenhub deploy/helm/tokenhub --reuse-values --set image.tag=<new-tag>
+helm upgrade tokenstation deploy/helm/tokenstation --reuse-values --set image.tag=<new-tag>
 ```
 
 - **数据:** 所有持久状态都在 PostgreSQL 中。使用 PostgreSQL 工具备份,参见 [PostgreSQL 配置](postgresql-setup.md)。
@@ -129,7 +129,7 @@ helm upgrade tokenhub deploy/helm/tokenhub --reuse-values --set image.tag=<new-t
 `extraEnv` 在每次升级时都会被整体替换——`--reuse-values` 不会合并它——所以要把已设置的条目(上面生产安装中的 trusted-proxy 列表)和新条目一起重新声明:
 
 ```bash
-helm upgrade tokenhub deploy/helm/tokenhub --reuse-values \
+helm upgrade tokenstation deploy/helm/tokenstation --reuse-values \
   --set 'extraEnv[0].name=TOKENHUB_TRUSTED_PROXY_CIDRS' \
   --set 'extraEnv[0].value=10.0.0.0/8\,172.16.0.0/12\,192.168.0.0/16' \
   --set 'extraEnv[1].name=TOKENHUB_METRICS_ENABLED' \
@@ -150,7 +150,7 @@ metrics 端点需要 Bearer 鉴权:通过 `secretEnv` 设置专用的 `TOKENHUB_
 迁移已有 release 时要先清掉之前配置的凭据和数据库值,否则 `--reuse-values` 会保留它们并与该模式冲突:
 
 ```bash
-helm upgrade tokenhub deploy/helm/tokenhub --reuse-values \
+helm upgrade tokenstation deploy/helm/tokenstation --reuse-values \
   --set externalSecret.enabled=true \
   --set externalSecret.secretStore=aws-secrets-manager \
   --set externalSecret.sourceSecretId=tokenhub/prod \
@@ -181,7 +181,7 @@ helm upgrade tokenhub deploy/helm/tokenhub --reuse-values \
 2. 每个集群创建一次 `ClusterSecretStore`,它的 metadata 名称就是 `externalSecret.secretStore`。使用 IRSA 认证时它引用 chart 的 ServiceAccount,所以要给该账号标注 role:
 
    ```bash
-   helm upgrade tokenhub deploy/helm/tokenhub --reuse-values \
+   helm upgrade tokenstation deploy/helm/tokenstation --reuse-values \
      --set serviceAccount.annotations."eks\.amazonaws\.com/role-arn"=arn:aws:iam::123456789012:role/tokenhub-external-secrets
    ```
 
@@ -198,7 +198,7 @@ helm upgrade tokenhub deploy/helm/tokenhub --reuse-values \
          auth:
            jwt:
              serviceAccountRef:
-               name: tokenhub-tokenhub # chart 的 ServiceAccount
+               name: tokenstation-tokenstation # chart 的 ServiceAccount
                namespace: tokenhub
    ```
 
@@ -210,6 +210,6 @@ helm upgrade tokenhub deploy/helm/tokenhub --reuse-values \
 
 ## Values
 
-完整列表参见带注释的 [values.yaml](../deploy/helm/tokenhub/values.yaml)。任何[部署文档](deployment.md#后端环境变量)中记载的 `TOKENHUB_*` 变量都可以通过标准的 `extraEnv` 列表添加,并直接渲染进 Pod 环境;敏感值走 `secretEnv`。
+完整列表参见带注释的 [values.yaml](../deploy/helm/tokenstation/values.yaml)。任何[部署文档](deployment.md#后端环境变量)中记载的 `TOKENHUB_*` 变量都可以通过标准的 `extraEnv` 列表添加,并直接渲染进 Pod 环境;敏感值走 `secretEnv`。
 
-Chart 开发说明见 [chart README](../deploy/helm/tokenhub/README.md)。
+Chart 开发说明见 [chart README](../deploy/helm/tokenstation/README.md)。

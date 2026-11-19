@@ -11,7 +11,7 @@ func TestSubscriptionCredentialRefreshRejectsBindingChangedDuringRefresh(t *test
 	for _, change := range []string{"resource_move", "provider_type"} {
 		for _, outcome := range []string{"success", "reauthorization"} {
 			t.Run(change+"/"+outcome, func(t *testing.T) {
-				store := NewMemoryStore()
+				store := newTestMemoryStore(t)
 				store.ConfigureProviderResourceTypePolicy(map[string][]string{
 					ProviderChatGPTSubscription:       {ProviderResourceChatGPTSubscription},
 					ProviderGitHubCopilotSubscription: {ProviderResourceGitHubCopilotSubscription},

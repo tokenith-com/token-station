@@ -410,7 +410,7 @@ func (s *versionService) getJSON(ctx context.Context, path string, target any) e
 	}
 	req.Header.Set("Accept", "application/vnd.github+json")
 	req.Header.Set("X-GitHub-Api-Version", "2022-11-28")
-	req.Header.Set("User-Agent", "TokenHub/"+s.currentVersion)
+	req.Header.Set("User-Agent", "TokenStation/"+s.currentVersion)
 
 	resp, err := s.client.Do(req)
 	if err != nil {

@@ -10,7 +10,7 @@ import (
 )
 
 func TestImageGenerationRequestAliasUsesPluginMetadata(t *testing.T) {
-	server := New(NewMemoryStore())
+	server := New(newTestMemoryStore(t))
 	if err := server.Shutdown(context.Background()); err != nil {
 		t.Fatal(err)
 	}
@@ -238,7 +238,7 @@ func TestImageRequestMaxOutputImagesUsesPluginMetadata(t *testing.T) {
 }
 
 func TestProviderImageGenerationRequestCarriesJobCount(t *testing.T) {
-	server := &Server{store: NewMemoryStore()}
+	server := &Server{store: newTestMemoryStore(t)}
 	request, err := server.providerImageGenerationRequest(RouteSelection{
 		Route:         ModelRoute{ProviderModel: "upstream-image"},
 		ProviderModel: "upstream-image",

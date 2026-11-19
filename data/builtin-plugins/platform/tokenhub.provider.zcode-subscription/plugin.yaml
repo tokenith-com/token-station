@@ -3,7 +3,7 @@ id: "tokenhub.provider.zcode-subscription"
 name: "ZCode"
 version: 1.0.0
 summary: "Connect a ZCode subscription account."
-description: "Connect an explicitly authorized ZCode subscription account through TokenHub's isolated bundled runtime."
+description: "Connect an explicitly authorized ZCode subscription account through TokenStation's isolated bundled runtime."
 category: provider_integration
 tokenhub:
   plugin_api: v2

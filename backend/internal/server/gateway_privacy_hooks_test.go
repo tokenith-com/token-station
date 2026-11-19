@@ -11,7 +11,7 @@ import (
 )
 
 func TestPrivacyPreHookUsesProjectAndAPIKeyScopeWithoutExposingMetadata(t *testing.T) {
-	server := New(NewMemoryStore())
+	server := newManagedTestServer(t, newTestMemoryStore(t))
 	call := gatewayPluginTestCall()
 	call.Project.ID = "prj_privacy_scope"
 	call.Key.ID = "key_privacy_scope"
@@ -75,7 +75,7 @@ func TestPrivacyPreHookUsesProjectAndAPIKeyScopeWithoutExposingMetadata(t *testi
 }
 
 func TestPrivacyPreHookSkipsMismatchedProjectScope(t *testing.T) {
-	server := New(NewMemoryStore())
+	server := newManagedTestServer(t, newTestMemoryStore(t))
 	call := gatewayPluginTestCall()
 	call.Project.ID = "prj_allowed"
 	hook := pluginmeta.GatewayHookDescriptor{
@@ -112,7 +112,7 @@ func TestPrivacyPreHookSkipsMismatchedProjectScope(t *testing.T) {
 }
 
 func TestPrivacyPreHookRejectsWritesOutsideDeclaredBoundary(t *testing.T) {
-	server := New(NewMemoryStore())
+	server := newManagedTestServer(t, newTestMemoryStore(t))
 	hook := pluginmeta.GatewayHookDescriptor{
 		PluginID:      "tokenhub.test-privacy-boundary",
 		HookID:        "provider-write",
@@ -149,8 +149,8 @@ func TestPrivacyPreHookRejectsWritesOutsideDeclaredBoundary(t *testing.T) {
 }
 
 func TestPrivacyPreHookRecordsRedactedAuditEvents(t *testing.T) {
-	store := NewMemoryStore()
-	server := New(store)
+	store := newTestMemoryStore(t)
+	server := newManagedTestServer(t, store)
 	hook := pluginmeta.GatewayHookDescriptor{
 		PluginID:      "tokenhub.test-privacy-audit",
 		HookID:        "audit",

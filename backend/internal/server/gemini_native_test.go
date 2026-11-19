@@ -61,7 +61,7 @@ func TestGeminiNativeGenerateContentUsesCodexSubscription(t *testing.T) {
 }
 
 func TestGeminiNativeModelsUsePluginDeclaredCodexResponsesProtocol(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	project := store.CreateProject(Project{Name: "Gemini Plugin Project", Status: StatusActive})
 	_, secret, err := store.CreateAPIKey(project.ID, APIKey{Name: "Gemini Plugin Key", Allowed: []string{"gemini-plugin-model"}, Status: StatusActive}, "thk_gemini_plugin")
 	if err != nil {
@@ -71,7 +71,7 @@ func TestGeminiNativeModelsUsePluginDeclaredCodexResponsesProtocol(t *testing.T)
 	provider := store.AddProvider(Provider{ID: "prv_gemini_plugin", Name: "Gemini Plugin", Type: providerType, Status: StatusActive, Healthy: true})
 	store.AddModel(Model{Name: "gemini-plugin-model", Modality: "chat", ContextWindow: 128000, Status: StatusActive})
 	store.AddRoute(ModelRoute{ID: "route_gemini_plugin", ModelName: "gemini-plugin-model", ProviderID: provider.ID, ProviderModel: "gemini-plugin-model", Status: StatusActive})
-	server := New(store)
+	server := newManagedTestServer(t, store)
 	descriptor := providerPluginDescriptorWithRouteProtocol(
 		"tokenhub.provider.plugin-codex-responses",
 		"Plugin Codex Responses",
@@ -642,7 +642,7 @@ func newGeminiCodexTestServer(t *testing.T, responder func(map[string]any) strin
 
 func newGeminiCodexTestServerForModel(t *testing.T, modelName string, responder func(map[string]any) string) (*Server, string) {
 	t.Helper()
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	project := store.CreateProject(Project{Name: "Gemini CLI Project", Status: StatusActive})
 	_, secret, err := store.CreateAPIKey(project.ID, APIKey{Name: "Gemini CLI Key", Allowed: []string{modelName, "chat-only-model"}, Status: StatusActive}, "thk_gemini_cli_test")
 	if err != nil {
@@ -664,7 +664,7 @@ func newGeminiCodexTestServerForModel(t *testing.T, modelName string, responder 
 	chatProvider := store.AddProvider(Provider{ID: "prv_gemini_chat_only", Name: "Chat Only", Type: chatOnlyProviderType, Status: StatusActive, Healthy: true})
 	store.AddModel(Model{Name: "chat-only-model", Modality: "chat", Status: StatusActive})
 	store.AddRoute(ModelRoute{ID: "route_gemini_chat_only", ModelName: "chat-only-model", ProviderID: chatProvider.ID, ProviderModel: "chat-only-model", Status: StatusActive})
-	server := New(store)
+	server := newManagedTestServer(t, store)
 	server.adapterRegistry.Register(chatOnlyProviderType, MockAdapter{}, AdapterCapabilityChat, AdapterCapabilityChatStream)
 	mustCodexSubscriptionAdapterForTest(t, server).Client = &http.Client{Transport: roundTripperFunc(func(request *http.Request) (*http.Response, error) {
 		if request.URL.Path != "/backend-api/codex/responses" {

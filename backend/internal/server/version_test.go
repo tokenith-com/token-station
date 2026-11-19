@@ -132,7 +132,7 @@ func TestVersionServiceChecksLatestReleaseAndCachesResult(t *testing.T) {
 			http.Error(w, "unexpected release path: "+r.URL.String(), http.StatusBadRequest)
 			return
 		}
-		if got := r.Header.Get("User-Agent"); got != "TokenHub/0.3.0" {
+		if got := r.Header.Get("User-Agent"); got != "TokenStation/0.3.0" {
 			http.Error(w, "unexpected user agent: "+got, http.StatusBadRequest)
 			return
 		}
@@ -450,7 +450,7 @@ func TestAdminVersionEndpointsRequireAuthenticationAndReturnReleaseData(t *testi
 	}))
 	defer releases.Close()
 
-	app := NewWithConfig(NewMemoryStore(), Config{
+	app := newManagedTestServerWithConfig(t, newTestMemoryStore(t), Config{
 		AdminToken: "version-admin-token",
 		AppVersion: "0.3.0",
 		BuildType:  releaseBuildType,

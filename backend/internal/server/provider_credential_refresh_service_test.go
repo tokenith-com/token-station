@@ -54,9 +54,9 @@ func configureOpenAIAccountIdentityProfileForTest(store *GormStore, providerType
 }
 
 func TestProviderCredentialRefreshServiceRenewsExpiringOpenAIAccounts(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	provider := store.AddProvider(Provider{Name: "Codex OAuth", Type: ProviderOpenAICodex, Status: StatusActive, Healthy: true})
-	NewWithConfig(store, Config{AdminToken: "dev_admin_token"})
+	newManagedTestServerWithConfig(t, store, Config{AdminToken: "dev_admin_token"})
 	resource, err := store.AddProviderResource(ProviderResource{
 		ProviderID: provider.ID, Name: "Codex OAuth Account", ResourceType: ProviderResourceOpenAISubscription, Status: StatusActive, Healthy: true,
 		Credentials: &ProviderResourceCredentials{
@@ -99,9 +99,9 @@ func TestProviderCredentialRefreshServiceRenewsExpiringOpenAIAccounts(t *testing
 }
 
 func TestServerCredentialRefreshSchedulerSkipsProviderBackgroundRefreshJobs(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	provider := store.AddProvider(Provider{Name: "Codex Background OAuth", Type: ProviderOpenAICodex, Status: StatusActive, Healthy: true})
-	server := NewWithConfig(store, Config{AdminToken: "dev_admin_token"})
+	server := newManagedTestServerWithConfig(t, store, Config{AdminToken: "dev_admin_token"})
 	resource, err := store.AddProviderResource(ProviderResource{
 		ProviderID: provider.ID, Name: "Codex Background OAuth Account", ResourceType: ProviderResourceOpenAISubscription, Status: StatusActive, Healthy: true,
 		Credentials: &ProviderResourceCredentials{
@@ -159,9 +159,9 @@ func TestServerCredentialRefreshSchedulerSkipsProviderBackgroundRefreshJobs(t *t
 }
 
 func TestProviderQuotaRefreshBackgroundJobPersistsQuotaSnapshots(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	provider := store.AddProvider(Provider{Name: "Codex Background Quota", Type: ProviderOpenAICodex, Status: StatusActive, Healthy: true})
-	server := NewWithConfig(store, Config{AdminToken: "dev_admin_token"})
+	server := newManagedTestServerWithConfig(t, store, Config{AdminToken: "dev_admin_token"})
 	resource, err := store.AddProviderResource(ProviderResource{
 		ProviderID: provider.ID, Name: "Codex Background Quota Account", ResourceType: ProviderResourceOpenAISubscription, Status: StatusActive, Healthy: true,
 		Credentials: &ProviderResourceCredentials{
@@ -211,7 +211,7 @@ func TestProviderQuotaRefreshBackgroundJobPersistsQuotaSnapshots(t *testing.T) {
 }
 
 func TestProviderQuotaRefreshBackgroundJobPersistsExternalPluginSnapshots(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	providerType := "quota_background_plugin"
 	resourceType := "quota_background_account"
 	pluginID := "tokenhub.provider.quota-background"
@@ -232,7 +232,7 @@ func TestProviderQuotaRefreshBackgroundJobPersistsExternalPluginSnapshots(t *tes
 	if err != nil {
 		t.Fatal(err)
 	}
-	server := NewWithConfig(store, Config{AdminToken: "dev_admin_token"})
+	server := newManagedTestServerWithConfig(t, store, Config{AdminToken: "dev_admin_token"})
 	if err := server.adapterRegistry.RegisterPlugin(pluginmeta.BuiltInProvider(pluginID, "Quota Background", []string{providerType}, []string{
 		string(AdapterCapabilityQuota),
 	}), AdapterRegistration{
@@ -312,7 +312,7 @@ func TestProviderQuotaRefreshBackgroundJobPersistsExternalPluginSnapshots(t *tes
 }
 
 func TestProviderCredentialRefreshServiceUsesNativeRefreshProfilePolicy(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	providerType := "profile_oauth_subscription"
 	resourceType := "profile_oauth_account"
 	refreshProfile := "profile_oauth"
@@ -376,7 +376,7 @@ func TestProviderCredentialRefreshServiceUsesNativeRefreshProfilePolicy(t *testi
 }
 
 func TestProviderCredentialRefreshUsesRegisteredNativeHandler(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	providerType := "native_handler_subscription"
 	resourceType := "native_handler_account"
 	refreshProfile := "native_handler_oauth"
@@ -436,7 +436,7 @@ func TestProviderCredentialRefreshUsesRegisteredNativeHandler(t *testing.T) {
 }
 
 func TestProviderCredentialRefreshRequiresNativeRefreshProfilePolicy(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	provider := store.AddProvider(Provider{Name: "Legacy Codex Without Policy", Type: ProviderOpenAICodex, Status: StatusActive, Healthy: true})
 	resource, err := store.AddProviderResource(ProviderResource{
 		ProviderID: provider.ID, Name: "Legacy Codex Account", ResourceType: ProviderResourceOpenAISubscription, Status: StatusActive, Healthy: true,
@@ -471,7 +471,7 @@ func TestProviderCredentialRefreshRequiresNativeRefreshProfilePolicy(t *testing.
 }
 
 func TestProviderCredentialRefreshServiceRunsPluginCredentialRefreshActions(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	provider := store.AddProvider(Provider{ID: "prv_kimi_scheduler", Name: "Kimi", Type: "kimi_subscription", Status: StatusActive, Healthy: true})
 	resource, err := store.AddProviderResource(ProviderResource{
 		ID:           "rsrc_kimi_scheduler",
@@ -490,7 +490,7 @@ func TestProviderCredentialRefreshServiceRunsPluginCredentialRefreshActions(t *t
 	if err != nil {
 		t.Fatal(err)
 	}
-	server := NewWithConfig(store, Config{AdminToken: "plugin-refresh-admin"})
+	server := newManagedTestServerWithConfig(t, store, Config{AdminToken: "plugin-refresh-admin"})
 	if err := server.adapterRegistry.RegisterPlugin(pluginmeta.Descriptor{
 		ID:      "tokenhub.provider.kimi",
 		Name:    "Kimi",
@@ -559,7 +559,7 @@ func TestProviderCredentialRefreshServiceRunsPluginCredentialRefreshActions(t *t
 }
 
 func TestProviderCredentialRefreshServicePersistsPluginReauthorizationMarker(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	provider := store.AddProvider(Provider{ID: "prv_kimi_scheduler_reauth", Name: "Kimi", Type: "kimi_subscription", Status: StatusActive, Healthy: true})
 	resource, err := store.AddProviderResource(ProviderResource{
 		ID:           "rsrc_kimi_scheduler_reauth",
@@ -578,7 +578,7 @@ func TestProviderCredentialRefreshServicePersistsPluginReauthorizationMarker(t *
 	if err != nil {
 		t.Fatal(err)
 	}
-	server := NewWithConfig(store, Config{AdminToken: "plugin-refresh-admin"})
+	server := newManagedTestServerWithConfig(t, store, Config{AdminToken: "plugin-refresh-admin"})
 	if err := server.adapterRegistry.RegisterPlugin(pluginmeta.Descriptor{
 		ID:      "tokenhub.provider.kimi",
 		Name:    "Kimi",
@@ -623,7 +623,7 @@ func TestProviderCredentialRefreshServicePersistsPluginReauthorizationMarker(t *
 }
 
 func TestProviderCredentialRefreshUpdatesDerivedIdentityClaims(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	provider := addOpenAIAccountRefreshProvider(store, "Codex OAuth Identity")
 	resource, err := store.AddProviderResource(ProviderResource{
 		ProviderID: provider.ID, Name: "Codex OAuth Identity Account", ResourceType: ProviderResourceOpenAISubscription, Status: StatusActive, Healthy: true,
@@ -671,7 +671,7 @@ func TestProviderCredentialRefreshUpdatesDerivedIdentityClaims(t *testing.T) {
 }
 
 func TestProviderCredentialRefreshServiceSkipsHealthyOrUnsupportedResources(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	provider := addOpenAIAccountRefreshProvider(store, "OAuth Resources")
 	unsupportedProvider := store.AddProvider(Provider{Name: "API Key Resources", Type: ProviderOpenAICompatible, Status: StatusActive, Healthy: true})
 	for _, resource := range []ProviderResource{
@@ -700,7 +700,7 @@ func TestProviderCredentialRefreshServiceSkipsHealthyOrUnsupportedResources(t *t
 }
 
 func TestProviderCredentialRefreshServiceStopsRetryingInvalidatedRefreshTokens(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	provider := addOpenAIAccountRefreshProvider(store, "Invalidated OAuth")
 	resource, err := store.AddProviderResource(ProviderResource{
 		ProviderID: provider.ID, Name: "Invalidated Account", ResourceType: ProviderResourceOpenAISubscription, Status: StatusActive, Healthy: true,
@@ -751,7 +751,7 @@ func TestProviderCredentialRefreshServiceStopsRetryingInvalidatedRefreshTokens(t
 }
 
 func TestProviderCredentialRefreshDoesNotInvalidateReplacementCredentials(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	provider := addOpenAIAccountRefreshProvider(store, "Reauthorized OAuth")
 	resource, err := store.AddProviderResource(ProviderResource{
 		ProviderID: provider.ID, Name: "Reauthorized Account", ResourceType: ProviderResourceOpenAISubscription, Status: StatusActive, Healthy: true,
@@ -835,7 +835,7 @@ func TestProviderCredentialRefreshDoesNotInvalidateReplacementCredentials(t *tes
 }
 
 func TestProviderResourceCredentialMetadataPreservesOAuthState(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	provider := addOpenAIAccountRefreshProvider(store, "OAuth Metadata")
 	resource, err := store.AddProviderResource(ProviderResource{
 		ProviderID: provider.ID, Name: "OAuth Metadata Account", ResourceType: ProviderResourceOpenAISubscription, Status: StatusActive, Healthy: true,
@@ -879,7 +879,7 @@ func TestProviderResourceCredentialMetadataPreservesOAuthState(t *testing.T) {
 }
 
 func TestProviderCredentialRefreshSurvivesConcurrentMetadataEdit(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	provider := addOpenAIAccountRefreshProvider(store, "Concurrent OAuth Metadata")
 	resource, err := store.AddProviderResource(ProviderResource{
 		ProviderID: provider.ID, Name: "Before Metadata Edit", ResourceType: ProviderResourceOpenAISubscription, Status: StatusActive, Healthy: true,
@@ -939,7 +939,7 @@ func TestProviderCredentialRefreshSurvivesConcurrentMetadataEdit(t *testing.T) {
 }
 
 func TestProviderCredentialRefreshServiceRenewsAccountsConcurrently(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	provider := addOpenAIAccountRefreshProvider(store, "Concurrent OAuth")
 	for index, refreshToken := range []string{"blocked-1", "blocked-2", "blocked-3", "ready"} {
 		if _, err := store.AddProviderResource(ProviderResource{
@@ -1000,7 +1000,7 @@ func TestProviderCredentialRefreshServiceRenewsAccountsConcurrently(t *testing.T
 }
 
 func TestProviderCredentialRefreshServiceDoesNotLogOAuthResponse(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	provider := addOpenAIAccountRefreshProvider(store, "Logging OAuth")
 	if _, err := store.AddProviderResource(ProviderResource{
 		ProviderID: provider.ID, Name: "Logging Account", ResourceType: ProviderResourceOpenAISubscription, Status: StatusActive, Healthy: true,

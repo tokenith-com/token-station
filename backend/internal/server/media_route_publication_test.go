@@ -49,7 +49,7 @@ func TestMediaImageOnlyModelsCanBePublishedAndInvoked(t *testing.T) {
 						_, _ = io.WriteString(w, `{"data":[{"b64_json":"aW1hZ2U="}],"usage":{"input_tokens":3,"output_tokens":7,"total_tokens":10}}`)
 					}))
 					t.Cleanup(upstream.Close)
-					store := NewMemoryStore()
+					store := newTestMemoryStore(t)
 					provider := store.AddProvider(Provider{ID: "image-provider", Type: providerType, BaseURL: upstream.URL + "/v1", APIKey: "fixture-upstream-secret", Status: StatusActive, Healthy: true})
 					store.AddProviderModel(ProviderModel{ProviderID: provider.ID, UpstreamModel: "vendor-image", Modality: "image", Status: StatusActive})
 					server := NewWithConfig(store, Config{AdminToken: "media-admin", SecretKey: "media-secret", ImageStorageDir: t.TempDir()})

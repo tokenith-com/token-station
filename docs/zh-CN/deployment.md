@@ -2,13 +2,15 @@
 
 Language: [English](../deployment.md) | 简体中文 | [日本語](../ja/deployment.md)
 
-TokenHub 面向私有化部署，由 Go 后端、Next.js 管理后台和 SQLite 持久化组成。
+TokenStation 面向私有化部署，由 Go 后端、Next.js 管理后台和 SQLite 持久化组成。
+
+启动服务前先准备新库。从源码运行时，在 `backend/` 下使用目标库配置执行 `go run ./cmd/tokenstation db prepare --initialize`。使用 Compose 时，沿用部署的 Compose 文件和环境配置执行 `docker compose run --rm -e TOKENHUB_RUN_MODE=backend tokenstation-backend db prepare --initialize`。已有库需要更新表结构或修复数据时，执行 `db prepare`。详见[数据库演进](database-evolution.md)。
 
 使用订阅账户时，先参阅[订阅与账户 Provider](subscription-providers.md)，了解 Node 与 Claude CLI 依赖、远程 OAuth 回调和同实例会话要求。
 
 ## 数据库选择
 
-TokenHub 支持两种数据库后端：
+TokenStation 支持两种数据库后端：
 
 下面的命令使用 Docker Compose。两种后端同样支持不使用 Docker 的方式，参见[原生 Release + systemd](#原生-release--systemd)。
 
@@ -95,7 +97,9 @@ docker compose --env-file deploy/.env \
 
 ### Kubernetes（Helm）
 
-Kubernetes 集群使用 `deploy/helm/tokenhub` 提供的 Helm chart。每个 Pod 在单个容器中同时运行两个进程,生产环境搭配托管 PostgreSQL 服务(快速测试可启用内置子 chart),并且默认无状态:运行时安装的插件包在 Pod 替换后即被清除,除非打进镜像。可选的 PodMonitor 和 ExternalSecret 支持需要集群安装对应的 Operator CRD。安装步骤、路由和升级行为参见 [Kubernetes 部署](kubernetes.md)。
+Kubernetes 集群使用 `deploy/helm/tokenstation` 提供的 Helm chart。每个 Pod 在单个容器中同时运行两个进程,生产环境搭配托管 PostgreSQL 服务(快速测试可启用内置子 chart),并且默认无状态:运行时安装的插件包在 Pod 替换后即被清除,除非打进镜像。可选的 PodMonitor 和 ExternalSecret 支持需要集群安装对应的 Operator CRD。安装步骤、路由和升级行为参见 [Kubernetes 部署](kubernetes.md)。
+
+升级既有 Helm 安装时，沿用原 release 名、namespace、values 以及已有的 `nameOverride`/`fullnameOverride`。默认旧 release `tokenhub` 会自动保留 `tokenhub` selector 和资源名。旧 release 若使用原默认 chart 名，可执行 `helm upgrade <existing-release> deploy/helm/tokenstation -n <existing-namespace> -f <existing-values.yaml> --set nameOverride=tokenhub`；若原先已有自定义名称覆盖，则继续使用该值。不要用 `helm upgrade --install tokenstation` 升级其他名称的既有 release：这会创建第二套部署，并可能分配不同的图片存储 PVC。全新安装可使用 `tokenstation` release 名及新默认值。
 
 ## 原生 Release + systemd
 
@@ -105,15 +109,15 @@ Kubernetes 集群使用 `deploy/helm/tokenhub` 提供的 Helm chart。每个 Pod
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/astaxie/TokenHub/main/deploy/native/install.sh \
-  -o /tmp/tokenhub-install.sh
-sudo bash /tmp/tokenhub-install.sh install
+  -o /tmp/tokenstation-install.sh
+sudo bash /tmp/tokenstation-install.sh install
 ```
 
 未设置 `TOKENHUB_PUBLIC_HOST` 时，安装器会请求 `https://ipinfo.io/json` 并使用其中通过校验的 IP；查询失败后依次回退到 `hostname -I` 返回的第一个地址和 `127.0.0.1`。如果服务器位于 NAT、代理或负载均衡器之后，检测到的出口 IP 可能不是用户访问的入口地址，此时应显式设置 `TOKENHUB_PUBLIC_HOST`。使用 IPv6 字面地址时，安装脚本会在生成 URL 时自动添加方括号：
 
 ```bash
 sudo env TOKENHUB_PUBLIC_HOST=tokenhub.example.com \
-  bash /tmp/tokenhub-install.sh install
+  bash /tmp/tokenstation-install.sh install
 ```
 
 安装器会把最终使用的主机地址写入 `/etc/tokenhub/tokenhub.env`，后续执行升级等操作时会继续使用该值，避免自动 IP 检测结果变化导致输出地址漂移。
@@ -123,10 +127,10 @@ sudo env TOKENHUB_PUBLIC_HOST=tokenhub.example.com \
 ```bash
 sudo env \
   TOKENHUB_DATABASE_URL='postgres://user:password@db.example.com:5432/tokenhub?sslmode=require' \
-  bash /tmp/tokenhub-install.sh install
+  bash /tmp/tokenstation-install.sh install
 ```
 
-安装器只会在首次创建配置时将该值写入 `/etc/tokenhub/tokenhub.env`。后续执行 install、upgrade 或 rollback 会保留已有配置；确需切换数据库时，请编辑该文件并重启 TokenHub。
+安装器只会在首次创建配置时将该值写入 `/etc/tokenhub/tokenhub.env`。后续执行 install、upgrade 或 rollback 会保留已有配置；确需切换数据库时，请编辑该文件并重启 TokenStation。
 
 首次安装会生成生产密钥和初始管理员密码，密码只会输出一次。运行文件分别保存在：
 
@@ -147,10 +151,10 @@ sudo journalctl -u tokenhub -f
 安装脚本会先使用 `checksums.txt` 校验 Release 压缩包，再激活版本；升级时会保留配置和数据：
 
 ```bash
-sudo bash /tmp/tokenhub-install.sh upgrade
-sudo bash /tmp/tokenhub-install.sh upgrade --version 0.3.3
-sudo bash /tmp/tokenhub-install.sh rollback --version 0.3.2
-sudo bash /tmp/tokenhub-install.sh uninstall
+sudo bash /tmp/tokenstation-install.sh upgrade
+sudo bash /tmp/tokenstation-install.sh upgrade --version 0.3.3
+sudo bash /tmp/tokenstation-install.sh rollback --version 0.3.2
+sudo bash /tmp/tokenstation-install.sh uninstall
 ```
 
 `upgrade` 会拒绝低于当前安装版本的目标；需要降级时必须显式使用 `rollback`。使用新版安装器升级旧安装时，如果尚未配置 `TOKENHUB_IMAGE_STORAGE_DIR`，安装器会自动将持久化图片目录补充为 `/var/lib/tokenhub/images`。
@@ -161,8 +165,8 @@ sudo bash /tmp/tokenhub-install.sh uninstall
 使用 fork 测试时，请下载该 fork 中的安装脚本，并指定它的公开 Release 仓库：
 
 ```bash
-sudo env TOKENHUB_RELEASE_REPOSITORY=your-account/TokenHub \
-  bash /tmp/tokenhub-install.sh install --version 0.3.3
+sudo env TOKENHUB_RELEASE_REPOSITORY=your-account/TokenStation \
+  bash /tmp/tokenstation-install.sh install --version 0.3.3
 ```
 
 原生 Release 安装会在版本面板中显示为「原生 Release」。管理员可以直接在页面下载并校验更新或回退版本，然后点击「立即重启」，由 systemd 激活目标版本。每个 GitHub Release 标签必须是以 `v` 开头的严格语义化版本，并包含 Linux 压缩包和 `checksums.txt`；发布 Release 后，`.github/workflows/native-release.yml` 会构建并附加 `linux/amd64` 和 `linux/arm64` 文件。
@@ -179,9 +183,9 @@ cp deploy/.env.example deploy/.env
 启动前检查 `deploy/.env`：
 
 - `TOKENHUB_ADMIN_TOKEN`：可选的 Admin API 静态 Token。运维自动化需要使用时，设置至少 32 字节的随机值；否则保留占位值以禁用该 Token。
-- `TOKENHUB_BOOTSTRAP_ADMIN_PASSWORD`：可选的初始 `admin` 密码。可以设置至少 12 字节的密码，也可以保留占位值，由 TokenHub 自动生成。
-- `TOKENHUB_SECRET_KEY`：后端加密根密钥。PostgreSQL 和已有 SQLite 数据库必须配置至少 32 字节的稳定值。全新文件型 SQLite 部署可以保留占位值，TokenHub 会在数据库旁生成权限为 `0600` 的密钥文件。
-- `TOKENHUB_IMAGE_TAG`：托管 TokenHub 镜像标签，默认 `latest`。
+- `TOKENHUB_BOOTSTRAP_ADMIN_PASSWORD`：可选的初始 `admin` 密码。可以设置至少 12 字节的密码，也可以保留占位值，由 TokenStation 自动生成。
+- `TOKENHUB_SECRET_KEY`：后端加密根密钥。PostgreSQL 和已有 SQLite 数据库必须配置至少 32 字节的稳定值。全新文件型 SQLite 部署可以保留占位值，TokenStation 会在数据库旁生成权限为 `0600` 的密钥文件。
+- `TOKENHUB_IMAGE_TAG`：托管 TokenStation 镜像标签，默认 `latest`。
 - `TOKENHUB_PUBLIC_BASE_URL`：展示给用户的后端访问地址。
 - `TOKENHUB_API_BASE_URL`：浏览器管理后台访问后端的地址，由前端服务在运行时读取。旧变量 `NEXT_PUBLIC_API_BASE_URL` 保留一个兼容周期，作为回退配置。
 - `TOKENHUB_BACKEND_PORT`：后端宿主机端口，默认 `8080`。
@@ -226,14 +230,14 @@ GHCR 首次发布产生的 Package 默认为私有。开放匿名部署前，仓
 
 ### Docker 版本状态与回退
 
-平台管理员可以点击 TokenHub 标志下方的版本胶囊，查看当前运行版本、检查最新的 GitHub 正式 Release，并列出最多 3 个更早的稳定版本。正式镜像构建会从发布工作流获得精确版本号；本地源码构建使用项目包版本，并明确标记为源码构建。托管更新、回退和重启请求都会写入管理员审计日志。
+平台管理员可以点击 TokenStation 标志下方的版本胶囊，查看当前运行版本、检查最新的 GitHub 正式 Release，并列出最多 3 个更早的稳定版本。正式镜像构建会从发布工作流获得精确版本号；本地源码构建使用项目包版本，并明确标记为源码构建。托管更新、回退和重启请求都会写入管理员审计日志。
 
 版本检查会通过限时的出站 HTTPS 请求访问公开的 GitHub Releases API，并将成功结果缓存 20 分钟。默认检查 `astaxie/TokenHub`；维护者可以将 `TOKENHUB_RELEASE_REPOSITORY` 设置为其他可信的公开 `owner/repository`，用于 fork 发布验证。GitHub 故障或仓库尚无 Release 不会影响网关流量；面板会展示不可用状态，同时保留当前版本信息。
 
 例如，在源码部署中检查 fork 的 Release：
 
 ```bash
-TOKENHUB_RELEASE_REPOSITORY=your-account/TokenHub ./start.sh
+TOKENHUB_RELEASE_REPOSITORY=your-account/TokenStation ./start.sh
 ```
 
 默认 SQLite 和本地 PostgreSQL Compose 使用一个托管应用容器。管理员可以点击「立即更新」，等待系统下载、校验并将当前平台的完整 Release 包安装到 `tokenhub-releases` 卷，然后点击「立即重启」。接口返回成功后进程主动退出，Docker 的 `restart: unless-stopped` 会同时以目标版本重新启动后端和前端。容器不会挂载 Docker Socket，也不会控制宿主机 Docker daemon。
@@ -296,14 +300,14 @@ docker compose --env-file deploy/.env -f deploy/docker-compose.yml ps
 
 ```bash
 docker compose --env-file deploy/.env -f deploy/docker-compose.yml \
-  exec tokenhub-backend /opt/tokenhub/current/bin/tokenhub initial-admin-password
+  exec tokenhub-backend /opt/tokenhub/current/bin/tokenstation initial-admin-password
 ```
 
 自动生成的密码仅以密文保存。首次成功登录或重置密码后，该密码不再可查询。登录后应立即修改密码。Kubernetes 部署可以通过 `kubectl exec <pod> -- ...` 执行同一命令。
 
 在 `prod`、`production`、预发布等非开发环境中，已知的 Admin Token 和初始密码占位值会按未配置处理，其他非空弱值仍会被拒绝。除全新文件型 SQLite 数据库外，加密根密钥始终为必填项；SQLite 首次启动时生成的密钥会持久化在数据库旁，已有数据库不会自动生成替代密钥。
 
-如果配置无法安全加载，进程会继续响应 `/livez`，但 `/readyz`、`/healthz` 和业务接口会返回 `503`。该状态可避免编排系统因进程退出而持续重启 Pod，同时不会把实例加入服务。修正配置后需要重启 TokenHub；存活探针应使用 `/livez`，就绪探针应使用 `/readyz`。
+如果配置无法安全加载，进程会继续响应 `/livez`，但 `/readyz`、`/healthz` 和业务接口会返回 `503`。该状态可避免编排系统因进程退出而持续重启 Pod，同时不会把实例加入服务。修正配置后需要重启 TokenStation；存活探针应使用 `/livez`，就绪探针应使用 `/readyz`。
 
 手动查看或持续跟踪日志：
 
@@ -340,7 +344,7 @@ docker inspect --format 'memory={{.HostConfig.Memory}} memory_swap={{.HostConfig
 
 ## 本地运行生产构建（不使用 Docker）
 
-`deploy/local/run-local.sh` 以完全不依赖 Docker、不需要 root、不需要 systemd 的方式，在自己的机器上用生产构建运行后端和控制台。它是开发辅助手段，不是部署方式：要把 TokenHub 装到服务器上，请使用[原生 Release + systemd](#原生-release--systemd) 或 [Docker Compose](#docker-compose)。
+`deploy/local/run-local.sh` 以完全不依赖 Docker、不需要 root、不需要 systemd 的方式，在自己的机器上用生产构建运行后端和控制台。它是开发辅助手段，不是部署方式：要把 TokenStation 装到服务器上，请使用[原生 Release + systemd](#原生-release--systemd) 或 [Docker Compose](#docker-compose)。
 
 ```bash
 ./deploy/local/run-local.sh          # 前台运行，Ctrl-C 同时停止两者
@@ -350,9 +354,9 @@ docker inspect --format 'memory={{.HostConfig.Memory}} memory_swap={{.HostConfig
 ./deploy/local/run-local.sh stop
 ```
 
-按需构建两个组件，然后以 loopback 方式运行。二进制、控制台产物、数据库、日志和 pid 文件都放在仓库内的 `.tokenhub/`（已被 gitignore），删除该目录即可重置实例。构建过程还可能刷新前端的常规忽略产物（`frontend/node_modules`、`frontend/.next`）。不安装任何系统级内容，也不创建服务账号。
+按需构建两个组件，然后以 loopback 方式运行。二进制、控制台产物、数据库、日志和 pid 文件都放在仓库内的 `.tokenhub/`（已被 gitignore），删除该目录即可重置实例。构建过程还可能刷新前端的常规忽略产物（`maas-ui/node_modules`、`maas-ui/.next`）。不安装任何系统级内容，也不创建服务账号。
 
-它运行的是**生产构建**——和部署时完全相同的 standalone 产物——而不是 dev server，因此能暴露只在生产构建下出现的问题。它使用开发用凭据（`admin` / `admin123456`），只监听 loopback，数据存放在 `.tokenhub/tokenhub.db` 这个 SQLite 数据库中。
+它运行的是**生产构建**——和部署时完全相同的 MaaS 静态产物——而不是 dev server，因此能暴露只在生产构建下出现的问题。它使用开发用凭据（`admin` / `admin123456`），只监听 loopback，数据存放在 `.tokenhub/tokenhub.db` 这个 SQLite 数据库中。
 
 加 `-d` 后服务会脱离启动它的 shell，在该 shell 退出、终端关闭后继续运行；但重启机器不会自动拉起，需要这种能力请使用正式的安装方式。两种模式都会写 pid 文件，因此 `status` 和 `stop` 对前台实例同样有效。`stop` 在发信号前会校验记录的 pid 仍属于本实例，因此不会误杀被系统复用了该号码的其它进程；启动前还会先占用两个端口，端口被占用时直接报错，不会把别的服务的响应误判成启动成功。
 
@@ -379,7 +383,7 @@ docker inspect --format 'memory={{.HostConfig.Memory}} memory_swap={{.HostConfig
 | `TOKENHUB_PROVIDER_UPSTREAM_ALLOWED_CIDRS` | 空 | 可选的限制性私网 CIDR 清单。空清单在两种模式下都允许 RFC1918/ULA 字面量；自动模式下这些范围也适用于内网域名解析结果。非空时限制私网字面量，自动模式还会同时限制内网域名解析结果。非空但无效的配置不会退回全部放行；特殊危险地址不能通过清单放行 |
 | `TOKENHUB_PROVIDER_UPSTREAM_NAT64_PREFIX` | 空 | 可选的 RFC 6052 DNS64/NAT64 前缀，用于识别其中嵌入的 IPv4 目标。支持 32、40、48、56、64、96 位前缀；使用 `64:ff9b:1::/48` 等网络专用前缀时需要配置，标准 `64:ff9b::/96` 前缀无需配置 |
 | `TOKENHUB_PROVIDER_UPSTREAM_ALLOW_LOOPBACK` | `false` | 仅严格模式或配置了非空私网清单时生效，此时 `true` 允许 localhost/127.0.0.1/::1。自动模式且清单为空时忽略此值并允许回环 |
-| `HTTP_PROXY` / `HTTPS_PROXY` | 空 | 所有 HTTP Provider 通道使用的标准出站 forward proxy。代理选择由运维配置负责；未走代理的请求继续接受 TokenHub 的 DNS/IP 出站校验 |
+| `HTTP_PROXY` / `HTTPS_PROXY` | 空 | 所有 HTTP Provider 通道使用的标准出站 forward proxy。代理选择由运维配置负责；未走代理的请求继续接受 TokenStation 的 DNS/IP 出站校验 |
 | `NO_PROXY` | 空 | 标准代理绕过列表，以逗号分隔；匹配的 Provider 请求使用带防护的直连路径 |
 | `TOKENHUB_CORS_ALLOWED_ORIGINS` | 公网地址 | 允许调用后端的精确浏览器 Origin，逗号分隔；设置后，同一列表也是 OAuth 控制台回跳 Origin 的精确白名单。每项只能包含 scheme、host 和可选端口，不得包含路径 |
 | `TOKENHUB_ADMIN_TOKEN` | `change-me-tokenhub-admin-token` | 可选的 Admin API 静态 Token；已知占位值表示禁用 |
@@ -395,8 +399,9 @@ docker inspect --format 'memory={{.HostConfig.Memory}} memory_swap={{.HostConfig
 | `TOKENHUB_SQLITE_BACKUP_DIR` | `/app/data/backups` | 备份目录 |
 | `TOKENHUB_MODEL_CATALOG_FILE` | `/opt/tokenhub/current/catalog/model-catalog.yaml` | 托管部署中的标准模型目录文件 |
 | `TOKENHUB_PROVIDER_CATALOG_FILE` | `/opt/tokenhub/current/catalog/provider-catalog.json` | 托管部署中的 Provider 模板与候选模型目录文件 |
-| `TOKENHUB_PROVIDER_CATALOG_UPSTREAM_URL` | `https://raw.githubusercontent.com/ThinkInAIXYZ/PublicProviderConf/dev/dist/all.json` | 显式同步与每日后台刷新使用的公共目录；留空则只使用内置目录 |
-| `TOKENHUB_PROVIDER_CATALOG_SYNC_INTERVAL_SECONDS` | `86400` | 定时公共目录同步的间隔秒数；`0` 表示禁用定时器 |
+| `TOKENHUB_PROVIDER_CATALOG_UPSTREAM_URL` | 内置公共目录地址 | 手动刷新或已启用定时同步时使用的可选目录地址。显式设为空时仅使用本地目录 |
+| `TOKENHUB_PROVIDER_CATALOG_SYNC_INTERVAL_SECONDS` | `0` | 目录定时同步间隔，单位为秒。未设置或设为 `0` 时关闭定时同步。例如设为 `86400` 可启用每日同步 |
+| `TOKENHUB_PAYMENT_CONFIG_FILE` | — | 可选的支付 YAML 路径。留空时关闭支付。参见[配置示例](../../deploy/payment.example.yaml)。 |
 | `TOKENHUB_PLUGIN_DIR` | `/app/plugins` | 持久化插件包目录，后端启动时扫描，并在插件生命周期操作后热加载；多实例部署必须协调所有副本使用相同插件版本 |
 | `TOKENHUB_PLUGIN_MARKETPLACE_URL` | 空 | HTTPS 插件市场索引 URL，供管理后台浏览插件列表；在线索引在完成验证前仅用于发现 |
 | `TOKENHUB_SEED_DEMO` | `false` | 是否写入演示数据 |
@@ -441,7 +446,23 @@ docker inspect --format 'memory={{.HostConfig.Memory}} memory_swap={{.HostConfig
 | `TOKENHUB_RESPONSE_LEASE_TTL_SECONDS` | `30` | 多实例间隔离后台 Responses Worker 的租约时长 |
 | `TOKENHUB_RESPONSE_RESULT_TTL_SECONDS` | `3600` | 任务完成后加密请求与结果载荷的保留时长 |
 | `TOKENHUB_RESPONSE_MAX_QUEUED_JOBS` | `1000` | 单个部署接受的后台 Responses 排队和运行任务上限 |
-| `TOKENHUB_API` | 空 | `tokenhub-migrate` CLI 的目标 Admin API 地址。仅由该 CLI 读取，后端服务不会读取；可被 `--to` 覆盖 |
+| `TOKENHUB_API` | 空 | `tokenstation-migrate` CLI 的目标 Admin API 地址。仅由该 CLI 读取，后端服务不会读取；可被 `--to` 覆盖 |
+
+原生部署在现有服务环境中设置此路径。Compose 部署通过覆盖文件以只读方式挂载配置和凭据，并填写容器内路径。确保后端服务用户可读取这些文件。YAML 填写商户号、应用 ID、支付宝卖家 ID、微信支付验签公钥 ID、凭据文件路径和公网 HTTPS 回调地址。私钥和微信 API v3 密钥保存在独立的服务器文件中。
+
+在本地检出目录中，将支付 YAML 和凭据放入 Git 忽略的 `deploy/payment-local/`。凭据相对路径以 YAML 所在目录为基准。Docker Compose 可通过与主配置同目录的覆盖文件，将 `./payment-local` 只读挂载到 `/run/tokenstation/payment`，并将 `TOKENHUB_PAYMENT_CONFIG_FILE` 指向 `/run/tokenstation/payment/payment.yaml`。确保容器内服务用户有读取权限。
+
+在 YAML 中通过 `alipay.api_methods` 启用 `alipay.trade.page.pay`（支付宝收银台链接）或 `alipay.trade.precreate`（当面付二维码）。第一项是新订单默认方式，省略列表时默认使用当面付。 充值档位接口通过 `alipay_api_methods` 返回已启用的方式。支付宝下单可通过可选字段 `api_method` 选择非默认方式。电脑网站支付返回 `pay_url`，当面付返回 `qr_code`。两种方式都使用配置中的卖家 ID 校验回调。
+
+电脑网站支付请配置 `alipay.return_url` 为公网 HTTPS 充值页，例如 `https://app.example.com/maas/balance-recharge/`。服务端附加 `payment_order`，页面通过登录会话向后端读取订单；浏览器返回参数不能触发钱包入账。为兼容已有配置，该项可省略，但省略后收银台没有返回商户页面的目标。配置更新后需创建新订单，已有收银台链接不会改变。
+
+在所有网关副本上设置 `prepaid_usage: true`，为个人钱包的文本聊天和模型演练场按实际完成用量扣费。启用前通过 `POST /api/admin/billing/exchange-rates` 发布人民币结算汇率，填写每 1 元人民币对应的美元金额。系统会为每次请求保存汇率快照。个人 API Key 需要绑定明确且有效的所有者。当前支持通过原生 Chat Completions 适配器发送文本聊天。部署前核对各上游模型的上下文窗口和输出上限。启用后，个人钱包的其他计费接口会明确拒绝请求。
+
+个人钱包的 `balance_micros < 0` 时，新调用以 HTTP 402 拒绝；余额为 0 或正数时放行。准入不预留余额，也不检查预计费用，调用完成后余额可以变为负数；已准入的并发调用可以继续结算。缺失或非法的 usage 会记录为 `pending_review`，由人工核对。团队钱包沿用相同的准入规则，但会在准入时预留预估费用：API 字段与数据库列统一使用 `*_micros`，预留向上取整以保证结算不会超过冻结金额，结算使用银行家舍入。
+
+钱包 API 的 `balance_micros` 以百万分之一元表示余额。管理员可用 `GET /api/admin/payment-wallet/usage?status=pending_review` 查询待核对请求。核对上游用量凭证后，通过 `POST /api/admin/payment-wallet/usage/{request_id}/resolve` 提交 `charged_micros` 和核对原因 `reason`。
+
+正式启用支付宝前，请在商家账户或已验签的成功通知中核对该应用的 `seller_id`，并用真实小额支付验证 HTTPS 回调。上线前演练 schema 20 迁移，回退期间继续处理现有支付通知和钱包结算。本分支保留支付迁移版本 12–14，将消费者和团队钱包迁移安排在版本 15–20，团队钱包汇率历史与统一 micros 迁移安排在版本 24–25。已经应用分叉 master 历史中版本 12 或更高版本的数据库，启动前必须显式协调迁移历史，不要覆盖迁移校验和。配置团队钱包时优先使用团队钱包，单个请求只使用一个付款方。直接支付钱包与消费者充值余额仍为独立账本。
 
 如需通过 Compose 运行可选 Redis 计费组件，请在常规命令中追加 overlay 文件：
 
@@ -453,17 +474,17 @@ docker compose --env-file deploy/.env \
 
 ### 本机与内网模型服务
 
-管理员可以直接填写 `http://192.168.1.10:8000/v1` 等 HTTP 私网字面量，无需更改访问模式。设置为 `auto` 后，还可在不配置 CIDR 清单的情况下填写回环地址和内网域名，例如 `http://127.0.0.1:8000/v1`、`host.docker.internal`、Docker 服务名或企业内网域名。地址须从后端所在环境可达；容器的回环地址指向容器自身。TokenHub 不会自动创建 DNS 记录、加入 Docker 网络或配置宿主机别名。
+管理员可以直接填写 `http://192.168.1.10:8000/v1` 等 HTTP 私网字面量，无需更改访问模式。设置为 `auto` 后，还可在不配置 CIDR 清单的情况下填写回环地址和内网域名，例如 `http://127.0.0.1:8000/v1`、`host.docker.internal`、Docker 服务名或企业内网域名。地址须从后端所在环境可达；容器的回环地址指向容器自身。TokenStation 不会自动创建 DNS 记录、加入 Docker 网络或配置宿主机别名。
 
 保存时校验 URL 语法和字面量地址，不查询 DNS，因此离线服务也可配置，且不会阻塞存储操作。发送请求前，HTTP 域名必须全部解析为获准的本地地址；公网或混合公网／私网结果会在发送凭据和请求体前被拒绝。实际直连使用已校验地址，不再次解析；代理请求保留原始 Host 与 TLS 服务名。metadata、link-local、multicast 等特殊危险目标继续禁止。同协议、同地址及端口的重定向可以继续，包括内网同源跳转；跨源跳转仍被拒绝。
 
-HTTP 域名走代理时，TokenHub 使用 CONNECT 连接已验证 IP，并在隧道内保留原始 Host。代理须允许 CONNECT 到模型服务端口；拒绝时不会回退为直连。
+HTTP 域名走代理时，TokenStation 使用 CONNECT 连接已验证 IP，并在隧道内保留原始 Host。代理须允许 CONNECT 到模型服务端口；拒绝时不会回退为直连。
 
 严格模式是默认值。它允许 RFC1918/ULA 字面量，localhost 仍需 `TOKENHUB_PROVIDER_UPSTREAM_ALLOW_LOOPBACK`。运维人员必须设置 `TOKENHUB_PROVIDER_UPSTREAM_ACCESS_MODE=auto`，才会放行内网域名。两种模式下，非空私网清单都会继续限制访问范围，包括用来禁止全部私网字面量。如本地流量也必须遵循所选代理，需另外设置 `TOKENHUB_PROVIDER_UPSTREAM_PROXY_LOCAL=true`。这些部署配置需重启后端或重建容器生效。
 
 无需重启也可以在「系统设置 → 基础设置 → Provider 出口模式」切换出口。升级默认使用「继承环境变量代理」，读取进程启动时捕获的 `HTTP_PROXY`、`HTTPS_PROXY` 和 `NO_PROXY`；「直接连接」忽略这些变量；「使用统一代理」把一个 HTTP 或 HTTPS forward proxy 用于全部 Provider 上游通道，包括推理、流式、图片、模型发现、Provider catalog 刷新、额度查询和 Provider 凭据刷新。身份登录、通知、Tracing 和版本更新不受这项设置影响。
 
-统一代理支持可选的 Basic 认证，密码会加密保存，API 与控制台只显示掩码。保存代理配置时只校验其语法；「测试代理连接」使用当前未保存表单和已有 Provider，仅验证代理 TCP/TLS、认证、CONNECT 与目标 TLS（使用系统 CA），不会发送 Provider 凭据或模型请求。无论选择哪种代理模式，Provider 与 Provider Resource 的 Base URL 都保留原有的入库协议和字面量地址校验：metadata 等始终禁止的目标仍会被拒绝，本地目标遵循上文的自动／严格访问策略。每次代理请求前，TokenHub 都会在本地解析原始 Provider 域名，执行已配置的本地地址与特殊用途地址策略，并把代理请求或 CONNECT 隧道固定到已校验的 IP，同时保留原始 HTTP Host 和 TLS 服务名。直连及 `NO_PROXY` 命中的请求也会在受保护的拨号路径执行相同地址策略。代理配置、认证、连接、超时和 HTTPS CONNECT 失败按平台出口故障处理，不会惩罚 Provider 资源，也不会触发路由故障转移。对于明文 HTTP 代理请求，HTTP 错误响应可能来自代理或 Provider，因此保留常规上游错误处理。多实例会在五秒内加载共享配置，数据库临时读取失败时继续使用上一份有效配置。
+统一代理支持可选的 Basic 认证，密码会加密保存，API 与控制台只显示掩码。保存代理配置时只校验其语法；「测试代理连接」使用当前未保存表单和已有 Provider，仅验证代理 TCP/TLS、认证、CONNECT 与目标 TLS（使用系统 CA），不会发送 Provider 凭据或模型请求。无论选择哪种代理模式，Provider 与 Provider Resource 的 Base URL 都保留原有的入库协议和字面量地址校验：metadata 等始终禁止的目标仍会被拒绝，本地目标遵循上文的自动／严格访问策略。每次代理请求前，TokenStation 都会在本地解析原始 Provider 域名，执行已配置的本地地址与特殊用途地址策略，并把代理请求或 CONNECT 隧道固定到已校验的 IP，同时保留原始 HTTP Host 和 TLS 服务名。直连及 `NO_PROXY` 命中的请求也会在受保护的拨号路径执行相同地址策略。代理配置、认证、连接、超时和 HTTPS CONNECT 失败按平台出口故障处理，不会惩罚 Provider 资源，也不会触发路由故障转移。对于明文 HTTP 代理请求，HTTP 错误响应可能来自代理或 Provider，因此保留常规上游错误处理。多实例会在五秒内加载共享配置，数据库临时读取失败时继续使用上一份有效配置。
 
 后端使用 Fake-IP DNS 时，在「系统设置 → 基础设置 → Synthetic DNS / Fake-IP 网段」配置代理实际地址池。这项独立例外默认关闭，只作用于域名解析结果，不放行字面量 Provider IP。不要假定所有代理都使用 `198.18.0.0/15`，该网段为基准测试保留，并非 Fake-IP 专属。私网 synthetic 地址池仍需单独开启私网信任。命中已启用 synthetic 地址池的域名继续要求 HTTPS，且不享受本地默认绕过代理，即使其 Fake-IP 位于 RFC1918/ULA。真实本地服务独立遵循上文的自动／严格策略。Synthetic 例外不能放行 loopback、link-local、metadata、multicast 或受保护的 NAT64 目标。
 
@@ -509,7 +530,7 @@ WAL 模式的文件型 SQLite 使用一个主连接处理写入、两个只读�
 
 存储的请求、响应审计快照各限制为 8 KiB，包含截断标记，并保留 UTF-8 边界及脱敏处理。特别大或复杂的负载在完整序列化/脱敏复制前省略，保留省略标记和截断标志。Trace 负载采集也使用同样有界的快照。这会减少单请求审计开销，但不会删除已有的大快照，也不限制数据库总体积。请在网关设置中配置请求负载保留期，并单独监控数据库增长。
 
-维护 WAL 前，使用 SQLite 备份 API 或 TokenHub 备份功能生成备份；只复制正在运行的 `.db` 文件可能丢失已经提交到 WAL 的数据。长时间读取或持续流量可能阻止检查点完成。较大的 WAL 是诊断线索，不等于数据库损坏或已确认唯一根因。不要手动删除 `-wal`、`-shm` 文件。
+维护 WAL 前，使用 SQLite 备份 API 或 TokenStation 备份功能生成备份；只复制正在运行的 `.db` 文件可能丢失已经提交到 WAL 的数据。长时间读取或持续流量可能阻止检查点完成。较大的 WAL 是诊断线索，不等于数据库损坏或已确认唯一根因。不要手动删除 `-wal`、`-shm` 文件。
 
 安排维护窗口，排空请求，停止所有打开该数据库的进程，再使用能访问持久卷的 SQLite CLI 操作。对数据库执行 `PRAGMA wal_checkpoint(TRUNCATE);`，检查返回的 busy/log/checkpointed 值；busy 表示检查点未完成，应排查剩余连接，而非反复强制操作。`VACUUM` 是保留期清理后可选的离线空间回收操作：它会重写数据库，需要独占访问以及较大的临时空闲磁盘空间（可能达到数据库大小的两倍），不应作为线上高负载的常规补救措施。完成后重启应用，检查就绪状态并执行小范围用量查询。
 
@@ -531,9 +552,9 @@ WAL 模式的文件型 SQLite 使用一个主连接处理写入、两个只读�
 
 ### 连接 Kronk
 
-TokenHub 只连接外部 Kronk Model Server，不安装 Kronk、不下载 GGUF 文件，也不在进程内嵌 llama.cpp。TokenHub 容器内的 `127.0.0.1` 指向容器自身，而不是 Docker 宿主机。Kronk 运行在宿主机时，应使用宿主机可达的私网 IP 或环境支持的 `host.docker.internal`；运行在其他容器时，应加入共享 Docker 网络并使用 Kronk 服务名。私网字面量在默认严格模式下即可使用。`host.docker.internal` 等域名需要 `TOKENHUB_PROVIDER_UPSTREAM_ACCESS_MODE=auto`。只有 TokenHub 与 Kronk 共享同一网络命名空间时才应使用回环地址；严格模式需要 `TOKENHUB_PROVIDER_UPSTREAM_ALLOW_LOOPBACK`。
+TokenStation 只连接外部 Kronk Model Server，不安装 Kronk、不下载 GGUF 文件，也不在进程内嵌 llama.cpp。TokenStation 容器内的 `127.0.0.1` 指向容器自身，而不是 Docker 宿主机。Kronk 运行在宿主机时，应使用宿主机可达的私网 IP 或环境支持的 `host.docker.internal`；运行在其他容器时，应加入共享 Docker 网络并使用 Kronk 服务名。私网字面量在默认严格模式下即可使用。`host.docker.internal` 等域名需要 `TOKENHUB_PROVIDER_UPSTREAM_ACCESS_MODE=auto`。只有 TokenStation 与 Kronk 共享同一网络命名空间时才应使用回环地址；严格模式需要 `TOKENHUB_PROVIDER_UPSTREAM_ALLOW_LOOPBACK`。
 
-Kronk 默认监听明文 HTTP。远程部署时应使用可信私网或 TLS 反向代理，并启用合适的 Kronk authorization mode。TokenHub 只访问推理、模型发现、存活和就绪端点，不代理模型下载、目录、安全管理、调试、pprof 或管理 UI 端点。
+Kronk 默认监听明文 HTTP。远程部署时应使用可信私网或 TLS 反向代理，并启用合适的 Kronk authorization mode。TokenStation 只访问推理、模型发现、存活和就绪端点，不代理模型下载、目录、安全管理、调试、pprof 或管理 UI 端点。
 
 ## 反向代理
 
@@ -557,3 +578,9 @@ Kronk 默认监听明文 HTTP。远程部署时应使用可信私网或 TLS 反�
 | `TOKENHUB_TYPESAFE_API_KEY` | 空 | 仅供服务端使用的 TypeSafe 凭据。 |
 | `TOKENHUB_TYPESAFE_MODEL` | `jev-1.13.0` | 明确的评估模型版本。 |
 | `TOKENHUB_SEMANTIC_ROUTING_TIMEOUT_MS` | `1000` | 目录查询与评估超时，范围为 1–10000 ms。 |
+
+## 充值配置
+
+超级管理员可在“成本账单 → 充值设置”管理固定金额档位、启停档位，以及设置自定义金额开关和人民币上下限。保存后配置持久化到数据库，对新订单立即生效。首次保存前使用支付 YAML 中的档位，默认关闭自定义金额。已有订单保留创建时的金额。后端以整数分校验金额，个人用户不能修改档位价格。
+
+MaaS 的「成本账单」工作区分为费用对账单、支付与钱包对账、充值设置（仅超级管理员）和计费管理。充值设置直接加载，切换页签保留未保存的编辑。退款和结算从流水行发起，并需要二次确认；结算金额按元输入，最多支持六位小数。对账单项目使用可搜索的勾选列表，CSV 导出仍使用当前预览的数据快照。

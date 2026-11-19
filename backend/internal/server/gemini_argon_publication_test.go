@@ -11,7 +11,7 @@ func TestGeminiArgonStandardTemplatePublishesThroughAdminAPI(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	found := false
 	for _, model := range models {
 		if model.Name == "gemini-4-argon" {

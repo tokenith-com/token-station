@@ -23,7 +23,7 @@ func TestRetrievalBillingPreservesFreeCostsAndRejectsNegativeCounters(t *testing
 				writeJSON(w, 200, body)
 			}))
 			defer upstream.Close()
-			store := NewMemoryStore()
+			store := newTestMemoryStore(t)
 			if err := SeedDemoData(store); err != nil {
 				t.Fatal(err)
 			}
@@ -35,7 +35,7 @@ func TestRetrievalBillingPreservesFreeCostsAndRejectsNegativeCounters(t *testing
 			if err != nil {
 				t.Fatal(err)
 			}
-			response := doJSON(t, New(store).Handler(), http.MethodPost, "/v1/rerank", map[string]any{"model": "billing-rerank", "query": "q", "documents": []string{"doc"}}, secret)
+			response := doJSON(t, newManagedTestServer(t, store).Handler(), http.MethodPost, "/v1/rerank", map[string]any{"model": "billing-rerank", "query": "q", "documents": []string{"doc"}}, secret)
 			if response.Code != 200 {
 				t.Fatalf("status=%d body=%s", response.Code, response.Body)
 			}

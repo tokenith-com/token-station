@@ -3,15 +3,16 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BACKEND_DIR="$ROOT_DIR/backend"
-FRONTEND_DIR="$ROOT_DIR/frontend"
+FRONTEND_DIR="$ROOT_DIR/maas-ui"
 
 # Backend variables with a plain dev default, in NAME=default form. This list is the
 # single source for both the defaults applied below and the environment handed to the
-# backend process, so a new variable is added in one place.
+# backend process, so a new variable is added in one place. The default stack uses
+# the TokenStation MaaS UI, local SQLite, and local mock payments.
 BACKEND_VAR_DEFAULTS=(
   "GOMEMLIMIT=2GiB"
   "TOKENHUB_ENV=dev"
-  "TOKENHUB_HTTP_ADDR=:8080"
+  "TOKENHUB_HTTP_ADDR=127.0.0.1:8080"
   "TOKENHUB_PUBLIC_BASE_URL=http://localhost:8080"
   "TOKENHUB_RELEASE_REPOSITORY=astaxie/TokenHub"
   "TOKENHUB_PLUGIN_DIR=$ROOT_DIR/backend/data/plugins"
@@ -25,10 +26,11 @@ BACKEND_VAR_DEFAULTS=(
   "HTTP_PROXY="
   "HTTPS_PROXY="
   "NO_PROXY="
-  "TOKENHUB_CORS_ALLOWED_ORIGINS=http://localhost:3000"
+  "TOKENHUB_CORS_ALLOWED_ORIGINS=http://localhost:5199"
   "TOKENHUB_ADMIN_TOKEN=dev_admin_token"
   "TOKENHUB_BOOTSTRAP_ADMIN_PASSWORD=admin123456"
-  "TOKENHUB_SECRET_KEY=dev_tokenhub_secret_key"
+  "TOKENHUB_DATABASE_URL=sqlite://$ROOT_DIR/backend/data/tokenstation.db"
+  "TOKENHUB_SECRET_KEY=dev_tokenstation_secret_key"
   "TOKENHUB_UPSTREAM_NON_STREAM_TIMEOUT_SECONDS=120"
   "TOKENHUB_UPSTREAM_STREAM_IDLE_TIMEOUT_SECONDS=300"
   "TOKENHUB_MAX_JSON_REQUEST_BYTES=8388608"
@@ -71,33 +73,28 @@ for var_entry in "${BACKEND_VAR_DEFAULTS[@]}"; do
   fi
 done
 
-# The variables below stay out of BACKEND_VAR_DEFAULTS because none is a plain
-# default. TOKENHUB_DATABASE_URL must keep its empty value rather than gain one: if it
+# The variables below stay out of BACKEND_VAR_DEFAULTS because their handling
+# differs from a plain default. TOKENHUB_DATABASE_URL must keep its empty value rather than gain one: if it
 # is not explicitly set in the shell, backend's godotenv loads it from backend/.env, so
 # PostgreSQL config there can take effect, and passing an empty value would override it.
 # If neither exists, backend falls back to its own default (SQLite).
-TOKENHUB_DATABASE_URL="${TOKENHUB_DATABASE_URL:-}"
-# The provider catalog pair also has to keep an explicitly empty value. The deployment
-# documentation offers an empty TOKENHUB_PROVIDER_CATALOG_UPSTREAM_URL as the air-gapped
-# setting that serves only the bundled catalog, and zero for
-# TOKENHUB_PROVIDER_CATALOG_SYNC_INTERVAL_SECONDS as the switch that disables the daily
-# scheduler. The loop above substitutes on an empty value, so a single hyphen is used
-# here: only an unset variable takes the default.
-TOKENHUB_PROVIDER_CATALOG_UPSTREAM_URL="${TOKENHUB_PROVIDER_CATALOG_UPSTREAM_URL-https://raw.githubusercontent.com/ThinkInAIXYZ/PublicProviderConf/dev/dist/all.json}"
-TOKENHUB_PROVIDER_CATALOG_SYNC_INTERVAL_SECONDS="${TOKENHUB_PROVIDER_CATALOG_SYNC_INTERVAL_SECONDS-86400}"
+# Always use the local TokenStation database for this development stack.
+TOKENHUB_DATABASE_URL="${TOKENHUB_DATABASE_URL:-sqlite://$ROOT_DIR/backend/data/tokenstation.db}"
+# Use the safe local mock payment configuration by default; callers may override it explicitly.
+TOKENHUB_PAYMENT_CONFIG_FILE="${TOKENHUB_PAYMENT_CONFIG_FILE:-$ROOT_DIR/deploy/payment-local/payment.yaml}"
 # TOKENHUB_API_BASE_URL is derived: it falls back through NEXT_PUBLIC_API_BASE_URL to
 # the public base URL resolved above, so it has to be assigned after the loop.
 TOKENHUB_API_BASE_URL="${TOKENHUB_API_BASE_URL:-${NEXT_PUBLIC_API_BASE_URL:-$TOKENHUB_PUBLIC_BASE_URL}}"
-FRONTEND_PORT="${FRONTEND_PORT:-3000}"
+FRONTEND_PORT="${FRONTEND_PORT:-5199}"
 FRONTEND_HOST="${FRONTEND_HOST:-0.0.0.0}"
-BACKEND_BIN="$ROOT_DIR/.tmp/tokenhub-backend"
+BACKEND_BIN="$ROOT_DIR/.tmp/tokenstation-backend"
 NEXT_BIN="$FRONTEND_DIR/node_modules/.bin/next"
 
 BACKEND_PID=""
 FRONTEND_PID=""
 
 log() {
-  printf '[TokenHub] %s\n' "$*"
+  printf '[TokenStation] %s\n' "$*"
 }
 
 find_go() {
@@ -187,7 +184,7 @@ fi
 mkdir -p "$(dirname "$BACKEND_BIN")"
 
 log "Building backend binary"
-(cd "$BACKEND_DIR" && "$GO_CMD" build -o "$BACKEND_BIN" ./cmd/tokenhub)
+(cd "$BACKEND_DIR" && "$GO_CMD" build -o "$BACKEND_BIN" ./cmd/tokenstation)
 
 log "Starting backend: $TOKENHUB_HTTP_ADDR"
 (
@@ -202,13 +199,12 @@ log "Starting backend: $TOKENHUB_HTTP_ADDR"
   if [ -n "$TOKENHUB_DATABASE_URL" ]; then
     backend_env+=(TOKENHUB_DATABASE_URL="$TOKENHUB_DATABASE_URL")
   fi
-  # Both are always passed, including empty and zero: those values are the documented
-  # off switches, so dropping the variable here would silently restore the public
-  # upstream and the daily scheduler.
-  backend_env+=(
-    TOKENHUB_PROVIDER_CATALOG_UPSTREAM_URL="$TOKENHUB_PROVIDER_CATALOG_UPSTREAM_URL"
-    TOKENHUB_PROVIDER_CATALOG_SYNC_INTERVAL_SECONDS="$TOKENHUB_PROVIDER_CATALOG_SYNC_INTERVAL_SECONDS"
-  )
+  if [ -n "$TOKENHUB_PAYMENT_CONFIG_FILE" ]; then
+    backend_env+=(TOKENHUB_PAYMENT_CONFIG_FILE="$TOKENHUB_PAYMENT_CONFIG_FILE")
+  fi
+  if [[ "$TOKENHUB_DATABASE_URL" == "sqlite://$ROOT_DIR/backend/data/tokenstation.db" ]]; then
+    env "${backend_env[@]}" "$BACKEND_BIN" db prepare --initialize
+  fi
   exec env "${backend_env[@]}" "$BACKEND_BIN"
 ) &
 BACKEND_PID=$!
@@ -217,6 +213,7 @@ log "Starting frontend: http://localhost:$FRONTEND_PORT"
 (
   cd "$FRONTEND_DIR"
   exec env \
+    NEXT_PUBLIC_TOKENHUB_API_BASE_URL="${NEXT_PUBLIC_TOKENHUB_API_BASE_URL:-$TOKENHUB_API_BASE_URL}" \
     TOKENHUB_API_BASE_URL="$TOKENHUB_API_BASE_URL" \
     "$NEXT_BIN" dev --hostname "$FRONTEND_HOST" --port "$FRONTEND_PORT"
 ) &
@@ -224,7 +221,7 @@ FRONTEND_PID=$!
 
 cat <<EOF
 
-TokenHub started:
+TokenStation started:
   Backend API:  $TOKENHUB_PUBLIC_BASE_URL
   Frontend:     http://localhost:$FRONTEND_PORT
   Release repo: $TOKENHUB_RELEASE_REPOSITORY

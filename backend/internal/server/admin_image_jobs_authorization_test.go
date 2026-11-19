@@ -8,7 +8,7 @@ import (
 )
 
 func TestAdminImageJobAuditScopesJobsAndAssetsByUserAccess(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	owner, err := store.CreateAdminUser(AdminUser{
 		Username: "image-audit-owner",
 		Email:    "image-audit-owner@tokenhub.local",

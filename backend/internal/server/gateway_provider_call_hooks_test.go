@@ -10,7 +10,7 @@ import (
 )
 
 func TestProviderCallHookCanShortCircuitProviderInvocation(t *testing.T) {
-	server := New(NewMemoryStore())
+	server := newManagedTestServer(t, newTestMemoryStore(t))
 	hook := pluginmeta.GatewayHookDescriptor{
 		PluginID:      "tokenhub.test-provider",
 		HookID:        "invoke",
@@ -58,7 +58,7 @@ func TestProviderCallHookCanShortCircuitProviderInvocation(t *testing.T) {
 }
 
 func TestProviderCallHookRequiresMatchingProtocolMetadata(t *testing.T) {
-	server := New(NewMemoryStore())
+	server := newManagedTestServer(t, newTestMemoryStore(t))
 	hook := pluginmeta.GatewayHookDescriptor{
 		PluginID:      "tokenhub.test-provider",
 		HookID:        "image-only",
@@ -103,7 +103,7 @@ func TestProviderCallHookRequiresMatchingProtocolMetadata(t *testing.T) {
 }
 
 func TestProviderCallHookServesGatewayChatWithoutBuiltinAdapter(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	project := store.CreateProject(Project{Name: "Provider Plugin App"})
 	_, secret, err := store.CreateAPIKey(project.ID, APIKey{
 		Name:    "provider-plugin-key",
@@ -116,7 +116,7 @@ func TestProviderCallHookServesGatewayChatWithoutBuiltinAdapter(t *testing.T) {
 	provider := store.AddProvider(Provider{ID: "prv_provider_plugin", Name: "Provider Plugin", Type: "third_party_provider_plugin", Status: StatusActive, Healthy: true})
 	store.AddModel(Model{Name: "gpt-provider-plugin", Modality: "chat", Status: StatusActive})
 	store.AddRoute(ModelRoute{ID: "route_provider_plugin", ModelName: "gpt-provider-plugin", ProviderID: provider.ID, ProviderModel: "upstream-plugin", Status: StatusActive, Priority: 1, Weight: 100})
-	server := New(store)
+	server := newManagedTestServer(t, store)
 
 	hook := pluginmeta.GatewayHookDescriptor{
 		PluginID:      "tokenhub.test-provider",

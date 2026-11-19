@@ -1,11 +1,13 @@
 services:
-  tokenhub-backend:
-    container_name: tokenhub-backend
+  tokenstation-backend:
+    container_name: tokenstation-backend
     image: ghcr.io/astaxie/tokenhub-backend:${TOKENHUB_IMAGE_TAG:-latest}
     build:
       context: ..
       dockerfile: backend/Dockerfile
       args:
+        NEXT_PUBLIC_TOKENHUB_API_BASE_URL: ${NEXT_PUBLIC_TOKENHUB_API_BASE_URL:-http://localhost:8080}
+        NEXT_PUBLIC_TOKENHUB_BASE_PATH: ${NEXT_PUBLIC_TOKENHUB_BASE_PATH:-}
         GOPROXY: ${GOPROXY:-https://goproxy.cn,direct}
     restart: unless-stopped
     mem_limit: ${TOKENHUB_CONTAINER_MEMORY_LIMIT:-4g}
@@ -18,6 +20,7 @@ services:
       TOKENHUB_INSTALL_ROOT: /opt/tokenhub
       TOKENHUB_RUN_MODE: all
       TOKENHUB_HTTP_ADDR: :8080
+      TOKENHUB_PAYMENT_CONFIG_FILE: ${TOKENHUB_PAYMENT_CONFIG_FILE:-}
       TOKENHUB_PUBLIC_BASE_URL: ${TOKENHUB_PUBLIC_BASE_URL:-http://localhost:8080}
       TOKENHUB_RELEASE_REPOSITORY: ${TOKENHUB_RELEASE_REPOSITORY:-astaxie/TokenHub}
       TOKENHUB_PLUGIN_DIR: ${TOKENHUB_PLUGIN_DIR:-/app/plugins}
@@ -107,7 +110,7 @@ services:
       start_period: 20s
     stop_grace_period: ${TOKENHUB_STOP_GRACE_PERIOD:-180s}
     networks:
-      - tokenhub
+      - tokenstation
 
 volumes:
   tokenhub-data:
@@ -118,5 +121,5 @@ volumes:
     name: tokenhub-releases
 
 networks:
-  tokenhub:
-    name: tokenhub
+  tokenstation:
+    name: tokenstation

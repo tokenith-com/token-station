@@ -12,6 +12,7 @@ import (
 )
 
 type Config struct {
+	PaymentConfigFile          string
 	SemanticRoutingEnabled     bool
 	SemanticRoutingProjects    []string
 	TypeSafeAPIKey             string
@@ -138,6 +139,7 @@ type Config struct {
 
 func ConfigFromEnv() Config {
 	return Config{
+		PaymentConfigFile:                  getenv("TOKENHUB_PAYMENT_CONFIG_FILE", ""),
 		SemanticRoutingEnabled:             getenvBool("TOKENHUB_SEMANTIC_ROUTING_ENABLED", false),
 		SemanticRoutingProjects:            getenvList("TOKENHUB_SEMANTIC_ROUTING_PROJECTS"),
 		TypeSafeAPIKey:                     getenv("TOKENHUB_TYPESAFE_API_KEY", ""),
@@ -358,7 +360,7 @@ func quotePostgresDSNValue(value string) string {
 
 func defaultConfigDatabaseURL() string {
 	if pathExists("backend/data") {
-		return "sqlite://backend/data/tokenhub.db"
+		return "sqlite://backend/data/tokenstation.db"
 	}
 	return defaultSQLiteDatabaseURL
 }

@@ -7,7 +7,7 @@ import (
 )
 
 func TestPriorityWeightedRoutingFollowsConfiguredRatio(t *testing.T) {
-	server := New(NewMemoryStore())
+	server := newManagedTestServer(t, newTestMemoryStore(t))
 	routes := []RouteSelection{
 		{Route: ModelRoute{ID: "route_75", Priority: 1, Weight: 75, Strategy: RouteStrategyPriorityWeighted}},
 		{Route: ModelRoute{ID: "route_25", Priority: 1, Weight: 25, Strategy: RouteStrategyPriorityWeighted}},
@@ -25,7 +25,7 @@ func TestPriorityWeightedRoutingFollowsConfiguredRatio(t *testing.T) {
 }
 
 func TestProjectScopedRoutesSelectDifferentProviders(t *testing.T) {
-	server := New(NewMemoryStore())
+	server := newManagedTestServer(t, newTestMemoryStore(t))
 	privateProject := Project{ID: "prj_private", Status: StatusActive}
 	publicProject := Project{ID: "prj_public", Status: StatusActive}
 	routes := []RouteSelection{
@@ -56,7 +56,7 @@ func TestProjectScopedRoutesSelectDifferentProviders(t *testing.T) {
 }
 
 func TestAccessibleModelsRespectProjectRouteScope(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	privateProject := store.CreateProject(Project{ID: "prj_catalog_private", Name: "Private", Status: StatusActive})
 	publicProject := store.CreateProject(Project{ID: "prj_catalog_public", Name: "Public", Status: StatusActive})
 	privateKey, _, err := store.CreateAPIKey(privateProject.ID, APIKey{ID: "key_catalog_private", Name: "Private", Status: StatusActive}, "thk_catalog_private")
@@ -84,7 +84,7 @@ func TestAccessibleModelsRespectProjectRouteScope(t *testing.T) {
 }
 
 func TestAdaptiveRoutingUsesPersistedLatencyAndSuccessRate(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	providerFast := store.AddProvider(Provider{ID: "prv_adaptive_fast", Name: "Fast", Type: ProviderMock, Status: StatusActive, Healthy: true})
 	providerSlow := store.AddProvider(Provider{ID: "prv_adaptive_slow", Name: "Slow", Type: ProviderMock, Status: StatusActive, Healthy: true})
 	fastRoute := store.AddRoute(ModelRoute{ID: "route_adaptive_fast", ModelName: "adaptive-model", ProviderID: providerFast.ID, ProviderModel: "fast", Priority: 1, Weight: 100, Status: StatusActive, Strategy: RouteStrategyAdaptive})
@@ -109,7 +109,7 @@ func TestAdaptiveRoutingUsesPersistedLatencyAndSuccessRate(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	server := New(store)
+	server := newManagedTestServer(t, store)
 	firstChoices := map[string]int{}
 	for index := 0; index < 4_000; index++ {
 		planned := server.planRouteOrder(CallContext{RequestID: fmt.Sprintf("req_adaptive_choice_%d", index)}, candidates)
@@ -121,7 +121,7 @@ func TestAdaptiveRoutingUsesPersistedLatencyAndSuccessRate(t *testing.T) {
 }
 
 func TestAdaptiveRoutingPenalizesRouteWithOnlyFailures(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	healthyProvider := store.AddProvider(Provider{ID: "prv_adaptive_healthy", Name: "Healthy", Type: ProviderMock, Status: StatusActive, Healthy: true})
 	failingProvider := store.AddProvider(Provider{ID: "prv_adaptive_failing", Name: "Failing", Type: ProviderMock, Status: StatusActive, Healthy: true})
 	healthyRoute := store.AddRoute(ModelRoute{ID: "route_adaptive_healthy", ModelName: "adaptive-failure-model", ProviderID: healthyProvider.ID, ProviderModel: "healthy", Priority: 1, Weight: 100, Status: StatusActive, Strategy: RouteStrategyAdaptive})
@@ -142,7 +142,7 @@ func TestAdaptiveRoutingPenalizesRouteWithOnlyFailures(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	planned := New(store).planRouteOrder(CallContext{RequestID: "req_adaptive_failure_choice"}, candidates)
+	planned := newManagedTestServer(t, store).planRouteOrder(CallContext{RequestID: "req_adaptive_failure_choice"}, candidates)
 	effectiveWeights := map[string]int{}
 	samples := map[string]int64{}
 	for _, candidate := range planned {
@@ -158,7 +158,7 @@ func TestAdaptiveRoutingPenalizesRouteWithOnlyFailures(t *testing.T) {
 }
 
 func TestRoutePolicyValidatesProjectScope(t *testing.T) {
-	server := New(NewMemoryStore())
+	server := newManagedTestServer(t, newTestMemoryStore(t))
 	project := server.store.CreateProject(Project{ID: "prj_route_policy", Name: "Route Policy", Status: StatusActive})
 	tests := []struct {
 		name  string
@@ -188,7 +188,7 @@ func TestRoutePolicyValidatesProjectScope(t *testing.T) {
 }
 
 func TestAdminUpdatesWholeModelRoutingPolicyAtomically(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	if err := SeedDemoData(store); err != nil {
 		t.Fatal(err)
 	}
@@ -210,7 +210,7 @@ func TestAdminUpdatesWholeModelRoutingPolicyAtomically(t *testing.T) {
 		ProviderModel: "mock-secondary", Priority: 2, Weight: 100, QualityScore: 50, CostScore: 50,
 		Status: StatusActive, Strategy: RouteStrategyBalanced,
 	})
-	app := New(store).Handler()
+	app := newManagedTestServer(t, store).Handler()
 
 	updated := doJSON(t, app, http.MethodPatch, "/api/admin/model-routing-policies/"+modelName, map[string]any{
 		"strategy": RouteStrategyPriorityWeighted,

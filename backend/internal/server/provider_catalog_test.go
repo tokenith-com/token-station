@@ -82,7 +82,7 @@ func TestDefaultProviderCatalogTypeComesFromBuiltinPluginPolicy(t *testing.T) {
 }
 
 func TestProviderCatalogServiceUsesPluginDefaultCatalogProviderType(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	catalogFile := filepath.Join(t.TempDir(), "local-provider-catalog.json")
 	writeProviderCatalogFixture(t, catalogFile)
 	registry := NewAdapterRegistryWithPlugins(pluginmeta.NewRegistry())
@@ -183,7 +183,7 @@ func TestProviderCatalogServiceUsesPluginModelCategoryDefinitions(t *testing.T) 
 }`), 0o600); err != nil {
 		t.Fatalf("write provider catalog: %v", err)
 	}
-	service := newProviderCatalogService(NewMemoryStore(), catalogFile)
+	service := newProviderCatalogService(newTestMemoryStore(t), catalogFile)
 	service.UsePluginCatalogTypes(registry)
 	entries, err := service.loadLocalProviderCatalog()
 	if err != nil {
@@ -313,7 +313,7 @@ func TestBuiltinDeepSeekCatalogDescribesNativeV4Capabilities(t *testing.T) {
 }
 
 func TestResponsesCapabilityUsesProviderPolicyAllowlist(t *testing.T) {
-	server := New(NewMemoryStore())
+	server := newManagedTestServer(t, newTestMemoryStore(t))
 	currentFlash := RouteSelection{Provider: Provider{Type: "deepseek"}, ProviderModel: "deepseek-flash"}
 	flash := RouteSelection{Provider: Provider{Type: "deepseek"}, ProviderModel: "deepseek-v4-flash"}
 	pro := RouteSelection{Provider: Provider{Type: "deepseek"}, ProviderModel: "deepseek-v4-pro"}
@@ -339,7 +339,7 @@ func TestResponsesCapabilityUsesProviderPolicyAllowlist(t *testing.T) {
 }
 
 func TestResponsesCapabilityWithoutAllowlistRemainsProviderScoped(t *testing.T) {
-	server := New(NewMemoryStore())
+	server := newManagedTestServer(t, newTestMemoryStore(t))
 	providerType := "open_responses_plugin"
 	if err := server.adapterRegistry.RegisterPlugin(pluginmeta.Descriptor{
 		ID:      "tokenhub.provider.open-responses-plugin",
@@ -366,7 +366,7 @@ func TestResponsesCapabilityWithoutAllowlistRemainsProviderScoped(t *testing.T) 
 }
 
 func TestResponsesCapabilityAllowlistDoesNotDependOnProviderTypeName(t *testing.T) {
-	server := New(NewMemoryStore())
+	server := newManagedTestServer(t, newTestMemoryStore(t))
 	providerType := "model_scoped_responses_plugin"
 	if err := server.adapterRegistry.RegisterPlugin(pluginmeta.Descriptor{
 		ID:      "tokenhub.provider.model-scoped-responses-plugin",
@@ -403,7 +403,7 @@ func TestResponsesCapabilityAllowlistDoesNotDependOnProviderTypeName(t *testing.
 }
 
 func TestProviderCatalogServiceReloadsTrackedLocalFile(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	catalogFile := filepath.Join(t.TempDir(), "provider-catalog.json")
 	writeProviderCatalogFixture(t, catalogFile)
 
@@ -440,11 +440,11 @@ func TestProviderCatalogServiceReloadsTrackedLocalFile(t *testing.T) {
 }
 
 func TestProviderCatalogServiceUsesPluginCatalogTypes(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	catalogFile := filepath.Join(t.TempDir(), "provider-catalog.json")
 	writeProviderCatalogFixture(t, catalogFile)
 
-	server := New(NewMemoryStore())
+	server := newManagedTestServer(t, newTestMemoryStore(t))
 	service := newProviderCatalogService(store, catalogFile)
 	service.UsePluginCatalogTypes(server.adapterRegistry)
 	entries, err := service.loadLocalProviderCatalog()
@@ -461,8 +461,8 @@ func TestProviderCatalogServiceUsesPluginCatalogTypes(t *testing.T) {
 }
 
 func TestProviderCatalogServiceSeedsFromBuiltInProviderPlugins(t *testing.T) {
-	store := NewMemoryStore()
-	server := New(NewMemoryStore())
+	store := newTestMemoryStore(t)
+	server := newManagedTestServer(t, newTestMemoryStore(t))
 	service := newProviderCatalogService(store, filepath.Join(t.TempDir(), "missing-provider-catalog.json"))
 	service.UsePluginCatalogTypes(server.adapterRegistry)
 
@@ -543,7 +543,7 @@ func TestBuiltinProviderCatalogDerivesFromPluginSeeds(t *testing.T) {
 }
 
 func TestProviderCatalogServiceRefreshesFromUpstream(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	localCatalogFile := filepath.Join(t.TempDir(), "local-provider-catalog.json")
 	writeProviderCatalogFixture(t, localCatalogFile)
 
@@ -585,7 +585,7 @@ func TestProviderCatalogServiceRefreshesFromUpstream(t *testing.T) {
 }
 
 func TestProviderCatalogServiceRefreshUsesUpstreamWhenCuratedLocalCatalogIsMissing(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	upstreamCatalogFile := filepath.Join(t.TempDir(), "upstream-provider-catalog.json")
 	writeProviderCatalogFixture(t, upstreamCatalogFile)
 	replaceProviderCatalogFixtureURL(t, upstreamCatalogFile, "fresh-provider", "https://upstream-provider.example/v1")
@@ -644,7 +644,7 @@ func TestMergeCuratedProviderCatalogEntriesPreservesReviewedLocalProviders(t *te
 }
 
 func TestProviderCatalogServiceRefreshFallsBackToLocalCatalog(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	catalogFile := filepath.Join(t.TempDir(), "provider-catalog.json")
 	writeProviderCatalogFixture(t, catalogFile)
 	replaceProviderCatalogFixtureURL(t, catalogFile, "fresh-provider", "https://local-fallback.example/v1")
@@ -668,7 +668,7 @@ func TestProviderCatalogServiceRefreshFallsBackToLocalCatalog(t *testing.T) {
 }
 
 func TestProviderCatalogServiceRefreshRejectsIncompleteUpstreamCatalog(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	catalogFile := filepath.Join(t.TempDir(), "provider-catalog.json")
 	writeProviderCatalogFixture(t, catalogFile)
 	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -696,7 +696,7 @@ func TestProviderCatalogServiceRefreshRejectsIncompleteUpstreamCatalog(t *testin
 }
 
 func TestProviderCatalogServiceRefreshStopsWhenContextIsCanceledBeforeFallback(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	catalogFile := filepath.Join(t.TempDir(), "provider-catalog.json")
 	writeProviderCatalogFixture(t, catalogFile)
 	service := newProviderCatalogService(store, catalogFile)
@@ -719,7 +719,7 @@ func TestProviderCatalogServiceRefreshStopsWhenContextIsCanceledBeforeFallback(t
 }
 
 func TestProviderCatalogServiceRefreshRechecksContextBeforeUpstreamSave(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	catalogFile := filepath.Join(t.TempDir(), "provider-catalog.json")
 	writeProviderCatalogFixture(t, catalogFile)
 	content, err := os.ReadFile(catalogFile)
@@ -754,7 +754,7 @@ func TestProviderCatalogServiceRefreshRechecksContextBeforeUpstreamSave(t *testi
 }
 
 func TestProviderCatalogServiceRetainsBuiltinSnapshotWhenLocalFileIsMissing(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	service := newProviderCatalogService(store, filepath.Join(t.TempDir(), "missing.json"))
 
 	entries, source, err := service.List(context.Background(), false)
@@ -775,7 +775,7 @@ func TestProviderCatalogServiceRetainsBuiltinSnapshotWhenLocalFileIsMissing(t *t
 }
 
 func TestProviderCatalogServiceInitializeReloadsLocalCatalogOnEveryStart(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	catalogFile := filepath.Join(t.TempDir(), "provider-catalog.json")
 	writeProviderCatalogFixture(t, catalogFile)
 
@@ -797,7 +797,7 @@ func TestProviderCatalogServiceInitializeReloadsLocalCatalogOnEveryStart(t *test
 }
 
 func TestProviderCatalogServiceInitializeRetainsLocalSnapshotWhenFileIsMissing(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	catalogFile := filepath.Join(t.TempDir(), "provider-catalog.json")
 	writeProviderCatalogFixture(t, catalogFile)
 	seedService := newProviderCatalogService(store, catalogFile)
@@ -817,7 +817,7 @@ func TestProviderCatalogServiceInitializeRetainsLocalSnapshotWhenFileIsMissing(t
 }
 
 func TestProviderCatalogServiceInitializeSerializesConcurrentRefreshes(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	catalogFile := filepath.Join(t.TempDir(), "provider-catalog.json")
 	writeProviderCatalogFixture(t, catalogFile)
 
@@ -858,7 +858,7 @@ func TestProviderCatalogServiceInitializeSerializesConcurrentRefreshes(t *testin
 }
 
 func TestBootstrapSeedsProviderCatalogSnapshot(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	config := Config{
 		BootstrapAdminPassword: "provider-catalog-bootstrap-password",
 		ModelCatalogFile:       "../../../data/model-catalog.yaml",

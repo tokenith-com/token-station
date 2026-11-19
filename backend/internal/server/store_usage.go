@@ -136,7 +136,7 @@ func (s *GormStore) GenerateBillingPeriod(period string) (map[string]any, error)
 				ID:          NewID(resourcePrefix("chargebacks")),
 				Kind:        "chargebacks",
 				Name:        fmt.Sprintf("%s %s %s 分摊", period, item.CostCenter, item.ProjectID),
-				Description: "由 TokenHub 用量记录自动生成",
+				Description: "由 TokenStation 用量记录自动生成",
 				Status:      StatusActive,
 				Fields: map[string]any{
 					"period":              period,

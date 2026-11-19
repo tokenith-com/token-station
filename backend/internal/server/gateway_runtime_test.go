@@ -9,7 +9,7 @@ import (
 )
 
 func TestMonitorRunUpdatesResourceAndCreatesAlert(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	if err := SeedDemoData(store); err != nil {
 		t.Fatal(err)
 	}
@@ -21,7 +21,7 @@ func TestMonitorRunUpdatesResourceAndCreatesAlert(t *testing.T) {
 			"provider_resource_id": "rsrc_mock_primary",
 		},
 	})
-	app := New(store).Handler()
+	app := newManagedTestServer(t, store).Handler()
 
 	okRun := doJSON(t, app, http.MethodPost, "/api/admin/resources/monitors/"+monitor.ID+"/run", map[string]any{}, "")
 	if okRun.Code != http.StatusOK || !strings.Contains(okRun.Body, `"status":"ok"`) {
@@ -56,7 +56,7 @@ func TestMonitorRunUpdatesResourceAndCreatesAlert(t *testing.T) {
 }
 
 func TestMonitorRunInfersLegacyModelMonitor(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	if err := SeedDemoData(store); err != nil {
 		t.Fatal(err)
 	}
@@ -68,7 +68,7 @@ func TestMonitorRunInfersLegacyModelMonitor(t *testing.T) {
 			"model":    "gpt-4.1-mini",
 		},
 	})
-	app := New(store).Handler()
+	app := newManagedTestServer(t, store).Handler()
 
 	run := doJSON(t, app, http.MethodPost, "/api/admin/resources/monitors/"+monitor.ID+"/run", map[string]any{}, "")
 	if run.Code != http.StatusOK || !strings.Contains(run.Body, `"target_type":"model"`) || !strings.Contains(run.Body, `"status":"ok"`) {
@@ -77,7 +77,7 @@ func TestMonitorRunInfersLegacyModelMonitor(t *testing.T) {
 }
 
 func TestDefaultMonitorsAreAutoDiscovered(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	if err := BootstrapBaseData(store); err != nil {
 		t.Fatal(err)
 	}
@@ -119,7 +119,7 @@ func TestDefaultMonitorsAreAutoDiscovered(t *testing.T) {
 		Weight:             100,
 		Status:             StatusActive,
 	})
-	app := New(store).Handler()
+	app := newManagedTestServer(t, store).Handler()
 
 	resp := doJSON(t, app, http.MethodGet, "/api/admin/resources/monitors", nil, "")
 	if resp.Code != http.StatusOK {
@@ -156,8 +156,8 @@ func TestDefaultMonitorsAreAutoDiscovered(t *testing.T) {
 }
 
 func TestDefaultAlertRulesAreAutoDiscovered(t *testing.T) {
-	store := NewMemoryStore()
-	app := New(store).Handler()
+	store := newTestMemoryStore(t)
+	app := newManagedTestServer(t, store).Handler()
 
 	resp := doJSON(t, app, http.MethodGet, "/api/admin/resources/alert-rules", nil, "")
 	if resp.Code != http.StatusOK {
@@ -216,7 +216,7 @@ func TestProviderResourceCooldownAfterFailures(t *testing.T) {
 		t.Fatal(err)
 	}
 	store.failureThreshold = 2
-	server := New(store)
+	server := newManagedTestServer(t, store)
 	server.adapterRegistry.Register("failing_resource", failingAdapter{}, AdapterCapabilityChat)
 	app := server.Handler()
 
@@ -254,7 +254,7 @@ func TestProviderResourceRPMLimit(t *testing.T) {
 	if err := store.db.Model(&ProviderResource{}).Where("id = ?", resourceID).Update("rate_limit_rpm", 1).Error; err != nil {
 		t.Fatal(err)
 	}
-	app := New(store).Handler()
+	app := newManagedTestServer(t, store).Handler()
 
 	first := doJSON(t, app, http.MethodPost, "/v1/chat/completions", map[string]any{
 		"model": "gpt-4.1-mini",
@@ -277,7 +277,7 @@ func TestProviderResourceRPMLimit(t *testing.T) {
 }
 
 func TestGatewayRoutesThroughProviderResource(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	project := store.CreateProject(Project{Name: "Resource Routed App"})
 	_, secret, err := store.CreateAPIKey(project.ID, APIKey{
 		Name:    "resource-key",
@@ -312,7 +312,7 @@ func TestGatewayRoutesThroughProviderResource(t *testing.T) {
 		Weight:             100,
 		Status:             StatusActive,
 	})
-	app := New(store).Handler()
+	app := newManagedTestServer(t, store).Handler()
 
 	resp := doJSON(t, app, http.MethodPost, "/v1/chat/completions", map[string]any{
 		"model": "gpt-4.1-mini",
@@ -344,7 +344,7 @@ func TestGatewayRoutesThroughProviderResource(t *testing.T) {
 }
 
 func TestProviderHealthAffectsRouting(t *testing.T) {
-	app := newTestServer()
+	app := newTestServer(t)
 	health := doJSON(t, app, http.MethodPost, "/api/admin/providers/prv_mock/health", map[string]any{
 		"healthy": false,
 	}, "")
@@ -367,7 +367,7 @@ func TestProviderHealthAffectsRouting(t *testing.T) {
 }
 
 func TestGatewayFailoverUsesBackupRoute(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	project := store.CreateProject(Project{Name: "Failover App"})
 	_, secret, err := store.CreateAPIKey(project.ID, APIKey{
 		Name:    "failover-key",
@@ -383,7 +383,7 @@ func TestGatewayFailoverUsesBackupRoute(t *testing.T) {
 	store.AddRoute(ModelRoute{ID: "route_failing", ModelName: "gpt-4.1-mini", ProviderID: failing.ID, ProviderModel: "failing-chat", Priority: 1, Weight: 100, Status: StatusActive, Strategy: "priority_only"})
 	store.AddRoute(ModelRoute{ID: "route_backup", ModelName: "gpt-4.1-mini", ProviderID: backup.ID, ProviderModel: "backup-chat", Priority: 2, Weight: 100, Status: StatusActive, Strategy: "priority_only"})
 
-	server := New(store)
+	server := newManagedTestServer(t, store)
 	server.adapterRegistry.Register("failing_mock", failingAdapter{}, AdapterCapabilityChat)
 	app := server.Handler()
 
@@ -431,7 +431,7 @@ func TestGatewayFailoverUsesBackupRoute(t *testing.T) {
 }
 
 func TestModelRouterStrategiesRankCandidates(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	project := store.CreateProject(Project{Name: "Router Strategy App"})
 	key := APIKey{ID: "key_router_strategy", ProjectID: project.ID, Name: "router-key", Status: StatusActive}
 	model := Model{Name: "gpt-4.1-mini", Modality: "chat", Status: StatusActive}
@@ -444,7 +444,7 @@ func TestModelRouterStrategiesRankCandidates(t *testing.T) {
 	store.AddRoute(ModelRoute{ID: "route_cheap", ModelName: model.Name, ProviderID: cheap.ID, ProviderModel: "cheap-chat", Priority: 1, Weight: 80, QualityScore: 40, CostScore: 95, Status: StatusActive, Strategy: RouteStrategyQuality})
 	store.AddRoute(ModelRoute{ID: "route_quality", ModelName: model.Name, ProviderID: quality.ID, ProviderModel: "quality-chat", Priority: 1, Weight: 60, QualityScore: 95, CostScore: 35, Status: StatusActive, Strategy: RouteStrategyQuality})
 
-	server := New(store)
+	server := newManagedTestServer(t, store)
 	candidates, err := store.SelectRouteCandidates(model.Name)
 	if err != nil {
 		t.Fatal(err)
@@ -471,7 +471,7 @@ func TestModelRouterStrategiesRankCandidates(t *testing.T) {
 }
 
 func TestHealth(t *testing.T) {
-	app := newTestServer()
+	app := newTestServer(t)
 	resp := doJSON(t, app, http.MethodGet, "/healthz", nil, "")
 	if resp.Code != http.StatusOK {
 		t.Fatalf("expected 200, got %d: %s", resp.Code, resp.Body)
@@ -479,8 +479,8 @@ func TestHealth(t *testing.T) {
 }
 
 func TestReadinessFailsWhenDatabaseIsUnavailableButLivenessRemainsHealthy(t *testing.T) {
-	store := NewMemoryStore()
-	app := New(store).Handler()
+	store := newTestMemoryStore(t)
+	app := newTestServerWithClosedDatabase(t, store, Config{AdminToken: "dev_admin_token"}).Handler()
 	sqlDB, err := store.db.DB()
 	if err != nil {
 		t.Fatal(err)

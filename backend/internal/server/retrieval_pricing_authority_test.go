@@ -13,7 +13,7 @@ func TestRetrievalTenantPriceCannotBeOverridden(t *testing.T) {
 		price, want    float64
 	}{{"paid_embedding", "embedding", 0.5, 0.5}, {"paid_rerank", "rerank", 0.5, 0.5}, {"free_rerank", "rerank", 0, 0}} {
 		t.Run(tc.name, func(t *testing.T) {
-			store := NewMemoryStore()
+			store := newTestMemoryStore(t)
 			if err := SeedDemoData(store); err != nil {
 				t.Fatal(err)
 			}

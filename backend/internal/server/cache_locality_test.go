@@ -21,7 +21,7 @@ func responsesRequestFromJSON(t *testing.T, payload string) ResponsesRequest {
 
 func newCacheLocalityStore(t *testing.T, providerModels []string) (*GormStore, []RouteSelection) {
 	t.Helper()
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	store.AddModel(Model{Name: "locality-model", Modality: "chat", Status: StatusActive})
 	provider := store.AddProvider(Provider{
 		ID:      "prv_locality",
@@ -65,7 +65,7 @@ func localityAffinity(t *testing.T, session string) *RequestAffinity {
 
 func TestSameSessionPinsToSameCacheDomain(t *testing.T) {
 	store, routes := newCacheLocalityStore(t, []string{"model-a", "model-b", "model-c"})
-	server := New(store)
+	server := newManagedTestServer(t, store)
 	affinity := localityAffinity(t, "session-stable")
 
 	var first string
@@ -85,7 +85,7 @@ func TestSameSessionPinsToSameCacheDomain(t *testing.T) {
 
 func TestDistinctSessionsSpreadAcrossDomains(t *testing.T) {
 	store, routes := newCacheLocalityStore(t, []string{"model-a", "model-b", "model-c"})
-	server := New(store)
+	server := newManagedTestServer(t, store)
 
 	counts := map[string]int{}
 	for index := 0; index < 300; index++ {
@@ -108,7 +108,7 @@ func TestDistinctSessionsSpreadAcrossDomains(t *testing.T) {
 // introducing affinity must not change behaviour here.
 func TestNoAffinityKeepsRequestIDSpread(t *testing.T) {
 	store, routes := newCacheLocalityStore(t, []string{"model-a", "model-b", "model-c"})
-	server := New(store)
+	server := newManagedTestServer(t, store)
 
 	domains := map[string]struct{}{}
 	for index := 0; index < 60; index++ {
@@ -180,7 +180,7 @@ func TestRendezvousScoreHandlesUnitBoundary(t *testing.T) {
 }
 
 func TestCacheAffinityRespectsModelAllowlist(t *testing.T) {
-	server := NewWithConfig(NewMemoryStore(), Config{
+	server := newManagedTestServerWithConfig(t, newTestMemoryStore(t), Config{
 		SecretKey:            "secret",
 		CacheAffinityEnabled: true,
 		CacheAffinityModels:  []string{"allowed-model"},
@@ -208,7 +208,7 @@ func TestCacheAffinityRespectsModelAllowlist(t *testing.T) {
 }
 
 func TestCacheAffinityDisabledByDefault(t *testing.T) {
-	server := NewWithConfig(NewMemoryStore(), Config{SecretKey: "secret"})
+	server := newManagedTestServerWithConfig(t, newTestMemoryStore(t), Config{SecretKey: "secret"})
 	headers := make(http.Header)
 	headers.Set("x-tokenhub-session-id", "session-1")
 	affinity, err := server.chatCacheLocalityAffinity("key_alpha", headers,
@@ -222,7 +222,7 @@ func TestCacheAffinityDisabledByDefault(t *testing.T) {
 }
 
 func TestResponsesCacheAffinityUsesGenericSessionHints(t *testing.T) {
-	server := NewWithConfig(NewMemoryStore(), Config{
+	server := newManagedTestServerWithConfig(t, newTestMemoryStore(t), Config{
 		SecretKey:            "secret",
 		CacheAffinityEnabled: true,
 		CacheAffinityModels:  []string{"deepseek-v4-flash"},
@@ -268,7 +268,7 @@ func TestResponsesCacheAffinityUsesGenericSessionHints(t *testing.T) {
 
 func TestResponsesCacheAffinityUserScopeRequiresOptIn(t *testing.T) {
 	request := responsesRequestFromJSON(t, `{"model":"deepseek-v4-flash","input":"hello","user":"tenant-user"}`)
-	server := NewWithConfig(NewMemoryStore(), Config{
+	server := newManagedTestServerWithConfig(t, newTestMemoryStore(t), Config{
 		SecretKey:            "secret",
 		CacheAffinityEnabled: true,
 	})
@@ -326,7 +326,7 @@ func TestCacheLocalityDoesNotPersistBinding(t *testing.T) {
 func TestDeterministicStrategiesIgnoreAffinity(t *testing.T) {
 	for _, strategy := range []string{RouteStrategyPriorityOnly, RouteStrategyQuality, RouteStrategyCost} {
 		t.Run(strategy, func(t *testing.T) {
-			store := NewMemoryStore()
+			store := newTestMemoryStore(t)
 			store.AddModel(Model{Name: "locality-model", Modality: "chat", Status: StatusActive})
 			provider := store.AddProvider(Provider{
 				ID: "prv_locality", Name: "locality", Type: ProviderOpenAICompatible,
@@ -344,7 +344,7 @@ func TestDeterministicStrategiesIgnoreAffinity(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			server := New(store)
+			server := newManagedTestServer(t, store)
 
 			baseline := server.planRouteOrder(CallContext{RequestID: "req_1"}, routes)
 			withAffinity := server.planRouteOrder(
@@ -362,7 +362,7 @@ func TestDeterministicStrategiesIgnoreAffinity(t *testing.T) {
 // The sticky bypass applies only to cache locality; Codex keeps its existing
 // semantics.
 func TestStickyBypassOnlyForCacheLocality(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	store.AddModel(Model{Name: "locality-model", Modality: "chat", Status: StatusActive})
 	provider := store.AddProvider(Provider{
 		ID: "prv_locality", Name: "locality", Type: ProviderOpenAICompatible,
@@ -380,7 +380,7 @@ func TestStickyBypassOnlyForCacheLocality(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	server := New(store)
+	server := newManagedTestServer(t, store)
 	key := APIKey{ID: "key_alpha"}
 
 	codexAffinity := &RequestAffinity{
@@ -471,7 +471,7 @@ func TestRendezvousSortPrecomputesScores(t *testing.T) {
 // pre-change behaviour.
 func TestSwitchOffIsByteIdenticalToLegacyRouting(t *testing.T) {
 	store, routes := newCacheLocalityStore(t, []string{"model-a", "model-b", "model-c"})
-	server := NewWithConfig(store, Config{SecretKey: "secret"}) // CacheAffinityEnabled defaults to false
+	server := newManagedTestServerWithConfig(t, store, Config{SecretKey: "secret"}) // CacheAffinityEnabled defaults to false
 	headers := make(http.Header)
 	headers.Set("x-tokenhub-session-id", "session-should-be-ignored")
 
@@ -498,7 +498,7 @@ func TestSwitchOffIsByteIdenticalToLegacyRouting(t *testing.T) {
 // Routes backed by real provider resources must map to per-resource cache domains:
 // this is the multi-account shape the whole feature exists for.
 func TestResourceBackedRoutesFormDistinctCacheDomains(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	store.AddModel(Model{Name: "locality-model", Modality: "chat", Status: StatusActive})
 	provider := store.AddProvider(Provider{
 		ID: "prv_multi_account", Name: "multi-account", Type: ProviderOpenAICompatible,
@@ -542,7 +542,7 @@ func TestResourceBackedRoutesFormDistinctCacheDomains(t *testing.T) {
 		t.Fatalf("each account must be its own cache domain, got %v", domains)
 	}
 
-	server := New(store)
+	server := newManagedTestServer(t, store)
 	// One session must stay on a single account across turns...
 	affinity := localityAffinity(t, "resource-session")
 	var pinned string

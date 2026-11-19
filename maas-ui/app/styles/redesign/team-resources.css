@@ -1,0 +1,82 @@
+.team-resource-content-panel {
+  min-width: 0;
+  padding: 16px 16px 38px;
+}
+
+.team-resource-content-panel > .section {
+  min-width: 0;
+  border-radius: 6px;
+}
+
+.team-resource-content-panel > .section > .section-header {
+  min-height: 42px;
+  padding-inline: 16px;
+}
+
+.team-resource-content-panel > .section > .section-body {
+  min-width: 0;
+  padding: 16px;
+}
+
+.team-resource-content-panel .table-wrap {
+  max-width: 100%;
+  border-radius: 4px;
+}
+
+.team-resource-content-panel .table-toolbar {
+  flex-wrap: wrap;
+}
+
+.team-resource-content-panel .table-toolbar .search-box {
+  min-width: min(240px, 100%);
+}
+
+.team-resource-content-panel .workflow-hint {
+  flex-wrap: wrap;
+}
+
+.team-resource-content-panel .row-actions {
+  flex-wrap: nowrap;
+  white-space: nowrap;
+}
+
+.team-resource-content-panel .resource-table-pane table {
+  min-width: 1100px;
+}
+
+.team-resource-content-panel .resource-table-pane table:has(th[data-column="project_team"]) {
+  min-width: 1560px;
+}
+
+.team-resource-content-panel .resource-table-pane th {
+  white-space: nowrap;
+}
+
+.team-resource-content-panel .resource-table-pane :is(th, td)[data-column="project_id"],
+.team-resource-content-panel .resource-table-pane :is(th, td)[data-column="owner_user_id"],
+.team-resource-content-panel .resource-table-pane :is(th, td)[data-column="project_owner"] {
+  min-width: 140px;
+}
+
+.team-resource-content-panel table [data-column="name"] {
+  min-width: 140px;
+}
+
+.team-resource-content-panel table [data-column="actions"] {
+  min-width: 230px;
+}
+
+.team-resource-content-panel .quick-access {
+  width: min(100%, 920px);
+  padding-top: 12px;
+}
+
+@media (max-width: 760px) {
+  .team-resource-content-panel {
+    padding: 12px 12px 28px;
+  }
+
+  .team-resource-content-panel .table-toolbar-actions {
+    flex-wrap: wrap;
+  }
+}

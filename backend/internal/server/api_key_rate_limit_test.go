@@ -90,7 +90,7 @@ func (a *countingRateLimitAdapter) ChatStream(ctx context.Context, provider Prov
 }
 
 func TestAPIKeyRPMRejectsBeforeProviderAndReturnsRetryHeaders(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	project := store.CreateProject(Project{Name: "RPM Limited", Status: StatusActive})
 	rpm := int64(1)
 	_, secret, err := store.CreateAPIKey(project.ID, APIKey{
@@ -106,7 +106,7 @@ func TestAPIKeyRPMRejectsBeforeProviderAndReturnsRetryHeaders(t *testing.T) {
 	store.AddModel(Model{Name: "gpt-4.1-mini", Modality: "chat", Status: StatusActive})
 	store.AddRoute(ModelRoute{ModelName: "gpt-4.1-mini", ProviderID: provider.ID, ProviderModel: "mock-chat", Status: StatusActive})
 	adapter := &countingRateLimitAdapter{}
-	server := New(store)
+	server := newManagedTestServer(t, store)
 	server.adapterRegistry.Register(ProviderMock, adapter, AdapterCapabilityChat, AdapterCapabilityChatStream, AdapterCapabilityResponses, AdapterCapabilityEmbeddings)
 	app := server.Handler()
 
@@ -170,7 +170,7 @@ func TestAPIKeyRPMConcurrentAdmissionIsAtomic(t *testing.T) {
 }
 
 func TestAPIKeyTPMReservesStreamingBudgetBeforeProvider(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	project := store.CreateProject(Project{Name: "TPM Limited", Status: StatusActive})
 	tpm := int64(10)
 	_, secret, err := store.CreateAPIKey(project.ID, APIKey{
@@ -187,7 +187,7 @@ func TestAPIKeyTPMReservesStreamingBudgetBeforeProvider(t *testing.T) {
 	store.AddRoute(ModelRoute{ModelName: "gpt-4.1-mini", ProviderID: provider.ID, ProviderModel: "mock-chat", Status: StatusActive})
 	release := make(chan struct{})
 	adapter := &blockingTPMAdapter{started: make(chan struct{}), release: release}
-	server := New(store)
+	server := newManagedTestServer(t, store)
 	server.adapterRegistry.Register(ProviderMock, adapter, AdapterCapabilityChat, AdapterCapabilityChatStream)
 	app := server.Handler()
 
@@ -228,11 +228,11 @@ func TestAPIKeyTPMReservesStreamingBudgetBeforeProvider(t *testing.T) {
 }
 
 func TestAdminCanSetModifyAndClearAPIKeyMinuteLimitsIndependently(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	if err := BootstrapBaseData(store); err != nil {
 		t.Fatal(err)
 	}
-	app := New(store).Handler()
+	app := newManagedTestServer(t, store).Handler()
 
 	created := doJSON(t, app, http.MethodPost, "/api/admin/projects/"+defaultProjectID+"/keys", map[string]any{
 		"name":            "Minute Limited Key",
@@ -273,7 +273,7 @@ func TestAdminCanSetModifyAndClearAPIKeyMinuteLimitsIndependently(t *testing.T) 
 func TestAPIKeyTPMReturnsFailedRequestReservation(t *testing.T) {
 	store, secret := newRateLimitedGateway(t, APIKey{TokenLimitTPM: int64Pointer(10)})
 	adapter := &failFirstRateLimitAdapter{}
-	server := New(store)
+	server := newManagedTestServer(t, store)
 	server.adapterRegistry.Register(ProviderMock, adapter, AdapterCapabilityChat)
 	app := server.Handler()
 	payload := map[string]any{
@@ -295,7 +295,7 @@ func TestAPIKeyTPMReturnsFailedRequestReservation(t *testing.T) {
 func TestAPIKeyTPMSettlesFailedRequestToReportedUsage(t *testing.T) {
 	store, secret := newRateLimitedGateway(t, APIKey{TokenLimitTPM: int64Pointer(10)})
 	adapter := &usageFailFirstRateLimitAdapter{}
-	server := New(store)
+	server := newManagedTestServer(t, store)
 	server.adapterRegistry.Register(ProviderMock, adapter, AdapterCapabilityChat)
 	app := server.Handler()
 	payload := map[string]any{
@@ -319,7 +319,7 @@ func TestAPIKeyTPMSettlesUsageAcrossFailoverAttempts(t *testing.T) {
 	secondProvider := store.AddProvider(Provider{Name: "Second Mock", Type: ProviderMock, Status: StatusActive, Healthy: true})
 	store.AddRoute(ModelRoute{ModelName: "gpt-4.1-mini", ProviderID: secondProvider.ID, ProviderModel: "mock-chat", Status: StatusActive})
 	adapter := &usageFailFirstRateLimitAdapter{}
-	server := New(store)
+	server := newManagedTestServer(t, store)
 	server.adapterRegistry.Register(ProviderMock, adapter, AdapterCapabilityChat)
 	app := server.Handler()
 	payload := map[string]any{
@@ -358,7 +358,7 @@ func TestAPIKeyTPMSettlesUsageAcrossFailoverAttempts(t *testing.T) {
 func TestAPIKeyTPMSettlesReservationToActualUsage(t *testing.T) {
 	store, secret := newRateLimitedGateway(t, APIKey{TokenLimitTPM: int64Pointer(11)})
 	adapter := &countingRateLimitAdapter{}
-	server := New(store)
+	server := newManagedTestServer(t, store)
 	server.adapterRegistry.Register(ProviderMock, adapter, AdapterCapabilityChat)
 	app := server.Handler()
 	payload := map[string]any{
@@ -388,7 +388,7 @@ func TestAPIKeyMinuteLimitUsesStrictestApplicablePolicy(t *testing.T) {
 		Status: StatusActive,
 		Fields: map[string]any{"scope": "project", "scope_id": project.ID, "rate_limit_rpm": 1},
 	})
-	app := New(store).Handler()
+	app := newManagedTestServer(t, store).Handler()
 	payload := map[string]any{
 		"model":    "gpt-4.1-mini",
 		"messages": []map[string]any{{"role": "user", "content": "policy"}},
@@ -407,13 +407,13 @@ func TestAPIKeyMinuteLimitUsesStrictestApplicablePolicy(t *testing.T) {
 }
 
 func TestQuotaPolicyMinuteLimitsRejectInvalidValues(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	project := store.CreateProject(Project{Name: "Invalid Quota Policy", Status: StatusActive})
 	policy := store.CreateResource("quota-policies", AdminResource{
 		Name: "Existing Policy", Status: StatusActive,
 		Fields: map[string]any{"scope": "project", "scope_id": project.ID, "rate_limit_rpm": 1},
 	})
-	app := New(store).Handler()
+	app := newManagedTestServer(t, store).Handler()
 	for _, test := range []struct {
 		name    string
 		method  string
@@ -544,7 +544,7 @@ func TestAPIKeyRPMIsSharedAcrossCompatibleEndpoints(t *testing.T) {
 	if _, err := store.UpdateAPIKey(key.ID, key); err != nil {
 		t.Fatal(err)
 	}
-	app := New(store).Handler()
+	app := newManagedTestServer(t, store).Handler()
 	responses := doJSON(t, app, http.MethodPost, "/v1/responses", map[string]any{
 		"model":             "gpt-4.1-mini",
 		"input":             "one",
@@ -586,7 +586,7 @@ func TestAPIKeyMinuteLimitUnsetZeroAndDisabledSemantics(t *testing.T) {
 				Status: StatusActive,
 				Fields: map[string]any{"scope": "project", "scope_id": project.ID, "rate_limit_rpm": 1},
 			})
-			app := New(store).Handler()
+			app := newManagedTestServer(t, store).Handler()
 			payload := map[string]any{
 				"model":    "gpt-4.1-mini",
 				"messages": []map[string]any{{"role": "user", "content": "inherit"}},
@@ -606,7 +606,7 @@ func TestAPIKeyMinuteLimitUnsetZeroAndDisabledSemantics(t *testing.T) {
 		if _, err := store.UpdateAPIKey(key.ID, APIKey{Status: StatusDisabled}); err != nil {
 			t.Fatal(err)
 		}
-		app := New(store).Handler()
+		app := newManagedTestServer(t, store).Handler()
 		payload := map[string]any{
 			"model":    "gpt-4.1-mini",
 			"messages": []map[string]any{{"role": "user", "content": "disabled"}},
@@ -628,7 +628,7 @@ func TestAPIKeyMinuteLimitUnsetZeroAndDisabledSemantics(t *testing.T) {
 
 func TestAPIKeyMinuteLimitIgnoresLegacyNestedMinuteFields(t *testing.T) {
 	store, secret := newRateLimitedGateway(t, APIKey{Limits: QuotaLimits{RateLimitRPM: 1}})
-	app := New(store).Handler()
+	app := newManagedTestServer(t, store).Handler()
 	payload := map[string]any{
 		"model":      "gpt-4.1-mini",
 		"max_tokens": 1,
@@ -654,7 +654,7 @@ func TestAPIKeyMinuteLimitResetsAtWindowBoundary(t *testing.T) {
 	}).Error; err != nil {
 		t.Fatal(err)
 	}
-	app := New(store).Handler()
+	app := newManagedTestServer(t, store).Handler()
 	payload := map[string]any{
 		"model":    "gpt-4.1-mini",
 		"messages": []map[string]any{{"role": "user", "content": "new window"}},
@@ -706,7 +706,7 @@ func TestAPIKeyTPMReturnsReservationAfterStreamingInterruption(t *testing.T) {
 	store, secret := newRateLimitedGateway(t, APIKey{TokenLimitTPM: int64Pointer(10)})
 	release := make(chan struct{})
 	adapter := &blockingTPMAdapter{started: make(chan struct{}), release: release}
-	server := New(store)
+	server := newManagedTestServer(t, store)
 	server.adapterRegistry.Register(ProviderMock, adapter, AdapterCapabilityChat, AdapterCapabilityChatStream)
 	app := server.Handler()
 	requestContext, cancel := context.WithCancel(context.Background())
@@ -741,7 +741,7 @@ func TestAPIKeyTPMReturnsReservationAfterStreamingInterruption(t *testing.T) {
 }
 
 func TestAPIKeyTPMReturnsCodexReservationWhenStreamHasNoBody(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	project := store.CreateProject(Project{Name: "Codex Empty Stream", Status: StatusActive})
 	tokenLimit := int64(10)
 	key, secret, err := store.CreateAPIKey(project.ID, APIKey{
@@ -768,7 +768,7 @@ func TestAPIKeyTPMReturnsCodexReservationWhenStreamHasNoBody(t *testing.T) {
 		ModelName: "gpt-codex-empty", ProviderID: provider.ID, ProviderResourceID: resource.ID,
 		ProviderModel: "gpt-codex-empty", Status: StatusActive,
 	})
-	server := New(store)
+	server := newManagedTestServer(t, store)
 	mustCodexSubscriptionAdapterForTest(t, server).Client = &http.Client{Transport: roundTripperFunc(func(req *http.Request) (*http.Response, error) {
 		return &http.Response{
 			StatusCode: http.StatusOK, Header: make(http.Header),
@@ -793,7 +793,7 @@ func TestAPIKeyTPMReturnsCodexReservationWhenStreamHasNoBody(t *testing.T) {
 func TestAPIKeyTPMKeepsReservationAfterPartialStreamInterruption(t *testing.T) {
 	store, secret := newRateLimitedGateway(t, APIKey{TokenLimitTPM: int64Pointer(10)})
 	adapter := &partialStreamRateLimitAdapter{wrote: make(chan struct{})}
-	server := New(store)
+	server := newManagedTestServer(t, store)
 	server.adapterRegistry.Register(ProviderMock, adapter, AdapterCapabilityChat, AdapterCapabilityChatStream)
 	app := server.Handler()
 	requestContext, cancel := context.WithCancel(context.Background())
@@ -830,7 +830,7 @@ func TestAPIKeyTPMKeepsReservationAfterPartialStreamInterruption(t *testing.T) {
 func TestAPIKeyTPMSaturatesOversizedTokenReservation(t *testing.T) {
 	store, secret := newRateLimitedGateway(t, APIKey{TokenLimitTPM: int64Pointer(100)})
 	adapter := &countingRateLimitAdapter{}
-	server := New(store)
+	server := newManagedTestServer(t, store)
 	server.adapterRegistry.Register(ProviderMock, adapter, AdapterCapabilityChat)
 	response := doJSON(t, server.Handler(), http.MethodPost, "/v1/chat/completions", map[string]any{
 		"model":                 "gpt-4.1-mini",
@@ -881,7 +881,7 @@ func TestMeteredTokensDoesNotDoubleCountUsageDetails(t *testing.T) {
 
 func newRateLimitedGateway(t *testing.T, limits APIKey) (*GormStore, string) {
 	t.Helper()
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	project := store.CreateProject(Project{Name: "Rate Limited", Status: StatusActive})
 	limits.Name = "rate-limited"
 	limits.Allowed = []string{"gpt-4.1-mini"}

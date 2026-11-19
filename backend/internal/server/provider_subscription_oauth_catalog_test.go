@@ -15,7 +15,7 @@ import (
 func TestSubscriptionGoogleExchangeIncludesLiveCatalog(t *testing.T) {
 	for _, providerType := range []string{providerGeminiCLISubscription, providerAntigravitySubscription} {
 		t.Run(providerType, func(t *testing.T) {
-			server := New(NewMemoryStore())
+			server := newManagedTestServer(t, newTestMemoryStore(t))
 			var modelRequests atomic.Int32
 			upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				switch r.URL.Path {
@@ -84,7 +84,7 @@ func TestSubscriptionGoogleExchangeIncludesLiveCatalog(t *testing.T) {
 func TestSubscriptionCatalogFailurePreservesRotatedCredentials(t *testing.T) {
 	for _, providerType := range []string{ProviderChatGPTSubscription, providerGeminiCLISubscription, providerAntigravitySubscription} {
 		t.Run(providerType, func(t *testing.T) {
-			server := New(NewMemoryStore())
+			server := newManagedTestServer(t, newTestMemoryStore(t))
 			var refreshes, modelRequests atomic.Int32
 			upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				if googleSubscriptionTestProject(w, r) {

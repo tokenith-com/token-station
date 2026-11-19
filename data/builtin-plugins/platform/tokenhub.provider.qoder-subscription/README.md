@@ -1,6 +1,6 @@
 # Qoder
 
-Connect an explicitly authorized Qoder account to TokenHub.
+Connect an explicitly authorized Qoder account to TokenStation.
 
 - Plugin ID: `tokenhub.provider.qoder-subscription`
 - Configuration: Provider management, with a separate account resource

@@ -3,7 +3,7 @@ id: "tokenhub.provider.gcp-ai-subscription"
 name: "GCP AI"
 version: 1.0.0
 summary: "Connect a GCP AI subscription account."
-description: "Connect an explicitly authorized GCP AI subscription account through TokenHub's isolated bundled runtime."
+description: "Connect an explicitly authorized GCP AI subscription account through TokenStation's isolated bundled runtime."
 category: provider_integration
 tokenhub:
   plugin_api: v2

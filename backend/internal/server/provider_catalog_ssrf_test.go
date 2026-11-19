@@ -609,11 +609,11 @@ func TestAdminCreateProviderRejectsSSRFBaseURL(t *testing.T) {
 		"http://100.100.100.200/latest/meta-data",
 		"http://203.0.113.10/v1",
 	} {
-		store := NewMemoryStore()
+		store := newTestMemoryStore(t)
 		if err := SeedDemoData(store); err != nil {
 			t.Fatal(err)
 		}
-		app := New(store).Handler()
+		app := newManagedTestServer(t, store).Handler()
 		resp := doJSON(t, app, http.MethodPost, "/api/admin/providers", map[string]any{
 			"name":     "SSRF attempt",
 			"type":     "local",
@@ -631,11 +631,11 @@ func TestAdminCreateProviderRejectsSSRFBaseURL(t *testing.T) {
 func TestAdminCreateProviderAllowsPrivateLiteral(t *testing.T) {
 	t.Setenv("TOKENHUB_PROVIDER_UPSTREAM_ACCESS_MODE", "strict")
 	t.Setenv("TOKENHUB_PROVIDER_UPSTREAM_ALLOWED_CIDRS", "")
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	if err := SeedDemoData(store); err != nil {
 		t.Fatal(err)
 	}
-	resp := doJSON(t, New(store).Handler(), http.MethodPost, "/api/admin/providers", map[string]any{
+	resp := doJSON(t, newManagedTestServer(t, store).Handler(), http.MethodPost, "/api/admin/providers", map[string]any{
 		"name":     "LAN vLLM",
 		"type":     ProviderOpenAICompatible,
 		"base_url": "http://192.168.77.100:11434/v1",
@@ -648,11 +648,11 @@ func TestAdminCreateProviderAllowsPrivateLiteral(t *testing.T) {
 func TestAdminCreateProviderRejectsLoopbackByDefault(t *testing.T) {
 	t.Setenv("TOKENHUB_PROVIDER_UPSTREAM_ACCESS_MODE", "strict")
 	t.Setenv("TOKENHUB_PROVIDER_UPSTREAM_ALLOW_LOOPBACK", "")
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	if err := SeedDemoData(store); err != nil {
 		t.Fatal(err)
 	}
-	resp := doJSON(t, New(store).Handler(), http.MethodPost, "/api/admin/providers", map[string]any{
+	resp := doJSON(t, newManagedTestServer(t, store).Handler(), http.MethodPost, "/api/admin/providers", map[string]any{
 		"name":     "Loopback attempt",
 		"type":     ProviderOpenAICompatible,
 		"base_url": "http://127.0.0.1:11434/v1",
@@ -664,11 +664,11 @@ func TestAdminCreateProviderRejectsLoopbackByDefault(t *testing.T) {
 
 func TestAdminCreateProviderRejectsPublicHTTP(t *testing.T) {
 	t.Setenv("TOKENHUB_PROVIDER_UPSTREAM_ACCESS_MODE", "strict")
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	if err := SeedDemoData(store); err != nil {
 		t.Fatal(err)
 	}
-	resp := doJSON(t, New(store).Handler(), http.MethodPost, "/api/admin/providers", map[string]any{
+	resp := doJSON(t, newManagedTestServer(t, store).Handler(), http.MethodPost, "/api/admin/providers", map[string]any{
 		"name":     "Plaintext public provider",
 		"type":     ProviderOpenAICompatible,
 		"base_url": "http://api.example.com/v1",
@@ -682,11 +682,11 @@ func TestAdminCreateProviderRejectsPublicHTTP(t *testing.T) {
 // an existing healthy provider must not be repointed at a metadata endpoint.
 func TestAdminPatchProviderRejectsSSRFBaseURL(t *testing.T) {
 	t.Setenv("TOKENHUB_PROVIDER_UPSTREAM_ACCESS_MODE", "strict")
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	if err := SeedDemoData(store); err != nil {
 		t.Fatal(err)
 	}
-	app := New(store).Handler()
+	app := newManagedTestServer(t, store).Handler()
 
 	created := doJSON(t, app, http.MethodPost, "/api/admin/providers", map[string]any{
 		"name":     "Local vLLM",
@@ -737,11 +737,11 @@ func TestAdminProviderURLValidationIgnoresAmbientProxy(t *testing.T) {
 			t.Setenv(proxyVariables.http, "http://proxy.example:3128")
 			t.Setenv(proxyVariables.https, "http://proxy.example:3128")
 
-			store := NewMemoryStore()
+			store := newTestMemoryStore(t)
 			if err := SeedDemoData(store); err != nil {
 				t.Fatal(err)
 			}
-			app := New(store).Handler()
+			app := newManagedTestServer(t, store).Handler()
 
 			for _, test := range []struct {
 				name      string
@@ -790,11 +790,11 @@ func TestAdminProviderURLValidationIgnoresAmbientProxy(t *testing.T) {
 // private IP saves successfully.
 func TestAdminCreateProviderAllowsAllowlistedPrivateLiteral(t *testing.T) {
 	t.Setenv("TOKENHUB_PROVIDER_UPSTREAM_ALLOWED_CIDRS", "192.168.0.0/16")
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	if err := SeedDemoData(store); err != nil {
 		t.Fatal(err)
 	}
-	app := New(store).Handler()
+	app := newManagedTestServer(t, store).Handler()
 	resp := doJSON(t, app, http.MethodPost, "/api/admin/providers", map[string]any{
 		"name":     "In-house vLLM",
 		"type":     "local",
@@ -855,7 +855,7 @@ func TestUpstreamClientsGuardInferenceDial(t *testing.T) {
 		conn.Close()
 		_ = listener.Close()
 	}
-	server := New(NewMemoryStore())
+	server := newManagedTestServer(t, newTestMemoryStore(t))
 	proxying, ok := mustCodexSubscriptionAdapterForTest(t, server).Client.Transport.(*providerEnvironmentProxyTransport)
 	if !ok {
 		t.Fatal("expected Codex subscription client to honor the operator forward proxy")
@@ -874,7 +874,7 @@ func TestProviderResourceBaseURLSSRFGuard(t *testing.T) {
 	t.Setenv("TOKENHUB_PROVIDER_UPSTREAM_ACCESS_MODE", "strict")
 	newStore := func(t *testing.T) (*GormStore, Provider) {
 		t.Helper()
-		store := NewMemoryStore()
+		store := newTestMemoryStore(t)
 		provider := store.AddProvider(Provider{
 			ID:      "prv_ssrf_test",
 			Name:    "SSRF test provider",

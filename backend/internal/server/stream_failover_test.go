@@ -16,7 +16,7 @@ import (
 // tests can fail the preferred one and observe the fallback.
 func newStreamFailoverGateway(t *testing.T, primaryURL string, secondaryURL string) (*Server, string) {
 	t.Helper()
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	project := store.CreateProject(Project{Name: "stream-failover", Status: StatusActive})
 	const model = "stream-failover-model"
 	_, secret, err := store.CreateAPIKey(project.ID, APIKey{
@@ -48,7 +48,7 @@ func newStreamFailoverGateway(t *testing.T, primaryURL string, secondaryURL stri
 			Strategy:      RouteStrategyPriorityOnly,
 		})
 	}
-	return New(store), secret
+	return newManagedTestServer(t, store), secret
 }
 
 func writeChatStreamChunk(w http.ResponseWriter, content string) {
@@ -329,7 +329,7 @@ func TestStreamAttemptCountIncludesCapacityFailures(t *testing.T) {
 	}))
 	defer served.Close()
 
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	project := store.CreateProject(Project{Name: "capacity-attempts", Status: StatusActive})
 	const model = "capacity-attempt-model"
 	_, secret, err := store.CreateAPIKey(project.ID, APIKey{
@@ -369,7 +369,7 @@ func TestStreamAttemptCountIncludesCapacityFailures(t *testing.T) {
 		Status: StatusActive, Strategy: RouteStrategyPriorityOnly,
 	})
 
-	server := New(store)
+	server := newManagedTestServer(t, store)
 	payload := map[string]any{
 		"model":    model,
 		"messages": []map[string]any{{"role": "user", "content": "hi"}},

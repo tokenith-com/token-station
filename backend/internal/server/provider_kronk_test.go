@@ -14,7 +14,7 @@ import (
 )
 
 func TestKronkCatalogTemplateHasLocalDefaults(t *testing.T) {
-	entry, _, found, err := newProviderCatalogService(NewMemoryStore(), "").Get(context.Background(), ProviderKronk, false)
+	entry, _, found, err := newProviderCatalogService(newTestMemoryStore(t), "").Get(context.Background(), ProviderKronk, false)
 	if err != nil || !found {
 		t.Fatalf("get Kronk catalog: found=%v err=%v", found, err)
 	}
@@ -24,7 +24,7 @@ func TestKronkCatalogTemplateHasLocalDefaults(t *testing.T) {
 }
 
 func TestKronkProviderPluginRegistersModelsPreviewAction(t *testing.T) {
-	server := New(NewMemoryStore())
+	server := newManagedTestServer(t, newTestMemoryStore(t))
 	action, ok := server.providerPluginCapabilityActionDescriptor(ProviderKronk, AdapterCapabilityModels, "models.preview", "")
 	if !ok {
 		t.Fatal("expected Kronk models preview action")
@@ -97,7 +97,7 @@ func TestKronkConnectionTestChecksServiceAndModelsWithoutToken(t *testing.T) {
 	}))
 	defer upstream.Close()
 
-	response := doJSON(t, newTestServer(), http.MethodPost, "/api/admin/providers/test-connection", map[string]any{
+	response := doJSON(t, newTestServer(t), http.MethodPost, "/api/admin/providers/test-connection", map[string]any{
 		"name": "Kronk", "type": ProviderKronk, "base_url": upstream.URL + "/v1",
 	}, "")
 	if response.Code != http.StatusOK {
@@ -135,7 +135,7 @@ func TestKronkConnectionTestDistinguishesHealthyServiceWithoutModels(t *testing.
 	}))
 	defer upstream.Close()
 
-	response := doJSON(t, newTestServer(), http.MethodPost, "/api/admin/providers/test-connection", map[string]any{
+	response := doJSON(t, newTestServer(t), http.MethodPost, "/api/admin/providers/test-connection", map[string]any{
 		"name": "Kronk", "type": ProviderKronk, "base_url": upstream.URL + "/v1",
 	}, "")
 	if response.Code != http.StatusServiceUnavailable {
@@ -303,13 +303,13 @@ func TestKronkDiscoveryRejectsDestinationOverrideBeforeSendingStoredSecrets(t *t
 	}))
 	defer overridden.Close()
 
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	provider := store.AddProvider(Provider{
 		ID: "prv_kronk_saved", Name: "Kronk", Type: ProviderKronk, BaseURL: stored.URL + "/v1",
 		APIKey: "saved-kronk-token", Headers: map[string]string{"X-Kronk-Secret": "saved-header"},
 		SensitiveHeaders: []string{"X-Kronk-Secret"}, Status: StatusActive, Healthy: true,
 	})
-	response := doJSON(t, New(store).Handler(), http.MethodPost, "/api/admin/provider-catalog/kronk", map[string]any{
+	response := doJSON(t, newManagedTestServer(t, store).Handler(), http.MethodPost, "/api/admin/provider-catalog/kronk", map[string]any{
 		"provider_id": provider.ID,
 		"base_url":    overridden.URL + "/v1",
 	}, "")
@@ -363,12 +363,12 @@ func TestKronkDiscoveryReconcilesRemovedModelsOnlyAfterSuccess(t *testing.T) {
 	}))
 	defer upstream.Close()
 
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	provider := store.AddProvider(Provider{ID: "prv_kronk", Name: "Kronk", Type: ProviderKronk, BaseURL: upstream.URL + "/v1", Status: StatusActive, Healthy: true})
 	for _, id := range models {
 		store.AddProviderModel(ProviderModel{ProviderID: provider.ID, UpstreamModel: id, DisplayName: id, Source: "kronk-discovery", Status: StatusActive, Metadata: map[string]string{"kronk_available": "true"}})
 	}
-	app := New(store).Handler()
+	app := newManagedTestServer(t, store).Handler()
 	models = models[:1]
 	response := doJSON(t, app, http.MethodPost, "/api/admin/provider-catalog/kronk", map[string]any{"provider_id": provider.ID}, "")
 	if response.Code != http.StatusOK {
@@ -387,8 +387,8 @@ func TestKronkDiscoveryReconcilesRemovedModelsOnlyAfterSuccess(t *testing.T) {
 }
 
 func TestKronkImportIsIdempotentAndKeepsExactRouteModel(t *testing.T) {
-	store := NewMemoryStore()
-	app := New(store).Handler()
+	store := newTestMemoryStore(t)
+	app := newManagedTestServer(t, store).Handler()
 	modelID := "org/private/model:Q5_K_M.gguf"
 	catalogModel := ProviderCatalogModel{
 		ID: modelID, Name: modelID, DisplayName: modelID, Type: "chat",

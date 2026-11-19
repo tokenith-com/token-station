@@ -203,7 +203,7 @@ func TestPostgreSQLIntegration(t *testing.T) {
 
 // TestSQLiteCompatibility ensures SQLite functionality still works correctly.
 func TestSQLiteCompatibility(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 
 	// Verify the database type.
 	if !store.IsSQLite() {

@@ -350,7 +350,7 @@ func TestSessionAffinityKeyRejectsInvalidIdentifier(t *testing.T) {
 // This pins the pre-change baseline. It is expected to fail once Stage 3 wires
 // affinity in, at which point it should assert convergence instead.
 func TestBalancedRoutingStillVariesByRequestID(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	store.AddModel(Model{Name: "order-model", Modality: "chat", Status: StatusActive})
 	provider := store.AddProvider(Provider{
 		ID:      "prv_affinity_order",
@@ -372,7 +372,7 @@ func TestBalancedRoutingStillVariesByRequestID(t *testing.T) {
 			Strategy:      RouteStrategyBalanced,
 		})
 	}
-	server := New(store)
+	server := newManagedTestServer(t, store)
 	routes, err := store.SelectRouteCandidates("order-model")
 	if err != nil {
 		t.Fatal(err)

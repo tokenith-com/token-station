@@ -217,7 +217,7 @@ func TestMetricsOpenAIAsAnthropicBridgeInBandErrorCountsInterruption(t *testing.
 	}))
 	defer upstream.Close()
 
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	project := store.CreateProject(Project{Name: "metrics-bridge", Status: StatusActive})
 	_, secret, err := store.CreateAPIKey(project.ID, APIKey{
 		Name:    "metrics-bridge-key",
@@ -255,7 +255,7 @@ func TestMetricsOpenAIAsAnthropicBridgeInBandErrorCountsInterruption(t *testing.
 		Strategy:      RouteStrategyPriorityOnly,
 	})
 
-	server := NewWithConfig(store, Config{AdminToken: "dev_admin_token", MetricsEnabled: true})
+	server := newManagedTestServerWithConfig(t, store, Config{AdminToken: "dev_admin_token", MetricsEnabled: true})
 	resp := doAnthropicRequest(t, server.Handler(), "/v1/messages", map[string]any{
 		"model":      "claude-metrics-test",
 		"max_tokens": 1024,
@@ -289,7 +289,7 @@ func TestMetricsOpenAIAsAnthropicBridgeInBandErrorCountsInterruption(t *testing.
 // that routes to the given upstream URL.
 func newMetricsKronkTestServer(t *testing.T, upstreamURL string) (*Server, string) {
 	t.Helper()
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	project := store.CreateProject(Project{Name: "metrics-kronk", Status: StatusActive})
 	const model = "kronk-metrics-model"
 	_, secret, err := store.CreateAPIKey(project.ID, APIKey{
@@ -335,7 +335,7 @@ func newMetricsKronkTestServer(t *testing.T, upstreamURL string) (*Server, strin
 		Status:             StatusActive,
 		Strategy:           RouteStrategyPriorityOnly,
 	})
-	server := NewWithConfig(store, Config{AdminToken: "dev_admin_token", MetricsEnabled: true})
+	server := newManagedTestServerWithConfig(t, store, Config{AdminToken: "dev_admin_token", MetricsEnabled: true})
 	if server.metrics == nil {
 		t.Fatal("expected metrics to be enabled")
 	}
@@ -424,7 +424,7 @@ func TestMetricsInBandErrorSecretsRedactedThroughFullPipeline(t *testing.T) {
 
 	// Build a custom gateway with a provider that has an API key, so the
 	// redaction path is exercised through the full streaming pipeline.
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	project := store.CreateProject(Project{Name: "metrics-secrets", Status: StatusActive})
 	const model = "metrics-secrets-model"
 	_, secret, err := store.CreateAPIKey(project.ID, APIKey{
@@ -470,7 +470,7 @@ func TestMetricsInBandErrorSecretsRedactedThroughFullPipeline(t *testing.T) {
 		Status:             StatusActive,
 		Strategy:           RouteStrategyPriorityOnly,
 	})
-	server := NewWithConfig(store, Config{AdminToken: "dev_admin_token", MetricsEnabled: true})
+	server := newManagedTestServerWithConfig(t, store, Config{AdminToken: "dev_admin_token", MetricsEnabled: true})
 	if server.metrics == nil {
 		t.Fatal("expected metrics to be enabled")
 	}
@@ -679,7 +679,7 @@ func TestMetricsClientDisconnectInterruptionKeepsItsCode(t *testing.T) {
 // enabled. upstream returns the response the mock subscription should serve.
 func newMetricsCodexTestServer(t *testing.T, upstream func(*http.Request) *http.Response) (*Server, string) {
 	t.Helper()
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	project := store.CreateProject(Project{Name: "metrics-codex", Status: StatusActive})
 	const model = "metrics-codex-model"
 	_, secret, err := store.CreateAPIKey(project.ID, APIKey{
@@ -721,7 +721,7 @@ func newMetricsCodexTestServer(t *testing.T, upstream func(*http.Request) *http.
 		ProviderModel: model,
 		Status:        StatusActive,
 	})
-	server := NewWithConfig(store, Config{AdminToken: "dev_admin_token", MetricsEnabled: true})
+	server := newManagedTestServerWithConfig(t, store, Config{AdminToken: "dev_admin_token", MetricsEnabled: true})
 	if server.metrics == nil {
 		t.Fatal("expected metrics to be enabled")
 	}
@@ -831,7 +831,7 @@ func TestMetricsCodexEmptyBodyFailureIsNotAnInterruption(t *testing.T) {
 // enabled so the Gemini streaming endpoint can be asserted against.
 func newMetricsGeminiTestServer(t *testing.T, responder func(map[string]any) string) (*Server, string) {
 	t.Helper()
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	project := store.CreateProject(Project{Name: "Metrics Gemini Project", Status: StatusActive})
 	_, secret, err := store.CreateAPIKey(project.ID, APIKey{Name: "Metrics Gemini Key", Allowed: []string{geminiCodexTestModel}, Status: StatusActive}, "thk_metrics_gemini")
 	if err != nil {
@@ -849,7 +849,7 @@ func newMetricsGeminiTestServer(t *testing.T, responder func(map[string]any) str
 	}
 	store.AddModel(Model{Name: geminiCodexTestModel, Modality: "chat", ContextWindow: 128000, Status: StatusActive})
 	store.AddRoute(ModelRoute{ID: "route_gemini_codex", ModelName: geminiCodexTestModel, ProviderID: provider.ID, ProviderResourceID: resource.ID, ProviderModel: geminiCodexTestModel, Status: StatusActive})
-	server := NewWithConfig(store, Config{AdminToken: "dev_admin_token", MetricsEnabled: true})
+	server := newManagedTestServerWithConfig(t, store, Config{AdminToken: "dev_admin_token", MetricsEnabled: true})
 	if server.metrics == nil {
 		t.Fatal("expected metrics to be enabled")
 	}
@@ -1009,7 +1009,7 @@ func TestMetricsNativeAnthropicErrorAfterFirstByteCountsInterruption(t *testing.
 // enabled. upstream serves the SSE stream the gateway should forward.
 func newMetricsAnthropicTestServer(t *testing.T, upstreamURL string) (*Server, string) {
 	t.Helper()
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	project := store.CreateProject(Project{Name: "metrics-anthropic", Status: StatusActive})
 	_, secret, err := store.CreateAPIKey(project.ID, APIKey{
 		Name:    "metrics-anthropic-key",
@@ -1046,5 +1046,5 @@ func newMetricsAnthropicTestServer(t *testing.T, upstreamURL string) (*Server, s
 		Status:        StatusActive,
 		Strategy:      RouteStrategyPriorityOnly,
 	})
-	return NewWithConfig(store, Config{AdminToken: "dev_admin_token", MetricsEnabled: true}), secret
+	return newManagedTestServerWithConfig(t, store, Config{AdminToken: "dev_admin_token", MetricsEnabled: true}), secret
 }

@@ -28,7 +28,7 @@ var geminiMethodRoutes = []geminiMethodRoute{
 }
 
 func TestGeminiMethodRoutesRejectWrongMethods(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	if err := SeedDemoData(store); err != nil {
 		t.Fatal(err)
 	}
@@ -59,7 +59,7 @@ func TestGeminiMethodRoutesRejectWrongMethods(t *testing.T) {
 }
 
 func TestGeminiMethodRoutesRejectMethodMatrix(t *testing.T) {
-	app := newTestServer()
+	app := newTestServer(t)
 	for _, route := range geminiMethodRoutes {
 		for _, method := range []string{http.MethodPut, http.MethodPatch, http.MethodDelete} {
 			t.Run(method+" "+route.path, func(t *testing.T) {
@@ -72,7 +72,7 @@ func TestGeminiMethodRoutesRejectMethodMatrix(t *testing.T) {
 }
 
 func TestGeminiMethodRoutesReachAuthentication(t *testing.T) {
-	app := newTestServer()
+	app := newTestServer(t)
 	for _, route := range geminiMethodRoutes {
 		t.Run(route.method+" "+route.path, func(t *testing.T) {
 			response := methodRoutingRequest(app, route.method, route.path, "")
@@ -83,7 +83,7 @@ func TestGeminiMethodRoutesReachAuthentication(t *testing.T) {
 }
 
 func TestGeminiGETRoutesRejectRealHEAD(t *testing.T) {
-	server := httptest.NewServer(newTestServer())
+	server := httptest.NewServer(newTestServer(t))
 	t.Cleanup(server.Close)
 
 	for _, route := range geminiMethodRoutes {
@@ -112,7 +112,7 @@ func TestGeminiGETRoutesRejectRealHEAD(t *testing.T) {
 }
 
 func TestGeminiMethodRoutesPreserveCORSPreflight(t *testing.T) {
-	app := newTestServer()
+	app := newTestServer(t)
 	for _, route := range geminiMethodRoutes {
 		t.Run(route.path, func(t *testing.T) {
 			request := httptest.NewRequest(http.MethodOptions, route.path, nil)
@@ -134,7 +134,7 @@ func TestGeminiMethodRoutesPreserveCORSPreflight(t *testing.T) {
 }
 
 func TestGeminiMethodRoutesPreservePathValidationOrder(t *testing.T) {
-	app := newTestServer()
+	app := newTestServer(t)
 	tests := []struct {
 		name       string
 		method     string
@@ -162,7 +162,7 @@ func TestGeminiMethodRoutesPreservePathValidationOrder(t *testing.T) {
 }
 
 func TestGeminiMethodRoutesPreserveEscapedPathSemantics(t *testing.T) {
-	app := newTestServer()
+	app := newTestServer(t)
 	tests := []struct {
 		name       string
 		method     string
@@ -232,7 +232,7 @@ func TestGeminiDynamicRoutesPreserveMultiSegmentModelNames(t *testing.T) {
 }
 
 func TestGeminiMethodRoutesRejectEmptyModelActionsBeforeAuthentication(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	if err := SeedDemoData(store); err != nil {
 		t.Fatal(err)
 	}
@@ -343,7 +343,7 @@ func TestGeminiDynamicRoutesPreserveTrailingSlashSuccess(t *testing.T) {
 }
 
 func TestGeminiMethodRoutesPreserveMetricsScope(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	if err := SeedDemoData(store); err != nil {
 		t.Fatal(err)
 	}

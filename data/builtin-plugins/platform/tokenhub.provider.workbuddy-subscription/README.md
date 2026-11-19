@@ -1,6 +1,6 @@
 # WorkBuddy
 
-Connect an explicitly authorized WorkBuddy account to TokenHub.
+Connect an explicitly authorized WorkBuddy account to TokenStation.
 
 - Plugin ID: `tokenhub.provider.workbuddy-subscription`
 - Configuration: Provider management, with a separate account resource

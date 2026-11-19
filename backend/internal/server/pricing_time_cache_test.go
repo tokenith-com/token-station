@@ -79,7 +79,7 @@ func TestTimeCachePricingCrossMidnightAndFreeOverrides(t *testing.T) {
 }
 
 func TestModelPricePatchPreservesOmittedFieldsAndExplicitFreeCache(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	if err := SeedDemoData(store); err != nil {
 		t.Fatal(err)
 	}
@@ -94,7 +94,7 @@ func TestModelPricePatchPreservesOmittedFieldsAndExplicitFreeCache(t *testing.T)
 	if _, err := store.UpdateModel(original.Name, original); err != nil {
 		t.Fatal(err)
 	}
-	app := New(store).Handler()
+	app := newManagedTestServer(t, store).Handler()
 	resp := doJSON(t, app, "PATCH", "/api/admin/models/"+url.PathEscape(original.Name), map[string]any{"cache_read_price_usd_per_1m": 0, "metadata": map[string]string{"display_name": "Free cache model"}}, "")
 	if resp.Code != 200 {
 		t.Fatalf("patch: %d %s", resp.Code, resp.Body)

@@ -17,7 +17,7 @@ import (
 
 func pricingSourceFixture(t *testing.T) (*GormStore, ProviderModel) {
 	t.Helper()
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	store.AddProvider(Provider{ID: "pricing-supplier", Name: "Pricing supplier", Type: ProviderOpenAICompatible, Status: StatusActive})
 	source := store.AddProviderModel(ProviderModel{ProviderID: "pricing-supplier", UpstreamModel: "wholesale-chat", Modality: "chat", Status: StatusActive, InputPriceUSDPer1M: 2, OutputPriceUSDPer1M: 6, Metadata: map[string]string{"pricing_status": "configured"}})
 	return store, source
@@ -58,7 +58,7 @@ func TestModelPricingSourceValidatesCreateAndPatch(t *testing.T) {
 			store, source := pricingSourceFixture(t)
 			model := linkedPricingModel(source)
 			test.mutate(store, &source, &model)
-			app := New(store).Handler()
+			app := newManagedTestServer(t, store).Handler()
 			response := doJSON(t, app, http.MethodPost, "/api/admin/models", model, "")
 			if response.Code != http.StatusBadRequest || !strings.Contains(response.Body, "invalid_model_pricing_source") {
 				t.Fatalf("create returned %d: %s", response.Code, response.Body)
@@ -83,7 +83,7 @@ func TestModelPricingSourcePreservesCustomPricesAndMetadataEdits(t *testing.T) {
 	custom := linkedPricingModel(source)
 	custom.CacheReadPriceUSDPer1M = 4
 	custom.PricingPeriods = []ModelPricingPeriod{{Name: "custom-policy", Timezone: "UTC", StartTime: "08:00", EndTime: "09:00"}}
-	app := New(store).Handler()
+	app := newManagedTestServer(t, store).Handler()
 	response := doJSON(t, app, http.MethodPost, "/api/admin/models", custom, "")
 	if response.Code != http.StatusCreated {
 		t.Fatalf("create: %d %s", response.Code, response.Body)
@@ -118,7 +118,7 @@ func TestModelPricingSourcePreservesCustomPricesAndMetadataEdits(t *testing.T) {
 func TestModelPricingSourceValidatesMergedUpsertAndPreservesFailedCatalogRefresh(t *testing.T) {
 	store, source := pricingSourceFixture(t)
 	store.AddModel(linkedPricingModel(source))
-	response := doJSON(t, New(store).Handler(), http.MethodPost, "/api/admin/models", map[string]any{"name": "linked-model", "modality": "embedding"}, "")
+	response := doJSON(t, newManagedTestServer(t, store).Handler(), http.MethodPost, "/api/admin/models", map[string]any{"name": "linked-model", "modality": "embedding"}, "")
 	if response.Code != http.StatusBadRequest || !strings.Contains(response.Body, "invalid_model_pricing_source") {
 		t.Fatalf("merged upsert accepted unsupported pricing mode: %d %s", response.Code, response.Body)
 	}
@@ -147,7 +147,7 @@ func TestModelPricingSourceUnavailableModelCanBeDisabled(t *testing.T) {
 	if err := store.DeleteProviderModel(source.ID); err != nil {
 		t.Fatal(err)
 	}
-	app := New(store).Handler()
+	app := newManagedTestServer(t, store).Handler()
 	response := doJSON(t, app, http.MethodPatch, "/api/admin/models/linked-model", map[string]string{"status": StatusDisabled}, "")
 	if response.Code != http.StatusOK {
 		t.Fatalf("cannot disable broken linked model: %d %s", response.Code, response.Body)
@@ -311,8 +311,10 @@ func TestModelPricingSourceDoesNotExposeReferenceToScopedUsers(t *testing.T) {
 	model := linkedPricingModel(source)
 	store.AddModel(model)
 	store.AddRoute(ModelRoute{ModelName: model.Name, ProviderID: source.ProviderID, ProviderModel: source.UpstreamModel, Status: StatusActive})
-	server := New(store)
-	models := server.accessibleModelsForAdminUser(AdminUser{Role: "user"})
+	user := AdminUser{ID: "pricing-user", Role: "user"}
+	store.CreateProject(Project{Name: "Pricing project", OwnerUserID: user.ID})
+	server := newManagedTestServer(t, store)
+	models := server.accessibleModelsForAdminUser(user)
 	if len(models) != 1 || models[0].Metadata[modelPricingProviderKey] != "" || models[0].InputPriceUSDPer1M != 2 {
 		t.Fatalf("scoped model pricing not sanitized: %+v", models)
 	}

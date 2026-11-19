@@ -21,8 +21,8 @@ func TestGoogleSubscriptionAuthorizationProjectInputs(t *testing.T) {
 			{name: "automatic project discovery"},
 		} {
 			t.Run(definition.providerType+"/"+test.name, func(t *testing.T) {
-				store := NewMemoryStore()
-				server := New(store)
+				store := newTestMemoryStore(t)
+				server := newManagedTestServer(t, store)
 				response := doJSON(t, server.Handler(), http.MethodPost, "/api/admin/provider-actions/"+definition.providerType+"/oauth.start", map[string]any{
 					"resource_type": definition.resourceType, "organization_id": test.legacy,
 					"inputs": map[string]string{"client_id": "synthetic-client", "client_secret": "synthetic-secret", "organization_id": test.input},

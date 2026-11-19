@@ -72,54 +72,30 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
-          cache-dependency-path: frontend/package-lock.json
+          cache-dependency-path: maas-ui/package-lock.json
           package-manager-cache: false
 
       - name: Build standalone frontend
-        working-directory: frontend
+        working-directory: maas-ui
         env:
           ARCH: ${{ matrix.arch }}
+          NEXT_PUBLIC_TOKENHUB_API_BASE_URL: ${{ vars.NEXT_PUBLIC_TOKENHUB_API_BASE_URL || 'http://localhost:8080' }}
         run: |
           set -euo pipefail
           npm ci
           npm run build
 
-          server_paths=()
-          while IFS= read -r candidate; do
-            candidate_root="$(dirname "$candidate")"
-            if [[ -d "$candidate_root/.next" && -f "$candidate_root/package.json" ]]; then
-              server_paths+=("$candidate")
-            fi
-          done < <(find .next/standalone -type f -name server.js -print)
-          if [[ "${#server_paths[@]}" -ne 1 ]]; then
-            printf 'expected exactly one standalone server root, found %s\n' "${#server_paths[@]}" >&2
-            for candidate in "${server_paths[@]}"; do
-              printf 'candidate: %s\n' "$candidate" >&2
-            done
-            exit 1
-          fi
-          server_path="${server_paths[0]}"
-          standalone_root="$(dirname "$server_path")"
           bundle="../native-frontend-${ARCH}"
-          mkdir -p "$bundle/frontend/.next"
-          cp -a "$standalone_root/." "$bundle/frontend/"
-          cp -a .next/static "$bundle/frontend/.next/static"
-          cp -a public "$bundle/frontend/public"
-          test -f "$bundle/frontend/server.js"
-
-          sharp_binary="$(find "$bundle" -type f -path '*/@img/sharp-linux-*/lib/*.node' -print -quit)"
-          test -n "$sharp_binary"
-          if [[ "$ARCH" == "arm64" ]]; then
-            file "$sharp_binary" | grep -Eq 'ARM aarch64|aarch64'
-          else
-            file "$sharp_binary" | grep -Eq 'x86-64|x86_64'
-          fi
+          mkdir -p "$bundle/frontend"
+          cp -R out "$bundle/frontend/out"
+          cp scripts/serve-static.mjs "$bundle/frontend/server.js"
+          echo '{"type":"module"}' > "$bundle/frontend/package.json"
           tar -C "$bundle" -czf "../native-frontend-${ARCH}.tar.gz" frontend
 
       - name: Upload frontend bundle
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: tokenhub-native-frontend-${{ matrix.arch }}
+          name: tokenstation-native-frontend-${{ matrix.arch }}
           path: native-frontend-${{ matrix.arch }}.tar.gz
           compression-level: 0
           if-no-files-found: error
@@ -159,14 +135,14 @@ jobs:
             --build-arg "TOKENHUB_VERSION=${VERSION}" \
             --output "type=local,dest=native-backend-${ARCH}" \
             .
-          test -x "native-backend-${ARCH}/tokenhub"
-          file "native-backend-${ARCH}/tokenhub" | grep -q "statically linked"
+          test -x "native-backend-${ARCH}/tokenstation"
+          file "native-backend-${ARCH}/tokenstation" | grep -q "statically linked"
 
       - name: Upload backend binary
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: tokenhub-native-backend-${{ matrix.arch }}
-          path: native-backend-${{ matrix.arch }}/tokenhub
+          name: tokenstation-native-backend-${{ matrix.arch }}
+          path: native-backend-${{ matrix.arch }}/tokenstation
           if-no-files-found: error
 
   package:
@@ -191,13 +167,13 @@ jobs:
       - name: Download frontend bundle
         uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5
         with:
-          name: tokenhub-native-frontend-${{ matrix.arch }}
+          name: tokenstation-native-frontend-${{ matrix.arch }}
           path: downloads/frontend
 
       - name: Download backend binary
         uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5
         with:
-          name: tokenhub-native-backend-${{ matrix.arch }}
+          name: tokenstation-native-backend-${{ matrix.arch }}
           path: downloads/backend
 
       - name: Download and verify Node.js runtime
@@ -226,27 +202,29 @@ jobs:
         run: |
           set -euo pipefail
           stage="stage-${ARCH}"
-          archive="tokenhub_${VERSION}_linux_${ARCH}.tar.gz"
+          archive="tokenstation_${VERSION}_linux_${ARCH}.tar.gz"
           mkdir -p "$stage/bin" "$stage/catalog" "$stage/deploy"
           tar -xzf "downloads/frontend/native-frontend-${ARCH}.tar.gz" -C "$stage"
-          cp downloads/backend/tokenhub "$stage/bin/tokenhub"
+          cp downloads/backend/tokenstation "$stage/bin/tokenstation"
           cp downloads/node/node "$stage/bin/node"
-          cp deploy/native/tokenhub-run "$stage/bin/tokenhub-run"
-          cp deploy/native/tokenhub.service "$stage/deploy/tokenhub.service"
+          cp deploy/native/tokenstation-run "$stage/bin/tokenstation-run"
+          printf '%s\n' '#!/bin/sh' 'exec "$(dirname "$0")/tokenstation-run" "$@"' >"$stage/bin/tokenhub-run"
+          chmod 0755 "$stage/bin/tokenhub-run"
+          cp deploy/native/tokenstation.service "$stage/deploy/tokenstation.service"
           cp data/model-catalog.yaml "$stage/catalog/model-catalog.yaml"
           cp data/provider-catalog.json "$stage/catalog/provider-catalog.json"
-          cp -R data/builtin-plugins "$stage/catalog/builtin-plugins"
+          cp -rL data/builtin-plugins "$stage/catalog/builtin-plugins"
           cp LICENSE README.md "$stage/"
           printf '%s\n' "$VERSION" >"$stage/VERSION"
-          chmod 0755 "$stage/bin/tokenhub" "$stage/bin/node" "$stage/bin/tokenhub-run"
+          chmod 0755 "$stage/bin/tokenstation" "$stage/bin/node" "$stage/bin/tokenstation-run"
           for required in \
-            bin/tokenhub \
+            bin/tokenstation \
             bin/node \
-            bin/tokenhub-run \
+            bin/tokenstation-run \
             frontend/server.js \
             catalog/model-catalog.yaml \
             catalog/provider-catalog.json \
-            deploy/tokenhub.service \
+            deploy/tokenstation.service \
             VERSION; do
             test -f "$stage/$required"
           done
@@ -267,11 +245,31 @@ jobs:
             .
           tar -tzf "$archive" >/dev/null
 
+          # Preserve the complete layout consumed by older production updaters.
+          legacy_stage="legacy-${ARCH}"
+          legacy_archive="tokenhub_${VERSION}_linux_${ARCH}.tar.gz"
+          cp -rL "$stage" "$legacy_stage"
+          mv "$legacy_stage/bin/tokenstation" "$legacy_stage/bin/tokenhub"
+          python3 - "$legacy_stage" <<'PY'
+          import pathlib, sys
+          root = pathlib.Path(sys.argv[1])
+          for source, target in [('bin/tokenstation-run', 'bin/tokenhub-run'), ('deploy/tokenstation.service', 'deploy/tokenhub.service')]:
+              path = root / source
+              path.write_text(path.read_text().replace('tokenstation', 'tokenhub'))
+              path.rename(root / target)
+          PY
+          test -z "$(find "$legacy_stage" -type l -print -quit)"
+          tar --sort=name --mtime="@${source_date_epoch}" --owner=0 --group=0 --numeric-owner \
+            -C "$legacy_stage" -czf "$legacy_archive" .
+          tar -tzf "$legacy_archive" >/dev/null
+
       - name: Upload native archive
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: tokenhub-native-archive-${{ matrix.arch }}
-          path: tokenhub_${{ needs.prepare.outputs.version }}_linux_${{ matrix.arch }}.tar.gz
+          name: tokenstation-native-archive-${{ matrix.arch }}
+          path: |
+            tokenstation_${{ needs.prepare.outputs.version }}_linux_${{ matrix.arch }}.tar.gz
+            tokenhub_${{ needs.prepare.outputs.version }}_linux_${{ matrix.arch }}.tar.gz
           compression-level: 0
           if-no-files-found: error
 
@@ -287,7 +285,7 @@ jobs:
       - name: Download native archives
         uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5
         with:
-          pattern: tokenhub-native-archive-*
+          pattern: tokenstation-native-archive-*
           path: dist
           merge-multiple: true
 
@@ -298,9 +296,10 @@ jobs:
         run: |
           set -euo pipefail
           cd dist
-          sha256sum tokenhub_*.tar.gz >checksums.txt
+          sha256sum tokenstation_*.tar.gz tokenhub_*.tar.gz >checksums.txt
           gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" >/dev/null
           gh release upload "$RELEASE_TAG" \
+            tokenstation_*.tar.gz \
             tokenhub_*.tar.gz \
             checksums.txt \
             --clobber \

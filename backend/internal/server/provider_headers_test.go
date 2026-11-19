@@ -49,8 +49,8 @@ func TestNormalizeProviderHeadersAndMergeResourceOverrides(t *testing.T) {
 }
 
 func TestAdminProviderHeadersUseAdapterDeclaredPolicy(t *testing.T) {
-	store := NewMemoryStore()
-	server := New(store)
+	store := newTestMemoryStore(t)
+	server := newManagedTestServer(t, store)
 	const providerType = "no_headers_plugin"
 	descriptor := pluginmeta.BuiltInProvider(
 		"tokenhub.provider.no-headers",
@@ -188,7 +188,7 @@ func TestProviderManagedHeadersUsePluginPolicy(t *testing.T) {
 }
 
 func TestAdminProviderHeadersRejectPluginManagedHeaders(t *testing.T) {
-	app := newTestServer()
+	app := newTestServer(t)
 	response := doJSON(t, app, http.MethodPost, "/api/admin/providers/test-connection", map[string]any{
 		"name":     "Anthropic managed headers",
 		"type":     ProviderAnthropic,
@@ -238,7 +238,7 @@ func TestAdminConnectionTestUsesValidatedCustomHeaders(t *testing.T) {
 	}))
 	defer upstream.Close()
 
-	app := newTestServer()
+	app := newTestServer(t)
 	response := doJSON(t, app, http.MethodPost, "/api/admin/providers/test-connection", map[string]any{
 		"name":     "Custom Headers",
 		"type":     ProviderOpenAICompatible,
@@ -283,8 +283,8 @@ func TestCustomCatalogReloadRetainsStoredSensitiveHeaderValue(t *testing.T) {
 	}))
 	defer upstream.Close()
 
-	store := NewMemoryStore()
-	app := New(store).Handler()
+	store := newTestMemoryStore(t)
+	app := newManagedTestServer(t, store).Handler()
 	created := doJSON(t, app, http.MethodPost, "/api/admin/providers", map[string]any{
 		"id":                "prv_catalog_sensitive_header",
 		"name":              "Catalog sensitive header",
@@ -334,7 +334,7 @@ func TestGeminiProviderTestUsesCustomHeadersAndRestoresHealth(t *testing.T) {
 	}))
 	defer upstream.Close()
 
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	provider := store.AddProvider(Provider{
 		ID: "prv_gemini_headers", Name: "Gemini headers", Type: ProviderGemini, BaseURL: upstream.URL,
 		Status: StatusActive, Healthy: true, Headers: map[string]string{"User-Agent": "TokenHub-Gemini/1.0", "X-Tenant": "provider-tenant"},
@@ -357,7 +357,7 @@ func TestGeminiProviderTestUsesCustomHeadersAndRestoresHealth(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	response := doJSON(t, New(store).Handler(), http.MethodPost, "/api/admin/providers/"+provider.ID+"/test", nil, "")
+	response := doJSON(t, newManagedTestServer(t, store).Handler(), http.MethodPost, "/api/admin/providers/"+provider.ID+"/test", nil, "")
 	if response.Code != http.StatusOK {
 		t.Fatalf("Gemini provider test = %d: %s", response.Code, response.Body)
 	}
@@ -385,7 +385,7 @@ func TestGeminiProviderTestTriesLaterActiveResource(t *testing.T) {
 	}))
 	defer upstream.Close()
 
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	provider := store.AddProvider(Provider{
 		ID: "prv_gemini_fallback", Name: "Gemini fallback", Type: ProviderGemini, BaseURL: upstream.URL,
 		Status: StatusActive, Healthy: false, Headers: map[string]string{"User-Agent": "TokenHub-Gemini/1.0"},
@@ -403,7 +403,7 @@ func TestGeminiProviderTestTriesLaterActiveResource(t *testing.T) {
 		}
 	}
 
-	response := doJSON(t, New(store).Handler(), http.MethodPost, "/api/admin/providers/"+provider.ID+"/test", nil, "")
+	response := doJSON(t, newManagedTestServer(t, store).Handler(), http.MethodPost, "/api/admin/providers/"+provider.ID+"/test", nil, "")
 	if response.Code != http.StatusOK {
 		t.Fatalf("Gemini provider test = %d: %s", response.Code, response.Body)
 	}
@@ -731,7 +731,7 @@ func TestEffectiveProviderHeadersEnforceCombinedLimits(t *testing.T) {
 	if len(effective.Headers) != 0 {
 		t.Fatalf("oversized combined headers were applied: %d", len(effective.Headers))
 	}
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	provider := store.AddProvider(Provider{ID: "prv_combined_header_limit", Name: "Combined header limit", Type: ProviderOpenAICompatible, Status: StatusActive, Headers: providerHeaders})
 	if _, err := store.AddProviderResource(ProviderResource{ProviderID: provider.ID, Name: "Combined header limit resource", Status: StatusActive, Headers: resourceHeaders}); err == nil || AsHTTPError(err).Code != "provider_headers_too_many" {
 		t.Fatalf("resource create combined validation error = %v", err)
@@ -752,7 +752,7 @@ func TestSavedResourceTestAndModelDiscoveryUseEffectiveHeaders(t *testing.T) {
 	}))
 	defer upstream.Close()
 
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	provider := store.AddProvider(Provider{
 		ID: "prv_effective_header_probe", Name: "Effective header probe", Type: ProviderOpenAICompatible,
 		BaseURL: upstream.URL, APIKey: "test-key", Status: StatusActive, Healthy: true,
@@ -766,7 +766,7 @@ func TestSavedResourceTestAndModelDiscoveryUseEffectiveHeaders(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	app := New(store).Handler()
+	app := newManagedTestServer(t, store).Handler()
 
 	discovery := doJSON(t, app, http.MethodPost, "/api/admin/provider-catalog/custom", map[string]any{"provider_id": provider.ID}, "")
 	if discovery.Code != http.StatusOK {
@@ -782,11 +782,11 @@ func TestSavedResourceTestAndModelDiscoveryUseEffectiveHeaders(t *testing.T) {
 }
 
 func TestAdminProviderSensitiveHeadersAreEncryptedMaskedAndPreserved(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	if err := SeedDemoData(store); err != nil {
 		t.Fatal(err)
 	}
-	app := New(store).Handler()
+	app := newManagedTestServer(t, store).Handler()
 	created := doJSON(t, app, http.MethodPost, "/api/admin/providers", map[string]any{
 		"id":                "prv_sensitive_headers",
 		"name":              "Sensitive Headers",
@@ -863,7 +863,7 @@ func TestAdminProviderSensitiveHeadersAreEncryptedMaskedAndPreserved(t *testing.
 }
 
 func TestTrustedProviderCreateDoesNotPersistInvalidSensitiveHeaders(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	created := store.AddProvider(Provider{
 		ID: "prv_invalid_trusted_headers", Name: "Invalid trusted headers", Type: ProviderOpenAICompatible,
 		Headers: map[string]string{"X-Tenant": "tenant-secret"}, SensitiveHeaders: []string{"X-Missing"},
@@ -881,7 +881,7 @@ func TestTrustedProviderCreateDoesNotPersistInvalidSensitiveHeaders(t *testing.T
 }
 
 func TestLegacyUnsafeProviderHeadersAreReportedAndNotApplied(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	provider := Provider{
 		ID:      "prv_legacy_unsafe_headers",
 		Name:    "Legacy unsafe headers",
@@ -924,7 +924,7 @@ func TestLegacyUnsafeProviderHeadersAreReportedAndNotApplied(t *testing.T) {
 }
 
 func TestLegacyProviderHeadersWithoutAdapterPolicyRemainUsable(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	provider := Provider{
 		ID:      "prv_legacy_headers_without_policy",
 		Name:    "Legacy headers without policy",
@@ -967,7 +967,7 @@ func TestLegacyProviderHeadersWithoutAdapterPolicyRemainUsable(t *testing.T) {
 }
 
 func TestAdminRejectsMovingHeaderConfigToUnsupportedProviderAdapter(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	provider := store.AddProvider(Provider{
 		ID:      "prv_header_adapter_transition",
 		Name:    "Header adapter transition",
@@ -994,7 +994,7 @@ func TestAdminRejectsMovingHeaderConfigToUnsupportedProviderAdapter(t *testing.T
 		Status:  StatusActive,
 		Healthy: true,
 	})
-	app := New(store).Handler()
+	app := newManagedTestServer(t, store).Handler()
 
 	providerPatch := doJSON(t, app, http.MethodPatch, "/api/admin/providers/"+provider.ID, map[string]any{
 		"type": ProviderAzureOpenAI,
@@ -1011,7 +1011,7 @@ func TestAdminRejectsMovingHeaderConfigToUnsupportedProviderAdapter(t *testing.T
 }
 
 func TestRouteCandidatesRecomputeCaseInsensitiveHeadersPerResource(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	provider := store.AddProvider(Provider{
 		ID:               "prv_header_routes",
 		Name:             "Header Routes",
@@ -1072,11 +1072,11 @@ func TestRouteCandidatesRecomputeCaseInsensitiveHeadersPerResource(t *testing.T)
 }
 
 func TestAdminProviderResourceSensitiveHeadersRoundTrip(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	if err := SeedDemoData(store); err != nil {
 		t.Fatal(err)
 	}
-	app := New(store).Handler()
+	app := newManagedTestServer(t, store).Handler()
 	created := doJSON(t, app, http.MethodPost, "/api/admin/provider-resources", map[string]any{
 		"id":                "rsrc_sensitive_headers",
 		"provider_id":       "prv_mock",

@@ -25,11 +25,11 @@ create_bundle() {
   mkdir -p "$root/bin" "$root/frontend" "$root/catalog" "$root/deploy"
   : >"$root/bin/tokenhub"
   : >"$root/bin/node"
-  cp "$script_dir/tokenhub-run" "$root/bin/tokenhub-run"
+  sed 's|bin/tokenstation|bin/tokenhub|g' "$script_dir/tokenstation-run" >"$root/bin/tokenhub-run"
   : >"$root/frontend/server.js"
   : >"$root/catalog/model-catalog.yaml"
   printf '{"providers":[]}\n' >"$root/catalog/provider-catalog.json"
-  cp "$script_dir/tokenhub.service" "$root/deploy/tokenhub.service"
+  sed 's|bin/tokenstation-run|bin/tokenhub-run|g' "$script_dir/tokenstation.service" >"$root/deploy/tokenhub.service"
   printf '%s\n' "$version" >"$root/VERSION"
 }
 
@@ -285,8 +285,8 @@ unset -f curl
 
 runner_root="$test_root/runner"
 mkdir -p "$runner_root/bin" "$runner_root/frontend"
-cp "$script_dir/tokenhub-run" "$runner_root/bin/tokenhub-run"
-cat >"$runner_root/bin/tokenhub" <<'EOF'
+cp "$script_dir/tokenstation-run" "$runner_root/bin/tokenstation-run"
+cat >"$runner_root/bin/tokenstation" <<'EOF'
 #!/usr/bin/env bash
 [ "${TOKENHUB_RUNNER_MARKER:-}" = "loaded" ] || exit 12
 [ "$(command -v node)" = "$(dirname "$0")/node" ] || exit 13
@@ -299,13 +299,19 @@ trap 'exit 0' TERM
 while :; do sleep 1; done
 EOF
 : >"$runner_root/frontend/server.js"
-chmod 0755 "$runner_root/bin/tokenhub-run" "$runner_root/bin/tokenhub" "$runner_root/bin/node"
+chmod 0755 "$runner_root/bin/tokenstation-run" "$runner_root/bin/tokenstation" "$runner_root/bin/node"
 
 set +e
-TOKENHUB_RUNNER_MARKER=loaded "$runner_root/bin/tokenhub-run"
+TOKENHUB_RUNNER_MARKER=loaded "$runner_root/bin/tokenstation-run"
 runner_status=$?
 set -e
 [ "$runner_status" -eq 7 ] || fail_test "runner returned $runner_status instead of backend status 7"
+mv "$runner_root/bin/tokenstation" "$runner_root/bin/tokenhub"
+set +e
+TOKENHUB_RUNNER_MARKER=loaded "$runner_root/bin/tokenstation-run"
+runner_status=$?
+set -e
+[ "$runner_status" -eq 7 ] || fail_test "runner did not support the legacy backend binary"
 
 run_linux_integration() {
   local fixtures="$test_root/fixtures"
@@ -387,6 +393,9 @@ EOF
   cat >"$fake_bin/systemctl" <<'EOF'
 #!/usr/bin/env bash
 printf '%s\n' "$*" >>"$TOKENHUB_TEST_SYSTEMCTL_LOG"
+if [ "$1" = is-active ]; then
+  [ "${*: -1}" = tokenhub-test ] && [ -f "$TOKENHUB_SYSTEMD_DIR/tokenhub-test.service" ]
+fi
 EOF
   cat >"$fake_bin/userdel" <<'EOF'
 #!/usr/bin/env bash
@@ -556,5 +565,53 @@ EOF
 if [ "${TOKENHUB_NATIVE_INTEGRATION:-}" = "1" ]; then
   run_linux_integration
 fi
+
+(
+  SYSTEMD_DIR="$test_root/service-compat"
+  INSTALL_ROOT="$test_root/service-root"
+  CONFIG_DIR="$test_root/service-config"
+  mkdir -p "$SYSTEMD_DIR" "$INSTALL_ROOT" "$CONFIG_DIR"
+  systemctl() { return 3; }
+  SERVICE_NAME=tokenstation
+  SERVICE_USER=tokenstation
+  resolve_existing_service
+  [ "$SERVICE_NAME" = tokenstation ] || fail_test "fresh service default changed"
+  printf '[Service]\nUser=legacyuser\nGroup=legacygroup\n' >"$SYSTEMD_DIR/tokenhub.service"
+  resolve_existing_service
+  [ "$SERVICE_NAME:$SERVICE_USER:$SERVICE_GROUP" = tokenhub:legacyuser:legacygroup ] ||
+    fail_test "legacy service identity was not retained"
+  : >"$SYSTEMD_DIR/tokenstation.service"
+  assert_fails resolve_existing_service
+)
+
+(
+  platform_arch() { printf 'amd64\n'; }
+  sha256_file() { shasum -a 256 "$1" | cut -d ' ' -f 1; }
+  payload="$test_root/checksum-payload"
+  printf 'new archive\n' >"$payload"
+  digest="$(sha256_file "$payload")"
+  download_file() {
+    case "$1" in
+      */checksums.txt)
+        printf '%s  tokenstation_0.3.3_linux_amd64.tar.gz\n%s  tokenhub_0.3.3_linux_amd64.tar.gz\n' "$digest" "$digest" >"$2"
+        ;;
+      */tokenstation_*) cp "$payload" "$2" ;;
+      *) fail_test "legacy archive selected when new archive exists" ;;
+    esac
+  }
+  download_release 0.3.3
+  [[ "$DOWNLOADED_ARCHIVE" == */tokenstation_* ]] || fail_test "new archive not preferred"
+  cleanup
+)
+
+new_bundle="$test_root/new-layout"
+create_bundle "$new_bundle" "0.3.3"
+for path in bin/tokenhub bin/tokenhub-run deploy/tokenhub.service; do
+  mv "$new_bundle/$path" "$new_bundle/${path/tokenhub/tokenstation}"
+done
+validate_staged_release "$new_bundle" "0.3.3"
+[ "$RELEASE_BINARY" = bin/tokenstation ] || fail_test "new layout was not selected"
+mv "$new_bundle/deploy/tokenstation.service" "$new_bundle/deploy/tokenhub.service"
+assert_fails validate_staged_release "$new_bundle" "0.3.3"
 
 printf 'native installer tests passed\n'

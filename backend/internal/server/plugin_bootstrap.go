@@ -42,7 +42,7 @@ func bootstrapServerPlugins(config Config, adapters map[string]any) (serverPlugi
 	}
 	packages, err := pluginRuntime.LoadIntoWithActionsAndBackground(pluginRegistry, gatewayChain, adminUI, pluginActions, pluginBackgroundJobs, gatewayHooks)
 	if err != nil {
-		return serverPluginBootstrap{}, fmt.Errorf("load TokenHub plugins: %w", err)
+		return serverPluginBootstrap{}, fmt.Errorf("load TokenStation plugins: %w", err)
 	}
 	registerExternalProviderPluginAdapters(adapterRegistry, packages)
 	if _, err := adapterRegistry.ProviderCredentialIdentityProfileRegistrations(); err != nil {
@@ -105,7 +105,6 @@ func (s *Server) publishServerPluginStoreConfiguration(bootstrap *serverPluginBo
 	if err := configureProviderCredentialRefreshHandlers(s.store, bootstrap.adapterRegistry); err != nil {
 		return err
 	}
-	reconcileProviderPluginPolicies(s.store, bootstrap.adapterRegistry)
 	if store, ok := s.store.(providerImageCapabilityProfileStore); ok {
 		store.setProviderImageCapabilityRouteProfiles(providerImageCapabilityRouteProfilesFromActions(bootstrap.pluginActions.List()))
 	}

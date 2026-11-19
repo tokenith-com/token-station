@@ -48,7 +48,7 @@ func TestAudioDurationUsagePresenceAndValidation(t *testing.T) {
 }
 
 func TestAudioDurationAttributionPreservesIndependentEvidence(t *testing.T) {
-	server := New(NewMemoryStore())
+	server := New(newTestMemoryStore(t))
 	t.Cleanup(func() { _ = server.Shutdown(context.Background()) })
 	hook := pluginmeta.GatewayHookDescriptor{PluginID: "test.audio-usage", HookID: "attribute", Stage: pluginmeta.StageUsageAttribution, Priority: 2000, Reads: []pluginmeta.GatewayDataClass{pluginmeta.DataUsage}, Writes: []pluginmeta.GatewayDataClass{pluginmeta.DataUsage}, FailurePolicy: pluginmeta.FailurePolicyFailClosed}
 	if err := server.gatewayChain.RegisterHook(hook); err != nil {
@@ -142,7 +142,7 @@ func TestAudioDurationKeepsOriginalDecimalEvidence(t *testing.T) {
 func TestAudioDurationAttributionRejectsInvalidPluginQuantity(t *testing.T) {
 	for _, patch := range []string{`{"audio_duration_seconds":-1}`, `{"audio_duration_seconds":null}`, `{"audio_duration_source":"invalid"}`} {
 		t.Run(patch, func(t *testing.T) {
-			server := New(NewMemoryStore())
+			server := New(newTestMemoryStore(t))
 			t.Cleanup(func() { _ = server.Shutdown(context.Background()) })
 			hook := pluginmeta.GatewayHookDescriptor{PluginID: "test.audio-invalid", HookID: "attribute", Stage: pluginmeta.StageUsageAttribution, Priority: 2000, Writes: []pluginmeta.GatewayDataClass{pluginmeta.DataUsage}, FailurePolicy: pluginmeta.FailurePolicyFailClosed}
 			if err := server.gatewayChain.RegisterHook(hook); err != nil {

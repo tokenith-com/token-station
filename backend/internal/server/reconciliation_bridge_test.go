@@ -72,7 +72,7 @@ func TestReconciliationBridgePreservesBaselineBillingErrorSemantics(t *testing.T
 }
 
 func TestReconciliationHTTPPreservesBaselineBillingErrorSemantics(t *testing.T) {
-	app := New(NewMemoryStore()).Handler()
+	app := newManagedTestServer(t, newTestMemoryStore(t)).Handler()
 	response := doJSON(t, app, http.MethodPost, "/api/admin/billing/reconciliation-rules", map[string]any{
 		"name": "Missing connector", "connector_id": "missing-connector",
 	}, "")
@@ -193,7 +193,7 @@ func assertReconciliationSnapshotBackfillAtomic(t *testing.T, storeA *GormStore,
 }
 
 func TestReconciliationRepeatedLockDoesNotWrite(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	lockedAt := time.Now().UTC()
 	run := ReconciliationRun{ID: "run-locked", Status: ReconciliationRunSucceeded, LockedAt: &lockedAt, LockedBy: "first-actor"}
 	if err := store.db.Create(&run).Error; err != nil {

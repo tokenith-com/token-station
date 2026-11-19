@@ -119,7 +119,7 @@ func TestReadinessGatesOnEvolutionState(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	server := New(store)
+	server := newManagedTestServer(t, store)
 
 	request := func() *httptest.ResponseRecorder {
 		t.Helper()

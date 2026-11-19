@@ -29,7 +29,7 @@ func TestBuiltInPluginPackagesUseValidV2Manifests(t *testing.T) {
 
 func TestPluginManagementViewTreatsBuiltInProviderCatalogAsInstalled(t *testing.T) {
 	catalogFile := filepath.Join("..", "..", "..", "data", "provider-catalog.json")
-	server := NewWithConfig(NewMemoryStore(), Config{
+	server := newManagedTestServerWithConfig(t, newTestMemoryStore(t), Config{
 		AdminToken:          "plugin-management-test-token",
 		PluginDir:           t.TempDir(),
 		ProviderCatalogFile: catalogFile,
@@ -45,9 +45,9 @@ func TestPluginManagementViewTreatsBuiltInProviderCatalogAsInstalled(t *testing.
 }
 
 func TestPluginManagementViewConnectsProviderConfigurationAndRouteUsage(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	catalogFile := filepath.Join("..", "..", "..", "data", "provider-catalog.json")
-	server := NewWithConfig(store, Config{
+	server := newManagedTestServerWithConfig(t, store, Config{
 		AdminToken:          "plugin-management-test-token",
 		PluginDir:           t.TempDir(),
 		ProviderCatalogFile: catalogFile,
@@ -78,7 +78,7 @@ func TestPluginManagementViewConnectsProviderConfigurationAndRouteUsage(t *testi
 
 func TestBuiltInProviderDetailExposesRealPackageFiles(t *testing.T) {
 	catalogFile := filepath.Join("..", "..", "..", "data", "provider-catalog.json")
-	server := NewWithConfig(NewMemoryStore(), Config{
+	server := newManagedTestServerWithConfig(t, newTestMemoryStore(t), Config{
 		AdminToken:          "plugin-management-test-token",
 		PluginDir:           t.TempDir(),
 		ProviderCatalogFile: catalogFile,

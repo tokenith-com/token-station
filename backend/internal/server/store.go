@@ -15,7 +15,7 @@ import (
 )
 
 const (
-	defaultSQLiteDatabaseURL = "sqlite://data/tokenhub.db"
+	defaultSQLiteDatabaseURL = "sqlite://data/tokenstation.db"
 	adaptiveRoutingWindow    = 15 * time.Minute
 )
 
@@ -130,6 +130,7 @@ type Store interface {
 	ListProjectKeys(projectID string) []APIKey
 	ListAPIKeys() []APIKey
 	GetAPIKey(id string) (APIKey, bool)
+	RevealAPIKey(id string) (string, error)
 	UpdateAPIKey(id string, patch APIKey) (APIKey, error)
 	RotateAPIKey(id string, graceUntil *time.Time) (APIKey, string, error)
 	DeleteAPIKey(id string) error
@@ -305,6 +306,7 @@ type Store interface {
 var _ Store = (*GormStore)(nil)
 
 type GormStore struct {
+	prepaidUsage        bool
 	db                  *gorm.DB
 	analyticsDB         *gorm.DB
 	readDB              *gorm.DB

@@ -14,7 +14,7 @@ const playgroundClientClosedStatus = 499
 
 type playgroundChatRequest struct {
 	ChatCompletionRequest
-	ProjectID string
+	APIKeyID string
 }
 
 func (r *playgroundChatRequest) UnmarshalJSON(data []byte) error {
@@ -23,18 +23,20 @@ func (r *playgroundChatRequest) UnmarshalJSON(data []byte) error {
 		return err
 	}
 	var context struct {
-		ProjectID string `json:"project_id"`
+		APIKeyID string `json:"api_key_id"`
 	}
 	if err := json.Unmarshal(data, &context); err != nil {
 		return err
 	}
+	// Console-only fields must never be forwarded upstream. project_id is still
+	// stripped because older consoles send it; the key now determines the project.
 	for key := range request.raw {
-		if strings.EqualFold(key, "project_id") {
+		if strings.EqualFold(key, "project_id") || strings.EqualFold(key, "api_key_id") {
 			delete(request.raw, key)
 		}
 	}
 	r.ChatCompletionRequest = request
-	r.ProjectID = strings.TrimSpace(context.ProjectID)
+	r.APIKeyID = strings.TrimSpace(context.APIKeyID)
 	return nil
 }
 
@@ -52,6 +54,7 @@ type playgroundTiming struct {
 }
 
 type playgroundStreamPayload struct {
+	Wallet       *walletUsageReceipt      `json:"wallet,omitempty"`
 	Type         string                   `json:"type"`
 	Status       string                   `json:"status"`
 	Response     any                      `json:"response,omitempty"`
@@ -257,13 +260,11 @@ func (s *Server) handleAdminPlaygroundChatStream(w http.ResponseWriter, r *http.
 		writeError(w, r, err)
 		return
 	}
-	guardrailProjectID, err := s.resolvePlaygroundGuardrailProjectID(user, playgroundReq.ProjectID)
-	if err != nil {
-		writeError(w, r, err)
+	call, ok := s.admitPlaygroundCall(w, r, user, playgroundReq.APIKeyID, req, admittedAt)
+	if !ok {
 		return
 	}
-	call := s.newPlaygroundCallContext(user, req.Model, admittedAt)
-	w.Header().Set("x-request-id", call.RequestID)
+	guardrailProjectID := call.Project.ID
 	if err := s.runGatewayAuthContextHooks(r.Context(), &call, r.Header); err != nil {
 		httpErr := AsHTTPError(err)
 		requestAuditPayload := guardrailAuditSummary{Model: req.Model}
@@ -377,6 +378,9 @@ func (s *Server) handleAdminPlaygroundChatStream(w http.ResponseWriter, r *http.
 	}
 
 	routed, err := s.preparePlaygroundRoutedCall(r.Context(), req, call)
+	if err == nil {
+		err = s.reserveChatWallet(r.Context(), routed.Call, &req)
+	}
 	if err != nil {
 		httpErr := AsHTTPError(err)
 		s.finishRoutedCall(r, GatewayCallCompletion{
@@ -431,6 +435,7 @@ func (s *Server) handleAdminPlaygroundChatStream(w http.ResponseWriter, r *http.
 		"model": req.Model, "route": playgroundRouteSummary(route), "usage": usage, "attempts": len(attempts),
 	})
 	payload := playgroundStreamPayload{
+		Wallet:    s.playgroundWalletReceipt(routed.Call),
 		Type:      "completed",
 		Status:    "completed",
 		Response:  result.Response,
@@ -461,33 +466,54 @@ func validatePlaygroundRequest(req *ChatCompletionRequest) error {
 	return validatePlaygroundImages(req.Messages)
 }
 
-func (s *Server) resolvePlaygroundGuardrailProjectID(user AdminUser, requestedID string) (string, error) {
-	projectID := strings.TrimSpace(requestedID)
-	if projectID == "" {
-		return "", NewHTTPError(http.StatusBadRequest, "missing_project", "project_id is required")
+// resolvePlaygroundAPIKey loads the API key a playground request is billed to.
+// Every role, platform admins included, must pick one of its own keys so that
+// playground traffic always has an owner for usage, quota and wallet charges.
+// The secret never leaves the server; the console only sends the key ID.
+func (s *Server) resolvePlaygroundAPIKey(user AdminUser, apiKeyID string) (Project, APIKey, error) {
+	apiKeyID = strings.TrimSpace(apiKeyID)
+	if apiKeyID == "" {
+		return Project{}, APIKey{}, NewHTTPError(http.StatusBadRequest, "missing_api_key", "api_key_id is required")
 	}
-	project, ok := s.store.GetProject(projectID)
+	key, ok := s.store.GetAPIKey(apiKeyID)
+	if !ok || !apiKeyOwnedBy(user, key) {
+		return Project{}, APIKey{}, NewHTTPError(http.StatusNotFound, "api_key_not_found", "API key not found")
+	}
+	project, ok := s.store.GetProject(key.ProjectID)
 	if !ok {
-		return "", NewHTTPError(http.StatusNotFound, "project_not_found", "Project not found")
+		return Project{}, APIKey{}, ErrAPIKeyDisabled
 	}
-	if project.Status != "" && project.Status != StatusActive {
-		return "", NewHTTPError(http.StatusConflict, "project_inactive", "Project is not active")
-	}
-	if !s.canAccessProject(user, project) {
-		return "", NewHTTPError(http.StatusForbidden, "project_forbidden", "Project is not available for this user")
-	}
-	return project.ID, nil
+	return project, key, nil
 }
 
-func (s *Server) newPlaygroundCallContext(user AdminUser, model string, startedAt time.Time) CallContext {
-	return CallContext{
-		RequestID:  NewID("pg"),
-		Project:    Project{ID: "admin_playground", Name: "Admin Playground", Status: StatusActive},
-		Key:        APIKey{ID: user.ID, Name: "Admin Playground"},
-		Model:      playgroundModel(s.store, model),
-		StartedAt:  startedAt.UTC(),
-		measuredAt: startedAt,
+func apiKeyOwnedBy(user AdminUser, key APIKey) bool {
+	if owner := strings.TrimSpace(key.OwnerUserID); owner != "" {
+		return owner == user.ID
 	}
+	return key.Metadata != nil && key.Metadata["created_by"] == user.ID
+}
+
+// admitPlaygroundCall runs the same admission as a /v1 request made with the
+// selected key: status, expiry, model scope, rate limits, budgets and wallet.
+// On failure it has already written the response.
+func (s *Server) admitPlaygroundCall(w http.ResponseWriter, r *http.Request, user AdminUser, apiKeyID string, req ChatCompletionRequest, admittedAt time.Time) (CallContext, bool) {
+	project, key, err := s.resolvePlaygroundAPIKey(user, apiKeyID)
+	if err != nil {
+		writeError(w, r, err)
+		return CallContext{}, false
+	}
+	r = r.WithContext(context.WithValue(r.Context(), prepaidChatContextKey{}, true))
+	call, err := s.admitRoutedCall(w, r, project, key, req.Model, req.Stream, requestTokenReservation(req))
+	if err != nil {
+		requestID := s.finishRejectedCall(r, admittedAt, project, key, req.Model, req.Stream, err, guardrailAuditSummary{Model: req.Model})
+		w.Header().Set("x-request-id", requestID)
+		s.recordAdminAudit(r, user, "chat_failed", "playground", req.Model, "", map[string]any{
+			"model": req.Model, "attempts": []PlaygroundRouteAttempt{}, "error": AsHTTPError(err).Code,
+		})
+		writeError(w, r, err)
+		return CallContext{}, false
+	}
+	return call, true
 }
 
 func (s *Server) preparePlaygroundRoutedCall(ctx context.Context, req ChatCompletionRequest, call CallContext) (RoutedCall, error) {
@@ -544,6 +570,9 @@ func (s *Server) executeRoutedPlaygroundStream(
 			var attemptUsage Usage
 			var attemptErr error
 			if useResponses {
+				if routed.Call.walletPayer != "" {
+					return playgroundStreamResult{}, Usage{}, walletUsageError()
+				}
 				upstreamReq := responsesReq
 				if omitReasoningEffort {
 					upstreamReq = withoutResponsesReasoningEffort(upstreamReq)
@@ -586,6 +615,9 @@ func (s *Server) streamPlaygroundChat(
 		bufferedReq := req
 		bufferedReq.Stream = false
 		bufferedReq.StreamOptions = nil
+		if err := s.dispatchChatWallet(ctx, call, route, bufferedReq); err != nil {
+			return playgroundStreamResult{}, Usage{}, err
+		}
 		response, usage, invokeErr := adapter.Chat(ctx, route.Provider, route.ProviderModel, bufferedReq)
 		result := playgroundStreamResult{Response: response, Text: playgroundResponseText(response), Mode: "buffered"}
 		if invokeErr == nil && result.Text != "" {
@@ -693,7 +725,8 @@ func (s *Server) finishFailedPlaygroundStream(
 		"model": req.Model, "attempts": playgroundRouteAttempts(attempts), "error": code,
 	})
 	payload := playgroundStreamPayload{
-		Type: state, Status: state, Response: result.Response,
+		Wallet: s.playgroundWalletReceipt(routed.Call),
+		Type:   state, Status: state, Response: result.Response,
 		Route: playgroundRouteForUser(user, route, usage), Usage: playgroundUsageForUser(user, usage),
 		Attempts:  playgroundAttemptsForUser(user, attempts),
 		Timing:    newPlaygroundTiming(routed.Call.StartedAt, result, completedAt, usage),

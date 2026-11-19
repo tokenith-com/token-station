@@ -42,7 +42,7 @@ func TestCopilotCancellationCannotRestoreAnInFlightDeviceSession(t *testing.T) {
 		{name: "concurrent-complete", capability: "oauth.exchange", actor: "administrator", errorCode: "invalid_oauth_state"},
 	} {
 		t.Run(test.name, func(t *testing.T) {
-			store := &subscriptionOAuthOperationStore{MemoryStore: NewMemoryStore(), queued: make(chan struct{}, 8)}
+			store := &subscriptionOAuthOperationStore{MemoryStore: newTestMemoryStore(t), queued: make(chan struct{}, 8)}
 			server := New(store)
 			t.Cleanup(func() { _ = server.Shutdown(context.Background()) })
 			started, release := make(chan struct{}), make(chan struct{})

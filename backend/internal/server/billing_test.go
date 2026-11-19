@@ -18,8 +18,8 @@ import (
 )
 
 func TestBillingConnectorLifecycleProtectsCredentials(t *testing.T) {
-	store := NewMemoryStore()
-	app := NewWithConfig(store, Config{
+	store := newTestMemoryStore(t)
+	app := newManagedTestServerWithConfig(t, store, Config{
 		AdminToken: "dev_admin_token",
 		SecretKey:  "billing-test-secret",
 	}).Handler()
@@ -127,8 +127,8 @@ func TestOneAPIBillingSyncRetriesPaginatesAndIsIdempotent(t *testing.T) {
 	}))
 	defer upstream.Close()
 
-	store := NewMemoryStore()
-	server := NewWithConfig(store, Config{AdminToken: "dev_admin_token", SecretKey: "billing-test-secret"})
+	store := newTestMemoryStore(t)
+	server := newManagedTestServerWithConfig(t, store, Config{AdminToken: "dev_admin_token", SecretKey: "billing-test-secret"})
 	app := server.Handler()
 	invalid := doJSON(t, app, http.MethodPost, "/api/admin/billing/connectors", map[string]any{
 		"name":     "Invalid NewAPI",
@@ -269,8 +269,8 @@ func TestNewAPIBillingSyncUsesQuotaEndpointAndChunksRange(t *testing.T) {
 	}))
 	defer upstream.Close()
 
-	store := NewMemoryStore()
-	server := NewWithConfig(store, Config{AdminToken: "dev_admin_token", SecretKey: "billing-test-secret"})
+	store := newTestMemoryStore(t)
+	server := newManagedTestServerWithConfig(t, store, Config{AdminToken: "dev_admin_token", SecretKey: "billing-test-secret"})
 	app := server.Handler()
 	created := doJSON(t, app, http.MethodPost, "/api/admin/billing/connectors", map[string]any{
 		"name":     "Finance NewAPI",
@@ -409,8 +409,8 @@ func TestAliyunBillingSyncSignsRequestsAndAdvancesBillingCycles(t *testing.T) {
 	}))
 	defer upstream.Close()
 
-	store := NewMemoryStore()
-	app := NewWithConfig(store, Config{AdminToken: "dev_admin_token", SecretKey: "billing-test-secret"}).Handler()
+	store := newTestMemoryStore(t)
+	app := newManagedTestServerWithConfig(t, store, Config{AdminToken: "dev_admin_token", SecretKey: "billing-test-secret"}).Handler()
 	created := doJSON(t, app, http.MethodPost, "/api/admin/billing/connectors", map[string]any{
 		"name":     "Aliyun Finance",
 		"type":     BillingConnectorAliyun,
@@ -532,8 +532,8 @@ func TestBillingSyncFailureKeepsCheckpointAndRetryResumes(t *testing.T) {
 	}))
 	defer upstream.Close()
 
-	store := NewMemoryStore()
-	app := NewWithConfig(store, Config{AdminToken: "dev_admin_token", SecretKey: "billing-test-secret"}).Handler()
+	store := newTestMemoryStore(t)
+	app := newManagedTestServerWithConfig(t, store, Config{AdminToken: "dev_admin_token", SecretKey: "billing-test-secret"}).Handler()
 	created := doJSON(t, app, http.MethodPost, "/api/admin/billing/connectors", map[string]any{
 		"name":     "Checkpoint OneAPI",
 		"type":     BillingConnectorOneAPI,
@@ -610,8 +610,8 @@ func TestBillingConnectorTestAndScheduledSync(t *testing.T) {
 	}))
 	defer upstream.Close()
 
-	store := NewMemoryStore()
-	server := NewWithConfig(store, Config{AdminToken: "dev_admin_token", SecretKey: "billing-test-secret"})
+	store := newTestMemoryStore(t)
+	server := newManagedTestServerWithConfig(t, store, Config{AdminToken: "dev_admin_token", SecretKey: "billing-test-secret"})
 	app := server.Handler()
 	created := doJSON(t, app, http.MethodPost, "/api/admin/billing/connectors", map[string]any{
 		"name":                      "Scheduled OneAPI",
@@ -715,7 +715,7 @@ func TestOneAPIBillingRecordPreservesLargeIntegerFields(t *testing.T) {
 // TestBillingSchedulerRestartsAfterShutdown guards the run-state tracking
 // that replaced sync.Once: StartScheduler must work again after Shutdown.
 func TestBillingSchedulerRestartsAfterShutdown(t *testing.T) {
-	service := newBillingService(NewMemoryStore())
+	service := newBillingService(newTestMemoryStore(t))
 	service.StartScheduler(time.Hour)
 	if err := service.Shutdown(context.Background()); err != nil {
 		t.Fatalf("first shutdown: %v", err)

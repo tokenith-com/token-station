@@ -440,7 +440,7 @@ func newAdminProjectMethodRoutingServer(t *testing.T) (*GormStore, *Server, http
 	config := ConfigFromEnv()
 	config.AdminToken = "dev_admin_token"
 	config.BootstrapAdminPassword = "project-method-routing-password"
-	store := NewMemoryStoreWithConfig(config)
+	store := newTestMemoryStoreWithConfig(t, config)
 	if err := BootstrapBaseDataWithConfig(store, config); err != nil {
 		t.Fatal(err)
 	}

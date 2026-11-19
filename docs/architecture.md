@@ -1,8 +1,8 @@
-# TokenHub Architecture
+# TokenStation Architecture
 
 Language: English | [简体中文](zh-CN/architecture.md) | [日本語](ja/architecture.md)
 
-This document describes the architecture implemented in this repository for developers, operators, and security teams. TokenHub defaults to a single-instance SQLite deployment and also supports single-instance PostgreSQL and multi-instance deployments backed by remote PostgreSQL.
+This document describes the architecture implemented in this repository for developers, operators, and security teams. TokenStation defaults to a single-instance SQLite deployment and also supports single-instance PostgreSQL and multi-instance deployments backed by remote PostgreSQL.
 
 ## Overview
 
@@ -16,7 +16,7 @@ flowchart TB
     app["Applications and SDKs"]
     ingress["Direct ports or HTTPS reverse proxy"]
     frontend["Next.js admin console"]
-    backend["TokenHub Go backend"]
+    backend["TokenStation Go backend"]
 
     subgraph backendProcess["Backend process"]
         adminApi["Admin API\n/api/admin/*"]
@@ -129,7 +129,7 @@ The default image uses the model catalog bundled at build time so the executable
 | Background jobs and actions | `backend/internal/plugin/background_scheduler.go`, `background_job.go`, `action_broker.go` | Schedule in-process jobs and broker operator actions; these are separate from durable background Responses jobs |
 | Presentation | `backend/internal/plugin/admin_ui.go`, `sim.go` | Declarative panels, settings, themes, and layouts rendered by the console; no arbitrary plugin React or JavaScript execution |
 
-Packages declare `plugin.yaml` with manifest schema `2` and Plugin API `v2`; schema `1` and API `v1` remain supported through the compatibility adapter. Permissions constrain which Core data would be projected into an invocation and which structured changes Core would accept. This is not an operating-system sandbox: the command policy currently reports network and resource enforcement as `unsupported`. TokenHub therefore fails closed and rejects every runtime-loaded external action, background job, Provider command, and gateway command before launch until process, network, and resource isolation can be enforced by the host. An enabled package with an executable backend entry is persisted as `failed_startup`, remains installed and inspectable, and publishes none of its runtime capabilities. Purely declarative presentation packages and in-process built-ins are unaffected. The generic command limits remain part of the future execution contract: 30 seconds, 4 MiB input, and 1 MiB output by default, with surface-specific limits such as the 5-second default gateway-hook timeout. External Provider streaming is likewise unavailable while external commands are disabled; its current protocol shape describes an event array rather than a live child-process stream.
+Packages declare `plugin.yaml` with manifest schema `2` and Plugin API `v2`; schema `1` and API `v1` remain supported through the compatibility adapter. Permissions constrain which Core data would be projected into an invocation and which structured changes Core would accept. This is not an operating-system sandbox: the command policy currently reports network and resource enforcement as `unsupported`. TokenStation therefore fails closed and rejects every runtime-loaded external action, background job, Provider command, and gateway command before launch until process, network, and resource isolation can be enforced by the host. An enabled package with an executable backend entry is persisted as `failed_startup`, remains installed and inspectable, and publishes none of its runtime capabilities. Purely declarative presentation packages and in-process built-ins are unaffected. The generic command limits remain part of the future execution contract: 30 seconds, 4 MiB input, and 1 MiB output by default, with surface-specific limits such as the 5-second default gateway-hook timeout. External Provider streaming is likewise unavailable while external commands are disabled; its current protocol shape describes an event array rather than a live child-process stream.
 
 All three Compose variants mount `tokenhub-plugins` at `/app/plugins` and expose `TOKENHUB_PLUGIN_DIR` and `TOKENHUB_PLUGIN_MARKETPLACE_URL`. Package files and lifecycle state live on the filesystem, while registries and runners are process-local. Plugin lifecycle operations reload the runtime in the server that handles the request, so package validation, declarative contribution changes, and lifecycle failure reporting do not require a service restart. Reloading evaluates external command packages but does not make them executable. PostgreSQL does not distribute plugin binaries or refresh every replica's registry; multi-instance deployments must coordinate package versions and reload each replica.
 
@@ -149,7 +149,7 @@ Installation and marketplace code provide checksum verification, signed-marketpl
 | Provider adapters | `builtin_provider_plugins.go`, `provider_plugin_adapter.go`, `provider_account_codex.go` | Protocol translation; Codex subscription OAuth, refresh, and session affinity |
 | Remaining server store | `backend/internal/server/store.go` | Database setup and remaining domain access, quotas, credential encryption, SQLite backups, PostgreSQL leases, and cluster locks; reconciliation operations belong to its module adapter |
 
-The following are the operational built-in Provider registrations. Effective capabilities come from the enabled built-in plugin and adapter descriptors, Provider policy, and model/resource support. External manifests may describe additional Provider types for package inspection and Devkit contract testing, but current TokenHub releases do not activate their command-backed adapters.
+The following are the operational built-in Provider registrations. Effective capabilities come from the enabled built-in plugin and adapter descriptors, Provider policy, and model/resource support. External manifests may describe additional Provider types for package inspection and Devkit contract testing, but current TokenStation releases do not activate their command-backed adapters.
 
 | Provider type | Adapter and capabilities |
 | --- | --- |
@@ -171,7 +171,7 @@ This sequence summarizes the Core request flow. At the applicable stages, the ga
 ```mermaid
 sequenceDiagram
     participant C as Application
-    participant G as TokenHub /v1
+    participant G as TokenStation /v1
     participant S as Store and database
     participant H as Gateway hooks
     participant A as Provider adapter
@@ -210,7 +210,7 @@ Project and API-key model access is an explicit least-privilege layer before rou
 ## Security, Health, and Data Boundaries
 
 - Project API keys are validated for hash, status, project state, expiration, model scope, IP allowlist, quota, and concurrency.
-- Admin calls use a login session token or an optional `TOKENHUB_ADMIN_TOKEN`. The initial `admin` account uses `TOKENHUB_BOOTSTRAP_ADMIN_PASSWORD` when configured; otherwise TokenHub generates a password whose encrypted retrievable copy is deleted after first login or reset.
+- Admin calls use a login session token or an optional `TOKENHUB_ADMIN_TOKEN`. The initial `admin` account uses `TOKENHUB_BOOTSTRAP_ADMIN_PASSWORD` when configured; otherwise TokenStation generates a password whose encrypted retrievable copy is deleted after first login or reset.
 - Non-development startup disables known placeholders for optional bootstrap credentials and rejects other weak non-empty values. `TOKENHUB_SECRET_KEY` stays mandatory, except that a brand-new file-backed SQLite database receives a persistent key file beside the database. Existing databases never receive a replacement key automatically.
 - `TOKENHUB_TRUSTED_PROXY_CIDRS` defines which proxies may supply `X-Forwarded-For`, `X-Forwarded-Host`, and `X-Forwarded-Proto`; trusted proxies must overwrite those headers. `TOKENHUB_CORS_ALLOWED_ORIGINS` controls credentialed browser origins.
 - `/livez` is a process liveness probe. `/readyz` and compatibility `/healthz` check database availability and the database evolution state: they return `503` when the database is unavailable, a migration is dirty or the ledger fails verification, or a blocking data backfill is incomplete. Pending online backfills keep the instance ready. Unsafe startup configuration also keeps only `/livez` healthy while all readiness and application routes return `503` until configuration is corrected and the process restarts.

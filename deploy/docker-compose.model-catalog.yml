@@ -1,5 +1,5 @@
 services:
-  tokenhub-backend:
+  tokenstation-backend:
     environment:
       TOKENHUB_MODEL_CATALOG_FILE: /app/config/model-catalog.yaml
     volumes:

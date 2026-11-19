@@ -13,7 +13,7 @@ const composeAvailable = spawnSync("docker", ["compose", "version"], {
 }).status === 0;
 
 function renderCompose(file, contents, overrides = {}) {
-  const directory = mkdtempSync(join(tmpdir(), "tokenhub-compose-memory-"));
+  const directory = mkdtempSync(join(tmpdir(), "tokenstation-compose-memory-"));
   try {
     const envFile = join(directory, ".env");
     writeFileSync(envFile, contents);
@@ -27,7 +27,7 @@ function renderCompose(file, contents, overrides = {}) {
       "config", "--format", "json",
     ], { encoding: "utf8", env, cwd: root });
     assert.equal(result.status, 0, `Compose could not render ${file}: ${result.stderr}`);
-    return JSON.parse(result.stdout).services["tokenhub-backend"];
+    return JSON.parse(result.stdout).services["tokenstation-backend"];
   } finally {
     rmSync(directory, { recursive: true, force: true });
   }

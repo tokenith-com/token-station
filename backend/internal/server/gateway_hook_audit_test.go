@@ -10,8 +10,8 @@ import (
 )
 
 func TestGatewayHookAuditEventsAreWrappedAndRedacted(t *testing.T) {
-	store := NewMemoryStore()
-	server := New(store)
+	store := newTestMemoryStore(t)
+	server := newManagedTestServer(t, store)
 	call := CallContext{
 		RequestID: "req_hook_audit",
 		Project:   Project{ID: "prj_hook_audit"},
@@ -73,8 +73,8 @@ func TestGatewayHookAuditEventsAreWrappedAndRedacted(t *testing.T) {
 }
 
 func TestGatewayHookAuditEventsSkipEmptyResults(t *testing.T) {
-	store := NewMemoryStore()
-	server := New(store)
+	store := newTestMemoryStore(t)
+	server := newManagedTestServer(t, store)
 
 	server.recordGatewayHookAuditEvents(CallContext{RequestID: "req_empty"}, pluginmeta.GatewayHookRunReport{
 		Stage: pluginmeta.StagePrivacyPre,
@@ -93,8 +93,8 @@ func TestGatewayHookAuditEventsSkipEmptyResults(t *testing.T) {
 }
 
 func TestGatewayHookAuditEventsAreRecordedByTraceExportStage(t *testing.T) {
-	store := NewMemoryStore()
-	server := New(store)
+	store := newTestMemoryStore(t)
+	server := newManagedTestServer(t, store)
 	hook := pluginmeta.GatewayHookDescriptor{
 		PluginID:      "tokenhub.trace",
 		HookID:        "export",
@@ -134,8 +134,8 @@ func TestGatewayHookAuditEventsAreRecordedByTraceExportStage(t *testing.T) {
 }
 
 func TestGatewayHookAuditEventsAreBoundedPerReport(t *testing.T) {
-	store := NewMemoryStore()
-	server := New(store)
+	store := newTestMemoryStore(t)
+	server := newManagedTestServer(t, store)
 	auditEvents := make([]json.RawMessage, 0, gatewayHookAuditMaxEventsPerReport+1)
 	for index := 0; index < gatewayHookAuditMaxEventsPerReport+1; index++ {
 		auditEvents = append(auditEvents, json.RawMessage(`{"event":"kept"}`))

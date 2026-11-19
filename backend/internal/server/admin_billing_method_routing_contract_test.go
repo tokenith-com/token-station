@@ -163,7 +163,7 @@ func TestAdminBillingMethodRoutesPreserveDynamicPayloadValidation(t *testing.T) 
 	config.AdminToken = "dev_admin_token"
 	config.SecretKey = "billing-method-routing-validation-secret"
 	config.MaxJSONRequestBytes = 1 << 10
-	store := NewMemoryStoreWithConfig(config)
+	store := newTestMemoryStoreWithConfig(t, config)
 	connector, err := store.BillingRepository().CreateBillingConnector(BillingConnector{
 		ID:      "billing-validation",
 		Name:    "Billing Validation Connector",
@@ -174,7 +174,7 @@ func TestAdminBillingMethodRoutesPreserveDynamicPayloadValidation(t *testing.T) 
 	if err != nil {
 		t.Fatal(err)
 	}
-	app := NewWithConfig(store, config).Handler()
+	app := newManagedTestServerWithConfig(t, store, config).Handler()
 	itemPath := "/api/admin/billing/connectors/" + connector.ID
 
 	for _, test := range []struct {
@@ -387,11 +387,11 @@ func newMethodRoutingBillingServer(t *testing.T, password string) (*GormStore, h
 	config.AdminToken = "dev_admin_token"
 	config.BootstrapAdminPassword = password
 	config.SecretKey = "billing-method-routing-secret"
-	store := NewMemoryStoreWithConfig(config)
+	store := newTestMemoryStoreWithConfig(t, config)
 	if err := BootstrapBaseDataWithConfig(store, config); err != nil {
 		t.Fatal(err)
 	}
-	return store, NewWithConfig(store, config).Handler()
+	return store, newManagedTestServerWithConfig(t, store, config).Handler()
 }
 
 func newBillingMethodRoutingUpstream(t *testing.T, createdAt time.Time) *httptest.Server {

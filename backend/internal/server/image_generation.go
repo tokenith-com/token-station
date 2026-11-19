@@ -585,6 +585,11 @@ func (s *Server) Shutdown(ctx context.Context) error {
 	// every buffered trace is worse.
 	defer s.shutdownTracing()
 	defer s.shutdownProviderRuntimes()
+	if s.payments != nil {
+		if err := s.payments.stop(ctx); err != nil {
+			return err
+		}
+	}
 	s.responseWorkerStop.Do(func() {
 		s.responseCancel()
 	})

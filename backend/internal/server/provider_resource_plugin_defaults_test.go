@@ -8,7 +8,7 @@ import (
 )
 
 func TestProviderResourceUsesPluginResourceTypeDefaultBaseURL(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	store.ConfigureProviderResourceTypeDefaults(map[string]map[string]string{
 		"kimi_subscription_account": {
 			"auth_type":       "personal_access_token",
@@ -80,7 +80,7 @@ func TestProviderResourceTypeDefaultsAreScopedByProviderType(t *testing.T) {
 			t.Fatalf("register %s plugin: %v", tc.providerType, err)
 		}
 	}
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	configureProviderResourceTypeDefaults(store, registry)
 	alphaProvider := store.AddProvider(Provider{
 		ID: "prv_alpha", Name: "Alpha", Type: "alpha_subscription",
@@ -115,7 +115,7 @@ func TestProviderResourceTypeDefaultsAreScopedByProviderType(t *testing.T) {
 }
 
 func TestProviderResourceAccountClassificationUsesPluginMetadata(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	store.ConfigureProviderResourceTypePolicy(map[string][]string{
 		"kimi_subscription": {"kimi_subscription_account"},
 		"plain_plugin":      {},
@@ -160,7 +160,7 @@ func TestProviderResourceAccountClassificationUsesPluginMetadata(t *testing.T) {
 }
 
 func TestProviderResourceCredentialInputOptionalUsesPluginMetadata(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	store.ConfigureProviderResourceTypePolicy(map[string][]string{
 		"optional_provider": {"optional_account"},
 		"required_provider": {"required_account"},
@@ -201,7 +201,7 @@ func TestProviderResourceCredentialInputOptionalUsesPluginMetadata(t *testing.T)
 }
 
 func TestProviderResourceAccountClassificationKeepsLegacyFallbackWithoutMetadata(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	provider := store.AddProvider(Provider{
 		ID: "prv_legacy_account", Name: "Legacy Account Provider", Type: "legacy_provider",
 		Status: StatusActive, Healthy: true,
@@ -234,7 +234,7 @@ func TestProviderAccountOptionsFallbackIsProviderNeutral(t *testing.T) {
 }
 
 func TestProviderResourceCredentialIdentityProfileControlsIDTokenClaims(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	store.ConfigureProviderResourceTypePolicy(map[string][]string{
 		"profiled_provider": {"profiled_account"},
 	})
@@ -391,7 +391,7 @@ func TestProviderResourceCachedCatalogSourceUsesPluginCatalogSource(t *testing.T
 }
 
 func TestPrepareRouteForUpstreamUsesRefreshProfilePolicy(t *testing.T) {
-	store := NewMemoryStore()
+	store := newTestMemoryStore(t)
 	refreshProfile := "profiled_route_oauth"
 	store.ConfigureProviderResourceTypePolicy(map[string][]string{
 		"profiled_provider": {"profiled_account"},

@@ -13,7 +13,7 @@ import (
 )
 
 func TestSubscriptionCancellationBindsActorAndProvider(t *testing.T) {
-	server := New(NewMemoryStore())
+	server := newManagedTestServer(t, newTestMemoryStore(t))
 	started, err := subscriptionActionFixture(t, server, ProviderChatGPTSubscription, "oauth.start", "admin-a", map[string]any{})
 	if err != nil {
 		t.Fatal(err)
@@ -36,7 +36,7 @@ func TestSubscriptionCancellationBindsActorAndProvider(t *testing.T) {
 }
 
 func TestClaudeSubscriptionImportsTokenAndSessionThroughAdminActions(t *testing.T) {
-	server := New(NewMemoryStore())
+	server := newManagedTestServer(t, newTestMemoryStore(t))
 	start := doJSON(t, server.Handler(), http.MethodPost, "/api/admin/provider-actions/claude_subscription/oauth.start", map[string]any{"resource_type": providerResourceClaudeSubscription, "inputs": map[string]string{"key": "claude-import-secret"}}, "dev_admin_token")
 	if start.Code != http.StatusOK || strings.Contains(start.Body, "claude-import-secret") {
 		t.Fatalf("unsafe or failed import start: status=%d body=%s", start.Code, start.Body)
@@ -72,7 +72,7 @@ func TestClaudeSubscriptionImportsTokenAndSessionThroughAdminActions(t *testing.
 }
 
 func TestClaudeBrowserAuthorizationRunsThroughProviderActions(t *testing.T) {
-	server := New(NewMemoryStore())
+	server := newManagedTestServer(t, newTestMemoryStore(t))
 	adapter, ok := resolveTypedAdapter[*ClaudeSubscriptionAdapter](server.adapterRegistry, providerClaudeSubscription)
 	if !ok {
 		t.Fatal("Claude adapter is unavailable")

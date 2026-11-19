@@ -2,8 +2,8 @@ schema_version: 2
 id: tokenhub.provider.kimi-go
 name: Kimi Subscription Go Provider
 version: 1.0.0
-summary: Connect TokenHub to a Kimi subscription account.
-description: Reference Go Provider plugin using the TokenHub stdio-json-v1 transport.
+summary: Connect TokenStation to a Kimi subscription account.
+description: Reference Go Provider plugin using the TokenStation stdio-json-v1 transport.
 category: provider_integration
 tokenhub:
   plugin_api: v2

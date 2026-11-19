@@ -11,7 +11,7 @@ import (
 )
 
 func TestMethodRoutingContracts(t *testing.T) {
-	app := newTestServer()
+	app := newTestServer(t)
 
 	valid := methodRoutingRequest(app, http.MethodGet, "/livez", "")
 	if valid.Code != http.StatusOK {
@@ -38,7 +38,7 @@ func TestMethodRoutingContracts(t *testing.T) {
 }
 
 func TestSimpleMethodRoutesReachHandlers(t *testing.T) {
-	app := newTestServer()
+	app := newTestServer(t)
 	tests := []struct {
 		method     string
 		path       string
@@ -66,7 +66,7 @@ func TestSimpleMethodRoutesReachHandlers(t *testing.T) {
 }
 
 func TestSimpleMethodRoutesRejectWrongMethodsAsJSON(t *testing.T) {
-	app := newTestServer()
+	app := newTestServer(t)
 	tests := []struct {
 		allowed string
 		method  string
@@ -93,7 +93,7 @@ func TestSimpleMethodRoutesRejectWrongMethodsAsJSON(t *testing.T) {
 }
 
 func TestSimpleGETMethodRoutesRejectHEAD(t *testing.T) {
-	server := httptest.NewServer(newTestServer())
+	server := httptest.NewServer(newTestServer(t))
 	defer server.Close()
 
 	paths := []string{
@@ -195,13 +195,13 @@ func TestSimpleMethodRouteResetPasswordInvalidatesOldCredentials(t *testing.T) {
 }
 
 func TestMethodRoutingPreservesAdminAuthenticationOrder(t *testing.T) {
-	response := methodRoutingRequest(New(NewMemoryStore()).Handler(), http.MethodPost, "/api/admin/auth/me", "")
+	response := methodRoutingRequest(newManagedTestServer(t, newTestMemoryStore(t)).Handler(), http.MethodPost, "/api/admin/auth/me", "")
 	assertJSONError(t, response, http.StatusUnauthorized, "invalid_admin_token")
 	assertAllowHeader(t, response, "")
 }
 
 func TestMethodRoutingPreservesAnthropicErrorShape(t *testing.T) {
-	response := methodRoutingRequest(newTestServer(), http.MethodGet, "/v1/messages", "")
+	response := methodRoutingRequest(newTestServer(t), http.MethodGet, "/v1/messages", "")
 	if response.Code != http.StatusMethodNotAllowed {
 		t.Fatalf("GET /v1/messages: expected 405, got %d: %s", response.Code, response.Body.String())
 	}
@@ -234,7 +234,7 @@ func TestMethodRoutingPreservesCORSPreflight(t *testing.T) {
 	request.Header.Set("access-control-request-headers", "authorization,content-type")
 	response := httptest.NewRecorder()
 
-	newTestServer().ServeHTTP(response, request)
+	newTestServer(t).ServeHTTP(response, request)
 
 	if response.Code != http.StatusNoContent {
 		t.Fatalf("OPTIONS /api/admin/auth/login: expected 204, got %d: %s", response.Code, response.Body.String())
@@ -278,17 +278,17 @@ func newMethodRoutingAdminServer(t *testing.T, password string) (*GormStore, htt
 	config := ConfigFromEnv()
 	config.AdminToken = "dev_admin_token"
 	config.BootstrapAdminPassword = password
-	store := NewMemoryStoreWithConfig(config)
+	store := newTestMemoryStoreWithConfig(t, config)
 	if err := BootstrapBaseDataWithConfig(store, config); err != nil {
 		t.Fatal(err)
 	}
-	return store, NewWithConfig(store, config).Handler()
+	return store, newManagedTestServerWithConfig(t, store, config).Handler()
 }
 
 func loginMethodRoutingAdmin(t *testing.T, handler http.Handler, password string) (string, AdminUser) {
 	t.Helper()
 	response := methodRoutingJSONRequest(t, handler, http.MethodPost, "/api/admin/auth/login", map[string]any{
-		"identity": "admin@tokenhub.local",
+		"identity": "admin@tokenstation.local",
 		"password": password,
 	}, "")
 	if response.Code != http.StatusOK {
