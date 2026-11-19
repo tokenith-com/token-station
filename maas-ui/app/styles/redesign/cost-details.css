@@ -275,3 +275,24 @@
   .cost-header { align-items: stretch; flex-direction: column; }
   .cost-ranges { overflow-x: auto; }
 }
+
+/* Request IDs are long and must not stretch the table. */
+.cost-request-id {
+  display: inline-block;
+  max-width: 210px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: bottom;
+  border-radius: 5px;
+  padding: 1px 6px;
+  background: var(--surface-2, #fafafb);
+  color: var(--ink-2, #5c5c66);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px;
+}
+
+[data-theme="dark"] .cost-request-id {
+  background: var(--surface-3, #1e1e25);
+  color: var(--ink-2, #a0a0aa);
+}

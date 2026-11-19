@@ -1,6 +1,6 @@
 "use client";
 
-import { AlertTriangle, Boxes, CircleCheck, Plus, Search } from "lucide-react";
+import { AlertTriangle, Boxes, CircleCheck, LayoutGrid, List, Plus, Search } from "lucide-react";
 import { useMemo, useState } from "react";
 import { type ApiContext, type AppData, type AppRole, type Model, type ResourceConfig } from "../core/types";
 import { modelCategory, modelCategoryLabel } from "../domain/catalog";
@@ -62,6 +62,9 @@ function NativeModelDirectoryView({
   const [notice, setNotice] = useState("");
   const [error, setError] = useState("");
   const [detailName, setDetailName] = useState("");
+  // Cards suit browsing a short catalog; the table stays available because it
+  // shows more columns at once for comparison.
+  const [layout, setLayout] = useState<"cards" | "table">("cards");
 
   const publishedModels = useMemo(() => externalModels(data, readOnly), [data, readOnly]);
   const filteredExternal = useMemo(
@@ -155,20 +158,34 @@ function NativeModelDirectoryView({
               ))}
             </div>
           ) : null}
+          <div className="model-layout-toggle" role="group" aria-label={tx("展示方式")}>
+            <button aria-pressed={layout === "cards"} className={layout === "cards" ? "active" : ""} data-layout="cards" onClick={() => setLayout("cards")} title={tx("卡片展示")} type="button">
+              <LayoutGrid size={15} aria-hidden="true" />
+              <span>{tx("卡片")}</span>
+            </button>
+            <button aria-pressed={layout === "table"} className={layout === "table" ? "active" : ""} data-layout="table" onClick={() => setLayout("table")} title={tx("列表展示")} type="button">
+              <List size={15} aria-hidden="true" />
+              <span>{tx("列表")}</span>
+            </button>
+          </div>
         </div>
 
-        <ExternalModelsTable
-          api={api}
-          data={data}
-          models={filteredExternal}
-          readOnly={readOnly}
-          busy={busy || loading}
-          onOpenRoutes={onOpenRoutes}
-          onEdit={onEditModel}
-          onDelete={onDeleteModel}
-          onPublish={setPublished}
-          onOpenDetails={(model) => setDetailName(model.name)}
-        />
+        {layout === "cards" ? (
+          <ExternalModelsGrid data={data} models={filteredExternal} readOnly={readOnly} onOpenDetails={(model) => setDetailName(model.name)} />
+        ) : (
+          <ExternalModelsTable
+            api={api}
+            data={data}
+            models={filteredExternal}
+            readOnly={readOnly}
+            busy={busy || loading}
+            onOpenRoutes={onOpenRoutes}
+            onEdit={onEditModel}
+            onDelete={onDeleteModel}
+            onPublish={setPublished}
+            onOpenDetails={(model) => setDetailName(model.name)}
+          />
+        )}
         {detailModel ? <ModelDirectoryDetail model={detailModel} data={data} readOnly={readOnly} onClose={() => setDetailName("")} /> : null}
       </div>
     </DataSection>
@@ -238,6 +255,75 @@ function ExternalModelsTable({ api, data, models, readOnly, busy, onOpenRoutes, 
           })}
         </tbody>
       </table>
+    </div>
+  );
+}
+
+// Cards carry the same fields as the table rows; the table stays for
+// side-by-side comparison, the grid for browsing.
+function ExternalModelsGrid({ data, models, readOnly, onOpenDetails }: {
+  data: AppData;
+  models: Model[];
+  readOnly: boolean;
+  onOpenDetails: (model: Model) => void;
+}) {
+  if (models.length === 0) {
+    return (
+      <div className="model-directory-empty">
+        <Boxes size={28} />
+        <strong>{tx(readOnly ? "当前没有可见模型" : "当前范围没有对外模型")}</strong>
+        <span>{tx(readOnly ? "请联系管理员发布模型并授予 API Key 访问范围。" : "请创建对外模型、选择已引入的 Provider 模型并设置统一价格；创建后可在路由策略中细调流量。")}</span>
+      </div>
+    );
+  }
+  return (
+    <div className={`model-directory-grid${readOnly ? " is-read-only" : ""}`}>
+      {models.map((model) => {
+        const routes = modelRoutesFor(model, data);
+        const activeRoutes = routes.filter((route) => route.status === "active");
+        const primary = activeRoutes[0] ?? routes[0];
+        const provider = primary ? findProvider(data, primary.provider_id) : undefined;
+        const publication = modelPublicationState(model, data);
+        const runtime = modelRuntimeState(model, data);
+        const customAlias = isCustomModelAlias(model, routes);
+        const title = modelDisplayName(model.metadata, model.name);
+        const subtitle = modelDirectorySubtitle(model.name, title, !readOnly ? tx(customAlias ? "自定义别名" : "同名 1:1") : "");
+        const category = modelCategory(model, data);
+        const categoryLabel = modelCategoryLabel(category, data);
+        const capabilities = model.capabilities ?? [];
+        return (
+          <article className="model-directory-card" key={model.name}>
+            <header className="model-directory-card-head">
+              <ModelBrandIcon category={category} label={categoryLabel} data={data} />
+              <div className="model-directory-card-title">
+                <button className="text-button model-detail-trigger" aria-label={formatTranslationTemplate(tx("查看模型详情：{name}"), { name: title })} onClick={() => onOpenDetails(model)} type="button">{title}</button>
+                {subtitle ? <span>{subtitle}</span> : null}
+              </div>
+            </header>
+
+            <dl className="model-directory-card-meta">
+              <div><dt>{tx("类型与能力")}</dt><dd><strong>{model.modality || "chat"}</strong>{model.context_window ? `${compactNumber(model.context_window)} ctx` : capabilities.slice(0, 2).join(" / ") || model.family || "-"}</dd></div>
+              {!readOnly ? (
+                <div><dt>{tx("真实上游映射")}</dt><dd>{primary ? <><span>{provider?.name || primary.provider_id}</span><strong>{primary.provider_model}</strong>{routes.length > 1 ? <em>+{routes.length - 1}</em> : null}</> : <span className="muted">{tx("尚未映射 Provider")}</span>}</dd></div>
+              ) : null}
+            </dl>
+
+            <div className="model-directory-card-price">
+              <span>{tx("对外统一价")}</span>
+              <ModelDirectoryPrice model={model} />
+            </div>
+
+            <footer className="model-directory-card-foot">
+              {!readOnly ? (
+                <div className="model-management-status">
+                  <StatusPill status={publication === "published" ? "active" : "disabled"} label={tx(publicationLabel(publication))} />
+                  <RuntimeStatus state={runtime} active={activeRoutes.length} total={routes.length} />
+                </div>
+              ) : <StatusPill status="active" label={tx("当前账号可用")} />}
+            </footer>
+          </article>
+        );
+      })}
     </div>
   );
 }

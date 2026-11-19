@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { QRCodeCanvas } from "qrcode.react";
-import { Check, CreditCard, ListChecks, QrCode, WalletCards } from "lucide-react";
+import { Check, CreditCard, ListChecks, QrCode } from "lucide-react";
 
 import type { ApiContext } from "../core/types";
 import { uniqueUIID } from "../domain/formatting";
@@ -10,7 +10,6 @@ import { formatRechargeFen, formatWalletMicros, walletRequest, type Wallet } fro
 
 type Order = { order_no: string; status: string; qr_code?: string; pay_url?: string; amount_fen?: number; channel?: string; created_at?: number };
 type Plans = { custom_enabled?: boolean; min_fen?: number; max_fen?: number; data: { id: string; name: string; amount_fen: number }[]; channels: string[] };
-type Usage = { request_id: string; model: string; status: string; charged_micros: number };
 type CheckoutAttempt = { plan_id: string; amount_fen?: number; channel: string; key: string };
 
 function checkoutURL(value: string | undefined) {
@@ -30,7 +29,6 @@ export function ConsumerRechargeView({ api }: { api: ApiContext }) {
 export function RechargeView({ api }: { api: ApiContext }) {
   const [plans, setPlans] = useState<Plans>();
   const [wallet, setWallet] = useState<Wallet>();
-  const [usage, setUsage] = useState<Usage[]>([]);
   const [attempt, setAttempt] = useState<CheckoutAttempt>();
   const [order, setOrder] = useState<Order>();
   const [orders, setOrders] = useState<Order[]>([]);
@@ -48,15 +46,13 @@ export function RechargeView({ api }: { api: ApiContext }) {
     void Promise.all([
       walletRequest<Plans>(context, "/api/admin/recharge/plans", options),
       walletRequest<Wallet>(context, "/api/admin/wallet", options),
-      walletRequest<{ data: Usage[] }>(context, "/api/admin/wallet/usage", options),
       walletRequest<{ data: Order[] }>(context, "/api/admin/recharge/orders", options),
-    ]).then(([options, balance, history, checkoutHistory]) => {
+    ]).then(([options, balance, checkoutHistory]) => {
       if (controller.signal.aborted) return;
       setPlans(options);
       setPlan(options.data[0]?.id ?? "");
       setChannel(options.channels[0] ?? "");
       setWallet(balance);
-      setUsage(history.data);
       setOrders(checkoutHistory.data);
       const returnedOrder = new URLSearchParams(window.location.search).get("payment_order");
       if (returnedOrder) {
@@ -165,6 +161,13 @@ export function RechargeView({ api }: { api: ApiContext }) {
   const amountLabel = (value?: number) => typeof value === "number" ? formatRechargeFen(value) : "—";
 
   const payURL = checkoutURL(order?.pay_url);
+  const statusTone = (status: string) => {
+    switch (status) {
+      case "succeeded": return "is-paid";
+      case "pending": case "refund_pending": return "is-pending";
+      default: return "is-closed";
+    }
+  };
   const statusLabel = (status: string) => {
     switch (status) {
       case "pending": return tx("待支付");
@@ -178,11 +181,28 @@ export function RechargeView({ api }: { api: ApiContext }) {
   return (
     <section className="guest-cost-view payment-workspace">
       <header className="guest-cost-heading payment-heading"><h1>{tx("余额充值")}</h1><p>{tx("为您的账户充值，享受更多服务")}</p></header>
+
+      <section className="payment-flow" aria-label={tx("充值流程")}>
+        <ol>
+          {[
+            { title: tx("选择充值规格"), detail: tx("根据需要选择合适的充值金额") },
+            { title: tx("选择支付方式"), detail: tx("支持支付宝、微信扫码支付") },
+            { title: tx("扫码完成支付"), detail: tx("使用手机扫描二维码支付") },
+            { title: tx("余额即时到账"), detail: tx("支付成功后余额立即更新") },
+          ].map((step, index) => {
+            const done = order?.status === "succeeded" || (order?.status === "pending" && index <= 2);
+            return <li key={step.title} className={done ? "is-done" : index === 0 ? "is-active" : ""}>
+              <span className="payment-flow-index" aria-hidden="true">{done ? <Check size={15} /> : index + 1}</span>
+              <span className="payment-flow-copy"><strong>{step.title}</strong><small>{step.detail}</small></span>
+            </li>;
+          })}
+        </ol>
+      </section>
+
       {error && <p className="recharge-alert error" role="alert">{error}</p>}
       <div className="payment-checkout-layout">
       <div className="payment-checkout-main">
       <section className="payment-panel payment-balance-panel">
-        <h2><WalletCards aria-hidden="true" />{tx("账户余额")}</h2>
         <div className="recharge-balance">
           <span>{tx("当前余额")}</span>
           <strong>{wallet ? formatWalletMicros(wallet.available_micros) : "—"}</strong>
@@ -197,9 +217,14 @@ export function RechargeView({ api }: { api: ApiContext }) {
               <div className="payment-amount-options">
                 {plans.data.map((item) => <button key={item.id} type="button" className="payment-amount-option" aria-pressed={plan === item.id} onClick={() => setPlan(item.id)}>{formatRechargeFen(item.amount_fen)}</button>)}
                 {plans.custom_enabled && <button type="button" className="payment-amount-option" aria-pressed={!plan} onClick={() => setPlan("")}>{tx("自定义金额")}</button>}
+                {!plan && plans.custom_enabled ? (
+                  <span className="payment-custom-amount">
+                    <input aria-label={tx("自定义金额")} type="number" required min={(plans.min_fen ?? 1) / 100} max={(plans.max_fen ?? 0) / 100} step="0.01" value={custom} placeholder={String((plans.min_fen ?? 1) / 100)} disabled={busy || Boolean(attempt) || Boolean(order)} onChange={event => setCustom(event.target.value)} />
+                    <small className="payment-custom-range">{formatRechargeFen(plans.min_fen ?? 1)} – {formatRechargeFen(plans.max_fen ?? 0)}</small>
+                  </span>
+                ) : null}
               </div>
             </fieldset>
-            {!plan && plans.custom_enabled && <label>{tx("自定义金额")}<input aria-label={tx("自定义金额")} type="number" required min={(plans.min_fen ?? 1) / 100} max={(plans.max_fen ?? 0) / 100} step="0.01" value={custom} disabled={busy || Boolean(attempt) || Boolean(order)} onChange={event => setCustom(event.target.value)} /><small>{formatRechargeFen(plans.min_fen ?? 1)} – {formatRechargeFen(plans.max_fen ?? 0)}</small></label>}
             <fieldset className="payment-amounts payment-panel" disabled={busy || Boolean(attempt)}>
               <legend><CreditCard aria-hidden="true" />{tx("支付方式")}</legend>
               <div className="payment-channel-options">
@@ -235,20 +260,6 @@ export function RechargeView({ api }: { api: ApiContext }) {
         </section>
       )}
       </div>
-      <aside className="payment-panel payment-guide" aria-label={tx("充值流程")}>
-        <h2>{tx("充值流程")}</h2>
-        <ol>
-          {[
-            { title: tx("选择充值规格"), detail: tx("根据需要选择合适的充值金额") },
-            { title: tx("选择支付方式"), detail: tx("支持支付宝、微信扫码支付") },
-            { title: tx("扫码完成支付"), detail: tx("使用手机扫描二维码支付") },
-            { title: tx("余额即时到账"), detail: tx("支付成功后余额立即更新") },
-          ].map((step, index) => <li key={step.title}>
-            <span className={`payment-guide-index ${index === 3 ? "complete" : ""}`} aria-hidden="true">{index === 3 ? <Check size={16} /> : index + 1}</span>
-            <span><strong>{step.title}</strong><small>{step.detail}</small></span>
-          </li>)}
-        </ol>
-      </aside>
       </div>
       {<section className="section payment-history">
         <h2>{tx("充值订单")}</h2>
@@ -259,15 +270,11 @@ export function RechargeView({ api }: { api: ApiContext }) {
             <td><strong>{amountLabel(item.amount_fen)}</strong><small>{item.order_no}</small></td>
             <td data-label={tx("支付方式")}>{channelLabel(item.channel)}</td>
             <td data-label={tx("时间")}>{item.created_at ? new Intl.DateTimeFormat(languageLocale(), { dateStyle: "short", timeStyle: "short" }).format(new Date(item.created_at * 1000)) : "—"}</td>
-            <td data-label={tx("状态")}>{statusLabel(item.status)}</td>
+            <td data-label={tx("状态")}><span className={`payment-order-status ${statusTone(item.status)}`}>{statusLabel(item.status)}</span></td>
             <td><button type="button" className="text-button" disabled={busy} onClick={() => void refreshOrder(item)}>{item.status === "pending" ? tx("继续支付") : tx("查看详情")}</button></td>
           </tr>)}</tbody>
         </table></div>}
 
-      </section>}
-      {usage.length > 0 && <section className="section">
-        <h2>{tx("消费流水")}</h2>
-        <ul>{usage.map((entry) => <li key={entry.request_id}>{entry.model} · {entry.request_id} · {entry.status === "settled" ? formatWalletMicros(entry.charged_micros) : entry.status === "released" ? tx("未扣费") : tx("待结算")}</li>)}</ul>
       </section>}
     </section>
   );

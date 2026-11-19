@@ -21,7 +21,7 @@ export function UsageView({ api, data, user }: { api: ApiContext; data: AppData;
   const showExecutiveReport = role === "admin";
   return <>
     <div className="team-wallet-overview">
-    {role === "admin" || role === "team_leader" ? <TeamWalletSummary key={`${api.baseURL}:${api.adminToken}:${user.id}:${user.team_id}:${role}`} api={api} teamID={role === "team_leader" ? user.team_id || "" : undefined} /> : null}
+    {role === "team_leader" ? <TeamWalletSummary key={`${api.baseURL}:${api.adminToken}:${user.id}:${user.team_id}:${role}`} api={api} teamID={user.team_id || ""} /> : null}
     {role === "team_leader" ? <WalletLedger key={`${api.baseURL}:${api.adminToken}:${user.id}:${user.team_id}`} api={api} teamID={user.team_id || ""} copy={{ tx, locale: languageLocale() }} /> : null}
     </div>
     <GlobalUsageView key={`${api.baseURL}:${user.id}:${user.role}`} api={api} data={data} user={user} renderReport={showExecutiveReport ? (scopedData, periodLabel) => <>

@@ -20,14 +20,6 @@ describe("Team wallet summary", () => {
     expect(screen.queryByRole("button", { name: /充值/ })).not.toBeInTheDocument();
   });
 
-  it.each([false, true])("reads the platform exchange rate with configured=%s", async configured => {
-    const fetch = vi.fn().mockResolvedValue(Response.json({ configured, usd_to_cny: configured ? "7.2" : "", paid_calls_enabled: false }));
-    vi.stubGlobal("fetch", fetch);
-    render(<TeamWalletSummary api={api} />);
-    expect(await screen.findByText(configured ? "钱包汇率：1 USD = 7.2 CNY" : "钱包汇率未配置")).toBeInTheDocument();
-    expect(fetch.mock.calls[0][0]).toBe("/api/backend/api/admin/team-wallet/exchange-rate");
-  });
-
   it("does not turn loading or request failures into a zero balance and supports retry", async () => {
     const fetch = vi.fn().mockResolvedValueOnce(Response.json({ error: { message: "Unavailable" } }, { status: 503 })).mockResolvedValueOnce(Response.json({ ...wallet, wallet: { ...wallet.wallet, balance_micros: 0 } }));
     vi.stubGlobal("fetch", fetch);

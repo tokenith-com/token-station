@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { setActiveLanguage } from "../i18n/runtime";
 import { expect, it } from "vitest";
 import { emptyData } from "../domain/catalog";
@@ -13,6 +13,7 @@ it("distinguishes confirmed free retrieval from unknown and legacy prices", () =
   ];
   const noop = () => {};
   render(<ModelDirectoryView api={{ baseURL: "", adminToken: "" }} config={{ view: "models", title: "Models", eyebrow: "Models", description: "", fields: [], columns: [], list: d => d.models }} data={data} loading={false} role="admin" readOnly onReload={noop} onCreateModel={noop} onOpenProviders={noop} onOpenRoutes={noop} onEditModel={noop} onDeleteModel={noop} />);
+  fireEvent.click(document.querySelector('[data-layout="table"]') as HTMLElement);
   expect(screen.getByRole("row", { name: /confirmed-free/ })).toHaveTextContent("$0.000000/Mt");
   expect(screen.getByRole("row", { name: /unknown-price/ })).toHaveTextContent("$-");
   expect(modelTokenPriceMetric({ ...data.models[0], modality: "rerank", input_price_usd_per_1m: 0 })).toBe("$0.000000/Mt");

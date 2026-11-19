@@ -172,7 +172,8 @@
 }
 
 .model-publication-filter,
-.mapping-target-toggle {
+.mapping-target-toggle,
+.model-layout-toggle {
   border: 1px solid var(--border);
   border-radius: 8px;
   padding: 3px;
@@ -182,7 +183,8 @@
 }
 
 .model-publication-filter button,
-.mapping-target-toggle button {
+.mapping-target-toggle button,
+.model-layout-toggle button {
   min-height: calc(28 * var(--content-font-unit, 1px));
   border: 0;
   border-radius: 6px;
@@ -193,8 +195,18 @@
   font-size: calc(11 * var(--content-font-unit, 1px));
 }
 
+.model-layout-toggle {
+  margin-left: auto;
+}
+
+.model-layout-toggle button {
+  padding: 0 9px;
+  gap: 5px;
+}
+
 .model-publication-filter button.active,
-.mapping-target-toggle button.active {
+.mapping-target-toggle button.active,
+.model-layout-toggle button.active {
   background: var(--surface);
   box-shadow: 0 1px 4px rgba(15, 23, 42, 0.11);
   color: var(--text);
@@ -909,4 +921,148 @@
   .model-create-form-grid { grid-template-columns: 1fr; }
   .model-create-template { grid-template-columns: auto minmax(0, 1fr) auto; }
   .model-create-template-metrics { display: none !important; }
+}
+
+/* Card layout for the available-models page. */
+.model-directory-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 14px;
+}
+
+.model-directory-card {
+  display: grid;
+  gap: 12px;
+  align-content: start;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px;
+  background: var(--surface);
+  transition: border-color .15s ease, box-shadow .15s ease, transform .15s ease;
+}
+
+.model-directory-card:hover {
+  border-color: var(--border-strong);
+  box-shadow: var(--shadow-md, 0 4px 14px rgba(20,20,32,.07));
+  transform: translateY(-1px);
+}
+
+.model-directory-card-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.model-directory-card-title {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.model-directory-card-title .model-detail-trigger {
+  text-align: left;
+  font-size: calc(14 * var(--content-font-unit, 1px));
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.model-directory-card-title > span {
+  color: var(--muted);
+  font-size: calc(11 * var(--content-font-unit, 1px));
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.model-directory-card-meta {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding-top: 2px;
+}
+
+.model-directory-card-meta > div {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  min-width: 0;
+}
+
+.model-directory-card-meta dt {
+  flex: 0 0 auto;
+  color: var(--muted);
+  font-size: calc(11 * var(--content-font-unit, 1px));
+}
+
+.model-directory-card-meta dd {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  min-width: 0;
+  margin: 0;
+  font-size: calc(12 * var(--content-font-unit, 1px));
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.model-directory-card-meta dd strong {
+  color: var(--text);
+  font-weight: 640;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.model-directory-card-meta dd span {
+  color: var(--muted-strong);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.model-directory-card-meta dd em {
+  flex: 0 0 auto;
+  border-radius: 5px;
+  padding: 0 5px;
+  background: var(--surface-3, #f2f2f5);
+  color: var(--muted);
+  font-size: calc(10 * var(--content-font-unit, 1px));
+  font-style: normal;
+}
+
+.model-directory-card-price {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  border-top: 1px solid var(--border);
+  padding-top: 11px;
+  font-size: calc(12 * var(--content-font-unit, 1px));
+}
+
+.model-directory-card-price > span {
+  color: var(--muted);
+  font-size: calc(11 * var(--content-font-unit, 1px));
+}
+
+.model-directory-card-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.model-directory-card-foot .model-management-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 900px) {
+  .model-directory-grid { grid-template-columns: 1fr; }
 }

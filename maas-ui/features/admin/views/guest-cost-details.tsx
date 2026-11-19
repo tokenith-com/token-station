@@ -11,22 +11,22 @@ import { formatWalletMicros, walletRequest, type Wallet as WalletData } from "..
 import { SimpleTable } from "../shared/ui";
 import { useUsageReport } from "./use-usage-report";
 
-type RechargeOrder = {
-  id: string;
-  amount_cents: number;
-  payment_method: "alipay" | "wechat";
+type WalletUsage = {
+  request_id: string;
+  model: string;
   status: string;
-  created_at: string;
+  charged_micros: number;
+  created_at: number;
+  input_tokens: number;
+  output_tokens: number;
+  total_tokens: number;
+  cost_usd: string;
 };
 
 const ranges: UsageRange[] = ["today", "7d", "30d", "all"];
 
 function rangeLabel(range: UsageRange) {
   return { today: tx("今日"), "7d": tx("7 天"), "30d": tx("30 天"), all: tx("全部") }[range];
-}
-
-function formatCNY(cents: number) {
-  return new Intl.NumberFormat(languageLocale(), { style: "currency", currency: "CNY", currencyDisplay: "narrowSymbol", minimumFractionDigits: 2 }).format(cents / 100);
 }
 
 function usageMoney(value: number) {
@@ -37,18 +37,13 @@ function formatPercent(value: number) {
   return new Intl.NumberFormat(languageLocale(), { style: "percent", maximumFractionDigits: 1 }).format(value);
 }
 
-function formatDate(value: string | undefined) {
-  if (!value) return "—";
-  return new Intl.DateTimeFormat(languageLocale(), { dateStyle: "medium", timeStyle: "short" }).format(new Date(value));
-}
-
 export function GuestCostDetailsView({ api, data }: { api: ApiContext; data: AppData }) {
   const [range, setRange] = useState<UsageRange>("30d");
   const { report, error, refreshing, refresh } = useUsageReport(api, range);
   const [wallet, setWallet] = useState<WalletData | null>(null);
   const [walletError, setWalletError] = useState("");
-  const [orders, setOrders] = useState<RechargeOrder[]>([]);
-  const [ordersError, setOrdersError] = useState("");
+  const [usage, setUsage] = useState<WalletUsage[]>([]);
+  const [usageError, setUsageError] = useState("");
 
   const loadWallet = useCallback(async () => {
     setWalletError("");
@@ -61,27 +56,27 @@ export function GuestCostDetailsView({ api, data }: { api: ApiContext; data: App
     }
   }, [api]);
 
-  const loadOrders = useCallback(async () => {
-    setOrdersError("");
+  const loadUsage = useCallback(async () => {
+    setUsageError("");
     try {
-      const resp = await adminFetch(api, "/api/admin/consumer/recharge-orders");
-      if (!resp.ok) throw new Error(await readAdminError(resp, tx("充值记录加载失败")));
-      setOrders(((await resp.json()) as { orders: RechargeOrder[] }).orders ?? []);
+      const resp = await adminFetch(api, "/api/admin/wallet/usage?limit=50");
+      if (!resp.ok) throw new Error(await readAdminError(resp, tx("消费流水加载失败")));
+      setUsage(((await resp.json()) as { data: WalletUsage[] }).data ?? []);
     } catch (reason) {
-      setOrdersError(reason instanceof Error ? reason.message : tx("充值记录加载失败"));
+      setUsageError(reason instanceof Error ? reason.message : tx("消费流水加载失败"));
     }
   }, [api]);
 
   useEffect(() => {
     void loadWallet();
-    void loadOrders();
-  }, [loadWallet, loadOrders]);
+    void loadUsage();
+  }, [loadWallet, loadUsage]);
 
   const refreshAll = useCallback(() => {
     refresh();
     void loadWallet();
-    void loadOrders();
-  }, [loadOrders, loadWallet, refresh]);
+    void loadUsage();
+  }, [loadUsage, loadWallet, refresh]);
 
   const summary = report?.summary;
   return (
@@ -118,17 +113,31 @@ export function GuestCostDetailsView({ api, data }: { api: ApiContext; data: App
         <CostTable title={tx("API Key 成本")} label="API Key" rows={report?.breakdown.api_keys ?? []} paginationKey="cost-api-keys" name={row => apiKeyAuditLabel(data, row.id)} />
       </div>
 
-      <CostPanel title={tx("充值记录")}>
-        {ordersError ? <div className="recharge-alert error" role="alert">{ordersError}</div> : null}
-        <SimpleTable columns={[tx("充值时间"), tx("支付方式"), tx("金额"), tx("状态")]} paginationKey="cost-orders" rows={orders.map(order => [
-          formatDate(order.created_at),
-          tx(order.payment_method === "alipay" ? "支付宝" : "微信支付"),
-          <span key="amount" className="cost-money">{formatCNY(order.amount_cents)}</span>,
-          order.status === "paid" ? <span className="cost-status is-paid">{tx("已支付")}</span> : <span className="cost-status is-pending">{tx("待支付")}</span>,
-        ])} />
+      <CostPanel title={tx("消费流水")}>
+        {usageError ? <div className="recharge-alert error" role="alert">{usageError}</div> : null}
+        {!usageError && usage.length === 0 ? <p className="muted">{tx("暂无消费记录")}</p> : null}
+        {usage.length > 0 ? <SimpleTable columns={[tx("时间"), tx("模型"), tx("输入"), tx("输出"), tx("合计 Token"), tx("扣费"), tx("状态"), tx("请求 ID")]} paginationKey="cost-usage" rows={usage.map(entry => [
+          formatWalletUsageTime(entry.created_at),
+          entry.model,
+          formatNumber(entry.input_tokens),
+          formatNumber(entry.output_tokens),
+          formatNumber(entry.total_tokens),
+          <span key="charged" className="cost-money">{entry.status === "settled" ? formatWalletMicros(entry.charged_micros) : "—"}</span>,
+          <span key="status" className={`cost-status ${entry.status === "settled" ? "is-paid" : "is-pending"}`}>{tx(walletUsageStatusLabel(entry.status))}</span>,
+          <code key="rid" className="cost-request-id">{entry.request_id}</code>,
+        ])} /> : null}
       </CostPanel>
     </section>
   );
+}
+
+function walletUsageStatusLabel(status: string) {
+  return { settled: "已结算", released: "未扣费", pending: "待结算", pending_review: "待核对" }[status] ?? "处理中";
+}
+
+function formatWalletUsageTime(seconds: number) {
+  if (!seconds) return "—";
+  return new Intl.DateTimeFormat(languageLocale(), { dateStyle: "short", timeStyle: "short" }).format(new Date(seconds * 1000));
 }
 
 function Kpi({ tone, icon, label, value }: { tone: string; icon: ReactNode; label: string; value: string }) {

@@ -170,6 +170,8 @@ function directory(readOnly = false) {
   data.routes.push({ id: "r-secondary", model_name: "published-model", provider_id: "secondary", provider_model: "secondary-upstream-model", status: "disabled", priority: 2, weight: 100, project_scope: "include", project_ids: ["internal"] });
   const edit = vi.fn();
   render(<ModelDirectoryView role="admin" api={{ baseURL: "", adminToken: "" }} config={modelConfig()} data={data} loading={false} readOnly={readOnly} onReload={vi.fn()} onCreateModel={vi.fn()} onOpenProviders={vi.fn()} onOpenRoutes={vi.fn()} onEditModel={edit} onDeleteModel={vi.fn()} />);
+  // These cases assert the table layout; cards are the default now.
+  fireEvent.click(document.querySelector('[data-layout="table"]') as HTMLElement);
   return { edit };
 }
 

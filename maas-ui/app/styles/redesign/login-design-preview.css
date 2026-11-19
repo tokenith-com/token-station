@@ -110,6 +110,9 @@
 .tc-login-preview-charts { display: grid; grid-template-columns: 1fr; }
 .tc-login-preview-insight { display: grid; grid-template-columns: minmax(0, .85fr) minmax(0, 1.15fr); align-items: center; gap: clamp(40px, 7vw, 96px); padding: 56px 0; }
 .tc-login-preview-insight + .tc-login-preview-insight { border-top: 1px solid var(--preview-border); }
+/* Even rows mirror the layout, so the tracks mirror too: the chart keeps the
+   wider column instead of shrinking into the copy's track. */
+.tc-login-preview-insight:nth-child(even) { grid-template-columns: minmax(0, 1.15fr) minmax(0, .85fr); }
 .tc-login-preview-insight:nth-child(even) .tc-login-preview-insight-copy { grid-column: 2; grid-row: 1; }
 .tc-login-preview-insight:nth-child(even) .tc-login-preview-chart { grid-column: 1; grid-row: 1; }
 .tc-login-preview-insight-copy { max-width: 390px; }
@@ -181,6 +184,7 @@
   .tc-login-preview-panel { width: 100%; max-width: 460px; justify-self: center; }
   .tc-login-preview-section-head { align-items: flex-start; flex-direction: column; gap: 14px; }
   .tc-login-preview-insight { grid-template-columns: 1fr; gap: 24px; padding: 36px 0; }
+  .tc-login-preview-insight:nth-child(even) { grid-template-columns: 1fr; }
   .tc-login-preview-insight:nth-child(even) .tc-login-preview-insight-copy, .tc-login-preview-insight:nth-child(even) .tc-login-preview-chart { grid-column: auto; grid-row: auto; }
   .tc-login-preview-insight-copy { max-width: none; }
   .tc-login-preview-insight-number { margin-bottom: 12px; }
