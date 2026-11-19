@@ -18,6 +18,21 @@ import (
 	"tokenhub/backend/internal/dbschema"
 )
 
+// These scratch GORM handles have a private schema cache. Exclude the v22
+// project column when generating or comparing the original PostgreSQL baseline.
+func migratePostgresBaselineObjects(db *gorm.DB) error {
+	stmt := &gorm.Statement{DB: db}
+	if err := stmt.Parse(&Project{}); err != nil {
+		return err
+	}
+	column := stmt.Schema.LookUpField("excluded_models")
+	if column == nil {
+		return fmt.Errorf("project model is missing the v22 excluded_models field")
+	}
+	column.IgnoreMigration = true
+	return migrateSchemaObjects(db, "postgres")
+}
+
 // exportPostgresBaselineStatements rebuilds the frozen PostgreSQL baseline by
 // running the structural part of the frozen schema flow on a throwaway schema
 // through a recording driver and keeping the DDL statements it executed, in
@@ -44,7 +59,7 @@ func exportPostgresBaselineStatements(ctx context.Context, adminDB *sql.DB, data
 	if err != nil {
 		return nil, fmt.Errorf("open postgres baseline recording handle: %w", err)
 	}
-	if err := migrateSchemaObjects(gormDB, "postgres"); err != nil {
+	if err := migratePostgresBaselineObjects(gormDB); err != nil {
 		return nil, fmt.Errorf("build postgres baseline scratch schema: %w", err)
 	}
 	statements := recorder.ddlStatements()
