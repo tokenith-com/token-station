@@ -109,7 +109,7 @@ TokenStation の配布パッケージは `release` ブランチのバージョ�
 [Releases](https://github.com/tokenith-com/token-station/releases) から対象アーキテクチャの `tokenstation_*.tar.gz` と `checksums.txt` を取得します。以下は amd64 の独立サービスを新しいディレクトリに配置する例です。
 
 ```bash
-archive=tokenstation_0.11.1_linux_amd64.tar.gz
+archive=tokenstation_0.11.2_linux_amd64.tar.gz
 awk -v f="$archive" '$2 == f {print}' checksums.txt | sha256sum -c - &&
   sudo install -d /opt/tokenstation &&
   sudo tar -xzf "$archive" -C /opt/tokenstation

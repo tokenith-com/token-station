@@ -109,7 +109,7 @@ TokenStation release packages are built from version tags on the `release` branc
 Download the matching `tokenstation_*.tar.gz` and `checksums.txt` from [Releases](https://github.com/tokenith-com/token-station/releases). This amd64 example installs a separate service in a fresh directory.
 
 ```bash
-archive=tokenstation_0.11.1_linux_amd64.tar.gz
+archive=tokenstation_0.11.2_linux_amd64.tar.gz
 awk -v f="$archive" '$2 == f {print}' checksums.txt | sha256sum -c - &&
   sudo install -d /opt/tokenstation &&
   sudo tar -xzf "$archive" -C /opt/tokenstation

@@ -109,7 +109,7 @@ TokenStation 的发布包由 `release` 分支上的版本标签构建。
 从 [Releases](https://github.com/tokenith-com/token-station/releases) 下载对应架构的 `tokenstation_*.tar.gz` 和 `checksums.txt`。以下以 amd64 为例，在新目录安装独立服务。
 
 ```bash
-archive=tokenstation_0.11.1_linux_amd64.tar.gz
+archive=tokenstation_0.11.2_linux_amd64.tar.gz
 awk -v f="$archive" '$2 == f {print}' checksums.txt | sha256sum -c - &&
   sudo install -d /opt/tokenstation &&
   sudo tar -xzf "$archive" -C /opt/tokenstation
