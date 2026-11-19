@@ -69,7 +69,7 @@ export function WalletCreditDialog({ api, userID, teamID, teamName, owner, balan
         throw new Error(String(response.status));
       }
       const result = await response.json();
-      if (result.currency !== "CNY") throw new Error("Invalid wallet currency");
+      if (result.currency !== "USD") throw new Error("Invalid wallet currency");
       complete(result.entry, payload);
     } catch {
       setError(tx(sent || pending ? "结果尚未确认。请使用原请求重试，切勿重复入账。" : payload ? "入账失败，请检查信息后重试" : "无法安全保存待确认操作，请恢复会话存储后重试"));
@@ -83,7 +83,7 @@ export function WalletCreditDialog({ api, userID, teamID, teamName, owner, balan
       <label className="field"><span>{tx("负责人")}</span><input readOnly value={owner} /></label>
       <p className="wallet-full-row wallet-balance-summary">{tx("当前余额")} <strong>{walletMoney(balance, locale)}</strong></p>
       {balanceError ? <p role="alert"><button type="button" className="secondary-button" onClick={onRetryBalance}>{tx("余额加载失败，重试")}</button></p> : balance === undefined ? <p role="status">{tx("加载中")}</p> : null}
-      <label className="field"><span>{tx("入账金额（元）")}</span><input inputMode="decimal" required value={amount} disabled={Boolean(pending) || busy || restored.failed} onChange={event => { setAmount(event.target.value); setConfirmed(false); }} /></label>
+      <label className="field"><span>{tx("入账金额（USD）")}</span><input inputMode="decimal" required value={amount} disabled={Boolean(pending) || busy || restored.failed} onChange={event => { setAmount(event.target.value); setConfirmed(false); }} /></label>
       <label className="field"><span>{tx("入账类型")}</span><select value={creditType} disabled={Boolean(pending) || busy || restored.failed} onChange={event => { setCreditType(event.target.value as WalletCredit["credit_type"]); setConfirmed(false); }}><option value="offline_receipt">{tx("线下收款")}</option><option value="approved_credit">{tx("授信入账")}</option></select></label>
       <p className="wallet-full-row">{tx("金额必须为正数，最多六位小数。")}</p>
       <label className="field wallet-full-row"><span>{tx("备注（必填，最多1000字）")}</span><textarea required maxLength={1000} value={remark} disabled={Boolean(pending) || busy || restored.failed} onChange={event => { setRemark(event.target.value); setConfirmed(false); }} /></label>

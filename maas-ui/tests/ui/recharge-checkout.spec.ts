@@ -34,8 +34,8 @@ test("avatar recharge entry opens checkout from another page", async ({ page }, 
   await page.getByRole("button", { name: "支付宝", exact: true }).click();
   await expect(page.getByRole("button", { name: "支付宝", exact: true })).toHaveAttribute("aria-pressed", "true");
   const main = await page.locator(".payment-checkout-main").boundingBox();
-  const sidebar = await guide.boundingBox();
-  expect(sidebar!.x).toBeGreaterThan(main!.x + main!.width);
+  const steps = await guide.boundingBox();
+  expect(steps!.y + steps!.height).toBeLessThan(main!.y);
   await capture(page, info, page.locator(".payment-workspace"), "recharge-selection", "Recharge selection and guide", "viewport");
   await page.getByRole("button", { name: "切换到深色模式", exact: true }).click();
   await capture(page, info, page.locator(".payment-workspace"), "recharge-selection-dark", "Dark recharge selection", "viewport");

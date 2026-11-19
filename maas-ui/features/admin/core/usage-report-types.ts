@@ -2,7 +2,7 @@ import type { Summary, UsageBreakdown, UsagePoint } from "./types";
 
 export type TeamWalletResponse = {
   wallet: { team_id: string; balance_micros: number; updated_at: string };
-  currency: "CNY";
+  currency: "USD";
   paid_calls_enabled: boolean;
 };
 

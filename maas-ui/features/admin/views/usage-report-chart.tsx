@@ -37,7 +37,7 @@ function pointLabel(point: UsagePoint, report: UsageReport, compact: boolean) {
 }
 
 function money(value: number) {
-  return new Intl.NumberFormat(languageLocale(), { style: "currency", currency: "CNY", currencyDisplay: "narrowSymbol", minimumFractionDigits: 2, maximumFractionDigits: 6 }).format(value);
+  return new Intl.NumberFormat(languageLocale(), { style: "currency", currency: "USD", currencyDisplay: "narrowSymbol", minimumFractionDigits: 2, maximumFractionDigits: 6 }).format(value);
 }
 
 function niceMax(value: number) {

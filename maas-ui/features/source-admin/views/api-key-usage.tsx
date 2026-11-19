@@ -443,7 +443,7 @@ function keyLimitText(value: number | undefined, tokens = false) {
 }
 function formatUsageDays(days: number) { return formatTranslationTemplate(tx("最近 {days} 天"), { days: formatNumber(days) }); }
 function formatDuration(value: number) { return new Intl.NumberFormat(languageLocale(), { maximumFractionDigits: 0 }).format(value || 0) + " ms"; }
-function formatUSD(value: number) { return new Intl.NumberFormat(languageLocale(), { style: "currency", currency: "CNY", currencyDisplay: "narrowSymbol", minimumFractionDigits: value >= 1 ? 2 : 4, maximumFractionDigits: value >= 1 ? 2 : 6 }).format(value || 0); }
+function formatUSD(value: number) { return new Intl.NumberFormat(languageLocale(), { style: "currency", currency: "USD", currencyDisplay: "narrowSymbol", minimumFractionDigits: value >= 1 ? 2 : 4, maximumFractionDigits: value >= 1 ? 2 : 6 }).format(value || 0); }
 function formatPercent(numerator: number, denominator: number) { return formatStandalonePercent(denominator > 0 ? numerator / denominator * 100 : 0); }
 function formatStandalonePercent(value: number) { return new Intl.NumberFormat(languageLocale(), { style: "percent", maximumFractionDigits: 1 }).format((value || 0) / 100); }
 function formatUTCDate(value: string, compact = false) { return new Intl.DateTimeFormat(languageLocale(), compact ? { month: "2-digit", day: "2-digit", timeZone: "UTC" } : { dateStyle: "medium", timeZone: "UTC" }).format(new Date(`${value}T00:00:00Z`)); }

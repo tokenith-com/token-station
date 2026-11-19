@@ -10,6 +10,7 @@ import (
 	"gorm.io/gorm/clause"
 
 	"tokenhub/backend/internal/dbschema"
+	"tokenhub/backend/internal/payment"
 )
 
 // Consumer (guest) balance top-up. Payment is simulated: an order is created
@@ -27,14 +28,6 @@ const (
 var rechargePackageCents = []int64{1000, 5000, 10000, 20000, 50000, 100000}
 
 var rechargePaymentMethods = map[string]bool{"alipay": true, "wechat": true}
-
-type consumerWallet struct {
-	UserID       string    `gorm:"primaryKey" json:"user_id"`
-	BalanceCents int64     `gorm:"not null;default:0" json:"balance_cents"`
-	UpdatedAt    time.Time `gorm:"not null" json:"updated_at"`
-}
-
-func (consumerWallet) TableName() string { return "consumer_wallets" }
 
 type consumerRechargeOrder struct {
 	ID            string     `gorm:"primaryKey" json:"id"`
@@ -66,13 +59,26 @@ type consumerRechargeStore interface {
 
 var errRechargeOrderNotFound = NewHTTPError(404, "recharge_order_not_found", "Recharge order not found")
 
+// ConsumerWalletBalance reports the guest account's spendable balance.
+// Recharge and charging share one wallet: the amount paid in CNY credits the
+// same number of wallet units, so the balance card and the settlement ledger
+// always agree.
 func (s *GormStore) ConsumerWalletBalance(userID string) (int64, error) {
-	var wallet consumerWallet
-	err := s.db.Where("user_id = ?", userID).First(&wallet).Error
+	return ConsumerWalletBalanceTx(s.db, userID)
+}
+
+// ConsumerWalletBalanceTx reads the spendable balance inside a transaction so a
+// recharge reports the balance it just credited.
+func ConsumerWalletBalanceTx(tx *gorm.DB, userID string) (int64, error) {
+	var wallet userWallet
+	err := tx.Where("user_id = ? AND currency = ?", userID, payment.Currency).First(&wallet).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return 0, nil
 	}
-	return wallet.BalanceCents, err
+	if err != nil {
+		return 0, err
+	}
+	return wallet.availableMicros() / walletMicrosPerFen, nil
 }
 
 func (s *GormStore) ConsumerRechargeOrders(userID string) ([]consumerRechargeOrder, error) {
@@ -122,19 +128,27 @@ func (s *GormStore) PayConsumerRechargeOrder(userID, orderID string) (consumerRe
 			if err := tx.Save(&order).Error; err != nil {
 				return err
 			}
-			wallet := consumerWallet{UserID: userID, BalanceCents: order.AmountCents, UpdatedAt: now}
-			if err := tx.Clauses(clause.OnConflict{
-				Columns:   []clause.Column{{Name: "user_id"}},
-				DoUpdates: clause.Assignments(map[string]any{"balance_cents": gorm.Expr("consumer_wallets.balance_cents + ?", order.AmountCents), "updated_at": now}),
-			}).Create(&wallet).Error; err != nil {
+			// The amount the payer sent in CNY credits the same number of wallet
+			// units, so the charged cost and the funded balance share one unit.
+			credited := order.AmountCents * walletMicrosPerFen
+			wallet := userWallet{UserID: userID, Currency: payment.Currency}
+			if err := tx.Clauses(clause.OnConflict{DoNothing: true}).Create(&wallet).Error; err != nil {
+				return err
+			}
+			if err := tx.Model(&userWallet{}).Where("user_id = ? AND currency = ?", userID, payment.Currency).
+				Updates(map[string]any{
+					"balance_micros": gorm.Expr("balance_micros + ?", credited),
+					"balance_fen":    gorm.Expr("(balance_micros + ?) / ?", credited, walletMicrosPerFen),
+					"updated_at":     now.Unix(),
+				}).Error; err != nil {
 				return err
 			}
 		}
-		var wallet consumerWallet
-		if err := tx.Where("user_id = ?", userID).First(&wallet).Error; err != nil {
+		current, err := ConsumerWalletBalanceTx(tx, userID)
+		if err != nil {
 			return err
 		}
-		balance = wallet.BalanceCents
+		balance = current
 		return nil
 	})
 	return order, balance, err

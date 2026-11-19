@@ -115,7 +115,7 @@ export function SettlementSettingsView({ api }: { api: ApiContext }) {
             <div>
               <p className="eyebrow">{tx("全局平台范围")}</p>
               <strong>{loading ? tx("加载中") : rate ? rate.configured ? tx("汇率已配置") : tx("汇率未配置") : tx("结算汇率加载失败")}</strong>
-              <span>{tx("配置汇率后，团队仍需有充足的可用余额才能进行付费调用。")}</span>
+              <span>{tx("当前结算按 1:1 计价，保存的汇率不参与扣费。此配置保留供后续使用。")}</span>
             </div>
             {!loading && !rate ? <button className="secondary-button" onClick={() => setRevision(value => value + 1)} type="button">{tx("重试")}</button> : null}
           </div>

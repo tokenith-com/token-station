@@ -101,6 +101,9 @@ func assertUsageReportBreakdownMatchesLegacy(t *testing.T, server *Server, user 
 	if !isPlatformAdminRole(user.Role) {
 		delete(expected, "providers")
 		delete(expected, "provider_resources")
+		// Project and cost center attribution are platform-level views.
+		delete(expected, "projects")
+		delete(expected, "cost_centers")
 	}
 	actual := report["breakdown"].(map[string]any)
 	if len(actual) != len(expected) {

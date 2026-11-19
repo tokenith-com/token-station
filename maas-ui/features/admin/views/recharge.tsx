@@ -1,12 +1,12 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { QRCodeCanvas } from "qrcode.react";
-import { Check, CreditCard, ListChecks, QrCode, WalletCards } from "lucide-react";
+import { Check, CreditCard, ListChecks, QrCode } from "lucide-react";
 
 import type { ApiContext } from "../core/types";
 import { uniqueUIID } from "../domain/formatting";
 import { languageLocale, tx } from "../i18n/runtime";
-import { formatWalletMicros, walletRequest, type Wallet } from "../resources/wallet";
+import { formatRechargeFen, formatWalletMicros, walletRequest, type Wallet } from "../resources/wallet";
 
 import { usePaymentHistory, type PaymentOrder as Order } from "../resources/payment-history";
 import { PaymentHistoryTable } from "../shared/payment-history-table";
@@ -157,7 +157,9 @@ export function RechargeView({ api }: { api: ApiContext }) {
     window.history.replaceState(window.history.state, "", url);
   }
   const channelLabel = (value?: string) => value === "wechat" ? tx("微信支付") : value === "alipay" ? tx("支付宝") : "—";
-  const amountLabel = (value?: number) => typeof value === "number" ? formatWalletMicros(value * 10000) : "—";
+  // Recharge amounts are paid in CNY; the credited balance and usage charges are
+  // denominated in the wallet currency.
+  const amountLabel = (value?: number) => typeof value === "number" ? formatRechargeFen(value) : "—";
 
   const payURL = checkoutURL(order?.pay_url);
   const statusLabel = (status: string) => {
@@ -174,11 +176,28 @@ export function RechargeView({ api }: { api: ApiContext }) {
     <section className="guest-cost-view payment-workspace">
       <header className="guest-cost-heading payment-heading"><h1>{tx("余额充值")}</h1><p>{tx("为您的账户充值，享受更多服务")}</p></header>
       {orderHistory.error && <p className="recharge-alert error" role="alert">{orderHistory.error}</p>}
+
+      <aside className="payment-flow" aria-label={tx("充值流程")}>
+        <ol>
+          {[
+            { title: tx("选择充值规格"), detail: tx("根据需要选择合适的充值金额") },
+            { title: tx("选择支付方式"), detail: tx("支持支付宝、微信扫码支付") },
+            { title: tx("扫码完成支付"), detail: tx("使用手机扫描二维码支付") },
+            { title: tx("余额即时到账"), detail: tx("支付成功后余额立即更新") },
+          ].map((step, index) => {
+            const done = order?.status === "succeeded" || (order?.status === "pending" && index <= 2);
+            return <li key={step.title} className={done ? "is-done" : index === 0 ? "is-active" : ""}>
+              <span className="payment-flow-index" aria-hidden="true">{done ? <Check size={15} /> : index + 1}</span>
+              <span className="payment-flow-copy"><strong>{step.title}</strong><small>{step.detail}</small></span>
+            </li>;
+          })}
+        </ol>
+      </aside>
+
       {error && <p className="recharge-alert error" role="alert">{error}</p>}
       <div className="payment-checkout-layout">
       <div className="payment-checkout-main">
       <section className="payment-panel payment-balance-panel">
-        <h2><WalletCards aria-hidden="true" />{tx("账户余额")}</h2>
         <div className="recharge-balance">
           <span>{tx("当前余额")}</span>
           <strong>{wallet ? formatWalletMicros(wallet.available_micros) : "—"}</strong>
@@ -191,10 +210,17 @@ export function RechargeView({ api }: { api: ApiContext }) {
             <fieldset className="payment-amounts payment-panel" disabled={busy || Boolean(attempt) || Boolean(order)}>
               <legend><ListChecks aria-hidden="true" />{tx("选择充值规格")}</legend>
               <div className="payment-amount-options">
-                {plans.data.map((item) => <button key={item.id} type="button" className="payment-amount-option" aria-pressed={plan === item.id} onClick={() => setPlan(item.id)}>{formatWalletMicros(item.amount_fen * 10_000)}</button>)}
+                {plans.data.map((item) => <button key={item.id} type="button" className="payment-amount-option" aria-pressed={plan === item.id} onClick={() => setPlan(item.id)}>{formatRechargeFen(item.amount_fen)}</button>)}
                 {plans.custom_enabled && <button type="button" className="payment-amount-option" aria-pressed={!plan} onClick={() => setPlan("")}>{tx("自定义金额")}</button>}
+                {!plan && plans.custom_enabled ? (
+                  <span className="payment-custom-amount">
+                    <span className="payment-custom-input">
+                      <input aria-label={tx("自定义金额")} type="number" required min={(plans.min_fen ?? 1) / 100} max={(plans.max_fen ?? 0) / 100} step="0.01" value={custom} placeholder={String((plans.min_fen ?? 1) / 100)} disabled={busy || Boolean(attempt) || Boolean(order)} onChange={event => setCustom(event.target.value)} />
+                    </span>
+                    <small className="payment-custom-range">{formatRechargeFen(plans.min_fen ?? 1)} – {formatRechargeFen(plans.max_fen ?? 0)}</small>
+                  </span>
+                ) : null}
               </div>
-            {!plan && plans.custom_enabled && <label className="payment-custom-amount">{tx("自定义金额")}<input aria-label={tx("自定义金额")} type="number" required min={(plans.min_fen ?? 1) / 100} max={(plans.max_fen ?? 0) / 100} step="0.01" value={custom} disabled={busy || Boolean(attempt) || Boolean(order)} onChange={event => setCustom(event.target.value)} /><small>{formatWalletMicros((plans.min_fen ?? 1) * 10000)} – {formatWalletMicros((plans.max_fen ?? 0) * 10000)}</small></label>}
             </fieldset>
             <fieldset className="payment-amounts payment-panel" disabled={busy || Boolean(attempt)}>
               <legend><CreditCard aria-hidden="true" />{tx("支付方式")}</legend>
@@ -231,20 +257,6 @@ export function RechargeView({ api }: { api: ApiContext }) {
         </section>
       )}
       </div>
-      <aside className="payment-panel payment-guide" aria-label={tx("充值流程")}>
-        <h2>{tx("充值流程")}</h2>
-        <ol>
-          {[
-            { title: tx("选择充值规格"), detail: tx("根据需要选择合适的充值金额") },
-            { title: tx("选择支付方式"), detail: tx("支持支付宝、微信扫码支付") },
-            { title: tx("扫码完成支付"), detail: tx("使用手机扫描二维码支付") },
-            { title: tx("余额即时到账"), detail: tx("支付成功后余额立即更新") },
-          ].map((step, index) => <li key={step.title}>
-            <span className={`payment-guide-index ${index === 3 ? "complete" : ""}`} aria-hidden="true">{index === 3 ? <Check size={16} /> : index + 1}</span>
-            <span><strong>{step.title}</strong><small>{step.detail}</small></span>
-          </li>)}
-        </ol>
-      </aside>
       </div>
       <section className="section payment-history" aria-label={tx("充值订单")}>
         <h2>{tx("充值订单")}</h2>

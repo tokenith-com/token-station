@@ -64,7 +64,7 @@ export const teamLeaderNavGroups: NavGroup[] = [
 
 export const adminNavGroups: NavGroup[] = [
   {
-    title: "平台工作台",
+    title: "工作台",
     items: [
       { view: "overview", label: "平台总览", icon: LayoutDashboard },
       { view: "usage", label: "全局用量", icon: BarChart3 },
@@ -73,7 +73,7 @@ export const adminNavGroups: NavGroup[] = [
     ],
   },
   {
-    title: "AI 资源",
+    title: "AI资源",
     items: [
       { view: "providers", label: "供应商", icon: Server },
       { view: "models", label: "模型目录", icon: Boxes },
@@ -88,7 +88,6 @@ export const adminNavGroups: NavGroup[] = [
       { view: "projects", label: "项目空间", icon: LayoutDashboard },
       { view: "api-keys", label: "Key 管理", icon: KeyRound },
       { view: "teams", label: "团队分组", icon: Users },
-      { view: "users", label: "用户管理", icon: Users },
       { view: "approvals", label: "审批记录", icon: ShieldCheck },
     ],
   },
@@ -117,8 +116,17 @@ export const adminNavGroups: NavGroup[] = [
       { view: "sqlite-backups", label: "数据备份", icon: Database },
       { view: "database-status", label: "数据库状态", icon: Database },
       { view: "announcements", label: "公告通知", icon: Bell },
-      { view: "settings", label: "系统设置", icon: Settings },
       { view: "plugins", label: "插件管理", icon: Puzzle },
+    ],
+  },
+  {
+    title: "系统设置",
+    items: [
+      { view: "users", label: "平台账号", icon: Users },
+      { view: "role-configs", label: "角色配置", icon: ShieldCheck },
+      { view: "identity-providers", label: "身份源", icon: KeyRound },
+      { view: "settings", label: "基础设置", icon: Settings },
+      { view: "settlement-settings", label: "结算配置", icon: WalletCards },
     ],
   },
 ];

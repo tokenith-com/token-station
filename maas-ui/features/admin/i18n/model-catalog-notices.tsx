@@ -1,5 +1,10 @@
 export const modelCatalogNoticeTranslations: Record<"en" | "ja" | "ru", Record<string, string>> = {
   en: {
+    "展示方式": "Layout",
+    "卡片": "Cards",
+    "列表": "List",
+    "卡片展示": "Card layout",
+    "列表展示": "List layout",
     "官方入口已停用；请选择替代型号。": "The official endpoint has retired; choose a replacement model.",
     "官方已公告弃用，请规划迁移。": "The vendor has announced deprecation; plan a migration.",
     "此型号为重定向别名，实际模型可能已变化。": "This is a redirected alias; the underlying model may have changed.",
@@ -13,6 +18,11 @@ export const modelCatalogNoticeTranslations: Record<"en" | "ja" | "ru", Record<s
     "请先确认并保存上游模型成本，再发布新线路。": "Confirm and save upstream model costs before publishing a new route.",
   },
   ja: {
+    "展示方式": "表示形式",
+    "卡片": "カード",
+    "列表": "リスト",
+    "卡片展示": "カード表示",
+    "列表展示": "リスト表示",
     "官方入口已停用；请选择替代型号。": "公式エンドポイントは提供終了です。代替モデルを選択してください。",
     "官方已公告弃用，请规划迁移。": "提供元が廃止を発表しました。移行を計画してください。",
     "此型号为重定向别名，实际模型可能已变化。": "転送用エイリアスです。実際のモデルが変更されている場合があります。",

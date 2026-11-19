@@ -20,7 +20,7 @@ function TeamWalletCrud(props: CrudProps & Required<Pick<CrudProps, "api" | "cur
   const [revision, setRevision] = useState(0);
   const copy = { tx, locale: languageLocale() };
   const config = { ...props.config,
-    columns: [...props.config.columns, { key: "wallet_balance", label: "团队余额（CNY）", render: (team: AdminResource) => <WalletBalance key={`${api.baseURL}:${currentUser?.id}:${team.id}:${revision}`} api={api} teamID={team.id} /> }],
+    columns: [...props.config.columns, { key: "wallet_balance", label: "团队余额（USD）", render: (team: AdminResource) => <WalletBalance key={`${api.baseURL}:${currentUser?.id}:${team.id}:${revision}`} api={api} teamID={team.id} /> }],
     actions: [...(props.config.actions ?? []),
       ...(currentUser!.role.trim().toLowerCase() === "admin" ? [{ label: "入账", open: (team: AdminResource) => setDialog({ team, mode: "credit" }) }] : []),
       { label: "资金流水", open: (team: AdminResource) => setDialog({ team, mode: "ledger" }) }],

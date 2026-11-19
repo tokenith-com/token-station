@@ -99,27 +99,20 @@ func walletMicros(usd, usdPerCNY string, roundUp bool) (int64, error) {
 	return quotient.Int64(), nil
 }
 
+// loadWalletSettlementFX returns the exchange rate recorded for wallet usage
+// entries. Settlement no longer converts, so the rate is the fixed identity:
+// wallets are denominated in the same unit as model cost.
 func loadWalletSettlementFX(tx *gorm.DB) (*meteringExchangeRate, error) {
 	var setting AdminResource
-	if err := tx.Where("id = ? AND kind = ? AND status = ?", teamWalletRateID, "settings", StatusActive).First(&setting).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, nil
-		}
+	err := tx.Where("id = ? AND kind = ?", teamWalletRateID, "settings").First(&setting).Error
+	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, err
 	}
-	rate, ok := setting.Fields["usd_to_cny"].(string)
-	if !ok {
-		return nil, nil
-	}
-	usdToCNY, err := metering.Decimal(rate)
-	if err != nil || usdToCNY.Sign() <= 0 {
-		return nil, nil
-	}
 	return &meteringExchangeRate{
-		ID:            setting.ID,
+		ID:            teamWalletRateID,
 		Currency:      payment.Currency,
-		Rate:          new(big.Rat).Inv(usdToCNY).FloatString(12),
-		Source:        "team_wallet_settlement",
+		Rate:          walletSettlementRate,
+		Source:        "wallet_settlement",
 		EffectiveFrom: setting.UpdatedAt,
 	}, nil
 }

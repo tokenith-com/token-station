@@ -8,11 +8,20 @@ import { compactNumber, formatNumber } from "../domain/formatting";
 import { languageLocale, tx } from "../i18n/runtime";
 import { usePaymentHistory, type PaymentOrder } from "../resources/payment-history";
 import { PaymentHistoryTable } from "../shared/payment-history-table";
-import { formatWalletMicros, walletRequest, type Wallet as WalletData } from "../resources/wallet";
+import { formatRechargeFen, formatWalletMicros, walletRequest, type Wallet as WalletData } from "../resources/wallet";
 import { SimpleTable } from "../shared/ui";
 import { useUsageReport } from "./use-usage-report";
 
-type WalletUsage = { request_id: string; model: string; status: string; charged_micros: number; created_at?: number };
+type WalletUsage = {
+  request_id: string;
+  model: string;
+  status: string;
+  charged_micros: number;
+  created_at?: number;
+  input_tokens: number;
+  output_tokens: number;
+  total_tokens: number;
+};
 type HistoryTab = "orders" | "usage";
 const historyTabs = [{ key: "orders", label: "充值记录" }, { key: "usage", label: "消费流水" }] as const;
 
@@ -22,12 +31,8 @@ function rangeLabel(range: UsageRange) {
   return { today: tx("今日"), "7d": tx("7 天"), "30d": tx("30 天"), all: tx("全部") }[range];
 }
 
-function formatCNY(cents: number) {
-  return new Intl.NumberFormat(languageLocale(), { style: "currency", currency: "CNY", currencyDisplay: "narrowSymbol", minimumFractionDigits: 2 }).format(cents / 100);
-}
-
 function usageMoney(value: number) {
-  return new Intl.NumberFormat(languageLocale(), { style: "currency", currency: "CNY", currencyDisplay: "narrowSymbol", minimumFractionDigits: 2, maximumFractionDigits: 6 }).format(value);
+  return new Intl.NumberFormat(languageLocale(), { style: "currency", currency: "USD", currencyDisplay: "code", minimumFractionDigits: 2, maximumFractionDigits: 6 }).format(value);
 }
 
 function formatPercent(value: number) {
@@ -135,26 +140,33 @@ export function GuestCostDetailsView({ api, data }: { api: ApiContext; data: App
           <PaymentHistoryTable label={tx("充值记录")} columns={[tx("充值时间"), tx("支付方式"), tx("金额"), tx("状态")]} pagination={orderHistory.pagination} total={orderHistory.total} loading={orderHistory.loading} rows={orders.map(order => [
             formatDate(order.created_at),
             tx(order.channel === "alipay" ? "支付宝" : "微信支付"),
-            <span key="amount" className="cost-money">{formatCNY(order.amount_fen ?? 0)}</span>,
+            <span key="amount" className="cost-money">{formatRechargeFen(order.amount_fen ?? 0)}</span>,
             <span key="status" className="payment-history-status" data-status={order.status}>{order.status === "succeeded" ? tx("已支付") : tx(order.status === "closed" ? "订单已关闭" : order.status === "refunded" ? "已退款" : order.status === "refund_pending" ? "退款处理中" : "待支付")}</span>,
           ])} />
         </div>
-        <div className="cost-panel-body" role="tabpanel" id={`${historyId}-usage-panel`}
+        <div className="cost-panel-body cost-history-usage" role="tabpanel" id={`${historyId}-usage-panel`}
           aria-labelledby={`${historyId}-usage-tab`} hidden={historyTab !== "usage"} tabIndex={0}>
           {usageHistory.error ? <div className="recharge-alert error" role="alert">{usageHistory.error}</div> : null}
-          <PaymentHistoryTable label={tx("消费流水")} columns={[tx("模型"), tx("请求 ID"), tx("时间"), tx("金额"), tx("状态")]}
+          <PaymentHistoryTable label={tx("消费流水")} columns={[tx("时间"), tx("模型"), tx("输入"), tx("输出"), tx("合计 Token"), tx("扣费"), tx("状态"), tx("请求 ID")]}
             pagination={usageHistory.pagination} total={usageHistory.total} loading={usageHistory.loading}
             rows={usageHistory.rows.map(entry => [
-              entry.model,
-              entry.request_id,
               formatDate(entry.created_at),
+              entry.model,
+              formatNumber(entry.input_tokens ?? 0),
+              formatNumber(entry.output_tokens ?? 0),
+              formatNumber(entry.total_tokens ?? 0),
               entry.status === "settled" ? <strong key="amount">{formatWalletMicros(entry.charged_micros)}</strong> : "—",
-              <span key="status" className="payment-history-status" data-status={entry.status}>{entry.status === "settled" ? tx("已结算") : entry.status === "released" ? tx("未扣费") : tx("待结算")}</span>,
+              <span key="status" className="payment-history-status" data-status={entry.status}>{tx(walletUsageStatusLabel(entry.status))}</span>,
+              <code key="request" className="cost-request-id" title={entry.request_id}>{entry.request_id}</code>,
             ])} />
         </div>
       </section>
     </section>
   );
+}
+
+function walletUsageStatusLabel(status: string) {
+  return { settled: "已结算", released: "未扣费", pending: "待结算", pending_review: "待核对" }[status] ?? "处理中";
 }
 
 function Kpi({ tone, icon, label, value }: { tone: string; icon: ReactNode; label: string; value: string }) {

@@ -57,14 +57,14 @@ function UsageReportBreakdowns({ data, user, report }: { data: AppData; user: Ad
   return <>
     <div className="two-column">
       <UsageTable title={tx("模型用量")} label={tx("模型")} rows={breakdown.models ?? []} paginationKey="usage-models" name={row => row.id} />
-      <UsageTable title={tx("项目归因")} label={tx("项目")} rows={breakdown.projects ?? []} paginationKey="usage-projects" name={row => projectName(data, row.id)} />
+      {role === "admin" ? <UsageTable title={tx("项目归因")} label={tx("项目")} rows={breakdown.projects ?? []} paginationKey="usage-projects" name={row => projectName(data, row.id)} /> : null}
     </div>
     <details open className="global-usage-details"><summary>{tx("更多用量明细")}</summary><div className="two-column">
       {role === "team_leader" ? <UsageTable title={tx("成员用量")} label={tx("成员")} rows={breakdown.members ?? []} paginationKey="usage-members" name={row => usageMemberLabel(data, row.id)} /> : null}
       <UsageTable title={tx("API Key 用量")} label="API Key" rows={breakdown.api_keys ?? []} paginationKey="usage-api-keys" name={row => apiKeyAuditLabel(data, row.id)} />
       {role === "admin" ? <UsageTable title={tx("供应商用量")} label={tx("供应商")} rows={breakdown.providers ?? []} paginationKey="usage-providers" name={row => findProvider(data, row.id)?.name || row.id} /> : null}
       {role === "admin" ? <UsageTable title={tx("资源账号用量")} label={tx("资源账号")} rows={breakdown.provider_resources ?? []} paginationKey="usage-resources" name={row => providerResourceAuditLabel(data, row.id)} /> : null}
-      {["admin", "team_leader"].includes(role) ? <UsageTable title={tx("成本中心用量")} label={tx("成本中心")} rows={breakdown.cost_centers ?? []} paginationKey="usage-cost-centers" name={row => costCenterLabel(data, row.id)} /> : null}
+      {role === "admin" ? <UsageTable title={tx("成本中心用量")} label={tx("成本中心")} rows={breakdown.cost_centers ?? []} paginationKey="usage-cost-centers" name={row => costCenterLabel(data, row.id)} /> : null}
       <DataSection title="Token 类型"><SimpleTable columns={["类型", "Token"]} paginationKey="usage-token-types" rows={[
         [tx("输入（不含缓存）"), compactNumber(Math.max(0, report.summary.input_tokens - (report.summary.cached_input_tokens ?? 0) - (report.summary.cache_write_input_tokens ?? 0)))],
         [tx("缓存读"), compactNumber(report.summary.cached_input_tokens ?? 0)],
@@ -84,7 +84,7 @@ function UsageTable({ title, label, rows, name, paginationKey }: {
 }
 
 function usageMoney(value: number) {
-  return new Intl.NumberFormat(languageLocale(), { style: "currency", currency: "CNY", currencyDisplay: "narrowSymbol", minimumFractionDigits: 2, maximumFractionDigits: 6 }).format(value);
+  return new Intl.NumberFormat(languageLocale(), { style: "currency", currency: "USD", currencyDisplay: "narrowSymbol", minimumFractionDigits: 2, maximumFractionDigits: 6 }).format(value);
 }
 
 function usageWindowLabel(report: UsageReport) {

@@ -2,11 +2,13 @@ import { formatWalletMicros, getPlaygroundWallet, type Wallet } from "../resourc
 import { providerBlockedAddressMessage } from "../resources/provider-network-errors";
 import {
   ArrowDown,
+  ArrowRight,
   Check,
   Code2,
   Copy,
   Download,
   ImagePlus,
+  KeyRound,
   RotateCcw,
   Send,
   Sparkles,
@@ -145,7 +147,7 @@ function formatPlaygroundUSD(value?: number) {
     ? "-"
     : playgroundNumberFormatter(playgroundUSDFormatters, {
       style: "currency",
-      currency: "CNY",
+      currency: "USD",
       currencyDisplay: "narrowSymbol",
       minimumFractionDigits: 6,
       maximumFractionDigits: 6,
@@ -759,8 +761,17 @@ export function PlaygroundPanel({ api, data, canViewRoutes, currentUserID, onCre
           </label>
           {keys.length === 0 ? (
             <div className="playground-key-empty" role="note">
-              <p>{tx("请先创建 API Key 才能使用模型演练场，演练产生的用量将计入所选 Key。")}</p>
-              {onCreateKey ? <button type="button" className="secondary" onClick={onCreateKey}>{tx("去创建 API Key")}</button> : null}
+              <span className="playground-key-empty-icon" aria-hidden="true"><KeyRound size={17} strokeWidth={2} /></span>
+              <div className="playground-key-empty-copy">
+                <strong>{tx("还没有可用的 API Key")}</strong>
+                <p>{tx("请先创建 API Key 才能使用模型演练场，演练产生的用量将计入所选 Key。")}</p>
+              </div>
+              {onCreateKey ? (
+                <button type="button" className="playground-key-empty-action" onClick={onCreateKey}>
+                  <span>{tx("去创建 API Key")}</span>
+                  <ArrowRight size={15} aria-hidden="true" />
+                </button>
+              ) : null}
             </div>
           ) : (
             <p className="playground-key-hint">{tx("演练产生的用量和费用将计入所选 API Key。")}</p>

@@ -39,6 +39,10 @@ func TestPaymentHistoryPaginationScopesTotalsToCurrentUser(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
+	record := UsageRecord{ID: "usage-detail", RequestID: "request-22", InputTokens: 11, OutputTokens: 7, TotalTokens: 18, CostUSD: 0.01}
+	if err := store.db.Create(&record).Error; err != nil {
+		t.Fatal(err)
+	}
 	for _, path := range []string{"/api/admin/recharge/orders", "/api/admin/wallet/usage"} {
 		t.Run(path, func(t *testing.T) {
 			seen := map[string]bool{}
@@ -65,11 +69,17 @@ func TestPaymentHistoryPaginationScopesTotalsToCurrentUser(t *testing.T) {
 					if id == "" {
 						id, _ = row["request_id"].(string)
 					}
+					if id == record.RequestID && (row["input_tokens"] != float64(11) || row["output_tokens"] != float64(7) || row["total_tokens"] != float64(18) || row["cost_usd"] != "0.0100000000") {
+						t.Fatalf("incorrect usage details: %+v", row)
+					}
 					if seen[id] {
 						t.Fatalf("duplicate row across pages: %s", id)
 					}
 					seen[id] = true
 				}
+			}
+			if path == "/api/admin/wallet/usage" && !seen[record.RequestID] {
+				t.Fatalf("usage detail row missing from pages: %s", record.RequestID)
 			}
 		})
 	}

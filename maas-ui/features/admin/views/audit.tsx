@@ -296,7 +296,7 @@ export function AuditView({ api, data, user }: { api: ApiContext; data: AppData;
                           <span>{providerAuditLabel(data, log)}</span>
                           <span>{formatTime(log.created_at)}</span>
                           {log.usage_record_count ? <span>{compactNumber(log.total_tokens ?? 0)} Token</span> : null}
-                          {log.usage_record_count ? <span>¥{formatMoney(log.estimated_cost_usd ?? 0)}</span> : null}
+                          {log.usage_record_count ? <span>${formatMoney(log.estimated_cost_usd ?? 0)}</span> : null}
                         </span>
                         <span className="request-row-tail">
                           <StatusPill status={log.status_code >= 400 ? "error" : "ok"} label={String(log.status_code || "-")} />
@@ -493,8 +493,8 @@ export function RequestDetailPanel({
         </div>
         <div className="request-usage-total">
           <UsageStat label="总量" value={detail.usage.length ? formatNumber(usageTotals.total_tokens) : "—"} />
-          <UsageStat label="对外计费" value={detail.usage.length ? `¥${formatMoney(usageTotals.estimated_cost_usd)}` : "—"} />
-          {showProviderCost ? <UsageStat label="渠道真实成本" value={detail.usage.length ? `¥${formatMoney(usageTotals.provider_cost_usd)}` : "—"} /> : null}
+          <UsageStat label="对外计费" value={detail.usage.length ? `$${formatMoney(usageTotals.estimated_cost_usd)}` : "—"} />
+          {showProviderCost ? <UsageStat label="渠道真实成本" value={detail.usage.length ? `$${formatMoney(usageTotals.provider_cost_usd)}` : "—"} /> : null}
         </div>
       </div>
 

@@ -65,14 +65,13 @@ func testTeamWalletExchangeRateMigration(t *testing.T, url string) {
 
 func TestTeamWalletSettlement(t *testing.T) {
 	for _, tc := range []struct {
-		name, rate string
-		cost       float64
-		want       int64
-		wantErr    error
+		name    string
+		cost    float64
+		want    int64
+		wantErr error
 	}{
-		{"charge", "7.2", 0.1, 720000, nil},
-		{"exceeded", "7.2", 1, 0, errTeamWalletSettlementExceeded},
-		{"missing rate", "", 0.1, 0, errTeamWalletSettlementInvalid},
+		{"charge", 0.1, 100000, nil},
+		{"exceeded", 1.5, 0, errTeamWalletSettlementExceeded},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			store := NewMemoryStore()
@@ -80,7 +79,9 @@ func TestTeamWalletSettlement(t *testing.T) {
 			if err := store.db.Create(&teamWallet{TeamID: "team", BalanceMicros: 10_000_000, UpdatedAt: now}).Error; err != nil {
 				t.Fatal(err)
 			}
-			if err := store.db.Transaction(func(tx *gorm.DB) error { return reserveTeamWalletCall(tx, "team", "request", tc.rate, 1_000_000, now) }); err != nil {
+			if err := store.db.Transaction(func(tx *gorm.DB) error {
+				return reserveTeamWalletCall(tx, "team", "request", walletSettlementRate, 1_000_000, now)
+			}); err != nil {
 				t.Fatal(err)
 			}
 			call := CallContext{RequestID: "request", TeamWalletEnabled: true, StartedAt: now}
@@ -120,37 +121,47 @@ func TestTeamWalletSettlement(t *testing.T) {
 }
 
 func TestTeamWalletConversion(t *testing.T) {
+	// Wallet amounts allow at most six fractional digits, which is exactly the
+	// micro precision, so every accepted amount converts to a whole number of
+	// micros and both rounding modes agree.
 	for _, tc := range []struct {
-		usd, rate string
-		halfEven  int64
-		ceil      int64
+		name     string
+		usd      string
+		halfEven int64
+		ceil     int64
 	}{
-		{"0", "7.2", 0, 0},
-		{"1.01", "7.2", 7_272_000, 7_272_000},
-		{"0.000001", "7.123456", 7, 8},
-		{"100", "7.25", 725_000_000, 725_000_000},
-		// 2.49048 cents is 24904.8 micros; the fraction is below a tie, so both
-		// modes round up.
-		{"0.003459", "7.2", 24905, 24905},
-		{"0.003458", "7.2", 24898, 24898},
-		// Exact ties follow half-to-even, so 2.5 micros settles at 2 while the
-		// reservation upper bound is 3; 3.5 micros rounds up either way.
-		{"0.000002", "1.25", 2, 3},
-		{"0.000002", "1.75", 4, 4},
+		{"0", "0", 0, 0},
+		{"1.01", "1.01", 1_010_000, 1_010_000},
+		{"0.000001", "0.000001", 1, 1},
+		{"100", "100", 100_000_000, 100_000_000},
+		{"0.003459", "0.003459", 3459, 3459},
 	} {
-		got, err := ConvertUSDToCNYMicros(tc.usd, tc.rate, false)
+		got, err := ConvertUSDToMicros(tc.usd, false)
 		if err != nil || got != tc.halfEven {
 			t.Fatalf("half-even conversion %+v: got %d, %v", tc, got, err)
 		}
-		ceil, err := ConvertUSDToCNYMicros(tc.usd, tc.rate, true)
+		ceil, err := ConvertUSDToMicros(tc.usd, true)
 		if err != nil || ceil != tc.ceil {
 			t.Fatalf("ceil conversion %+v: got %d, %v", tc, ceil, err)
 		}
 	}
-	for _, tc := range [][2]string{{"1", "0"}, {"1", "NaN"}, {"-1", "7"}, {"1e3", "7"}, {"1", "7.1234567"}, {"999999999999999999", "999999999999999999"}} {
-		if _, err := ConvertUSDToCNYMicros(tc[0], tc[1], false); err == nil {
+	for _, usd := range []string{"NaN", "-1", "1e3", "0.0000001", "999999999999999999"} {
+		if _, err := ConvertUSDToMicros(usd, false); err == nil {
+			t.Fatalf("accepted invalid decimal %q", usd)
+		}
+	}
+}
+
+func TestTeamWalletConversionAppliesExchangeRate(t *testing.T) {
+	// The settlement settings page still records an exchange rate even though
+	// charging no longer applies it; keep validating that input.
+	for _, tc := range []struct{ usd, rate string }{{"1", "0"}, {"1", "NaN"}, {"-1", "7"}, {"1e3", "7"}, {"1", "7.1234567"}} {
+		if _, err := ConvertUSDToCNYMicros(tc.usd, tc.rate, false); err == nil {
 			t.Fatalf("accepted invalid decimals %v", tc)
 		}
+	}
+	if got, err := ConvertUSDToCNYMicros("1", "7.3", false); err != nil || got != 7_300_000 {
+		t.Fatalf("rate conversion: got %d, %v", got, err)
 	}
 }
 
@@ -289,7 +300,7 @@ func TestTeamWalletHTTPPermissionsAndSettings(t *testing.T) {
 	if err := json.Unmarshal([]byte(response.Body), &ledger); err != nil {
 		t.Fatal(err)
 	}
-	if response.Code != 200 || ledger.Total != 1 || ledger.Limit != 1 || ledger.Offset != 0 || ledger.Currency != "CNY" || len(ledger.Entries) != 1 || ledger.Entries[0].Remark != "Receipt confirmed" || ledger.Entries[0].BeforeBalanceMicros == nil || *ledger.Entries[0].BeforeBalanceMicros != 0 || *ledger.Entries[0].AfterBalanceMicros != 5_000_000 {
+	if response.Code != 200 || ledger.Total != 1 || ledger.Limit != 1 || ledger.Offset != 0 || ledger.Currency != "USD" || len(ledger.Entries) != 1 || ledger.Entries[0].Remark != "Receipt confirmed" || ledger.Entries[0].BeforeBalanceMicros == nil || *ledger.Entries[0].BeforeBalanceMicros != 0 || *ledger.Entries[0].AfterBalanceMicros != 5_000_000 {
 		t.Fatalf("unexpected HTTP ledger: %s", response.Body)
 	}
 	store.CreateResource("teams", AdminResource{ID: "wallet-team", Status: StatusDisabled})
@@ -443,7 +454,7 @@ func TestTeamWalletLedgerPersistenceAndConsumption(t *testing.T) {
 	now := time.Now().UTC()
 	for i, requestID := range []string{"reserved", "settled", "released"} {
 		if err := store.db.Transaction(func(tx *gorm.DB) error {
-			if err := reserveTeamWalletCall(tx, "team", requestID, "7.2", 1_000_000, now.Add(time.Duration(i)*time.Second)); err != nil {
+			if err := reserveTeamWalletCall(tx, "team", requestID, walletSettlementRate, 1_000_000, now.Add(time.Duration(i)*time.Second)); err != nil {
 				return err
 			}
 			switch requestID {
@@ -474,7 +485,7 @@ func TestTeamWalletLedgerPersistenceAndConsumption(t *testing.T) {
 		requestID, status string
 		net, actual       int64
 	}{
-		{"reserved", "reserved", -1_000_000, 0}, {"settled", "settled", -720_000, -720_000}, {"released", "released", 0, 0}, {"funding", "credited", 10_000_000, 10_000_000},
+		{"reserved", "reserved", -1_000_000, 0}, {"settled", "settled", -100_000, -100_000}, {"released", "released", 0, 0}, {"funding", "credited", 10_000_000, 10_000_000},
 	} {
 		entries, total, err := store.TeamWalletLedger("team", tc.requestID, 50, 0)
 		if err != nil || total != 1 || len(entries) != 1 || entries[0].Status != tc.status || entries[0].AmountMicros != tc.net || entries[0].ActualAmountMicros != tc.actual {
@@ -482,7 +493,7 @@ func TestTeamWalletLedgerPersistenceAndConsumption(t *testing.T) {
 		}
 	}
 	wallet, err := store.TeamWallet("team")
-	if err != nil || wallet.BalanceMicros != 8_280_000 {
+	if err != nil || wallet.BalanceMicros != 8_900_000 {
 		t.Fatalf("balance after calls: %+v %v", wallet, err)
 	}
 	entries, total, err = store.TeamWalletLedger("other-team", "funding", 50, 0)

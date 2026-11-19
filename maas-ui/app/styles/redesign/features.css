@@ -410,12 +410,6 @@
   border-color: var(--border);
 }
 
-.playground-model-select select,
-.playground-field select {
-  height: calc(38 * var(--content-font-unit, 1px));
-  border-radius: 10px;
-}
-
 .playground-field span,
 .playground-slider span,
 .playground-model-title > span,

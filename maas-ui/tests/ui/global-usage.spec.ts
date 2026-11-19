@@ -46,7 +46,7 @@ for (const viewport of ["desktop", "mobile"] as const) {
       await expect(group.getByRole("button", { name: range.label, exact: true })).toHaveAttribute("aria-pressed", "true");
       await expect(usage.locator('.global-usage-stats [aria-label="请求数"]')).toContainText(String(usageCounts[range.value]));
       await expect(usage.getByText(`ui-${range.value}-model-with-a-long-enterprise-deployment-name`, { exact: true })).toBeVisible();
-      await expect(usage.locator(".global-usage-cost")).toContainText(`¥${(usageCounts[range.value] * 0.5).toFixed(2)}`);
+      await expect(usage.locator(".global-usage-cost")).toContainText(`$${(usageCounts[range.value] * 0.5).toFixed(2)}`);
       expect(usageCalls(api).at(-1)?.query.get("range")).toBe(range.value);
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
       await usage.scrollIntoViewIfNeeded();
@@ -80,7 +80,7 @@ test("global-usage loading and late response preserve the selected range", async
     release({ json: usageReport("today") });
     await expect(usage.getByRole("button", { name: "7 天", exact: true })).toHaveAttribute("aria-pressed", "true");
     await expect(usage.getByText("ui-today-model-with-a-long-enterprise-deployment-name", { exact: true })).toHaveCount(0);
-    await expect(usage.locator(".global-usage-cost")).toContainText("¥8.50");
+    await expect(usage.locator(".global-usage-cost")).toContainText("$8.50");
   } finally {
     release({ json: usageReport("today") });
   }

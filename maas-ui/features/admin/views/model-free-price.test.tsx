@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { setActiveLanguage } from "../i18n/runtime";
 import { expect, it } from "vitest";
 import { emptyData } from "../domain/catalog";
@@ -13,16 +13,17 @@ it("distinguishes confirmed free retrieval from unknown and legacy prices", () =
   ];
   const noop = () => {};
   render(<ModelDirectoryView api={{ baseURL: "", adminToken: "" }} config={{ view: "models", title: "Models", eyebrow: "Models", description: "", fields: [], columns: [], list: d => d.models }} data={data} loading={false} role="admin" readOnly onReload={noop} onCreateModel={noop} onOpenProviders={noop} onOpenRoutes={noop} onEditModel={noop} onDeleteModel={noop} />);
-  expect(screen.getByRole("row", { name: /confirmed-free/ })).toHaveTextContent("¥0.000000/Mt");
+  fireEvent.click(document.querySelector('[data-layout="table"]') as HTMLElement);
+  expect(screen.getByRole("row", { name: /confirmed-free/ })).toHaveTextContent("$0.000000/Mt");
   expect(screen.getByRole("row", { name: /unknown-price/ })).toHaveTextContent("$-");
-  expect(modelTokenPriceMetric({ ...data.models[0], modality: "rerank", input_price_usd_per_1m: 0 })).toBe("¥0.000000/Mt");
+  expect(modelTokenPriceMetric({ ...data.models[0], modality: "rerank", input_price_usd_per_1m: 0 })).toBe("$0.000000/Mt");
   expect(modelTokenPriceMetric({ ...data.models[0], modality: "chat", input_price_usd_per_1m: 0 })).toBe("$-");
-  expect(modelTokenPriceMetric({ ...data.models[0], embedding_price_usd_per_1m: 0.5 })).toBe("¥0.500000/Mt");
+  expect(modelTokenPriceMetric({ ...data.models[0], embedding_price_usd_per_1m: 0.5 })).toBe("$0.500000/Mt");
 });
 
-it("formats retrieval CNY according to the active language", () => {
- setActiveLanguage("zh-CN"); expect(formatRetrievalUSD(0.003)).toBe("¥0.003000");
- setActiveLanguage("en"); expect(formatRetrievalUSD(0.003)).toBe("¥0.003000");
- setActiveLanguage("ja"); expect(formatRetrievalUSD(0.003)).toBe("￥0.003000");
+it("formats retrieval cost in USD as configured", () => {
+ setActiveLanguage("zh-CN"); expect(formatRetrievalUSD(0.003)).toBe("$0.003000");
+ setActiveLanguage("en"); expect(formatRetrievalUSD(0.003)).toBe("$0.003000");
+ setActiveLanguage("ja"); expect(formatRetrievalUSD(0.003)).toBe("$0.003000");
  expect(formatRetrievalUSD(Number.NaN)).toBe("—");
 });

@@ -5,10 +5,10 @@ import { UsageView } from "./usage-billing";
 import { TeamWalletSummary } from "./team-wallet";
 
 const api = { baseURL: "http://example.test", adminToken: "synthetic-session" };
-const wallet = { wallet: { team_id: "team/demo", balance_micros: 123_450_000, updated_at: "2026-11-14T00:00:00Z" }, currency: "CNY", paid_calls_enabled: false };
+const wallet = { wallet: { team_id: "team/demo", balance_micros: 123_450_000, updated_at: "2026-11-14T00:00:00Z" }, currency: "USD", paid_calls_enabled: false };
 
 describe("Team wallet summary", () => {
-  it("reads only the leader's wallet and shows the CNY balance without promising paid calls", async () => {
+  it("reads only the leader's wallet and shows the USD balance without promising paid calls", async () => {
     const fetch = vi.fn().mockResolvedValue(Response.json(wallet));
     vi.stubGlobal("fetch", fetch);
     render(<TeamWalletSummary api={api} teamID="team/demo" />);
@@ -20,23 +20,15 @@ describe("Team wallet summary", () => {
     expect(screen.queryByRole("button", { name: /充值/ })).not.toBeInTheDocument();
   });
 
-  it.each([false, true])("reads the platform exchange rate with configured=%s", async configured => {
-    const fetch = vi.fn().mockResolvedValue(Response.json({ configured, usd_to_cny: configured ? "7.2" : "", paid_calls_enabled: false }));
-    vi.stubGlobal("fetch", fetch);
-    render(<TeamWalletSummary api={api} />);
-    expect(await screen.findByText(configured ? "钱包汇率：1 USD = 7.2 CNY" : "钱包汇率未配置")).toBeInTheDocument();
-    expect(fetch.mock.calls[0][0]).toBe("/api/backend/api/admin/team-wallet/exchange-rate");
-  });
-
   it("does not turn loading or request failures into a zero balance and supports retry", async () => {
     const fetch = vi.fn().mockResolvedValueOnce(Response.json({ error: { message: "Unavailable" } }, { status: 503 })).mockResolvedValueOnce(Response.json({ ...wallet, wallet: { ...wallet.wallet, balance_micros: 0 } }));
     vi.stubGlobal("fetch", fetch);
     render(<TeamWalletSummary api={api} teamID="team/demo" />);
     expect(screen.getByRole("status")).toHaveTextContent("正在加载团队钱包…");
     expect(await screen.findByRole("alert")).toHaveTextContent("Unavailable");
-    expect(screen.queryByText("团队余额（CNY）")).not.toBeInTheDocument();
+    expect(screen.queryByText("团队余额（USD）")).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "重试" }));
-    expect(await screen.findByText("团队余额（CNY）")).toHaveTextContent("0.00");
+    expect(await screen.findByText("团队余额（USD）")).toHaveTextContent("0.00");
   });
 
   it("does not request any wallet when the leader has no team", () => {
@@ -49,7 +41,7 @@ describe("Team wallet summary", () => {
 
   it("limits the leader's read-only ledger to their own team", async () => {
     const data = emptyData();
-    const fetch = vi.fn().mockImplementation(async (path: string) => Response.json(path.includes("/ledger?") ? { entries: [], total: 0, limit: 20, offset: 0, currency: "CNY" } : path.includes("/wallet") ? wallet : { range: "today", timezone: "UTC", window_start: "", window_end: "", granularity: "day", summary: data.summary, breakdown: data.breakdown, timeseries: [] }));
+    const fetch = vi.fn().mockImplementation(async (path: string) => Response.json(path.includes("/ledger?") ? { entries: [], total: 0, limit: 20, offset: 0, currency: "USD" } : path.includes("/wallet") ? wallet : { range: "today", timezone: "UTC", window_start: "", window_end: "", granularity: "day", summary: data.summary, breakdown: data.breakdown, timeseries: [] }));
     vi.stubGlobal("fetch", fetch);
     render(<UsageView api={api} data={data} user={{ id: "leader", name: "Leader", username: "leader", email: "leader@example.test", role: "team_leader", status: "active", team_id: "team/demo" }} />);
     const ledger = screen.getByRole("region", { name: "资金流水" });

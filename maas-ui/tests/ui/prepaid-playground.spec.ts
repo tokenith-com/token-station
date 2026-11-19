@@ -86,11 +86,10 @@ test("consumer cost cards adapt without project costs", async ({ page, api }, in
   await expect(page.locator(".cost-details").getByText("已支付", { exact: true })).toBeVisible();
   await expect(page.getByRole("heading", { name: "项目成本", exact: true })).toHaveCount(0);
   await expect(page.locator(".cost-details-grid .cost-panel")).toHaveCount(2);
-  const costAmount = "¥21.50";
-  await expect(page.locator(".cost-kpi.is-balance strong")).toHaveText("¥50.00");
+  const costAmount = "USD 21.50";
+  await expect(page.locator(".cost-kpi.is-balance strong")).toHaveText("US$50.00");
   await expect(page.locator(".cost-kpi.is-purple strong")).toHaveText(costAmount);
   await expect(page.locator(".cost-details-grid .cost-money")).toHaveText([costAmount, costAmount]);
-  await expect(page.locator(".cost-details")).not.toContainText("USD");
   await expect(page.getByText(report.breakdown.models[0].id, { exact: true })).toBeVisible();
   const cards = page.locator(".cost-details-grid .cost-panel");
   const modelBounds = await cards.nth(0).boundingBox();

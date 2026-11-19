@@ -30,6 +30,8 @@ describe("native model directory", () => {
     props.data.providers = [];
     props.data.routes = [];
     render(<ModelDirectoryView {...props} role={role} />);
+    // Cards are the default layout; the table stays available for comparison.
+    fireEvent.click(document.querySelector('[data-layout="table"]') as HTMLElement);
     expect(screen.getAllByRole("columnheader").map(header => header.textContent)).toEqual([
       "对外模型", "类型与能力", "可用状态", "对外统一价",
     ]);
@@ -49,6 +51,7 @@ describe("native model directory", () => {
   it("uses master's columns, publication filters and model-specific route navigation", () => {
     const props = directoryProps();
     render(<ModelDirectoryView {...props} />);
+    fireEvent.click(document.querySelector('[data-layout="table"]') as HTMLElement);
     expect(screen.getAllByRole("columnheader").map(header => header.textContent)).toEqual([
       "对外模型", "类型与能力", "真实上游映射", "状态", "对外统一价", "操作",
     ]);

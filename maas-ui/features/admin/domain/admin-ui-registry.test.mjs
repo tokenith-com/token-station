@@ -69,8 +69,8 @@ test("admin UI registry formats metrics with the selected application locale", (
 
   assert.equal(adminUIFieldValue({}, compact, "en-US"), "1.2M");
   assert.equal(adminUIFieldValue({}, compact, "ja-JP"), "120万");
-  assert.equal(adminUIFieldValue({}, money, "en-US"), "¥1,234.50");
-  assert.equal(adminUIFieldValue({}, money, "zh-CN"), "¥1,234.50");
+  assert.equal(adminUIFieldValue({}, money, "en-US"), "$1,234.50");
+  assert.equal(adminUIFieldValue({}, money, "zh-CN"), "$1,234.50");
 });
 
 test("admin UI registry action keys and redaction are shared across surfaces", () => {

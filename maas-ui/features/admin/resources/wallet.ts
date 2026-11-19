@@ -26,8 +26,16 @@ export async function getPlaygroundWallet(api: ApiContext, signal?: AbortSignal)
   return response.json() as Promise<Wallet>;
 }
 
+// Wallets are denominated in the same unit as model cost, so balances, charges
+// and cost figures all render as USD while recharge amounts stay in CNY.
 export function formatWalletMicros(value: number) {
   return new Intl.NumberFormat(languageLocale(), {
-    style: "currency", currency: "CNY", minimumFractionDigits: 2, maximumFractionDigits: 6,
+    style: "currency", currency: "USD", minimumFractionDigits: 2, maximumFractionDigits: 6,
   }).format(value / 1_000_000);
+}
+
+export function formatRechargeFen(value: number) {
+  return new Intl.NumberFormat(languageLocale(), {
+    style: "currency", currency: "CNY", minimumFractionDigits: 2, maximumFractionDigits: 2,
+  }).format(value / 100);
 }

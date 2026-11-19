@@ -114,9 +114,16 @@ func (a *usageReportAggregate) breakdown() map[string]any {
 }
 
 func (a *usageReportAggregate) breakdownForVisibility(redactProviders bool) map[string]any {
+	// Project and cost center attribution are platform-level accounting views.
+	// Only platform administrators receive them; every other role sees the same
+	// spend grouped by model, member and key.
+	adminView := isPlatformAdminRole(a.user.Role)
 	result := map[string]any{}
 	for dimension, buckets := range a.dimensions {
-		if redactProviders && !isPlatformAdminRole(a.user.Role) && (dimension == "providers" || dimension == "provider_resources") {
+		if redactProviders && !adminView && (dimension == "providers" || dimension == "provider_resources") {
+			continue
+		}
+		if !adminView && (dimension == "projects" || dimension == "cost_centers") {
 			continue
 		}
 		keys := make([]string, 0, len(buckets))

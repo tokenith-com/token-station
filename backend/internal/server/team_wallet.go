@@ -25,10 +25,52 @@ var (
 	errTeamWalletSettlementInvalid  = NewHTTPError(409, "team_wallet_settlement_invalid", "Team wallet charge cannot be converted using the reserved exchange rate")
 )
 
+// walletMicrosPerUnit is the fixed-point scale for every wallet balance and
+// ledger amount: 1 USD = 1,000,000 micros.
+const walletMicrosPerUnit = 1_000_000
+
+// walletCurrency names the unit wallets are denominated in. Model prices are
+// entered as the amount the platform charges, so the wallet and model cost share
+// this unit and settlement needs no exchange rate.
+const walletCurrency = "USD"
+
+// walletSettlementRate is the rate applied to model cost in every settlement
+// path. Model prices are entered as the amount the platform charges, so the
+// stored cost is already denominated in the wallet currency and needs no
+// conversion.
+const walletSettlementRate = "1"
+
+// ConvertUSDToMicros converts a USD amount into wallet micros without floats.
+// roundUp rounds any remainder away from zero, which reservations use so a
+// frozen amount is always a safe upper bound; settlement passes false to apply
+// banker's rounding like the consumer wallet.
+func ConvertUSDToMicros(usd string, roundUp bool) (int64, error) {
+	if !walletDecimal.MatchString(usd) {
+		return 0, NewHTTPError(400, "invalid_wallet_decimal", "Amounts must be decimal strings with at most six fractional digits")
+	}
+	amount, _ := new(big.Rat).SetString(usd)
+	amount.Mul(amount, big.NewRat(walletMicrosPerUnit, 1))
+	micros, remainder := new(big.Int), new(big.Int)
+	micros.QuoRem(amount.Num(), amount.Denom(), remainder)
+	twice := new(big.Int).Lsh(remainder, 1)
+	comparison := twice.Cmp(amount.Denom())
+	if (roundUp && remainder.Sign() > 0) || (!roundUp && (comparison > 0 || comparison == 0 && micros.Bit(0) == 1)) {
+		micros.Add(micros, big.NewInt(1))
+	}
+	if !micros.IsInt64() {
+		return 0, NewHTTPError(400, "wallet_amount_overflow", "Converted amount exceeds the supported range")
+	}
+	return micros.Int64(), nil
+}
+
 // ConvertUSDToCNYMicros converts a USD amount into CNY micros (1 CNY = 1,000,000
 // micros) without floats. roundUp rounds any remainder away from zero, which
 // reservations use so a frozen amount is always a safe upper bound; settlement
 // passes false to apply banker's rounding like the consumer wallet.
+//
+// Settlement no longer calls this: wallets are denominated in the same unit as
+// model cost, so ConvertUSDToMicros applies. It remains for validating the
+// exchange rate that operators may still record on the settlement settings page.
 func ConvertUSDToCNYMicros(usd, rate string, roundUp bool) (int64, error) {
 	if !walletDecimal.MatchString(usd) || !walletDecimal.MatchString(rate) {
 		return 0, NewHTTPError(400, "invalid_wallet_decimal", "Amounts and rates must be decimal strings with at most six fractional digits")
@@ -154,19 +196,11 @@ type teamWalletStore interface {
 	TeamWalletLedger(teamID, requestID string, limit, offset int) ([]teamWalletLedgerEntry, int64, error)
 }
 
+// teamWalletRate returns the rate every settlement path applies to model cost.
+// Wallets are denominated in the same unit as model cost, so settlement always
+// uses 1 and the configured exchange rate no longer participates.
 func teamWalletRate(tx *gorm.DB) (string, error) {
-	var setting AdminResource
-	if err := tx.Where("id = ? AND kind = ? AND status = ?", teamWalletRateID, "settings", StatusActive).First(&setting).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return "", NewHTTPError(503, "team_wallet_exchange_rate_unconfigured", "Team wallet exchange rate is not configured")
-		}
-		return "", err
-	}
-	rate, ok := setting.Fields["usd_to_cny"].(string)
-	if _, err := ConvertUSDToCNYMicros("0", rate, false); !ok || err != nil {
-		return "", NewHTTPError(503, "team_wallet_exchange_rate_unconfigured", "Team wallet exchange rate is not configured")
-	}
-	return rate, nil
+	return walletSettlementRate, nil
 }
 
 func reserveTeamWalletCall(tx *gorm.DB, teamID, requestID, rate string, micros int64, now time.Time, identity ...string) error {
@@ -260,7 +294,7 @@ func settleTeamWalletCall(tx *gorm.DB, call CallContext, usage Usage, success bo
 	if success {
 		usd := fmt.Sprintf("%.6f", math.Max(usage.CostUSD, 0))
 		var err error
-		settled, err = ConvertUSDToCNYMicros(usd, reservation.ExchangeRate, false)
+		settled, err = ConvertUSDToMicros(usd, false)
 		if err != nil {
 			return errTeamWalletSettlementInvalid
 		}
@@ -411,16 +445,11 @@ func (s *Server) registerTeamWalletRoutes() {
 		methodRoute{Method: http.MethodPut, Handler: s.handleTeamWalletRate})
 }
 
+// teamWalletRateConfigured reports whether team wallets may fund paid calls.
+// Settlement no longer depends on a configured exchange rate, so a team wallet
+// with a positive balance is always able to pay.
 func (s *Server) teamWalletRateConfigured() bool {
-	for _, item := range s.store.ListResources("settings") {
-		if item.ID == teamWalletRateID && item.Status == StatusActive {
-			rate, ok := item.Fields["usd_to_cny"].(string)
-			if _, err := ConvertUSDToCNYMicros("0", rate, false); ok && err == nil {
-				return true
-			}
-		}
-	}
-	return false
+	return true
 }
 
 func (s *Server) handleTeamWallet(w http.ResponseWriter, r *http.Request) {
@@ -447,7 +476,7 @@ func (s *Server) handleTeamWallet(w http.ResponseWriter, r *http.Request) {
 		writeError(w, r, err)
 		return
 	}
-	writeJSON(w, 200, map[string]any{"wallet": wallet, "currency": "CNY", "paid_calls_enabled": wallet.BalanceMicros > 0 && s.teamWalletRateConfigured()})
+	writeJSON(w, 200, map[string]any{"wallet": wallet, "currency": walletCurrency, "paid_calls_enabled": wallet.BalanceMicros > 0 && s.teamWalletRateConfigured()})
 }
 
 func (s *Server) handleTeamWalletCredit(w http.ResponseWriter, r *http.Request) {
@@ -483,7 +512,7 @@ func (s *Server) handleTeamWalletCredit(w http.ResponseWriter, r *http.Request) 
 		writeError(w, r, err)
 		return
 	}
-	writeJSON(w, 200, map[string]any{"entry": entry, "currency": "CNY"})
+	writeJSON(w, 200, map[string]any{"entry": entry, "currency": walletCurrency})
 }
 
 func (s *Server) handleTeamWalletRate(w http.ResponseWriter, r *http.Request) {

@@ -15,6 +15,7 @@ function orders(count: number) {
 function consumption(count: number) {
   return Array.from({ length: count }, (_, index) => ({
     request_id: `history-request-${index}`, model: "history-fixture-model",
+    input_tokens: 11, output_tokens: 7, total_tokens: 18,
     status: "settled", charged_micros: 10000, created_at: 1794700800 + index,
   }));
 }
@@ -56,7 +57,7 @@ for (const count of [0, 3]) {
       const panel = page.getByRole("tabpanel", { name, exact: true });
       await expect(panel.locator(".payment-history-table")).toHaveAttribute("aria-busy", "false");
       await expect(panel.getByRole("table", { name, exact: true })).toBeVisible();
-      await expect(panel.locator("thead th")).toHaveCount(name === "充值记录" ? 4 : 5);
+      await expect(panel.locator("thead th")).toHaveCount(name === "充值记录" ? 4 : 8);
       await expect(panel.locator(".pagination")).toBeVisible();
       expect(await panel.locator(".pagination").evaluate(element =>
         Math.abs(element.getBoundingClientRect().width - element.parentElement!.getBoundingClientRect().width) < 1,
@@ -82,6 +83,10 @@ for (const count of [0, 3]) {
     await activePanel.locator(".pagination").scrollIntoViewIfNeeded();
     await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
     await expect(activePanel.getByRole("button", { name: "最后一页", exact: true })).toBeInViewport();
+    if (count > 0) {
+      await expect(activePanel.locator("tbody tr").first().locator("td").first()).toHaveCSS("white-space", "nowrap");
+      await expect.poll(() => activePanel.locator(".table-wrap").evaluate(table => table.scrollWidth > table.clientWidth)).toBe(true);
+    }
     await capture(page, info, section, `cost-history-tabs-${count}-mobile`, "手机端消费流水与分页", "viewport");
   });
 }
@@ -98,7 +103,10 @@ test("cost history tabs preserve independent pages and page sizes", async ({ pag
   await expect(orderPanel.locator(".pagination-summary")).toHaveText("第 11-20 条，共 73 条");
   await page.getByRole("tab", { name: "消费流水", exact: true }).click();
   await expect(usagePanel.locator("tbody tr")).toHaveCount(10);
-  await expect(usagePanel.getByText("history-request-0", { exact: true })).toBeVisible();
+  const firstCharge = usagePanel.getByRole("row").filter({ hasText: "history-request-0" });
+  await expect(firstCharge.getByRole("cell", { name: "11", exact: true })).toBeVisible();
+  await expect(firstCharge.getByRole("cell", { name: "7", exact: true })).toBeVisible();
+  await expect(firstCharge.getByRole("cell", { name: "18", exact: true })).toBeVisible();
   await usagePanel.getByRole("button", { name: "下一页", exact: true }).click();
   await expect(usagePanel.getByText("history-request-10", { exact: true })).toBeVisible();
   await page.getByRole("tab", { name: "充值记录", exact: true }).click();

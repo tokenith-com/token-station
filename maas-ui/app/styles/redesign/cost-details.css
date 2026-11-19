@@ -280,3 +280,27 @@
 .cost-history-tabs button { padding: 15px 0; border: 0; border-bottom: 2px solid transparent; background: transparent; color: var(--muted); font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; }
 .cost-history-tabs button[aria-selected="true"] { border-bottom-color: #9160c9; color: #8550be; }
 .cost-history-tabs button:focus-visible { outline: 2px solid #9160c9; outline-offset: -3px; border-radius: 4px; }
+
+.cost-history-usage .payment-history-table td:first-child { white-space: nowrap; }
+.cost-history-usage .payment-history-table td:nth-child(2) { min-width: 150px; }
+
+/* Request IDs are long and must not stretch the table. */
+.cost-request-id {
+  display: inline-block;
+  max-width: 210px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: bottom;
+  border-radius: 5px;
+  padding: 1px 6px;
+  background: var(--surface-2, #fafafb);
+  color: var(--ink-2, #5c5c66);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px;
+}
+
+[data-theme="dark"] .cost-request-id {
+  background: var(--surface-3, #1e1e25);
+  color: var(--ink-2, #a0a0aa);
+}

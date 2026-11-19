@@ -1,5 +1,6 @@
 export const playgroundTranslations = {
   en: {
+    "还没有可用的 API Key": "No API keys available yet",
     "上传图片": "Upload image",
     "仅图片": "Images only",
     "仅支持 JPEG、PNG 和 WebP 图片。": "Only JPEG, PNG, and WebP images are supported.",
@@ -67,6 +68,7 @@ export const playgroundTranslations = {
     "高级参数": "Advanced Parameters",
   },
   ja: {
+    "还没有可用的 API Key": "利用できる API キーがありません",
     "上传图片": "画像をアップロード",
     "仅图片": "画像のみ",
     "仅支持 JPEG、PNG 和 WebP 图片。": "JPEG、PNG、WebP 画像のみ対応しています。",
