@@ -2,6 +2,7 @@ package server
 
 import (
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -40,7 +41,65 @@ func (s *Server) listWalletUsage(w http.ResponseWriter, r *http.Request, userID 
 		paymentWriteError(w, r, err)
 		return
 	}
-	writeJSON(w, 200, map[string]any{"data": rows, "limit": limit, "offset": offset})
+	writeJSON(w, 200, map[string]any{"data": walletUsageRowsWithTokens(s.payments.store.db.WithContext(r.Context()), rows), "limit": limit, "offset": offset})
+}
+
+// walletUsageTokens adds the token counts recorded for the same request so a
+// consumer can see what a charge was for. Usage rows are optional: a request
+// that never produced usage simply reports zero tokens.
+type walletUsageTokens struct {
+	RequestID    string `json:"request_id"`
+	InputTokens  int64  `json:"input_tokens"`
+	OutputTokens int64  `json:"output_tokens"`
+	TotalTokens  int64  `json:"total_tokens"`
+	CostUSD      string `json:"cost_usd"`
+}
+
+type walletUsageRow struct {
+	walletUsage
+	InputTokens  int64  `json:"input_tokens"`
+	OutputTokens int64  `json:"output_tokens"`
+	TotalTokens  int64  `json:"total_tokens"`
+	CostUSD      string `json:"cost_usd"`
+}
+
+func walletUsageRowsWithTokens(db *gorm.DB, rows []walletUsage) []walletUsageRow {
+	out := make([]walletUsageRow, 0, len(rows))
+	if len(rows) == 0 {
+		return out
+	}
+	ids := make([]string, 0, len(rows))
+	for _, row := range rows {
+		ids = append(ids, row.RequestID)
+	}
+	var usage []struct {
+		RequestID    string
+		InputTokens  int64
+		OutputTokens int64
+		TotalTokens  int64
+		CostUSD      float64
+	}
+	if err := db.Table("usage_records").
+		Select("request_id, input_tokens, output_tokens, total_tokens, cost_usd").
+		Where("request_id IN ?", ids).Scan(&usage).Error; err != nil {
+		// Token detail is supplementary; a failed lookup still returns charges.
+		usage = nil
+	}
+	byRequest := make(map[string]walletUsageTokens, len(usage))
+	for _, item := range usage {
+		byRequest[item.RequestID] = walletUsageTokens{
+			RequestID: item.RequestID, InputTokens: item.InputTokens, OutputTokens: item.OutputTokens,
+			TotalTokens: item.TotalTokens, CostUSD: strconv.FormatFloat(item.CostUSD, 'f', 10, 64),
+		}
+	}
+	for _, row := range rows {
+		detail := byRequest[row.RequestID]
+		out = append(out, walletUsageRow{
+			walletUsage: row, InputTokens: detail.InputTokens, OutputTokens: detail.OutputTokens,
+			TotalTokens: detail.TotalTokens, CostUSD: detail.CostUSD,
+		})
+	}
+	return out
 }
 
 func (s *Server) resolveOperatorWalletUsage(w http.ResponseWriter, r *http.Request) {
