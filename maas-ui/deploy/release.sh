@@ -12,7 +12,6 @@ API_BASE_URL=${3:-}
 if [ -z "${API_BASE_URL}" ] && [ -f .env.production ]; then
   API_BASE_URL=$(sed -n 's/^NEXT_PUBLIC_TOKENHUB_API_BASE_URL=//p' .env.production | tail -1 | tr -d '\r"' | xargs)
 fi
-[ -n "${API_BASE_URL}" ] || { echo "未指定后端地址，且 .env.production 中没有 NEXT_PUBLIC_TOKENHUB_API_BASE_URL" >&2; exit 1; }
 
 CHECK_URL=${4:-}
 STAMP=$(date +%Y%m%d-%H%M%S)
@@ -29,7 +28,7 @@ if [ ! -f out/index.html ]; then
   exit 1
 fi
 
-if ! grep -rqsF -- "${API_BASE_URL}" out; then
+if [ -n "${API_BASE_URL}" ] && ! grep -rqsF -- "${API_BASE_URL}" out; then
   echo "产物中没有找到 ${API_BASE_URL}，请确认构建时环境变量已生效" >&2
   exit 1
 fi

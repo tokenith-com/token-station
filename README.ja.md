@@ -109,7 +109,7 @@ TokenStation の配布パッケージは `release` ブランチのバージョ�
 [Releases](https://github.com/tokenith-com/token-station/releases) から対象アーキテクチャの `tokenstation_*.tar.gz` と `checksums.txt` を取得します。以下は amd64 の独立サービスを新しいディレクトリに配置する例です。
 
 ```bash
-archive=tokenstation_0.11.2_linux_amd64.tar.gz
+archive=tokenstation_0.11.3_linux_amd64.tar.gz
 awk -v f="$archive" '$2 == f {print}' checksums.txt | sha256sum -c - &&
   sudo install -d /opt/tokenstation &&
   sudo tar -xzf "$archive" -C /opt/tokenstation
@@ -124,7 +124,7 @@ TOKENHUB_ENV=prod
 TOKENHUB_HTTP_ADDR=127.0.0.1:18080
 TOKENHUB_FRONTEND_HOST=127.0.0.1
 TOKENHUB_FRONTEND_PORT=13000
-TOKENHUB_PUBLIC_BASE_URL=https://maas.example.com/maas-api
+TOKENHUB_PUBLIC_BASE_URL=https://maas.example.com
 TOKENHUB_DATABASE_URL=sqlite:///var/lib/tokenstation/maas.db
 TOKENHUB_SECRET_KEY=<encryption-key>
 TOKENHUB_BOOTSTRAP_ADMIN_PASSWORD=<initial-password>
@@ -163,7 +163,7 @@ sudo systemctl enable --now tokenstation.service
 curl -fsS http://127.0.0.1:18080/readyz
 ```
 
-HTTPS リバースプロキシで `/` を `127.0.0.1:13000` に転送し、`/maas-api/` はプレフィックスを除いて `127.0.0.1:18080` に転送します。
+HTTPS リバースプロキシで `/api/`、`/v1/`、`/v1beta/` をそのまま `127.0.0.1:18080` に転送し、その他のリクエストをフロントエンドの `127.0.0.1:13000` に転送します。
 
 ### 任意の設定
 
@@ -171,7 +171,7 @@ HTTPS リバースプロキシで `/` を `127.0.0.1:13000` に転送し、`/maa
 | --- | --- |
 | `TOKENHUB_CORS_ALLOWED_ORIGINS` | クロスオリジン API アクセスを許可するオリジン。複数指定はカンマ区切り。 |
 | `TOKENHUB_PAYMENT_CONFIG_FILE` | 決済設定ファイルの絶対パス。認証情報はサーバー上で管理します。 |
-| `NEXT_PUBLIC_TOKENHUB_API_BASE_URL`, `NEXT_PUBLIC_TOKENHUB_BASE_PATH` | ビルド時に埋め込む API URL とサイトのプレフィックス。配布版はルートで公開し、同一オリジンの `/maas-api` に接続します。 |
+| `NEXT_PUBLIC_TOKENHUB_API_BASE_URL`, `NEXT_PUBLIC_TOKENHUB_BASE_PATH` | 配布版はルートで公開します。API URL を空にすると、`/api/admin/auth/login` など同一オリジンのパスを使用します。 コンソールをサブパスで公開する場合だけ、サイトのベースパスを設定します。 |
 
 変数一覧 · [backend/.env.example](backend/.env.example) · [maas-ui/.env.example](maas-ui/.env.example)
 

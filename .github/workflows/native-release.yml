@@ -91,7 +91,7 @@ jobs:
         working-directory: maas-ui
         env:
           ARCH: ${{ matrix.arch }}
-          NEXT_PUBLIC_TOKENHUB_API_BASE_URL: ${{ vars.NEXT_PUBLIC_TOKENHUB_API_BASE_URL || '/maas-api' }}
+          NEXT_PUBLIC_TOKENHUB_API_BASE_URL: ${{ vars.NEXT_PUBLIC_TOKENHUB_API_BASE_URL }}
         run: |
           set -euo pipefail
           npm ci

@@ -109,7 +109,7 @@ TokenStation release packages are built from version tags on the `release` branc
 Download the matching `tokenstation_*.tar.gz` and `checksums.txt` from [Releases](https://github.com/tokenith-com/token-station/releases). This amd64 example installs a separate service in a fresh directory.
 
 ```bash
-archive=tokenstation_0.11.2_linux_amd64.tar.gz
+archive=tokenstation_0.11.3_linux_amd64.tar.gz
 awk -v f="$archive" '$2 == f {print}' checksums.txt | sha256sum -c - &&
   sudo install -d /opt/tokenstation &&
   sudo tar -xzf "$archive" -C /opt/tokenstation
@@ -124,7 +124,7 @@ TOKENHUB_ENV=prod
 TOKENHUB_HTTP_ADDR=127.0.0.1:18080
 TOKENHUB_FRONTEND_HOST=127.0.0.1
 TOKENHUB_FRONTEND_PORT=13000
-TOKENHUB_PUBLIC_BASE_URL=https://maas.example.com/maas-api
+TOKENHUB_PUBLIC_BASE_URL=https://maas.example.com
 TOKENHUB_DATABASE_URL=sqlite:///var/lib/tokenstation/maas.db
 TOKENHUB_SECRET_KEY=<encryption-key>
 TOKENHUB_BOOTSTRAP_ADMIN_PASSWORD=<initial-password>
@@ -163,7 +163,7 @@ sudo systemctl enable --now tokenstation.service
 curl -fsS http://127.0.0.1:18080/readyz
 ```
 
-Configure the HTTPS reverse proxy to forward `/` to `127.0.0.1:13000` and `/maas-api/` to `127.0.0.1:18080`, stripping the API prefix.
+Forward `/api/`, `/v1/`, and `/v1beta/` to `127.0.0.1:18080` with their paths intact. Forward other requests to the frontend at `127.0.0.1:13000`.
 
 ### Optional settings
 
@@ -171,7 +171,7 @@ Configure the HTTPS reverse proxy to forward `/` to `127.0.0.1:13000` and `/maas
 | --- | --- |
 | `TOKENHUB_CORS_ALLOWED_ORIGINS` | Allowed browser origins for cross-origin API access, separated by commas. |
 | `TOKENHUB_PAYMENT_CONFIG_FILE` | Absolute path to the payment configuration. Keep payment credentials on the server. |
-| `NEXT_PUBLIC_TOKENHUB_API_BASE_URL`, `NEXT_PUBLIC_TOKENHUB_BASE_PATH` | API URL and site prefix embedded in the static frontend at build time. The release serves the site at the root and uses the same-origin `/maas-api` endpoint. |
+| `NEXT_PUBLIC_TOKENHUB_API_BASE_URL`, `NEXT_PUBLIC_TOKENHUB_BASE_PATH` | The release serves the console at the root. Leave the API URL unset to use the same origin, for example `/api/admin/auth/login`. Set the site base path only when hosting the console under a subpath. |
 
 All variables · [backend/.env.example](backend/.env.example) · [maas-ui/.env.example](maas-ui/.env.example)
 

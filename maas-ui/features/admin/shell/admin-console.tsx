@@ -141,7 +141,7 @@ type ConsoleProps = { defaultBaseURL: string };
 
 export function AdminConsole({ defaultBaseURL }: ConsoleProps) {
   const apiURL = typeof window !== "undefined" && /^\/(?!\/)/.test(defaultBaseURL)
-    ? new URL(defaultBaseURL, window.location.origin).href
+    ? new URL(defaultBaseURL, window.location.origin).href.replace(/\/+$/, "")
     : defaultBaseURL;
   return (
     <Suspense><AdminConsoleContent defaultBaseURL={apiURL} /></Suspense>

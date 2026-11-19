@@ -109,7 +109,7 @@ TokenStation 的发布包由 `release` 分支上的版本标签构建。
 从 [Releases](https://github.com/tokenith-com/token-station/releases) 下载对应架构的 `tokenstation_*.tar.gz` 和 `checksums.txt`。以下以 amd64 为例，在新目录安装独立服务。
 
 ```bash
-archive=tokenstation_0.11.2_linux_amd64.tar.gz
+archive=tokenstation_0.11.3_linux_amd64.tar.gz
 awk -v f="$archive" '$2 == f {print}' checksums.txt | sha256sum -c - &&
   sudo install -d /opt/tokenstation &&
   sudo tar -xzf "$archive" -C /opt/tokenstation
@@ -124,7 +124,7 @@ TOKENHUB_ENV=prod
 TOKENHUB_HTTP_ADDR=127.0.0.1:18080
 TOKENHUB_FRONTEND_HOST=127.0.0.1
 TOKENHUB_FRONTEND_PORT=13000
-TOKENHUB_PUBLIC_BASE_URL=https://maas.example.com/maas-api
+TOKENHUB_PUBLIC_BASE_URL=https://maas.example.com
 TOKENHUB_DATABASE_URL=sqlite:///var/lib/tokenstation/maas.db
 TOKENHUB_SECRET_KEY=<encryption-key>
 TOKENHUB_BOOTSTRAP_ADMIN_PASSWORD=<initial-password>
@@ -163,7 +163,7 @@ sudo systemctl enable --now tokenstation.service
 curl -fsS http://127.0.0.1:18080/readyz
 ```
 
-在 HTTPS 反向代理中，将 `/` 转发到 `127.0.0.1:13000`，将 `/maas-api/` 去掉前缀后转发到 `127.0.0.1:18080`。
+HTTPS 反向代理将 `/api/`、`/v1/` 和 `/v1beta/` 原样转发到 `127.0.0.1:18080`，其余请求转发到前端 `127.0.0.1:13000`。
 
 ### 可选配置
 
@@ -171,7 +171,7 @@ curl -fsS http://127.0.0.1:18080/readyz
 | --- | --- |
 | `TOKENHUB_CORS_ALLOWED_ORIGINS` | 浏览器跨域访问 API 时设置，多个来源用逗号分隔。 |
 | `TOKENHUB_PAYMENT_CONFIG_FILE` | 支付配置文件的绝对路径；启用支付时设置，凭据留在服务器。 |
-| `NEXT_PUBLIC_TOKENHUB_API_BASE_URL`, `NEXT_PUBLIC_TOKENHUB_BASE_PATH` | 静态前端的 API 地址和站点路径前缀，构建时生效。发布包默认使用同源 `/maas-api`，站点位于根路径。 |
+| `NEXT_PUBLIC_TOKENHUB_API_BASE_URL`, `NEXT_PUBLIC_TOKENHUB_BASE_PATH` | 发布包在根路径提供控制台。API 地址留空时使用同源路径，例如 `/api/admin/auth/login`。 仅在子路径部署控制台时设置站点路径前缀。 |
 
 全部变量见 · [backend/.env.example](backend/.env.example) · [maas-ui/.env.example](maas-ui/.env.example)
 

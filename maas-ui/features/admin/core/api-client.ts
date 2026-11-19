@@ -8,8 +8,7 @@ export function configureBackendBaseURL(value: string) {
   backendBaseURL = value.trim().replace(/\/+$/, "");
 }
 
-// 未配置时退回相对路径：AdminConsoleBoot 已拦住缺少地址的构建，
-// 这里的默认值只用于测试或并存的旧部署，不会静默请求错误的后端。
+// Keep the legacy fallback for callers that have not initialized the client.
 export function backendURL(path: string) {
   const suffix = path.startsWith("/") ? path : `/${path}`;
   return backendBaseURL ? `${backendBaseURL}${suffix}` : `/api/backend${suffix}`;
