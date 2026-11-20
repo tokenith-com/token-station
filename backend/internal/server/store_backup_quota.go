@@ -312,7 +312,7 @@ func (s *GormStore) AccessibleModelMembership(key APIKey) []Model {
 	publishedModelNames := make([]string, 0, len(routes)+len(imageCapabilityProfiles))
 	seenModelNames := map[string]bool{}
 	for _, route := range routes {
-		if imageCapabilityModelNames[route.ModelName] || seenModelNames[route.ModelName] || !modelAllowedByScopes(project, privateKey, route.ModelName) {
+		if imageCapabilityModelNames[route.ModelName] || seenModelNames[route.ModelName] || !s.modelAllowedForCredential(project, privateKey, route.ModelName) {
 			continue
 		}
 		selections := []RouteSelection{{Provider: Provider{ID: route.ProviderID}, ProviderModel: route.ProviderModel, Route: route}}
@@ -337,7 +337,7 @@ func (s *GormStore) AccessibleModelMembership(key APIKey) []Model {
 		}
 	}
 	for _, profile := range imageCapabilityProfiles {
-		if seenModelNames[profile.PublicModel] || !modelAllowedByScopes(project, privateKey, profile.PublicModel) {
+		if seenModelNames[profile.PublicModel] || !s.modelAllowedForCredential(project, privateKey, profile.PublicModel) {
 			continue
 		}
 		if s.providerImageCapabilityAllowedByPolicyLocked(project, privateKey, policy, profile) {

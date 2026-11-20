@@ -36,14 +36,14 @@ export function consoleResourceActions(context: ConsoleResourceContext) {
     setIssuedKey, setProjectWorkspace, setPendingAction, setModal, setApiKeyWizardInitialValues,
     setApiKeyWizardOpen, setConfirmDelete, setConfirmRestoreModels, setUserImportOpen, setReportHistory } = context;
 
-  async function saveProjectWorkspace(draft: ProjectWorkspaceDraft) {
+  async function saveProjectWorkspace(draft: ProjectWorkspaceDraft, canWriteModelScope = true) {
     const existing = data.projects.find(project => project.id === projectWorkspace?.projectID);
     const attempt = createAdminSaveAttempt(api);
     setLoading(true);
     setError("");
     setNotice("");
     try {
-      const saved = await saveProjectWorkspaceDraft(attempt.api, existing, draft);
+      const saved = await saveProjectWorkspaceDraft(attempt.api, existing, draft, canWriteModelScope);
       attempt.requested = false;
       await load("projects");
       setProjectWorkspace({ mode: "view", projectID: saved.id });

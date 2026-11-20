@@ -69,6 +69,8 @@ export const teamLeaderNavGroups: NavGroup[] = [
     icon: Users,
     items: [
       { view: "users", label: "团队成员", icon: Users },
+      { view: "user-model-access", label: "用户模型权限", icon: ShieldCheck },
+      { view: "quota-policies", label: "用户额度", icon: Gauge },
       { view: "audit", label: "请求日志", icon: FileText },
     ],
   },
@@ -103,6 +105,7 @@ export const adminNavGroups: NavGroup[] = [
       { view: "projects", label: "项目空间", icon: LayoutDashboard },
       { view: "api-keys", label: "Key 管理", icon: KeyRound },
       { view: "teams", label: "团队分组", icon: Users },
+      { view: "user-model-access", label: "用户模型权限", icon: ShieldCheck },
       { view: "approvals", label: "审批记录", icon: ShieldCheck },
     ],
   },
@@ -211,7 +214,7 @@ export const roleViewAccess: Record<AppRole, ViewKey[]> = {
   admin: (Object.keys(viewRoutes) as ViewKey[]).filter(
     (view) => !["project-members", "approval-flows", "balance-recharge"].includes(view),
   ),
-  team_leader: ["overview", "gateway", "playground", "models", "projects", "api-keys", "teams", "users", "usage", "billing", "audit", "approvals"],
+  team_leader: ["overview", "gateway", "playground", "models", "projects", "api-keys", "teams", "users", "usage", "billing", "user-model-access", "quota-policies", "audit", "approvals"],
   user: ["overview", "gateway", "playground", "models", "api-keys", "usage", "audit"],
   consumer: ["overview", "gateway", "playground", "models", "api-keys", "usage", "audit", "billing", "balance-recharge"],
 };

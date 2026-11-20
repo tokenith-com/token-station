@@ -56,6 +56,7 @@ export const teamLeaderNavGroups: NavGroup[] = [
     items: [
       { view: "users", label: "团队成员", icon: Users },
       { view: "teams", label: "团队信息", icon: Users },
+      { view: "user-model-access", label: "用户模型权限", icon: ShieldCheck },
       { view: "audit", label: "请求日志", icon: FileText },
       { view: "gateway", label: "快速接入", icon: Sparkles },
     ],
@@ -88,6 +89,7 @@ export const adminNavGroups: NavGroup[] = [
       { view: "projects", label: "项目空间", icon: LayoutDashboard },
       { view: "api-keys", label: "Key 管理", icon: KeyRound },
       { view: "teams", label: "团队分组", icon: Users },
+      { view: "user-model-access", label: "用户模型权限", icon: ShieldCheck },
       { view: "approvals", label: "审批记录", icon: ShieldCheck },
     ],
   },
@@ -229,7 +231,7 @@ export const roleViewAccess: Record<AppRole, ViewKey[]> = {
     (view) => view !== "project-members" && view !== "approval-flows",
   ),
   security: ["overview", "gateway", "usage", "audit", "alerts", "alert-events", "notification-channels", "alert-deliveries", "security-policies", "approvals"],
-  team_leader: ["overview", "gateway", "playground", "models", "projects", "api-keys", "teams", "users", "usage", "billing", "quota-policies", "audit", "approvals"],
+  team_leader: ["overview", "gateway", "playground", "models", "projects", "api-keys", "teams", "users", "usage", "billing", "quota-policies", "user-model-access", "audit", "approvals"],
   user: ["overview", "gateway", "playground", "models", "api-keys", "usage", "audit"],
 };
 

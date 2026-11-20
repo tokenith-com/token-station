@@ -43,13 +43,13 @@ function mount(role = "team_leader") {
   return fetcher;
 }
 
-it.each(["team_leader", "user"])("restores master key issuance for %s and closes only after a failed save request", async role => {
-  const fetcher = mount(role);
+it("restores master key issuance for a team leader", async () => {
+  const fetcher = mount("team_leader");
   const browser = userEvent.setup();
   expect(await screen.findByText(key.name)).toBeInTheDocument();
   expect(screen.getByRole("columnheader", { name: "IP 白名单" })).toBeInTheDocument();
-  expect(screen.queryByRole("columnheader", { name: "归属项目" }) !== null).toBe(role === "team_leader");
-  await browser.click(screen.getByRole("button", { name: role === "user" ? "创建 Key" : "发放 Key" }));
+  expect(screen.getByRole("columnheader", { name: "归属项目" })).toBeInTheDocument();
+  await browser.click(screen.getByRole("button", { name: "发放 Key" }));
   await browser.click(screen.getByRole("button", { name: "下一步" }));
   expect(screen.getByRole("button", { name: "下一步" })).toBeDisabled();
   expect(fetcher.mock.calls.some(([, init]) => init?.method === "POST")).toBe(false);
@@ -61,6 +61,20 @@ it.each(["team_leader", "user"])("restores master key issuance for %s and closes
     method: "POST", body: expect.stringContaining('"owner_user_id":"owner"'),
   }));
   expect(await screen.findByText(/Save rejected/)).toBeInTheDocument();
+});
+
+// A member gets the consumer-style experience: a one-field create dialog and a
+// list with only enable/disable and delete, so quota stays with the leader.
+it("gives a member the personal key list and a name-only create dialog", async () => {
+  mount("user");
+  const browser = userEvent.setup();
+  expect(await screen.findByText(key.name)).toBeInTheDocument();
+  expect(screen.queryByRole("columnheader", { name: "IP 白名单" })).not.toBeInTheDocument();
+  await browser.click(screen.getByRole("button", { name: "新建 API Key" }));
+  const dialog = await screen.findByRole("dialog", { name: "创建 API Key" });
+  expect(within(dialog).getByPlaceholderText("请输入")).toBeInTheDocument();
+  expect(within(dialog).queryByLabelText("归属项目")).not.toBeInTheDocument();
+  expect(within(dialog).queryByLabelText("Key 名称")).not.toBeInTheDocument();
 });
 
 it("opens key access instructions and requires confirmation before rotation", async () => {

@@ -205,6 +205,7 @@ export function fieldValueLabel(fieldKey: string, value: unknown): string {
   if (normalizedKey === "reasoning_effort_unsupported") {
     return tx({ passthrough: "透传", omit: "删除参数", reject: "拒绝请求" }[text.toLowerCase()] ?? text);
   }
+  if (normalizedKey === "model_access_mode") return tx({ inherit: "继承上级范围", restricted: "白名单模式", excluded: "黑名单模式" }[text.toLowerCase()] ?? text);
   if (normalizedKey === "schedule" || normalizedKey === "period") return enumValueLabel(text);
   if (normalizedKey === "enforcement") return budgetEnforcementLabel(text);
   if (normalizedKey === "input_modalities" || normalizedKey === "output_modalities") return enumValueLabel(text);

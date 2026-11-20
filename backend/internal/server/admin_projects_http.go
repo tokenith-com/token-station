@@ -101,6 +101,12 @@ func (s *Server) handleAdminProjectsPost(w http.ResponseWriter, r *http.Request)
 			req.OwnerUserID = user.ID
 		}
 	}
+	// The project model scope is the platform's model ceiling. A team leader
+	// narrows it per member and per key instead of rewriting it here.
+	if err := rejectProjectModelScopeWrite(user, req.ModelAccessMode, req.AllowedModels, req.ExcludedModels); err != nil {
+		writeError(w, r, err)
+		return
+	}
 	project, err := s.store.CreateProjectChecked(req)
 	if err != nil {
 		writeError(w, r, err)
@@ -232,6 +238,12 @@ func (s *Server) serveAdminProjectPatch(w http.ResponseWriter, r *http.Request, 
 		req.TeamID = existing.TeamID
 		if strings.TrimSpace(req.OwnerUserID) == "" {
 			req.OwnerUserID = existing.OwnerUserID
+		}
+		// The project model scope is the platform's model ceiling. A team leader
+		// narrows it per member and per key instead of rewriting it here.
+		if err := rejectProjectModelScopeWrite(user, req.ModelAccessMode, req.AllowedModels, req.ExcludedModels); err != nil {
+			writeError(w, r, err)
+			return
 		}
 	}
 	project, err := s.store.UpdateProject(projectID, req)
@@ -1386,6 +1398,17 @@ func (s *Server) serveAdminAPIKeyPatch(w http.ResponseWriter, r *http.Request, u
 	existing, err := s.findAPIKey(keyID)
 	if err != nil {
 		writeError(w, r, err)
+		return
+	}
+	// A member must not raise their own quota or widen the model scope the team
+	// leader set: the console hides editing, and this closes the API path.
+	// Renaming, enabling and disabling stay available.
+	if normalizeAdminRole(user.Role) == "user" &&
+		(req.Limits != nil || req.RateLimitRPM.Set || req.TokenLimitTPM.Set ||
+			len(req.AllowedModels) > 0 || strings.TrimSpace(req.ModelAccessMode) != "" ||
+			req.OwnerUserID != nil || req.ExpiresAt != nil) {
+		writeError(w, r, NewHTTPError(http.StatusForbidden, "api_key_scope_forbidden",
+			"Only a team leader can change an API key's quota or model scope"))
 		return
 	}
 	if approval, required := s.apiKeyUpdateApproval(user, existing, patch); required {

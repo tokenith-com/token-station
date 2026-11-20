@@ -42,3 +42,27 @@ it("loads server pages and resets the page when changing filters while retaining
   await waitFor(() => expect(requests.some(path => path.includes("q=api-key-name"))).toBe(true));
   expect(screen.queryByText("渠道真实成本")).not.toBeInTheDocument();
 });
+
+it("renders the server-resolved account name for a member without the user directory", async () => {
+  vi.mocked(adminFetch).mockImplementation(async (_api, path) => {
+    if (path.includes("/requests/")) {
+      return new Response(JSON.stringify({
+        log: { request_id: "req-account", project_id: "prj_taihu", api_key_id: "key_1", model: "m", status_code: 200, latency_ms: 5, created_at: "2026-10-16T00:00:00Z" },
+        usage: [], attempts: [], payload: null,
+        account: "太湖员工A / pt@locol.com",
+      }));
+    }
+    return new Response(JSON.stringify({
+      data: [{ id: "log-1", request_id: "req-account", model: "m", status_code: 200, latency_ms: 5, created_at: "2026-10-16T00:00:00Z" }],
+      pagination: { page: 1, page_size: 20, total: 1, total_pages: 1 },
+      summary: { all: 1, ok: 1, error: 0, average_latency_ms: 5 },
+    }));
+  });
+  // A member's data carries no users, so only the server-provided name can show.
+  render(<AuditView api={{ baseURL: "", adminToken: "test" }} data={emptyData()}
+    user={{ id: "member", username: "member", name: "Member", email: "member@test.invalid", role: "user", status: "active" }} />);
+  await screen.findByText("req-account");
+  fireEvent.click(screen.getByText("req-account"));
+  expect(await screen.findByText("太湖员工A / pt@locol.com")).toBeInTheDocument();
+  expect(screen.queryByText("usr_z2NA16gRki-BcS70")).not.toBeInTheDocument();
+});

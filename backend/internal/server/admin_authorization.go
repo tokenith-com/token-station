@@ -556,6 +556,19 @@ func (s *Server) filterAPIKeysForUser(user AdminUser, keys []APIKey) []APIKey {
 	if isPlatformAdminRole(role) {
 		return keys
 	}
+	// A member's key list is the personal list: only keys attributed to them.
+	// The console shows enable/disable and delete there, so listing a project
+	// peer's keys would offer actions on someone else's credential.
+	if role == "user" {
+		out := make([]APIKey, 0, len(keys))
+		for _, key := range keys {
+			if strings.TrimSpace(key.OwnerUserID) == user.ID ||
+				(strings.TrimSpace(key.OwnerUserID) == "" && key.Metadata != nil && key.Metadata["created_by"] == user.ID) {
+				out = append(out, key)
+			}
+		}
+		return out
+	}
 	projects := map[string]Project{}
 	for _, project := range s.store.ListProjects() {
 		projects[project.ID] = project
@@ -578,6 +591,9 @@ func (s *Server) accessibleModelsForAdminUser(user AdminUser) []Model {
 	projects := s.filterProjectsForUser(user, s.store.ListProjects())
 	routed := s.activeRoutedModelNameSet()
 	models := s.store.ListModels()
+	// This list answers "what can this account use", so the account's own model
+	// scope applies to every project it can reach.
+	userScope := userModelAccessFor(s.userModelAccessResources(), user.ID)
 	out := make([]Model, 0, len(models))
 	for _, model := range models {
 		if model.Status != StatusActive {
@@ -587,7 +603,7 @@ func (s *Server) accessibleModelsForAdminUser(user AdminUser) []Model {
 			continue
 		}
 		for _, project := range projects {
-			if modelAllowedByScopes(project, APIKey{}, model.Name) {
+			if len(modelAccessReasonsWithUser(project, APIKey{}, userScope, model.Name)) == 0 {
 				out = append(out, model)
 				break
 			}
@@ -964,11 +980,26 @@ func (s *Server) canAccessScopedResource(user AdminUser, kind string, item Admin
 		return s.canAccessQuotaPolicy(user, item)
 	case "project-members":
 		return s.canAccessProjectMemberResource(user, item)
+	case userModelAccessResourceKind:
+		return s.canAccessUserModelAccess(user, item)
 	case "chargebacks", "invoices":
 		return s.resourceMatchesTeamOrCostCenter(user.TeamID, item)
 	default:
 		return false
 	}
+}
+
+// canAccessUserModelAccess limits the scope to platform administrators and to a
+// team leader whose own team contains the configured user.
+func (s *Server) canAccessUserModelAccess(user AdminUser, item AdminResource) bool {
+	if s.canViewGlobalOperations(user) {
+		return true
+	}
+	if normalizeAdminRole(user.Role) != "team_leader" {
+		return false
+	}
+	target, ok := s.findAdminUser(strings.TrimSpace(stringField(item.Fields, "user_id")))
+	return ok && userHasTeam(target, user.TeamID)
 }
 
 func (s *Server) canAccessProjectMemberResource(user AdminUser, item AdminResource) bool {
@@ -1022,6 +1053,9 @@ func (s *Server) validateScopedResourceMutation(user AdminUser, kind string, res
 	}
 	if kind == "project-members" {
 		return s.validateProjectMemberMutation(user, resourceID, req)
+	}
+	if kind == userModelAccessResourceKind {
+		return s.validateUserModelAccessMutation(user, resourceID, req)
 	}
 	var quotaFields map[string]any
 	if kind == "quota-policies" {
@@ -1263,6 +1297,11 @@ func adminResourcePermission(path string) string {
 		return "routing"
 	}
 	if strings.Contains(path, "/quota-policies") {
+		return "quota"
+	}
+	// A user model scope is an access control decision, so it rides on the same
+	// permission team leaders already use to manage member quotas.
+	if strings.Contains(path, "/"+userModelAccessResourceKind) {
 		return "quota"
 	}
 	if strings.Contains(path, "/project-members") {

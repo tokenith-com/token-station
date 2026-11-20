@@ -1,3 +1,4 @@
+import { formatTranslationTemplate, tx } from "../i18n/runtime";
 import type { AdminUser } from "./types";
 
 // 纯静态部署下浏览器直连后端，后端必须放行本站 Origin 的 CORS。
@@ -54,6 +55,34 @@ export class APIError extends Error {
   }
 }
 
+// Login messages lead with the HTTP status and use the operator's language, so
+// a failure reads the same whatever the backend's English detail says.
+function loginErrorDetail(status: number, code: string) {
+  switch (code) {
+    case "invalid_request":
+      return tx("请输入账号和密码");
+    case "invalid_credentials":
+      return tx("账号或密码不正确");
+    case "admin_user_disabled":
+      return tx("账号已被禁用，请联系管理员");
+    default:
+      break;
+  }
+  if (status === 0) return tx("无法连接服务器，请检查网络或后端是否已启动");
+  if (status === 401) return tx("账号或密码不正确");
+  if (status === 403) return tx("账号无权登录，请联系管理员");
+  if (status === 429) return tx("登录尝试过于频繁，请稍后再试");
+  if (status >= 500) return tx("服务器内部错误，请稍后再试");
+  return tx("登录失败");
+}
+
+export function loginErrorMessage(status: number, code = "") {
+  return formatTranslationTemplate(tx("{status} · {detail}"), {
+    status: String(status),
+    detail: loginErrorDetail(status, code),
+  });
+}
+
 export async function readAPIError(response: Response, fallback: string) {
   const body = await response.text().catch(() => "");
   try {
@@ -66,6 +95,20 @@ export async function readAPIError(response: Response, fallback: string) {
   return `${fallback} (${response.status})`;
 }
 
+// Login failures are reported as the status plus a localized reason, and never
+// echo the backend's English detail.
+export async function readLoginError(response: Response) {
+  const body = await response.text().catch(() => "");
+  let code = "";
+  try {
+    const payload = JSON.parse(body);
+    if (payload?.error && typeof payload.error === "object") code = String(payload.error.code ?? "");
+  } catch {
+    // A proxy's HTML error page carries no code; status alone is enough.
+  }
+  return loginErrorMessage(response.status, code);
+}
+
 function authenticatedUser(value: unknown): AdminUser {
   if (!value || typeof value !== "object") throw new Error("登录接口未返回用户信息");
   const user = value as AdminUser;
@@ -76,12 +119,19 @@ function authenticatedUser(value: unknown): AdminUser {
 }
 
 export async function loginWithPassword(identity: string, password: string) {
-  const response = await backendRequest("/api/admin/auth/login", {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({ identity: identity.trim(), password }),
-  });
-  if (!response.ok) throw new APIError(await readAPIError(response, "登录失败"), response.status);
+  let response: Response;
+  try {
+    response = await backendRequest("/api/admin/auth/login", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ identity: identity.trim(), password }),
+    });
+  } catch (error) {
+    // A network failure during sign-in is reported like any other login error.
+    if (error instanceof APIError) throw new APIError(loginErrorMessage(0), 0);
+    throw error;
+  }
+  if (!response.ok) throw new APIError(await readLoginError(response), response.status);
   const payload = await response.json();
   if (typeof payload.token !== "string" || !payload.token || payload.token.startsWith("tokenhub-mock:")) {
     throw new Error("登录接口未返回有效的会话令牌");

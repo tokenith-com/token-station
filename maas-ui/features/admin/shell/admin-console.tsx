@@ -867,7 +867,7 @@ function AdminConsoleContent({ defaultBaseURL }: ConsoleProps) {
       return;
     }
     setIssuedKey("");
-    if (currentUser && appRole(currentUser.role) === "consumer") {
+    if (currentUser && ["consumer", "user"].includes(appRole(currentUser.role))) {
       setQuickAPIKeyOpen(true);
     } else {
       setApiKeyWizardInitialValues({});
@@ -1070,7 +1070,10 @@ function AdminConsoleContent({ defaultBaseURL }: ConsoleProps) {
   const isRoleManagementView = activeView === "settings" && appRole(currentUser.role) === "admin";
   const isMemberAuditView = activeView === "audit" && ["team_leader", "user", "consumer"].includes(accountManagementRole);
   const isMemberGatewayView = activeView === "gateway" && ["user", "consumer"].includes(accountManagementRole);
-  const isPersonalAPIKeysView = activeView === "api-keys" && accountManagementRole === "consumer";
+  // Members manage their own keys the same way consumers do: a one-field create
+  // dialog and a list with only enable/disable and delete, so quota and model
+  // scope stay under the team leader's control.
+  const isPersonalAPIKeysView = activeView === "api-keys" && ["consumer", "user"].includes(accountManagementRole);
   const isTeamResourceView = accountManagementRole === "team_leader" && ["usage", "gateway", "api-keys", "projects"].includes(activeView);
   const isMemberKeyListView = activeView === "api-keys" && accountManagementRole === "user";
   const isPersonalUsageView = activeView === "usage" && ["user", "consumer"].includes(accountManagementRole);
@@ -1365,7 +1368,8 @@ function AdminConsoleContent({ defaultBaseURL }: ConsoleProps) {
             loading={loading}
             onClose={() => { if (!loading) setProjectWorkspace(null); }}
             onEdit={() => setProjectWorkspace(current => current ? { ...current, mode: "edit" } : current)}
-            onSave={draft => void saveProjectWorkspace(draft)}
+            canEditModelScope={appRole(currentUser?.role ?? "") === "admin"}
+            onSave={draft => void saveProjectWorkspace(draft, appRole(currentUser?.role ?? "") === "admin")}
             onIssueKey={() => {
               if (!workspaceProject) return;
               setIssuedKey("");

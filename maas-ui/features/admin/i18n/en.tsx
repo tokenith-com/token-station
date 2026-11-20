@@ -1500,4 +1500,10 @@ export const enTranslations: Record<string, string> = {
     "Provider 出口模式": "Provider Egress Mode", "继承环境变量代理": "Inherit Environment Proxy", "直接连接": "Direct Connection", "使用统一代理": "Use Global Proxy", "代理协议": "Proxy Protocol", "代理 Host": "Proxy Host", "代理端口": "Proxy Port", "启用代理 Basic 认证": "Enable Proxy Basic Authentication", "代理用户名": "Proxy Username", "代理密码": "Proxy Password", "测试目标 Provider": "Test Target Provider", "正在测试代理": "Testing Proxy", "测试代理连接": "Test Proxy Connection", "代理连接测试通过": "Proxy connection test passed", "代理连接测试失败": "Proxy connection test failed",
     "适用于 Provider 上游请求；本机与内网目标默认直连。其他目标默认继承 HTTP_PROXY、HTTPS_PROXY 和 NO_PROXY。": "Applies to Provider upstream requests. Local and private targets connect directly by default; other targets inherit HTTP_PROXY, HTTPS_PROXY, and NO_PROXY.",
     "指定模型禁用列表": "Specify Model Blocklist", "项目模型禁用列表": "Project Model Blocklist", "未禁用的已启用模型均可访问，留空表示不禁用任何模型。": "All enabled models not blocked remain accessible; leave empty to block no models.", "未禁用任何模型": "No Models Blocked", "按模型名称搜索": "Search by model name", "已选 {count} 个模型": "{count} models selected", "全选当前搜索结果": "Select all search results", "暂无可选模型": "No selectable models", "项目模型访问规则先于路由执行，项目内 API Key 只能在此范围内进一步收窄。": "Project model access rules apply before routing; project API keys can only further narrow this scope.",
+    "白名单模式": "Allow list",
+    "黑名单模式": "Block list",
+    "继承上级范围": "Inherit parent scope",
+    "白名单模式且留空时禁止项目访问任何模型；所有项目 Key 只能进一步收窄。": "In allow-list mode an empty list blocks every model for the project; project keys can only narrow this further.",
+    "继承表示沿用项目范围；白名单表示与项目允许列表取交集。": "Inherit follows the project scope; allow list intersects with the project's allowed models.",
+    "白名单模式且留空表示禁止此 Key 访问任何模型。": "In allow-list mode an empty list blocks every model for this key.",
 };

@@ -5,7 +5,7 @@ import { BillingWorkspace } from "../views/billing-workspace";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { type LoadedData, loadPlanForView, mergeLoadedData } from "../core/data-loading";
-import { canAccessView, defaultViewForRole, rememberRecentView, standaloneViewMeta } from "../core/navigation";
+import { appRole, canAccessView, defaultViewForRole, rememberRecentView, standaloneViewMeta } from "../core/navigation";
 import { clearProviderAccountOAuthResultFromLocation, hasPendingProviderAccountOAuthResult, isOAuthAuthorizationResponse, readOAuthLoginResult, readProviderAccountOAuthResultFromLocation, savePendingProviderAccountOAuthResult } from "../core/session";
 import { notificationChannelDefaultType, notificationChannelTypes, type AdapterDescriptor, type AdminResource, type AdminUIContribution, type AdminUser, type AlertDelivery, type AlertEvent, type APIKey, type AppData, type ApprovalRequest, type AuditEvent, type BillingConnector, type BillingRecord, type BillingSyncRun, type ConfirmState, type GatewayChainPlan, languageStorageKey, type ModalState, type Model, type ModelRoute, type ModelRoutePolicy, type PluginActionDescriptor, type PluginBackgroundJobDescriptor, type PluginBackgroundJobRunRecord, type PluginDescriptor, type PluginMarketplacePlugin, type Project, type Provider, type ProviderCatalogEntry, type ProviderModel, type ProviderMonitoringSnapshot, type ProviderResource, type ReconciliationRule, type ReconciliationRun, type ReportExportHistoryItem, type RequestLog, type ResourceAction, type ResourceConfig, type SQLiteBackup, type ToolbarAction, type UsageBreakdown, type UsageDaily, type UsagePoint, type ViewKey, viewRoutes } from "../core/types";
 import { emptyData, emptySummary, filterByModelCategory, filterRows } from "../domain/catalog";
@@ -463,7 +463,7 @@ export function SourceAdminContent({ baseURL, adminToken, currentUser, language,
     }
   }
 
-  async function saveProjectWorkspace(draft: ProjectWorkspaceDraft) {
+  async function saveProjectWorkspace(draft: ProjectWorkspaceDraft, canWriteModelScope = true) {
     const existing = projectWorkspace?.projectID
       ? data.projects.find((project) => project.id === projectWorkspace.projectID)
       : undefined;
@@ -471,7 +471,7 @@ export function SourceAdminContent({ baseURL, adminToken, currentUser, language,
     setError("");
     setNotice("");
     try {
-      const saved = await saveProjectWorkspaceDraft(api, existing, draft);
+      const saved = await saveProjectWorkspaceDraft(api, existing, draft, canWriteModelScope);
       await load("projects");
       setProjectWorkspace({ mode: "view", projectID: saved.id });
       setNotice(tx(existing ? "项目设置已保存" : "项目已创建，团队权限已配置"));
@@ -899,7 +899,8 @@ export function SourceAdminContent({ baseURL, adminToken, currentUser, language,
             if (!loading) setProjectWorkspace(null);
           }}
           onEdit={() => setProjectWorkspace((current) => current ? { ...current, mode: "edit" } : current)}
-          onSave={(draft) => void saveProjectWorkspace(draft)}
+          canEditModelScope={appRole(currentUser.role) === "admin"}
+          onSave={(draft) => void saveProjectWorkspace(draft, appRole(currentUser.role) === "admin")}
           onIssueKey={() => {
             if (!workspaceProject) return;
             setIssuedKey("");

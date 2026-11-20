@@ -269,6 +269,13 @@ export function loadPlanForView(user: AdminUser, view: ViewKey): LoadPlan {
       addResourceDependency(plan, "teams");
       addResourceDependency(plan, view);
       break;
+    case "user-model-access":
+      // The form needs the member list and the model catalog to build options.
+      plan.overview = true;
+      plan.users = true;
+      plan.models = true;
+      addResourceDependency(plan, view);
+      break;
     case "cost-centers":
     case "approval-flows":
     case "reports":

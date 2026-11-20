@@ -11,6 +11,7 @@ import { adminDelete, adminFetch, adminMutate, readAdminError, identityProviderP
 import { apiKeyConfig, projectConfig, projectMemberConfig } from "./project-key-config";
 import { modelConfig, providerConfig, routeConfig } from "./provider-model-config";
 import { routingPolicyConfig } from "./routing-policy-config";
+import { userModelAccessConfig } from "./user-model-access-config";
 import { StatusPill } from "../shared/ui";
 import { identityProviderIconOptions, identityProviderInitialFormValues, identityProviderTemplateOptionsFromData } from "../shared/auth";
 
@@ -33,6 +34,7 @@ function createResourceConfigs(): Partial<Record<ViewKey, ResourceConfig<any>>> 
   teams: teamConfig(),
   users: adminUserConfig(),
   "quota-policies": quotaPolicyConfig(),
+  "user-model-access": userModelAccessConfig(),
   "cost-centers": costCenterConfig(),
   "approval-flows": approvalFlowConfig(),
   reports: reportConfig(),

@@ -52,3 +52,12 @@ it.each(["admin", "team_leader", "user", "guest"])("leaves period-specific usage
   expect(plan.breakdown).toBe(false);
   expect(plan.timeseries).toBe(false);
 });
+
+it("does not load the user directory for the request log", () => {
+  // The account name is resolved server-side; the directory needs the identity
+  // permission that members and consumers do not hold.
+  for (const role of ["admin", "team_leader", "user", "consumer"]) {
+    const plan = loadPlanForView(user(role), "audit");
+    expect(plan.users, `${role} audit plan must not load users`).toBe(false);
+  }
+});
