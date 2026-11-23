@@ -1,6 +1,6 @@
 import { ArrowRight, Bot, Check, ChevronDown, CircleAlert, KeyRound, Plus, Search, Terminal, X } from "lucide-react";
 import { type FormEvent, useEffect, useMemo, useRef, useState } from "react";
-import { appRole } from "../core/navigation";
+import { appRole } from "../../core/navigation";
 import { type AdminUser, type APIKey, type ApiContext, type AppData, type Model } from "../core/types";
 import { modelCategory, modelCategoryInitial, modelCategoryLabel } from "../domain/catalog";
 import { modelCapabilitySummary, modelPriceSummary, projectSelectOptions } from "../domain/entities";

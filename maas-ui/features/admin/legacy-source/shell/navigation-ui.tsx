@@ -1,6 +1,6 @@
 import { AlertCircle, Check, ChevronDown, ChevronRight, LogOut, Moon, PanelLeftClose, PanelLeftOpen, Search, Sun, X } from "lucide-react";
 import { Fragment, useEffect, useRef, useState } from "react";
-import { appRole, filterNavItemByAccess, isNavItemActive, isNavParentItem, navGroupsForUser, normalizeSearchText, readRecentViews, roleScopeDescription, standaloneViewMeta, topQuickActionsForUser, topSearchItemsForUser, topSearchResults } from "../core/navigation";
+import { appRole, filterNavItemByAccess, isNavItemActive, isNavParentItem, navGroupsForUser, normalizeSearchText, readRecentViews, roleScopeDescription, standaloneViewMeta, topQuickActionsForUser, topSearchItemsForUser, topSearchResults } from "../../core/navigation";
 import { type AdminUser, type AppData, type NavItem, type ViewKey } from "../core/types";
 import { formatMoney, formatNumber, playgroundModels } from "../domain/formatting";
 import { roleLabel, userInitial } from "../domain/labels";

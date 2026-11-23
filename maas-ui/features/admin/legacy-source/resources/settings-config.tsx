@@ -1,7 +1,7 @@
 import { type AdminResource, type FieldConfig, notificationChannelTemplates, type ResourceConfig, type SQLiteBackup, type ViewKey } from "../core/types";
 import { notificationChannelLabel, notificationChannelTargetSummary, notificationChannelType, notificationChannelUsesEmail, notificationChannelUsesIncomingWebhook, notificationChannelUsesTelegram, notificationChannelUsesWhatsApp, notificationCredentialSummary } from "../domain/catalog";
 import { apiKeyOwnerSelectOptions, costCenterLabel, costCenterSelectOptions, fieldSummary, oauthDefaultProjectRoleOptions, ownerUserLabel, projectMemberProjectSelectOptions, roleDisplayName, stringifyValue, teamMemberCount, teamSelectOptions, userSelectOptions } from "../domain/entities";
-import { appRole } from "../core/navigation";
+import { appRole } from "../../core/navigation";
 import { formatBytes, formatNumber, formatTime } from "../domain/formatting";
 import { boolLabel, dataScopeLabel, identityProviderDefaultGrantLabel, identityProviderLoginEntryLabel, identityProviderTypeLabel, monitorTargetLabel, numberFromUnknown, numberOr } from "../domain/labels";
 import { formatTranslationTemplate, languageLocale, tx } from "../i18n/runtime";

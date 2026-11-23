@@ -12,6 +12,7 @@ export const expectedMenus: Record<AppRole, string[]> = {
     "security-policies", "sqlite-backups", "database-status", "announcements", "plugins",
     "users", "role-configs", "identity-providers", "settings", "settlement-settings",
   ],
+  security: ["overview", "usage", "audit", "approvals", "security-policies", "alerts", "alert-events", "notification-channels", "alert-deliveries", "gateway"],
   team_leader: ["overview", "usage", "models", "playground", "api-keys", "gateway", "users", "user-model-access", "quota-policies", "audit"],
   user: ["overview", "models", "playground", "api-keys", "gateway", "usage", "audit"],
   consumer: ["overview", "models", "playground", "api-keys", "gateway", "usage", "audit", "billing", "balance-recharge"],

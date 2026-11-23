@@ -1,6 +1,6 @@
 import { FileText, Search } from "lucide-react";
 import { useEffect, useState } from "react";
-import { appRole } from "../core/navigation";
+import { appRole } from "../../core/navigation";
 import { type AdminUser, type ApiContext, type AppData, type AppRole, type Model } from "../core/types";
 import { activeRouteCount, apiGatewayBaseURL, apiReferenceURL, playgroundModels } from "../domain/formatting";
 import { type AppLanguage, languageOptions, tx } from "../i18n/runtime";

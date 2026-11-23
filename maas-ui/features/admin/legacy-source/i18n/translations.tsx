@@ -1,6 +1,6 @@
-import { billingWorkspaceTranslations } from "../../admin/i18n/billing-workspace";
-import { rechargeSettingsTranslations } from "../../admin/i18n/recharge-settings";
-import { walletTranslations } from "../../admin/i18n/wallet";
+import { billingWorkspaceTranslations } from "../../i18n/billing-workspace";
+import { rechargeSettingsTranslations } from "../../i18n/recharge-settings";
+import { walletTranslations } from "../../i18n/wallet";
 import { providerModelImportTranslations } from "./provider-model-import";
 import { subscriptionTranslations } from "./subscriptions";
 import { modelCatalogNoticeTranslations } from "./model-catalog-notices";

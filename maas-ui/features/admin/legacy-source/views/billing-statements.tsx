@@ -1,6 +1,6 @@
 "use client";
 
-import { BillingProjectPicker } from "../../admin/views/billing-project-picker";
+import { BillingProjectPicker } from "../../views/billing-project-picker";
 
 import { createPortal } from "react-dom";
 import { useCallback, useEffect, useRef, useState, type FormEvent, type ReactNode, type RefObject } from "react";

@@ -9,7 +9,7 @@ import { defaultFormValues } from "../resources/payloads";
 import { apiKeyConfig } from "../resources/project-key-config";
 import { identityProviderTemplateByKey, identityProviderTemplateHelp, identityProviderTemplatesFromData, inferIdentityProviderTemplateKey, loginIdentityProviderIconConfig, updateIdentityProviderFormValue } from "../shared/auth";
 import { FieldInput } from "../shared/ui";
-import { DetailField } from "./audit";
+import { DetailField } from "../../views/audit";
 
 export function IdentityProviderEditModal({
   state,

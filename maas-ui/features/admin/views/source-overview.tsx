@@ -1,25 +1,26 @@
 import { Activity, BarChart3, Boxes, Check, CircleDollarSign, Code2, Database, FileText, Gauge, KeyRound, LayoutDashboard, Server, ShieldCheck, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { appRole, canAccessView } from "../core/navigation";
-import { type AdminUser, type AppData, type AppRole, type RequestLog, type Summary, type UsageBreakdownRow, type UsagePoint, type ViewKey } from "../core/types";
+import { type AdminUser, type ApiContext, type AppData, type AppRole, type RequestLog, type Summary, type UsageBreakdownRow, type UsagePoint, type ViewKey } from "../core/types";
 import { findProvider, providerResourceAuditLabel } from "../domain/entities";
 import { compactNumber, formatDashboardMoney, formatMoney, formatNumber, playgroundModels } from "../domain/formatting";
 import { countWithUnit, languageLocale, tx } from "../i18n/runtime";
 import { AdminUIDashboardCards } from "./admin-ui-dashboard-cards";
 import { hasUsage } from "./usage-billing";
 
-export function OverviewView({
+export function SourceAdminOverview({
+  api: _api,
   data,
   user,
   onSelectView,
 }: {
+  api: ApiContext;
   data: AppData;
   user: AdminUser;
   onSelectView: (view: ViewKey) => void;
 }) {
   const [range, setRange] = useState<OverviewRangeKey>("7d");
   const [chartMetric, setChartMetric] = useState<OverviewMetricKey>("requests");
-  const role = appRole(user.role);
   const apiKeyCount = data.summary.api_key_count ?? data.keys.length;
   const can = (view: ViewKey) => canAccessView(user, view);
   const activeProviders = data.providers.filter((provider) => provider.status === "active" && provider.healthy).length;
@@ -71,15 +72,6 @@ export function OverviewView({
         },
   ].filter(Boolean);
   const chartValue = overviewMetricValue(series, chartMetric);
-
-  if (role === "user" || role === "team_leader") {
-    return (
-      <div className="overview-report role-usage-overview">
-        <RoleUsageMonitorDashboard data={data} user={user} onSelectView={onSelectView} />
-        <OverviewRoleWorkbench data={data} user={user} onSelectView={onSelectView} />
-      </div>
-    );
-  }
 
   return (
     <div className="overview-report">

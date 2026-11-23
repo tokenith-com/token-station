@@ -5,7 +5,7 @@ import { readFileSync } from "node:fs";
 import { enTranslations } from "../i18n/en";
 import { jaTranslations } from "../i18n/ja";
 import { setActiveLanguage } from "../i18n/runtime";
-import { canAccessView } from "../core/navigation";
+import { canAccessView } from "../../core/navigation";
 import { authExpiredEventName, type AdminUser } from "../core/types";
 import { SettlementSettingsView, validSettlementRate } from "./settlement-settings";
 
@@ -20,7 +20,7 @@ function stubFetch(rateFetch: (url: string, init: RequestInit) => unknown, histo
 describe("SettlementSettingsView", () => {
   beforeEach(() => setActiveLanguage("zh-CN"));
   it("provides English and Japanese translations for every literal settlement UI key", () => {
-    const source = readFileSync("features/source-admin/views/settlement-settings.tsx", "utf8");
+    const source = readFileSync("features/admin/legacy-source/views/settlement-settings.tsx", "utf8");
     for (const [, key] of source.matchAll(/tx\("([^"]+)"\)/g)) {
       expect(enTranslations[key], `Missing English key: ${key}`).toBeTruthy();
       expect(jaTranslations[key], `Missing Japanese key: ${key}`).toBeTruthy();

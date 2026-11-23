@@ -7,7 +7,7 @@ import { apiKeyCanManage } from "../domain/api-key-management-authz";
 import { apiKeyOwnerSelectOptions, apiKeyOwnerUserID, costCenterLabel, costCenterSelectOptions, ownerUserLabel, projectMemberCanIssueLabel, projectMemberProjectSelectOptions, projectMemberRoleLabel, projectMemberRoleOptions, projectName, projectOwnerLabel, projectSelectOptions, projectTeamLabel, stringifyForm, stringifyValue, teamLabel, teamSelectOptions, truthyValue, userSelectOptions } from "../domain/entities";
 import { countWithUnit, formatTranslationTemplate, languageLocale, tx } from "../i18n/runtime";
 import { openAPIKeyAccess } from "../shared/api-key-access";
-import { APIKeyValue } from "../../admin/shared/api-key-value";
+import { APIKeyValue } from "../../shared/api-key-value";
 import { adminDelete, adminFetch, adminMutate, keyPatchPayload, projectQuotaSummary, readAdminError, updateAPIKeyStatus } from "./payloads";
 import { StatusPill } from "../shared/ui";
 

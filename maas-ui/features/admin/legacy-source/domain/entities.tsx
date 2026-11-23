@@ -1,4 +1,4 @@
-import { appRole } from "../core/navigation";
+import { appRole } from "../../core/navigation";
 import { type AdminResource, type AdminUser, type APIKey, type AppData, DEFAULT_PROJECT_ID, type Model, type ModelRoute, type Project, type Provider, type ProviderResource, type RequestLog, type RouteAttemptLog, type UsageBreakdownRow } from "../core/types";
 import { imageCapabilityProfileForModel, type ImageCapabilityProfile, providerImageCapabilityProfilesFromActions } from "./provider-image-capability";
 import { modelCategory, modelCategoryLabel } from "./catalog";

@@ -1,6 +1,6 @@
 import { ArrowLeft, Search } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import { appRole } from "../core/navigation";
+import { appRole } from "../../core/navigation";
 import { type AdminUser, type ApiContext, type APIKeyUsageMetrics, type APIKeyUsageResponse, type AppData, type RequestDetail, type RequestLogPage } from "../core/types";
 import { apiKeyCustomUsageRange, apiKeyUsageRangeForDays, type APIKeyUsageRange, utcDateInputValue } from "../domain/api-key-usage-range";
 import { auditRequestPagePath, type AuditRequestStatus } from "../domain/audit-request-page";
@@ -10,7 +10,7 @@ import { formatTranslationTemplate, languageLocale, tx } from "../i18n/runtime";
 import { adminFetch, isAuthExpiredError, readAdminError } from "../resources/payloads";
 import { PaginationControls, type PaginationState } from "../shared/pagination";
 import { DataSection, SimpleTable, StatusPill } from "../shared/ui";
-import { RequestDetailPanel } from "./audit";
+import { RequestDetailPanel } from "../../views/audit";
 
 type UsageMetricKey = "request_count" | "total_tokens" | "estimated_cost_usd";
 

@@ -1,4 +1,4 @@
-import { appRole, canAccessView, canViewAdminAudit } from "./navigation";
+import { appRole, canAccessView, canViewAdminAudit } from "../../core/navigation";
 import { type AdminResource, type AdminUser, type AppData, type ViewKey } from "./types";
 
 export type LoadPlan = {

@@ -56,7 +56,7 @@ import {
 import { playgroundMissingStreamBodyCode, streamPlaygroundChat } from "../resources/playground-stream";
 import { activeLanguage, countWithUnit, defaultPlaygroundSystemPrompt, isDefaultPlaygroundSystemPrompt, languageLocale, tx } from "../i18n/runtime";
 import { isAuthExpiredError } from "../resources/payloads";
-import { DetailField } from "./audit";
+import { DetailField } from "../../views/audit";
 
 type PlaygroundCandidateStatus = "streaming" | "completed" | "failed" | "cancelled";
 

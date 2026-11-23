@@ -153,8 +153,168 @@ export const adminNavGroups: NavGroup[] = [
   },
 ];
 
+
+// Navigation shown to the platform administrator and security roles. These follow
+// the original console layout, which the platform administrator still uses, while
+// every other role keeps the layouts above.
+export const sourceAdminNavGroups: NavGroup[] = [
+  {
+    title: "工作台",
+    items: [
+      { view: "overview", label: "平台总览", icon: LayoutDashboard },
+      { view: "usage", label: "全局用量", icon: BarChart3 },
+      { view: "audit", label: "请求日志", icon: FileText },
+      { view: "reports", label: "导出报表", icon: BarChart3 },
+    ],
+  },
+  {
+    title: "AI资源",
+    items: [
+      { view: "providers", label: "供应商", icon: Server },
+      { view: "models", label: "模型目录", icon: Boxes },
+      { view: "routes", label: "路由策略", icon: Gauge },
+      { view: "playground", label: "模型演练场", icon: Send },
+      { view: "routing-policies", label: "作用域策略", icon: ShieldCheck },
+    ],
+  },
+  {
+    title: "组织治理",
+    items: [
+      { view: "projects", label: "项目空间", icon: LayoutDashboard },
+      { view: "api-keys", label: "Key 管理", icon: KeyRound },
+      { view: "teams", label: "团队分组", icon: Users },
+      { view: "user-model-access", label: "用户模型权限", icon: ShieldCheck },
+      { view: "approvals", label: "审批记录", icon: ShieldCheck },
+    ],
+  },
+  {
+    title: "成本治理",
+    items: [
+      { view: "billing", label: "成本账单", icon: WalletCards },
+      { view: "quota-policies", label: "额度策略", icon: Gauge },
+      { view: "cost-centers", label: "成本中心", icon: Database },
+    ],
+  },
+  {
+    title: "健康与告警",
+    items: [
+      { view: "monitors", label: "健康检测", icon: Activity },
+      { view: "alerts", label: "告警规则", icon: AlertCircle },
+      { view: "alert-events", label: "告警事件", icon: AlertCircle },
+      { view: "notification-channels", label: "通知渠道", icon: Bell },
+      { view: "alert-deliveries", label: "通知记录", icon: Bell },
+    ],
+  },
+  {
+    title: "安全运维",
+    items: [
+      { view: "security-policies", label: "安全策略", icon: ShieldCheck },
+      { view: "sqlite-backups", label: "数据备份", icon: Database },
+      { view: "database-status", label: "数据库状态", icon: Database },
+      { view: "announcements", label: "公告通知", icon: Bell },
+      { view: "plugins", label: "插件管理", icon: Puzzle },
+    ],
+  },
+  {
+    title: "系统设置",
+    items: [
+      { view: "users", label: "平台账号", icon: Users },
+      { view: "role-configs", label: "角色配置", icon: ShieldCheck },
+      { view: "identity-providers", label: "身份源", icon: KeyRound },
+      { view: "settings", label: "基础设置", icon: Settings },
+      { view: "settlement-settings", label: "结算配置", icon: WalletCards },
+    ],
+  },
+];
+
+export const sourceTeamLeaderNavGroups: NavGroup[] = [
+  {
+    title: "团队工作台",
+    items: [
+      { view: "overview", label: "团队总览", icon: LayoutDashboard },
+      { view: "usage", label: "团队报表", icon: BarChart3 },
+      { view: "billing", label: "成本归因", icon: WalletCards },
+    ],
+  },
+  {
+    title: "项目治理",
+    items: [
+      { view: "projects", label: "项目空间", icon: LayoutDashboard },
+      { view: "api-keys", label: "Key 管理", icon: KeyRound },
+      { view: "models", label: "可用模型", icon: Boxes },
+      { view: "approvals", label: "审批记录", icon: ShieldCheck },
+    ],
+  },
+  {
+    title: "团队管理",
+    items: [
+      { view: "users", label: "团队成员", icon: Users },
+      { view: "teams", label: "团队信息", icon: Users },
+      { view: "user-model-access", label: "用户模型权限", icon: ShieldCheck },
+      { view: "audit", label: "请求日志", icon: FileText },
+      { view: "gateway", label: "快速接入", icon: Sparkles },
+    ],
+  },
+];
+
+export const sourceUserNavGroups: NavGroup[] = [
+  {
+    title: "开始使用",
+    items: [
+      { view: "overview", label: "总览", icon: LayoutDashboard },
+      { view: "gateway", label: "快速接入", icon: Sparkles },
+      { view: "playground", label: "模型演练场", icon: Send },
+    ],
+  },
+  {
+    title: "我的资源",
+    items: [
+      { view: "api-keys", label: "Key 管理", icon: KeyRound },
+      { view: "models", label: "可用模型", icon: Boxes },
+    ],
+  },
+  {
+    title: "我的用量",
+    items: [
+      { view: "usage", label: "用量统计", icon: BarChart3 },
+      { view: "audit", label: "请求日志", icon: FileText },
+    ],
+  },
+];
+
+export const securityNavGroups: NavGroup[] = [
+  {
+    title: "安全审计导航",
+    items: [
+      { view: "overview", label: "安全总览", icon: LayoutDashboard },
+      { view: "usage", label: "用量统计", icon: BarChart3 },
+      { view: "audit", label: "请求日志", icon: FileText },
+      { view: "approvals", label: "审批记录", icon: ShieldCheck },
+      { view: "security-policies", label: "安全策略", icon: ShieldCheck },
+    ],
+  },
+  {
+    title: "告警导航",
+    items: [
+      { view: "alerts", label: "告警规则", icon: AlertCircle },
+      { view: "alert-events", label: "告警事件", icon: AlertCircle },
+      { view: "notification-channels", label: "通知渠道", icon: Bell },
+      { view: "alert-deliveries", label: "通知记录", icon: Bell },
+    ],
+  },
+  {
+    title: "接入参考",
+    items: [
+      { view: "gateway", label: "接口文档", icon: Sparkles },
+    ],
+  },
+];
+
 export const navGroupsByRole: Record<AppRole, NavGroup[]> = {
-  admin: adminNavGroups,
+  // The platform administrator keeps the source console navigation so its menu
+  // is unchanged after the merge.
+  admin: sourceAdminNavGroups,
+  security: securityNavGroups,
   team_leader: teamLeaderNavGroups,
   user: userNavGroups,
   consumer: consumerNavGroups,
@@ -214,6 +374,7 @@ export const roleViewAccess: Record<AppRole, ViewKey[]> = {
   admin: (Object.keys(viewRoutes) as ViewKey[]).filter(
     (view) => !["project-members", "approval-flows", "balance-recharge"].includes(view),
   ),
+  security: ["overview", "gateway", "usage", "audit", "alerts", "alert-events", "notification-channels", "alert-deliveries", "security-policies", "approvals"],
   team_leader: ["overview", "gateway", "playground", "models", "projects", "api-keys", "teams", "users", "usage", "billing", "user-model-access", "quota-policies", "audit", "approvals"],
   user: ["overview", "gateway", "playground", "models", "api-keys", "usage", "audit"],
   consumer: ["overview", "gateway", "playground", "models", "api-keys", "usage", "audit", "billing", "balance-recharge"],
@@ -222,6 +383,7 @@ export const roleViewAccess: Record<AppRole, ViewKey[]> = {
 export function appRole(role: string): AppRole {
   const normalized = String(role || "").trim().toLowerCase();
   if (normalized === "admin") return "admin";
+  if (normalized === "security" || normalized === "security_admin") return "security";
   if (normalized === "team_leader" || normalized === "teamlead" || normalized === "project_admin") return "team_leader";
   if (["guest", "individual", "consumer", "retail_user"].includes(normalized)) return "consumer";
   return "user";
@@ -264,6 +426,7 @@ export function defaultViewForRole(user: AdminUser): ViewKey {
 
 export const topSearchPreferredViews: Record<AppRole, ViewKey[]> = {
   admin: ["overview", "providers", "routes", "models", "projects", "api-keys", "usage", "settings"],
+  security: ["overview", "audit", "alert-events", "security-policies", "usage", "gateway"],
   team_leader: ["overview", "projects", "api-keys", "usage", "billing", "gateway"],
   user: ["overview", "gateway", "playground", "models", "api-keys", "usage"],
   consumer: ["overview", "gateway", "models", "playground", "api-keys", "usage", "billing"],
@@ -434,6 +597,11 @@ export function topQuickActionsForUser(user: AdminUser): NavLeafItem[] {
       { view: "providers", label: "供应商", icon: Server },
       { view: "routes", label: "路由策略", icon: Gauge },
       { view: "role-configs", label: "角色配置", icon: Settings },
+    ],
+    security: [
+      { view: "audit", label: "请求日志", icon: FileText },
+      { view: "alert-events", label: "告警事件", icon: AlertCircle },
+      { view: "security-policies", label: "安全策略", icon: ShieldCheck },
     ],
     team_leader: [
       { view: "projects", label: "项目空间", icon: LayoutDashboard },

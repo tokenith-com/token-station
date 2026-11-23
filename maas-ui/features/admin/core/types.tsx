@@ -1360,7 +1360,7 @@ export type NavParentItem = {
 
 export type NavItem = NavLeafItem | NavParentItem;
 
-export type AppRole = "admin" | "team_leader" | "user" | "consumer";
+export type AppRole = "admin" | "security" | "team_leader" | "user" | "consumer";
 
 export type TopSearchItem = {
   id: string;

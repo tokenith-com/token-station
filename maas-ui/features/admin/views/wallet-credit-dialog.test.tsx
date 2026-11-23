@@ -2,7 +2,7 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { walletTranslations } from "../i18n/wallet";
 import { setActiveLanguage as setAdminLanguage, tx as adminTx } from "../i18n/runtime";
-import { setActiveLanguage as setSourceLanguage, tx as sourceTx } from "../../source-admin/i18n/runtime";
+import { setActiveLanguage as setSourceLanguage, tx as sourceTx } from "../legacy-source/i18n/runtime";
 import { WalletCreditDialog } from "./wallet-credit-dialog";
 import { WalletLedger } from "./wallet-ledger";
 import { loadWalletBalance, pendingWalletKey, WalletReadError, yuanToMicros } from "./wallet-contract";

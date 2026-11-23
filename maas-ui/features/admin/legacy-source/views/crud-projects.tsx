@@ -1,7 +1,7 @@
 import { Plus, RefreshCw, Search, Trash2, UserRoundCheck, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { appRole } from "../core/navigation";
+import { appRole } from "../../core/navigation";
 import { type AdminResource, type AdminUser, type ApiContext, type AppData, type AuditEvent, type Project, type Provider, type ProviderAccountQuota, type ProviderMonitoringSnapshot, type ProviderQuotaSummary, type ProviderResource, type ProviderQuotaWindow, type ReportExportHistoryItem, type RequestLog, type ResourceAction, type ResourceConfig, type ToolbarAction } from "../core/types";
 import { notificationChannelLabel } from "../domain/catalog";
 import { providerDisplayBaseURL, providerDisplayName, providerDisplayType, providerRoutesFor, providerRouteSummary, stringifyValue } from "../domain/entities";
@@ -18,7 +18,7 @@ import { ModelCategoryTabs, NotificationChannelTabs } from "./model-catalog";
 import { ModelGovernanceEmptyState } from "./model-governance-empty-state";
 import { providerAccountQuotaIsLimited, providerAccountQuotaPrimaryWindow, providerAccountQuotaRemainingPercent } from "./provider-account-ui";
 import { ProviderManagementTable } from "./provider-management-table";
-import { latencyDisplay, requestLogFailed } from "./overview";
+import { latencyDisplay, requestLogFailed } from "../../views/overview";
 import { PaginationControls, type PaginationState } from "../shared/pagination";
 import { APIKeyFlowHint, EntityTable, ResourceEmptyState, resultCountLabel, RouteStrategyHint, TableSkeleton } from "./settings-table";
 

@@ -1,6 +1,6 @@
 import { RefreshCw } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
-import { appRole } from "../core/navigation";
+import { appRole } from "../../core/navigation";
 import type { AdminUser, ApiContext, AppData, UsageBreakdownRow } from "../core/types";
 import type { UsageRange, UsageReport } from "../core/usage-report-types";
 import { apiKeyAuditLabel, costCenterLabel, findProvider, projectName, providerResourceAuditLabel, usageMemberLabel } from "../domain/entities";

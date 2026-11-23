@@ -4,9 +4,9 @@ import type { AdminResource } from "../core/types";
 import { ownerUserLabel, stringifyValue } from "../domain/entities";
 import { languageLocale, tx } from "../i18n/runtime";
 import { useModalFocus } from "../shared/modal-focus";
-import { WalletCreditDialog } from "../../admin/views/wallet-credit-dialog";
-import { WalletLedger } from "../../admin/views/wallet-ledger";
-import { loadWalletBalance, walletMoney } from "../../admin/views/wallet-contract";
+import { WalletCreditDialog } from "../../views/wallet-credit-dialog";
+import { WalletLedger } from "../../views/wallet-ledger";
+import { loadWalletBalance, walletMoney } from "../../views/wallet-contract";
 
 type CrudProps = ComponentProps<typeof CrudView<AdminResource>>;
 export function WalletCrudView<T>(props: ComponentProps<typeof CrudView<T>>) {

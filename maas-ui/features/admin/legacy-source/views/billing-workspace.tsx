@@ -2,8 +2,8 @@ import { useState, type ReactNode } from "react";
 import type { ApiContext } from "../core/types";
 import { tx } from "../i18n/runtime";
 import { BillingStatements } from "./billing-statements";
-import { RechargeSettings } from "../../admin/views/recharge-settings";
-import { WalletOperations } from "../../admin/views/wallet-operations";
+import { RechargeSettings } from "../../views/recharge-settings";
+import { WalletOperations } from "../../views/wallet-operations";
 
 type Tab = "statements" | "wallet" | "recharge" | "management";
 

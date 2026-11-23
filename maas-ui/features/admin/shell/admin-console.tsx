@@ -126,7 +126,7 @@ import { EditModal, SettingsView } from "../views/settings-table";
 import { usePagination } from "../shared/pagination";
 import { BillingView, UsageView } from "../views/usage-billing";
 import { scopeSupportedAccounts } from "../core/account-roles";
-import { SourceAdminContent } from "../../source-admin/shell/source-admin-content";
+import { SourceAdminContent } from "../legacy-source/shell/source-admin-content";
 import { useLoginIdentityProviders } from "./use-login-identity-providers";
 
 const themeStorageKey = "tokenhub.theme";
@@ -1181,7 +1181,7 @@ function AdminConsoleContent({ defaultBaseURL }: ConsoleProps) {
             ) : activeView === "balance-recharge" && accountManagementRole === "consumer" ? (
               <ConsumerRechargeView api={api} />
             ) : activeView === "billing" ? (
-              accountManagementRole === "consumer" ? <GuestCostDetailsView api={api} data={data} /> : <BillingView data={data} user={currentUser} />
+              accountManagementRole === "consumer" ? <GuestCostDetailsView api={api} data={data} /> : <BillingView api={api} data={data} user={currentUser} loading={loading} onReload={() => load("billing")} statements={false} />
             ) : activeView === "audit" ? (
               <AuditView api={api} data={data} user={currentUser} />
             ) : activeView === "database-status" ? (

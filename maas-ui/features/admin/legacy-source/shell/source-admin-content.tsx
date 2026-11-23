@@ -5,7 +5,7 @@ import { BillingWorkspace } from "../views/billing-workspace";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { type LoadedData, loadPlanForView, mergeLoadedData } from "../core/data-loading";
-import { appRole, canAccessView, defaultViewForRole, rememberRecentView, standaloneViewMeta } from "../core/navigation";
+import { appRole, canAccessView, defaultViewForRole, rememberRecentView, standaloneViewMeta } from "../../core/navigation";
 import { clearProviderAccountOAuthResultFromLocation, hasPendingProviderAccountOAuthResult, isOAuthAuthorizationResponse, readOAuthLoginResult, readProviderAccountOAuthResultFromLocation, savePendingProviderAccountOAuthResult } from "../core/session";
 import { notificationChannelDefaultType, notificationChannelTypes, type AdapterDescriptor, type AdminResource, type AdminUIContribution, type AdminUser, type AlertDelivery, type AlertEvent, type APIKey, type AppData, type ApprovalRequest, type AuditEvent, type BillingConnector, type BillingRecord, type BillingSyncRun, type ConfirmState, type GatewayChainPlan, languageStorageKey, type ModalState, type Model, type ModelRoute, type ModelRoutePolicy, type PluginActionDescriptor, type PluginBackgroundJobDescriptor, type PluginBackgroundJobRunRecord, type PluginDescriptor, type PluginMarketplacePlugin, type Project, type Provider, type ProviderCatalogEntry, type ProviderModel, type ProviderMonitoringSnapshot, type ProviderResource, type ReconciliationRule, type ReconciliationRun, type ReportExportHistoryItem, type RequestLog, type ResourceAction, type ResourceConfig, type SQLiteBackup, type ToolbarAction, type UsageBreakdown, type UsageDaily, type UsagePoint, type ViewKey, viewRoutes } from "../core/types";
 import { emptyData, emptySummary, filterByModelCategory, filterRows } from "../domain/catalog";
@@ -31,14 +31,14 @@ import { usePagination } from "../shared/pagination";
 import { ConfirmDialog, providerTypeOptionsFromData } from "../shared/ui";
 import { APIKeyAccessDialogs } from "../shared/api-key-access";
 import { PageHeader, StatusStack } from "./navigation-ui";
-import { AuditView } from "../views/audit";
+import { AuditView } from "../../views/audit";
 import { ReportsView } from "../views/crud-projects"; import { WalletCrudView as CrudView } from "../views/wallet-crud";
 import { DatabaseStatusView } from "../views/database-model-pricing";
 import { GatewayView } from "../views/gateway-view";
 import { ModelDirectoryView } from "../views/model-directory";
 import { RouteStrategyView } from "../views/model-catalog";
 import { modelRoutePolicyPayload } from "../views/model-routing-policy";
-import { OverviewView } from "../views/overview";
+import { SourceAdminOverview } from "../../views/source-overview";
 import { PlaygroundPage } from "../views/playground";
 import { PluginPageView } from "../views/admin-ui-plugin-pages";
 import { PluginDetailView } from "../views/plugin-detail";
@@ -48,9 +48,9 @@ import { ProjectWorkspace, type ProjectWorkspaceDraft, type ProjectWorkspaceMode
 import { RoutingPolicySimulator } from "../views/routing-policy-simulator";
 import { ContentSecurityPolicies, SecurityPolicyTabs } from "../views/security-policies";
 import { APIKeyWizardModal, UserImportModal } from "../views/modals";
-import { CustomerOnboardingDialog } from "../../admin/views/customer-onboarding";
+import { CustomerOnboardingDialog } from "../../views/customer-onboarding";
 import { EditModal, SettingsView } from "../views/settings-table";
-import { BillingView, UsageView } from "../views/usage-billing";
+import { BillingView, UsageView } from "../../views/usage-billing";
 import { APIKeyUsageView } from "../views/api-key-usage";
 import { SettlementSettingsView } from "../views/settlement-settings";
 
@@ -705,7 +705,7 @@ export function SourceAdminContent({ baseURL, adminToken, currentUser, language,
           {apiKeyUsageID ? (
             <APIKeyUsageView api={api} data={data} user={currentUser} keyID={apiKeyUsageID} onBack={() => selectView("api-keys")} />
           ) : activeView === "overview" ? (
-            <OverviewView data={data} user={currentUser} onSelectView={selectView} />
+            <SourceAdminOverview api={api as never} data={data as never} user={currentUser as never} onSelectView={selectView as never} />
           ) : activeView === "playground" ? (
             <PlaygroundPage api={api} data={data} canViewRoutes={canAccessView(currentUser, "routes")} />
           ) : activeView === "gateway" ? (
