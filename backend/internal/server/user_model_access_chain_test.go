@@ -68,11 +68,11 @@ func buildModelAccessChainFixture(t *testing.T) modelAccessChainFixture {
 		Name: "Taihu Member Membership", Status: StatusActive,
 		Fields: map[string]any{"project_id": project.ID, "user_id": member.ID, "role": "developer", "can_issue_keys": true},
 	})
-	leaderKey, leaderSecret, err := store.CreateAPIKey(project.ID, APIKey{Name: "Leader Key", OwnerUserID: leader.ID, Status: StatusActive}, "")
+	_, leaderSecret, err := store.CreateAPIKey(project.ID, APIKey{Name: "Leader Key", OwnerUserID: leader.ID, Status: StatusActive}, "")
 	if err != nil {
 		t.Fatal(err)
 	}
-	memberKey, memberSecret, err := store.CreateAPIKey(project.ID, APIKey{Name: "Member Key", OwnerUserID: member.ID, Status: StatusActive}, "")
+	_, memberSecret, err := store.CreateAPIKey(project.ID, APIKey{Name: "Member Key", OwnerUserID: member.ID, Status: StatusActive}, "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -107,6 +107,7 @@ func buildModelAccessChainFixture(t *testing.T) modelAccessChainFixture {
 	if adminAuth.Token == "" {
 		t.Fatalf("platform admin login returned no token: %s", adminLogin.Body)
 	}
+	var leaderKey, memberKey APIKey
 	if _, leaderKey, err = store.ValidateAPIKey(leaderSecret, ""); err != nil {
 		t.Fatalf("validate leader key: %v", err)
 	}
