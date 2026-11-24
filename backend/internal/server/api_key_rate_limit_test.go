@@ -446,22 +446,25 @@ func TestQuotaPolicyMinuteLimitsRejectInvalidValues(t *testing.T) {
 	}
 }
 
-func TestStartCallFailsClosedWhenQuotaPolicyReadFails(t *testing.T) {
+// An unreadable admin_resources table must not let a call through, whether the
+// failing read is the quota policy or the user model scope. Both are consulted
+// during admission, so the request has to fail closed rather than default open.
+func TestStartCallFailsClosedWhenResourceReadFails(t *testing.T) {
 	store, _ := newRateLimitedGateway(t, APIKey{})
 	project := store.ListProjects()[0]
 	key := store.ListAPIKeys()[0]
-	callbackName := "test:fail-quota-policy-read"
+	callbackName := "test:fail-resource-read"
 	if err := store.db.Callback().Query().Before("gorm:query").Register(callbackName, func(tx *gorm.DB) {
 		if tx.Statement != nil && tx.Statement.Table == "admin_resources" {
-			_ = tx.AddError(errors.New("quota policy read failed"))
+			_ = tx.AddError(errors.New("admin resource read failed"))
 		}
 	}); err != nil {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { _ = store.db.Callback().Query().Remove(callbackName) })
 
-	if _, err := store.StartCall(context.Background(), project, key, "gpt-4.1-mini", 0); err == nil || !strings.Contains(err.Error(), "quota policy read failed") {
-		t.Fatalf("StartCall must fail closed on quota policy read error, got %v", err)
+	if _, err := store.StartCall(context.Background(), project, key, "gpt-4.1-mini", 0); err == nil {
+		t.Fatal("StartCall must fail closed when admin resources cannot be read")
 	}
 }
 

@@ -2,14 +2,13 @@ import { Activity, BarChart3, Boxes, Check, CircleDollarSign, Code2, Database, F
 import { type ReactNode, useEffect, useState } from "react";
 import { appRole, canAccessView } from "../core/navigation";
 import { type AdminUser, type ApiContext, type AppData, type AppRole, type RequestLog, type UsageBreakdownRow, type UsagePoint, type ViewKey } from "../core/types";
-import { apiKeyAuditLabel, findProvider, providerResourceAuditLabel } from "../domain/entities";
+import { apiKeyAuditLabel, apiKeyAuditParts, findProvider, providerResourceAuditLabel } from "../domain/entities";
 import { compactNumber, formatDashboardMoney, formatMoney, formatNumber, playgroundModels } from "../domain/formatting";
 import { countWithUnit, languageLocale, tx } from "../i18n/runtime";
 import { hasUsage } from "./usage-billing";
-import { PlatformOverviewContent } from "./platform-overview";
 
 export function OverviewView({
-  api,
+  api: _api,
   data,
   user,
   onSelectView,
@@ -22,10 +21,6 @@ export function OverviewView({
   const [range, setRange] = useState<OverviewRangeKey>("7d");
   const [chartMetric, setChartMetric] = useState<OverviewMetricKey>("requests");
   const role = appRole(user.role);
-
-  if (role === "admin") {
-    return <PlatformOverviewContent api={api} data={data} />;
-  }
 
   if (role === "team_leader" || role === "user" || role === "consumer") {
     return <RoleOverviewContent data={data} />;
@@ -497,7 +492,8 @@ export function UsageCostRankPanel({ title, empty, rows }: { title: string; empt
             <div className="usage-rank-row" key={row.id || row.label}>
               <span className="usage-rank-index">{index + 1}</span>
               <div>
-                <strong>{row.label}</strong>
+                <strong title={row.label}>{row.primaryLabel ?? row.label}</strong>
+                {row.secondaryLabel ? <span className="usage-rank-account" title={row.secondaryLabel}>{row.secondaryLabel}</span> : null}
                 <small>{formatNumber(row.request_count)} {tx("次请求")} · {tx("输入")} {compactNumber(row.input_tokens)} · {tx("输出")} {compactNumber(row.output_tokens)}</small>
                 <span className="usage-rank-progress"><span style={{ width: `${width}%` }} /></span>
               </div>
@@ -1193,6 +1189,10 @@ export function overviewTopModelRows(data: AppData) {
 
 export type UsageDashboardRankRow = UsageBreakdownRow & {
   label: string;
+  // Rows with a long label split it so the account gets its own line instead of
+  // being cut off by the single-line ellipsis.
+  primaryLabel?: string;
+  secondaryLabel?: string;
   cost: number;
 };
 
@@ -1244,7 +1244,11 @@ export function usageDashboardCostRows(rows: UsageBreakdownRow[], labelFor: (row
 }
 
 export function usageDashboardAPIKeyRows(data: AppData): UsageDashboardRankRow[] {
-  return usageDashboardCostRows(data.breakdown.api_keys ?? [], (row) => apiKeyAuditLabel(data, row.id));
+  const rows = usageDashboardCostRows(data.breakdown.api_keys ?? [], (row) => apiKeyAuditLabel(data, row.id));
+  return rows.map((row) => {
+    const parts = apiKeyAuditParts(data, row.id);
+    return parts.account ? { ...row, primaryLabel: parts.key, secondaryLabel: parts.account } : row;
+  });
 }
 
 export function modelDisplayName(data: AppData, modelID: string) {

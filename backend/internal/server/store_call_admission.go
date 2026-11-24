@@ -60,7 +60,9 @@ func (s *GormStore) admitCallTransaction(ctx context.Context, tx *gorm.DB, key A
 	if err := tx.First(&model, "name = ? AND status = ?", modelName, StatusActive).Error; err != nil {
 		return admission, ErrModelNotAllowed
 	}
-	if !modelAllowedByScopes(privateProject, privateKey, modelName) {
+	// The owning user narrows the project boundary before the key does. This is
+	// resolved from the key, so admission needs no extra query for the caller.
+	if !s.modelAllowedForCall(tx, privateProject, privateKey, modelName) {
 		return admission, ErrModelNotAllowed
 	}
 	model, err = resolveModelPricingSource(tx, model)

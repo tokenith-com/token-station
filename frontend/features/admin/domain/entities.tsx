@@ -188,13 +188,14 @@ export function roleSelectOptions(data: AppData) {
   const configured = (data.resources["role-configs"] ?? [])
     .filter((role) => role.status === "active" && roleConfigAssignable(role))
     .map((role) => {
-      const value = stringifyValue(role.fields?.role_key) || role.id;
+      const key = stringifyValue(role.fields?.role_key) || role.id;
+      const value = key === "guest" ? "consumer" : key;
       return {
         value,
         label: roleDisplayName(role) || roleLabel(value),
       };
     })
-    .filter((option) => option.value);
+    .filter((option) => option.value && option.value.trim().toLowerCase() !== "system_admin");
   if (configured.length > 0) {
     return configured;
   }
@@ -207,6 +208,7 @@ export function roleConfigAssignable(role: AdminResource) {
 }
 
 export function roleDisplayName(role: AdminResource) {
+  if ((stringifyValue(role.fields?.role_key) || role.id).trim().toLowerCase() === "admin") return roleLabel("admin");
   return stringifyValue(role.fields?.display_name) || role.name;
 }
 

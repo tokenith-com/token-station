@@ -1136,7 +1136,11 @@ export type RequestDetail = {
   log: RequestLog;
   usage: UsageRecord[];
   attempts: RouteAttemptLog[];
-  payload?: RequestPayloadLog | null;
+  // Prompt and completion bodies never leave the server; only this derived
+  // diagnosis is sent back.
+  error_detail?: { message?: string; before_upstream?: boolean } | null;
+  // Resolved server-side because members cannot read the user directory.
+  account?: string;
 };
 
 export type AuditEvent = {
@@ -1276,6 +1280,7 @@ export type ViewKey =
   | "teams"
   | "users"
   | "quota-policies"
+  | "user-model-access"
   | "cost-centers"
   | "approval-flows"
   | "approvals"
@@ -1312,6 +1317,7 @@ export const viewRoutes: Record<ViewKey, string> = {
   teams: "/teams",
   users: "/users",
   "quota-policies": "/quota-policies",
+  "user-model-access": "/user-model-access",
   "cost-centers": "/cost-centers",
   "approval-flows": "/approval-flows",
   approvals: "/approvals",
@@ -1354,7 +1360,7 @@ export type NavParentItem = {
 
 export type NavItem = NavLeafItem | NavParentItem;
 
-export type AppRole = "admin" | "team_leader" | "user" | "consumer";
+export type AppRole = "admin" | "security" | "team_leader" | "user" | "consumer";
 
 export type TopSearchItem = {
   id: string;
@@ -1476,17 +1482,7 @@ export type ApiContext = {
   adminToken: string;
 };
 
-export type ModalState<T> = {
-  config: ResourceConfig<T>;
-  item?: T;
-  initialValues?: Record<string, string>;
-};
-
-export type ConfirmState<T> = {
-  config: ResourceConfig<T>;
-  item?: T;
-  items?: T[];
-};
+export type { ModalState, ConfirmState } from "./resource-action";
 
 export type SettingsTabKey = "settings" | "role-configs" | "identity-providers";
 

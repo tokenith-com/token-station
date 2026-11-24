@@ -1,4 +1,4 @@
-import { type AdminResource, type FieldConfig, notificationChannelTemplates, type ResourceConfig, type SQLiteBackup, type ViewKey } from "../core/types";
+import { type AdminResource, type AdminUser, type FieldConfig, notificationChannelTemplates, type ResourceConfig, type SQLiteBackup, type ViewKey } from "../core/types";
 import { notificationChannelLabel, notificationChannelTargetSummary, notificationChannelType, notificationChannelUsesEmail, notificationChannelUsesIncomingWebhook, notificationChannelUsesTelegram, notificationChannelUsesWhatsApp, notificationCredentialSummary } from "../domain/catalog";
 import { apiKeyOwnerSelectOptions, costCenterLabel, costCenterSelectOptions, fieldSummary, oauthDefaultProjectRoleOptions, ownerUserLabel, projectMemberProjectSelectOptions, roleDisplayName, stringifyValue, teamMemberCount, teamSelectOptions, userSelectOptions } from "../domain/entities";
 import { appRole } from "../core/navigation";
@@ -11,6 +11,7 @@ import { adminDelete, adminFetch, adminMutate, readAdminError, identityProviderP
 import { apiKeyConfig, projectConfig, projectMemberConfig } from "./project-key-config";
 import { modelConfig, providerConfig, routeConfig } from "./provider-model-config";
 import { routingPolicyConfig } from "./routing-policy-config";
+import { userModelAccessConfig } from "./user-model-access-config";
 import { StatusPill } from "../shared/ui";
 import { identityProviderIconOptions, identityProviderInitialFormValues, identityProviderTemplateOptionsFromData } from "../shared/auth";
 
@@ -33,6 +34,7 @@ function createResourceConfigs(): Partial<Record<ViewKey, ResourceConfig<any>>> 
   teams: teamConfig(),
   users: adminUserConfig(),
   "quota-policies": quotaPolicyConfig(),
+  "user-model-access": userModelAccessConfig(),
   "cost-centers": costCenterConfig(),
   "approval-flows": approvalFlowConfig(),
   reports: reportConfig(),
@@ -58,9 +60,30 @@ function createResourceConfigs(): Partial<Record<ViewKey, ResourceConfig<any>>> 
   };
 }
 
+const allQuotaPolicyScopes = ["global", "project", "api_key", "team", "user"];
+// Only the platform owns the other scopes; every other role manages member
+// spend, and the backend rejects anything wider for them.
+const userQuotaPolicyScopes = ["user"];
+
+export function quotaPolicyScopeOptions(currentUser?: AdminUser | null) {
+  const scopes = !currentUser || appRole(currentUser.role) === "admin" ? allQuotaPolicyScopes : userQuotaPolicyScopes;
+  return scopes.map((scope) => ({
+    value: scope,
+    label: tx({ global: "全局", project: "项目", api_key: "API Key", team: "团队", user: "用户" }[scope] ?? scope),
+  }));
+}
+
 function quotaPolicyConfig(): ResourceConfig<AdminResource> {
   const base = genericResourceConfig("quota-policies", "额度策略", "按全局、项目、团队、API Key 或用户聚合请求、Token、成本与并发上限", [
-    { key: "scope", label: "作用域", type: "select", options: ["global", "project", "api_key", "team", "user"], required: true },
+    {
+      key: "scope",
+      label: "作用域",
+      type: "select",
+      // Team leaders manage member spend only; every other scope stays a
+      // platform decision and the backend rejects it anyway.
+      optionsFromData: (_data, currentUser) => quotaPolicyScopeOptions(currentUser),
+      required: true,
+    },
     {
       key: "scope_id",
       label: "作用域对象",

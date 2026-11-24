@@ -72,7 +72,7 @@ func (s *GormStore) createProject(project Project, requireActiveTeam bool) (Proj
 	project.UpdatedAt = now
 	project.Teams = nil
 	err = s.db.Transaction(func(tx *gorm.DB) error {
-		if err := validateConfiguredModels(tx, append(append([]string{}, project.AllowedModels...), project.ExcludedModels...)); err != nil {
+		if err := validateProjectModelAccess(tx, project.AllowedModels, project.ExcludedModels); err != nil {
 			return err
 		}
 		if strings.TrimSpace(project.TeamID) != "" {
@@ -161,7 +161,7 @@ func (s *GormStore) UpdateProject(id string, patch Project) (Project, error) {
 			if err != nil {
 				return err
 			}
-			if err := validateConfiguredModels(tx, append(append([]string{}, allowed...), excluded...)); err != nil {
+			if err := validateProjectModelAccess(tx, allowed, excluded); err != nil {
 				return err
 			}
 			project.ModelAccessMode, project.AllowedModels, project.ExcludedModels = mode, allowed, excluded
@@ -495,7 +495,7 @@ func (s *GormStore) CreateAPIKey(projectID string, key APIKey, rawSecret string)
 		return APIKey{}, "", err
 	}
 	if strings.TrimSpace(key.ModelAccessMode) != "" {
-		if err := validateConfiguredModels(s.db, allowed); err != nil {
+		if err := validateDirectoryModels(s.db, allowed); err != nil {
 			return APIKey{}, "", err
 		}
 	}
@@ -630,7 +630,7 @@ func (s *GormStore) UpdateAPIKey(id string, patch APIKey) (APIKey, error) {
 				return err
 			}
 			if strings.TrimSpace(patch.ModelAccessMode) != "" {
-				if err := validateConfiguredModels(tx, allowed); err != nil {
+				if err := validateDirectoryModels(tx, allowed); err != nil {
 					return err
 				}
 			}
@@ -665,19 +665,6 @@ func (s *GormStore) UpdateAPIKey(id string, patch APIKey) (APIKey, error) {
 		return APIKey{}, err
 	}
 	return publicKey(key), nil
-}
-
-func validateConfiguredModels(db *gorm.DB, modelNames []string) error {
-	for _, modelName := range modelNames {
-		var count int64
-		if err := db.Model(&Model{}).Where("name = ? AND status = ?", modelName, StatusActive).Count(&count).Error; err != nil {
-			return err
-		}
-		if count == 0 {
-			return NewHTTPError(http.StatusNotFound, "model_not_found", "Model not found")
-		}
-	}
-	return nil
 }
 
 func validateAPIKeyMinuteLimits(rpm *int64, tpm *int64) error {

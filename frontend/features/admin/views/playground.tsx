@@ -611,7 +611,7 @@ export function PlaygroundPanel({ api, data, canViewRoutes }: { api: ApiContext;
     const url = URL.createObjectURL(new Blob([prettyJSON(payload)], { type: "application/json" }));
     const anchor = document.createElement("a");
     anchor.href = url;
-    anchor.download = `tokenhub-playground-${new Date().toISOString().replaceAll(":", "-")}.json`;
+    anchor.download = `tokenstation-playground-${new Date().toISOString().replaceAll(":", "-")}.json`;
     anchor.click();
     URL.revokeObjectURL(url);
   }
@@ -998,7 +998,7 @@ export function PlaygroundAPIExamples({ baseURL, modelName, supportsImages = fal
   return (
     <section className="api-example-panel">
       <div className="api-example-header">
-        <div><strong>{tx("API 使用")}</strong><span>{tx("使用以下代码示例集成 TokenHub 模型接口")}</span></div>
+        <div><strong>{tx("API 使用")}</strong><span>{tx("使用以下代码示例集成 TokenStation 模型接口")}</span></div>
         <button className="icon-button subtle" onClick={() => void copyCurrent()} type="button" title={tx("复制代码")}>{copied ? <Check size={15} /> : <Copy size={15} />}</button>
       </div>
       <div className="api-example-tabs" role="tablist" aria-label={tx("API 调用语言")}>

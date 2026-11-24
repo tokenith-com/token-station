@@ -187,7 +187,7 @@ test("admin can inspect plugin details and files without fake settings", async (
   await page.getByText("开发者信息", { exact: true }).click();
   await expect(page.getByText("trace_export", { exact: true })).toBeVisible();
   await expect(page.getByText("export", { exact: true })).not.toBeVisible();
-  await expect(page.getByText("告诉 TokenHub 这个插件提供的一项扩展功能。", { exact: true })).toBeVisible();
+  await expect(page.getByText("告诉 TokenStation 这个插件提供的一项扩展功能。", { exact: true })).toBeVisible();
   await page.setViewportSize({ width: 390, height: 844 });
   await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
   const overflowingTechnicalElements = await page.locator(".plugin-technical-details").evaluate((details) => [details, ...details.querySelectorAll<HTMLElement>("*")]
@@ -272,7 +272,7 @@ test("admin can preview and export separate billing statements", async ({ page, 
   await expect(page.getByRole("button", { name: "导出当前预览 CSV" })).toBeVisible();
   const downloaded = page.waitForEvent("download");
   await page.getByRole("button", { name: "导出当前预览 CSV" }).click();
-  expect((await downloaded).suggestedFilename()).toMatch(/^tokenhub-tenant-/);
+  expect((await downloaded).suggestedFilename()).toMatch(/^tokenstation-tenant-/);
   await page.getByLabel("对账单类型").selectOption("provider");
   await expect(page.getByRole("button", { name: "导出当前预览 CSV" })).toHaveCount(0);
   await page.getByRole("button", { name: "预览对账单", exact: true }).click();

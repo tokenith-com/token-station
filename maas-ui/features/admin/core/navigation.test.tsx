@@ -6,13 +6,14 @@ export const expectedMenus: Record<AppRole, string[]> = {
   admin: [
     "overview", "usage", "audit", "reports",
     "providers", "models", "routes", "playground", "routing-policies",
-    "projects", "api-keys", "teams", "approvals",
+    "projects", "api-keys", "teams", "user-model-access", "approvals",
     "billing", "quota-policies", "cost-centers",
     "monitors", "alerts", "alert-events", "notification-channels", "alert-deliveries",
     "security-policies", "sqlite-backups", "database-status", "announcements", "plugins",
     "users", "role-configs", "identity-providers", "settings", "settlement-settings",
   ],
-  team_leader: ["overview", "usage", "models", "playground", "api-keys", "gateway", "users", "audit"],
+  security: ["overview", "usage", "audit", "approvals", "security-policies", "alerts", "alert-events", "notification-channels", "alert-deliveries", "gateway"],
+  team_leader: ["overview", "usage", "models", "playground", "api-keys", "gateway", "users", "user-model-access", "quota-policies", "audit"],
   user: ["overview", "models", "playground", "api-keys", "gateway", "usage", "audit"],
   consumer: ["overview", "models", "playground", "api-keys", "gateway", "usage", "audit", "billing", "balance-recharge"],
 };

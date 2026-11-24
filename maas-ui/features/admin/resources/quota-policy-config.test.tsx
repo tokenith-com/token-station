@@ -57,3 +57,17 @@ describe("default user quota configuration", () => {
     }
   });
 });
+
+describe("quota policy scope choices", () => {
+  const scopeField = () => config.fields.find((item) => item.key === "scope")!;
+
+  it("lets an administrator pick every scope", () => {
+    const options = scopeField().optionsFromData!(emptyData(), admin);
+    expect(options.map((option) => option.value)).toEqual(["global", "project", "api_key", "team", "user"]);
+  });
+
+  it.each(["team_leader", "user"])("limits %s to the user scope", (role) => {
+    const options = scopeField().optionsFromData!(emptyData(), { ...admin, role });
+    expect(options.map((option) => option.value)).toEqual(["user"]);
+  });
+});

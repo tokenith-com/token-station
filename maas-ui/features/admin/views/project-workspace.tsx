@@ -73,15 +73,18 @@ export async function saveProjectWorkspaceDraft(
   api: ApiContext,
   project: Project | undefined,
   draft: ProjectWorkspaceDraft,
+  mayWriteModelScope = true,
 ) {
   const payload = {
     name: draft.name.trim(),
     status: draft.status || "active",
     owner_user_id: draft.owner_user_id,
     cost_center: draft.cost_center,
-    model_access_mode: draft.model_access_mode,
-    allowed_models: draft.model_access_mode === "restricted" ? draft.allowed_models : [],
-    excluded_models: draft.model_access_mode === "excluded" ? draft.excluded_models : [],
+    ...(mayWriteModelScope && {
+      model_access_mode: draft.model_access_mode,
+      allowed_models: draft.model_access_mode === "restricted" ? draft.allowed_models : [],
+      excluded_models: draft.model_access_mode === "excluded" ? draft.excluded_models : [],
+    }),
     team_id: draft.primary_team_id,
   };
   const saved = await projectJSON<Project>(
@@ -174,6 +177,7 @@ export function ProjectWorkspace({
   onCreateMember,
   onEditMember,
   onDeleteMember,
+  canEditModelScope = true,
 }: {
   mode: ProjectWorkspaceMode;
   data: AppData;
@@ -187,6 +191,7 @@ export function ProjectWorkspace({
   onCreateMember: () => void;
   onEditMember: (member: AdminResource) => void;
   onDeleteMember: (member: AdminResource) => void;
+  canEditModelScope?: boolean;
 }) {
   const [draft, setDraft] = useState<ProjectWorkspaceDraft>(() => projectWorkspaceDraft(project));
   const editable = mode !== "view";
@@ -340,7 +345,7 @@ export function ProjectWorkspace({
             title="模型访问"
             description="项目模型访问规则先于路由执行，项目内 API Key 只能在此范围内进一步收窄。"
           >
-            {editable ? (
+            {editable && canEditModelScope ? (
               <div className="project-model-access">
                 <label className="field project-model-access-mode">
                   <span>{tx("模型访问模式")}</span>
@@ -366,6 +371,9 @@ export function ProjectWorkspace({
               </div>
             ) : (
               <div className="project-readonly-grid">
+                {editable && !canEditModelScope ? (
+                  <p className="project-model-access-notice">{tx("项目模型范围由平台管理员统一设置。你可以通过用户模型权限和 Key 的允许列表进一步收窄，但不能扩大范围。")}</p>
+                ) : null}
                 <ProjectSummaryField label="模型访问模式" value={tx(draft.model_access_mode === "inherit" ? "继承全部已启用模型" : draft.model_access_mode === "excluded" ? "指定模型禁用列表" : "指定模型允许列表")} />
                 <ProjectSummaryField label={draft.model_access_mode === "excluded" ? "项目模型禁用列表" : "模型允许列表"} value={draft.model_access_mode === "inherit" ? tx("继承上级范围") : draft.model_access_mode === "excluded" ? draft.excluded_models.join(", ") || tx("未禁用任何模型") : draft.allowed_models.join(", ") || tx("禁止全部模型")} />
               </div>

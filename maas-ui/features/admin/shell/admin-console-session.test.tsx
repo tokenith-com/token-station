@@ -48,15 +48,17 @@ describe("console session restoration", () => {
     expect(screen.getByLabelText("密码")).toBeInTheDocument();
     expect(screen.queryByText(/Enterprise SSO/)).not.toBeInTheDocument();
   });
-  it("preserves invalid-credential feedback", async () => {
-    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(Response.json({ error: { message: "账号或密码错误" } }, { status: 401 })));
+  it("reports invalid credentials as the status plus a localized reason", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(Response.json({ error: { code: "invalid_credentials", message: "Invalid username or password" } }, { status: 401 })));
     render(<AdminConsole defaultBaseURL={baseURL} />);
     const browser = userEvent.setup();
     const form = await openLoginForm(browser);
     await browser.type(form.getByRole("textbox", { name: "账号" }), "account@example.com");
     await browser.type(form.getByLabelText("密码"), "wrong-password");
     await browser.click(form.getByRole("button", { name: "登录" }));
-    expect(await screen.findByRole("alert")).toHaveTextContent("账号或密码错误");
+    const alert = await screen.findByRole("alert");
+    expect(alert).toHaveTextContent("401 · 账号或密码不正确");
+    expect(alert).not.toHaveTextContent("Invalid username or password");
     expect(readSavedSession()).toBeNull();
   });
 

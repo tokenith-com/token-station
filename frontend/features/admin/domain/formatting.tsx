@@ -76,7 +76,7 @@ export function apiExampleScripts(baseURL: string, modelName: string, supportsIm
   const normalizedBaseURL = apiGatewayBaseURL(baseURL);
   const model = modelName || "gpt-4.1-mini";
   const systemPrompt = tx("你是企业内部 AI 助手。");
-  const prompt = tx("请用三句话介绍 TokenHub。");
+  const prompt = tx("请用三句话介绍 TokenStation。");
   const imagePrompt = tx("请描述这张图片。");
   const pythonUserMessage = supportsImages
     ? `{"role": "user", "content": [
@@ -130,7 +130,7 @@ import com.openai.client.okhttp.OpenAIOkHttpClient;
 import com.openai.models.ChatModel;
 import com.openai.models.chat.completions.ChatCompletionCreateParams;
 
-public class TokenHubExample {
+public class TokenStationExample {
   public static void main(String[] args) {
     OpenAIClient client = OpenAIOkHttpClient.builder()
         .apiKey(System.getenv().getOrDefault("TOKENHUB_API_KEY", "YOUR_TOKENHUB_API_KEY"))
@@ -297,7 +297,7 @@ function imageCapabilityRouteHasHealthyTarget(route: ModelRoute, data: AppData, 
   const group = stringifyValue(route.resource_group);
   return capableResources.some((resource) => !group || resource.group === group);
 }
-export function keyWizardModelOptions(data: AppData, project?: Pick<Project, "model_access_mode" | "allowed_models"> | null) {
+export function keyWizardModelOptions(data: AppData, project?: Pick<Project, "model_access_mode" | "allowed_models" | "excluded_models"> | null) {
   const activeChatModels = playgroundModels(data, data.routes.length > 0);
   const routed = activeChatModels.filter((model) => data.routes.length === 0 || activeRouteCount(model.name, data) > 0);
   const imageCapabilityModels = data.models.filter((model) =>
@@ -315,6 +315,10 @@ export function keyWizardModelOptions(data: AppData, project?: Pick<Project, "mo
   if (project?.model_access_mode === "restricted") {
     const allowed = new Set(project.allowed_models ?? []);
     return options.filter((model) => allowed.has(model.name));
+  }
+  if (project?.model_access_mode === "excluded") {
+    const excluded = new Set(project.excluded_models ?? []);
+    return options.filter((model) => !excluded.has(model.name));
   }
   return options;
 }

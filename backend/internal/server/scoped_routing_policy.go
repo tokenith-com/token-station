@@ -258,7 +258,14 @@ func (s *Server) resolveScopedRoutingPolicyForCall(call *CallContext, routes []R
 	return filtered, err
 }
 
+// modelAccessReasons lists every scope that rejects a model. The scopes nest:
+// a project sets the outer boundary, the owning user may narrow it further, and
+// the key may narrow it again. A model has to pass all three.
 func modelAccessReasons(project Project, key APIKey, modelName string) []string {
+	return modelAccessReasonsWithUser(project, key, userModelAccess{}, modelName)
+}
+
+func modelAccessReasonsWithUser(project Project, key APIKey, access userModelAccess, modelName string) []string {
 	hydrateProject(&project)
 	hydrateAPIKey(&key)
 	reasons := []string{}
@@ -268,6 +275,7 @@ func modelAccessReasons(project Project, key APIKey, modelName string) []string 
 	if project.ModelAccessMode == ModelAccessModeExcluded && AllowedModelSet(project.ExcludedModels)[modelName] {
 		reasons = append(reasons, "project_model_excluded")
 	}
+	reasons = append(reasons, userModelAccessReasons(access, modelName)...)
 	if key.ModelAccessMode == ModelAccessModeRestricted && !key.AllowedModels[modelName] {
 		reasons = append(reasons, "api_key_model_not_allowed")
 	}

@@ -13,6 +13,9 @@ import { adminFetch, readAdminError } from "../resources/payloads";
 import { DataSection, SimpleTable, StatusPill } from "../shared/ui";
 import { AdminUIReportTemplates } from "./admin-ui-report-templates";
 import { GlobalUsageView } from "./global-usage";
+import { BillingRateCards } from "./billing-rate-cards";
+import { BillingStatements } from "./billing-statements";
+import { ReconciliationManager } from "./billing-reconciliation";
 import { TeamWalletSummary } from "./team-wallet";
 import { WalletLedger } from "./wallet-ledger";
 
@@ -347,9 +350,22 @@ export function shortLabel(value: string, maxLength: number) {
   return `${value.slice(0, maxLength - 1)}…`;
 }
 
-export function BillingView({ data, user }: { data: AppData; user: AdminUser }) {
+export function BillingView({
+  statements = true,
+  api,
+  data,
+  user,
+  loading,
+  onReload,
+}: {
+  api: ApiContext;
+  data: AppData;
+  user: AdminUser;
+  loading: boolean;
+  onReload: () => Promise<void>;
+  statements?: boolean;
+}) {
   const showMemberBreakdown = appRole(user.role) === "team_leader";
-  const showProviderBreakdown = appRole(user.role) === "admin";
   const costCenterSection = (
     <DataSection title="成本中心">
       <SimpleTable
@@ -380,6 +396,10 @@ export function BillingView({ data, user }: { data: AppData; user: AdminUser }) 
   );
   return (
     <>
+      {appRole(user.role) === "admin" ? <BillingRateCards api={api} data={data} /> : null}
+      {statements && appRole(user.role) === "admin" ? <BillingStatements api={api} /> : null}
+      {appRole(user.role) === "admin" ? <BillingConnectorManager api={api} data={data} loading={loading} onReload={onReload} /> : null}
+      {appRole(user.role) === "admin" ? <ReconciliationManager api={api} data={data} loading={loading} onReload={onReload} /> : null}
       {showMemberBreakdown ? (
         <div className="two-column">
           {costCenterSection}
@@ -388,7 +408,7 @@ export function BillingView({ data, user }: { data: AppData; user: AdminUser }) 
       ) : (
         costCenterSection
       )}
-      {showProviderBreakdown ? <div className="two-column">
+      <div className="two-column">
         <DataSection title="Provider 成本">
           <SimpleTable
             columns={["Provider", "请求", "Token", "估算成本"]}
@@ -413,7 +433,7 @@ export function BillingView({ data, user }: { data: AppData; user: AdminUser }) 
             ])}
           />
         </DataSection>
-      </div> : null}
+      </div>
     </>
   );
 }

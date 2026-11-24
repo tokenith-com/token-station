@@ -353,8 +353,12 @@ func TestAdminPlaygroundChatBillsSelectedAPIKey(t *testing.T) {
 	if detail.Code != http.StatusOK {
 		t.Fatalf("playground request detail failed: %d %s", detail.Code, detail.Body)
 	}
-	if !strings.Contains(detail.Body, `"attempts"`) || !strings.Contains(detail.Body, "playground smoke") {
-		t.Fatalf("playground request detail should include attempts and payload: %s", detail.Body)
+	// The stored prompt stays in the database; the response omits it.
+	if !strings.Contains(detail.Body, `"attempts"`) {
+		t.Fatalf("playground request detail should include attempts: %s", detail.Body)
+	}
+	if strings.Contains(detail.Body, "playground smoke") {
+		t.Fatalf("playground prompt must not be returned: %s", detail.Body)
 	}
 }
 

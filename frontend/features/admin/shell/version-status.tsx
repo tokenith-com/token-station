@@ -183,7 +183,7 @@ const fallbackVersionInfo: SystemVersionInfo = {
   build_type: "source",
   deployment_type: "source",
   update_supported: false,
-  releases_url: "https://github.com/astaxie/TokenHub/releases",
+  releases_url: "https://github.com/astaxie/TokenStation/releases",
   cached: false,
 };
 
@@ -205,7 +205,7 @@ export function ResponsiveVersionStatus({ api, user }: { api: ApiContext; user: 
 }
 
 export function VersionStatus({ api, user }: { api: ApiContext; user: AdminUser }) {
-  const canInspectVersions = ["admin", "system_admin"].includes(user.role.trim().toLowerCase());
+  const canInspectVersions = user.role.trim().toLowerCase() === "admin";
   const [info, setInfo] = useState<SystemVersionInfo>(fallbackVersionInfo);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(canInspectVersions);
@@ -765,7 +765,7 @@ async function waitForManagedVersion(api: ApiContext, targetVersion: string) {
         if (normalizeVersionInfo(payload).current_version === targetVersion) return;
       }
     } catch {
-      // A temporary connection failure is expected while the service supervisor restarts TokenHub.
+      // A temporary connection failure is expected while the service supervisor restarts TokenStation.
     } finally {
       window.clearTimeout(timeout);
     }

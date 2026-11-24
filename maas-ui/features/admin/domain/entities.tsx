@@ -661,11 +661,23 @@ export function providerResourceAuditLabel(data: AppData, resourceID?: string) {
   return [resource.name || resource.id, provider?.name || resource.provider_id].filter(Boolean).join(" / ");
 }
 
-export function apiKeyAuditLabel(data: AppData, apiKeyID?: string) {
-  if (!apiKeyID) return "-";
+// A key name alone rarely says whose spend it is. Callers that have room show
+// the account on its own line; single-line labels join the two.
+export function apiKeyAuditParts(data: AppData, apiKeyID?: string) {
+  if (!apiKeyID) return { key: "-", account: "" };
   const key = data.keys.find((item) => item.id === apiKeyID);
-  if (!key) return apiKeyID;
-  return `${key.name || key.id} (${key.key_prefix}...${key.key_suffix})`;
+  if (!key) return { key: apiKeyID, account: "" };
+  const owner = apiKeyOwnerUserID(data, key);
+  const account = owner ? ownerUserLabel(data, owner) : "";
+  return {
+    key: `${key.name || key.id} (${key.key_prefix}...${key.key_suffix})`,
+    account: account && account !== "-" ? account : "",
+  };
+}
+
+export function apiKeyAuditLabel(data: AppData, apiKeyID?: string) {
+  const parts = apiKeyAuditParts(data, apiKeyID);
+  return parts.account ? `${parts.key} · ${parts.account}` : parts.key;
 }
 
 export function providerRouteDefaults(provider: Provider, data: AppData) {

@@ -10,9 +10,19 @@
   align-items: end;
 }
 
-.routing-policy-simulate-button {
-  min-height: 38px;
-  margin-bottom: 1px;
+/* The fields are label + control stacks. The button has no label, so bottom
+   alignment alone leaves it sitting a label-height lower than the controls.
+   Offset it by the label row so all four sit on one visual line. */
+.routing-policy-simulator-fields .routing-policy-simulate-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 44px;
+  height: 44px;
+  padding: 0 20px;
+  margin: 0 0 18px;
+  white-space: nowrap;
 }
 
 .routing-policy-simulation-result {

@@ -3,7 +3,7 @@ export type AgreementSection = { title: string; items: string[] };
 export type AgreementDocument = { key: "terms" | "payment"; updatedAt: string; preface: string[]; sections: AgreementSection[] };
 
 const company = "世纪利通";
-const contactEmail = "noreply@example.com";
+const contactEmail = "noreply@centlt.com";
 
 export const termsOfService: AgreementDocument = {
   key: "terms",

@@ -645,6 +645,13 @@ func (s *Server) serveAdminRequestDetail(w http.ResponseWriter, r *http.Request,
 		return
 	}
 	s.redactProviderCostsForUser(user, detail)
+	// The console renders the billing account, but a member cannot read the
+	// user directory, so the resolved name travels with the detail.
+	detail["account"] = s.accountDisplayName(log)
+	// Prompt and completion bodies stay in storage but never leave the server.
+	// The console only needs the error diagnosis derived from them.
+	detail["error_detail"] = requestErrorDetailFromPayload(detail["payload"])
+	delete(detail, "payload")
 	writeJSON(w, http.StatusOK, detail)
 }
 

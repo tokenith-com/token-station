@@ -489,7 +489,7 @@ export function identityProviderInitialFormValues(values: Record<string, string>
   const templateKey = inferIdentityProviderTemplateKey(values, templates);
   const next: Record<string, string> = createMode ? applyIdentityProviderTemplate(values, templateKey, false, templates) : { ...values, provider_template: templateKey };
   if (createMode) {
-    if (next.client_id === "tokenhub-admin") next.client_id = "";
+    if (next.client_id === "tokenstation-admin" || next.client_id === "tokenhub-admin") next.client_id = "";
     if (next.issuer_url === "https://sso.example.com") next.issuer_url = "";
     if (next.redirect_uri === "http://localhost:8080/api/admin/auth/oauth/callback") next.redirect_uri = "";
   }
@@ -669,7 +669,7 @@ function LoginUtilityActions({
       {showBrand ? (
         <div className="login-brand-lockup">
           <span className="login-brand-mark" aria-hidden="true">
-            <img src="/brand/tokenhub-logo.png" alt="" />
+            <img src="/brand/tokenstation-logo.png" alt="" />
           </span>
           <span className="login-brand-copy">
             <strong>Token<span>Hub</span></strong>
@@ -751,7 +751,7 @@ export function LoginView({
         onThemeToggle={onThemeToggle}
       />
       <section className="login-stage">
-        <aside className="login-hero-panel" aria-label="TokenHub">
+        <aside className="login-hero-panel" aria-label="TokenStation">
           <div className="login-hero-copy">
             <h1>
               <span>{headlineParts[0]}</span>
@@ -785,7 +785,7 @@ export function LoginView({
         <form className="login-card" onSubmit={submit}>
           <div className="login-card-head">
             <h1>{tx("欢迎回来")}</h1>
-            <p>{tx("登录 TokenHub 控制台")}</p>
+            <p>{tx("登录 TokenStation 控制台")}</p>
           </div>
           <label className="field">
             <span>{tx("账号 / 邮箱")}</span>

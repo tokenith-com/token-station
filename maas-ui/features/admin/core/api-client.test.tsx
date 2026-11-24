@@ -12,13 +12,13 @@ describe("backend request target", () => {
   });
 
   it("targets the configured backend and trims trailing slashes", () => {
-    configureBackendBaseURL("https://hub.example.com/");
-    expect(backendURL("/api/admin/users")).toBe("https://hub.example.com/api/admin/users");
-    expect(backendURL("api/admin/users")).toBe("https://hub.example.com/api/admin/users");
+    configureBackendBaseURL("https://hub.centlt.com/");
+    expect(backendURL("/api/admin/users")).toBe("https://hub.centlt.com/api/admin/users");
+    expect(backendURL("api/admin/users")).toBe("https://hub.centlt.com/api/admin/users");
   });
 
   it("negotiates JSON without dropping caller headers", async () => {
-    configureBackendBaseURL("https://hub.example.com");
+    configureBackendBaseURL("https://hub.centlt.com");
     const fetcher = vi.fn().mockResolvedValue(Response.json({}));
     vi.stubGlobal("fetch", fetcher);
     await backendRequest("/api/admin/auth/login", {
@@ -26,7 +26,7 @@ describe("backend request target", () => {
       headers: { "content-type": "application/json" },
     });
     const [url, init] = fetcher.mock.calls[0];
-    expect(url).toBe("https://hub.example.com/api/admin/auth/login");
+    expect(url).toBe("https://hub.centlt.com/api/admin/auth/login");
     expect(init.headers["content-type"]).toBe("application/json");
     expect(init.headers.accept).toBe("application/json");
     expect(init.credentials).toBe("omit");
@@ -34,7 +34,7 @@ describe("backend request target", () => {
   });
 
   it("keeps an explicit accept header", async () => {
-    configureBackendBaseURL("https://hub.example.com");
+    configureBackendBaseURL("https://hub.centlt.com");
     const fetcher = vi.fn().mockResolvedValue(Response.json({}));
     vi.stubGlobal("fetch", fetcher);
     await backendRequest("/api/admin/reports/export", { headers: { accept: "text/csv" } });
@@ -42,7 +42,7 @@ describe("backend request target", () => {
   });
 
   it("turns browser network or CORS failures into a readable error", async () => {
-    configureBackendBaseURL("https://hub.example.com");
+    configureBackendBaseURL("https://hub.centlt.com");
     vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new TypeError("Failed to fetch")));
     await expect(backendRequest("/api/admin/users")).rejects.toBeInstanceOf(APIError);
     await expect(backendRequest("/api/admin/users")).rejects.toThrow("CORS");

@@ -26,7 +26,7 @@ const strategyOptions: Array<{
     icon: Activity,
     badge: "语义选模",
     useCase: "希望不同任务自动使用不同模型",
-    behavior: "Jev 按适用条件选择模型，TokenHub 再调用目标模型",
+    behavior: "Jev 按适用条件选择模型，TokenStation 再调用目标模型",
     parameterHelp: "配置候选模型的适用条件、选择指令和默认模型",
     example: "简单提取选择轻量模型，复杂分析选择推理模型",
   },

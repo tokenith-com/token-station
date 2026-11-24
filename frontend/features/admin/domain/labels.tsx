@@ -287,17 +287,20 @@ export function parseLooseValue(value: string) {
 
 export function roleLabel(role: string) {
   const labels: Record<string, string> = {
-    admin: "系统管理员",
-    system_admin: "系统管理员",
+    admin: "平台超管",
     security: "安全审计",
     security_admin: "安全审计",
-    team_leader: "团队 Leader",
-    project_admin: "团队 Leader",
-    user: "普通用户",
-    member: "普通用户",
-    viewer: "普通用户",
-    readonly: "普通用户",
-    read_only: "普通用户",
+    team_leader: "团队管理者",
+    project_admin: "团队管理者",
+    user: "团队普通用户",
+    member: "团队普通用户",
+    viewer: "团队普通用户",
+    readonly: "团队普通用户",
+    read_only: "团队普通用户",
+    guest: "C端普通用户",
+    individual: "C端普通用户",
+    consumer: "C端普通用户",
+    retail_user: "C端普通用户",
   };
   return tx(labels[role] ?? role);
 }

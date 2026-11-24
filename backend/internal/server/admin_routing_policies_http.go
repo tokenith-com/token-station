@@ -40,7 +40,10 @@ func (s *Server) handleAdminRoutingPolicySimulation(w http.ResponseWriter, r *ht
 		writeError(w, r, NewHTTPError(http.StatusBadRequest, "missing_model", "model is required"))
 		return
 	}
-	if reasons := modelAccessReasons(project, key, modelName); len(reasons) > 0 {
+	// The preview must answer for this credential end to end, so the owning
+	// user's scope participates exactly as it does at admission.
+	access := userModelAccessFor(s.userModelAccessResources(), usageAttributionUserID(key, project))
+	if reasons := modelAccessReasonsWithUser(project, key, access, modelName); len(reasons) > 0 {
 		writeJSON(w, http.StatusOK, RoutingPolicyResolution{
 			MatchReason:   "access_denied",
 			Candidates:    []RoutingPolicyCandidateDecision{},

@@ -6,8 +6,8 @@ import { BillingStatements } from "./billing-statements";
 import { emptyData } from "../domain/catalog";
 import { ModalErrorProvider } from "../shared/modal-error";
 import { ReconciliationManager } from "./billing-reconciliation";
-import { ReconciliationManager as SourceReconciliationManager } from "../../source-admin/views/billing-reconciliation";
-import { setActiveLanguage as setSourceLanguage } from "../../source-admin/i18n/runtime";
+import { ReconciliationManager as SourceReconciliationManager } from "../legacy-source/views/billing-reconciliation";
+import { setActiveLanguage as setSourceLanguage } from "../legacy-source/i18n/runtime";
 
 const api = { baseURL: "", adminToken: "test" };
 beforeEach(() => { setActiveLanguage("zh-CN"); window.localStorage.clear(); });

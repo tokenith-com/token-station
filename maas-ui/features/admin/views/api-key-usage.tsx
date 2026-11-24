@@ -375,7 +375,7 @@ function APIKeyRequestExplorer({ api, data, user, keyID, range, modelOptions }: 
         if (!response.ok) throw new Error(await readAdminError(response, tx("请求详情加载失败")));
         return await response.json() as RequestDetail;
       })
-      .then((next) => setDetail({ log: next.log, usage: next.usage ?? [], attempts: next.attempts ?? [], payload: next.payload ?? null }))
+      .then((next) => setDetail({ log: next.log, usage: next.usage ?? [], attempts: next.attempts ?? [], error_detail: next.error_detail ?? null, account: next.account }))
       .catch((reason) => {
         if (controller.signal.aborted || isAuthExpiredError(reason)) return;
         setDetail(null);
@@ -426,7 +426,7 @@ function APIKeyRequestExplorer({ api, data, user, keyID, range, modelOptions }: 
           </div>
           <PaginationControls pagination={pagination} totalItems={payload.pagination.total} />
         </div>
-        <RequestDetailPanel data={data} requestID={selectedRequestID} detail={detail?.log.request_id === selectedRequestID ? detail : null} loading={detailLoading} error={detailError} showProviderCost={appRole(user.role) === "admin"} />
+        <RequestDetailPanel data={data} requestID={selectedRequestID} detail={detail?.log.request_id === selectedRequestID ? detail : null} loading={detailLoading} error={detailError} showProviderCost={appRole(user.role) === "admin"} role={appRole(user.role)} />
       </div>
     </DataSection>
   );

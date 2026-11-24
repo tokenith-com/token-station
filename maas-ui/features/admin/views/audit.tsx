@@ -1,11 +1,11 @@
-import { RequestErrorSummary, requestErrorInfo } from "./request-error-summary";
+import { RequestErrorSummary } from "./request-error-summary";
 import { Activity, AlertCircle, Check, Copy, Gauge, Search, ShieldCheck } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { appRole, canViewAdminAudit } from "../core/navigation";
-import { type AdminUser, type ApiContext, type AppData, type RequestDetail, type RequestLogPage, type RequestLogPagination, type RequestLogSummary, type RequestPayloadLog } from "../core/types";
+import { type AdminUser, type ApiContext, type AppData, type AppRole, type RequestDetail, type RequestLog, type RequestLogPage, type RequestLogPagination, type RequestLogSummary, type RequestPayloadLog } from "../core/types";
 import { auditRequestPagePath, auditRequestTimeRangeParameters, type AuditRequestStatus, type AuditRequestTimeRange } from "../domain/audit-request-page";
 import { copyText } from "../domain/clipboard";
-import { apiKeyAuditLabel, projectName, providerAttemptLabel, providerAuditLabel, providerResourceAuditLabel } from "../domain/entities";
+import { apiKeyAuditLabel, apiKeyOwnerUserID, ownerUserLabel, projectName, providerAttemptLabel, providerAuditLabel, providerResourceAuditLabel } from "../domain/entities";
 import { compactNumber, formatMoney, formatNumber, formatTime } from "../domain/formatting";
 import { actionLabel, enumValueLabel, resourceTypeLabel } from "../domain/labels";
 import { countWithUnit, routeAttemptCountText, tx } from "../i18n/runtime";
@@ -142,7 +142,8 @@ export function AuditView({ api, data, user }: { api: ApiContext; data: AppData;
           log: payload.log,
           usage: payload.usage ?? [],
           attempts: payload.attempts ?? [],
-          payload: payload.payload ?? null,
+          error_detail: payload.error_detail ?? null,
+          account: payload.account,
         });
       })
       .catch((err) => {
@@ -316,6 +317,7 @@ export function AuditView({ api, data, user }: { api: ApiContext; data: AppData;
                 loading={detailLoading}
                 error={detailError}
                 showProviderCost={showAdminAudit}
+                role={appRole(user.role)}
               />
             </div>
           </div>
@@ -366,6 +368,7 @@ export function RequestDetailPanel({
   loading,
   error,
   showProviderCost = true,
+  role,
 }: {
   data: AppData;
   requestID: string;
@@ -373,6 +376,7 @@ export function RequestDetailPanel({
   loading: boolean;
   error: string;
   showProviderCost?: boolean;
+  role?: AppRole;
 }) {
   const [copied, setCopied] = useState(false);
 
@@ -449,6 +453,10 @@ export function RequestDetailPanel({
       usageTotals.accepted_prediction_tokens - usageTotals.rejected_prediction_tokens,
   );
   const isError = log.status_code >= 400;
+  // Everyone below platform administration sees who the request was billed to
+  // instead of the internal project they cannot otherwise browse. Platform
+  // administrators keep the project and get the account as an extra field.
+  const showsProject = role === undefined || role === "admin";
 
   async function copyRequestID() {
     const success = await copyText(log.request_id);
@@ -483,7 +491,7 @@ export function RequestDetailPanel({
 
 
       {log.error_code ? (
-        <RequestErrorSummary code={log.error_code} responseBody={detail.payload?.response_body} />
+        <RequestErrorSummary code={log.error_code} detail={detail.error_detail} />
       ) : null}
 
       <div className="request-subsection">
@@ -498,10 +506,11 @@ export function RequestDetailPanel({
         </div>
       </div>
 
-      <RequestPayloadSection key={requestID} payload={detail.payload ?? null} />
-
+      {/* Payload snapshots stay in the backend; the console hides them so member
+          and consumer views never expose someone else's prompt or completion. */}
       <details open className="request-secondary-details" key={`metadata-${requestID}`}><summary>{tx("详情")}</summary><div className="request-detail-grid">
-        <DetailField label="项目" value={projectName(data, log.project_id)} />
+        {showsProject ? <DetailField label="项目" value={projectName(data, log.project_id)} /> : null}
+        <DetailField label="账户" value={detail.account || requestAccountLabel(data, log)} />
         <DetailField label="API Key" value={apiKeyAuditLabel(data, log.api_key_id)} />
         <DetailField label="Provider 资源" value={providerResourceAuditLabel(data, log.provider_resource_id)} />
         <DetailField label="作用域策略" value={log.routing_policy_id || tx("无绑定策略")} />
@@ -541,7 +550,7 @@ export function RequestDetailPanel({
           <strong>{routeAttemptCountText(detail.attempts.length)}</strong>
         </div>
         {detail.attempts.length === 0 ? (
-          <div className="compact-empty">{requestErrorInfo(detail.payload?.response_body)?.beforeUpstream ? tx("请求在路由检查阶段被拒绝，尚未发送到上游。") : tx("没有记录到路由尝试")}</div>
+          <div className="compact-empty">{detail.error_detail?.before_upstream ? tx("请求在路由检查阶段被拒绝，尚未发送到上游。") : tx("没有记录到路由尝试")}</div>
         ) : (
           <div className="attempt-timeline">
             {detail.attempts.map((attempt) => (
@@ -625,6 +634,18 @@ export function UsageBreakdownGroup({
       </div>
     </div>
   );
+}
+
+// The account a request was billed to: the attributed member when the call
+// carried one, otherwise the Key owner, then the project owner.
+export function requestAccountLabel(data: AppData, log: RequestLog) {
+  const attributed = (log as RequestLog & { attributed_user_id?: string }).attributed_user_id;
+  if (attributed) return ownerUserLabel(data, attributed);
+  const key = data.keys.find((item) => item.id === log.api_key_id);
+  const ownerUserID = key ? apiKeyOwnerUserID(data, key) : "";
+  if (ownerUserID) return ownerUserLabel(data, ownerUserID);
+  const project = data.projects.find((item) => item.id === log.project_id);
+  return ownerUserLabel(data, project?.owner_user_id ?? "");
 }
 
 export function RequestPayloadSection({ payload }: { payload: RequestPayloadLog | null }) {

@@ -31,15 +31,18 @@ for (const mobile of [false, true]) {
     api.respond("GET", "/api/admin/audit/events", { data: [] });
     api.respond("GET", "/api/admin/api-keys", { data: [] });
     const log = { id: "log", request_id: "req-layout", project_id: project.id, api_key_id: "key", model: "ui-bge-rerank", provider_id: "p", provider_model: "bge-reranker-v2-m3", status_code: 200, latency_ms: 70, total_tokens: 53, created_at: fixedTime };
-    const detail: RequestDetail = { log, usage: [], attempts: [], payload: { id: "payload", request_id: log.request_id, created_at: fixedTime, request_body: JSON.stringify({ query: "capital", documents: ["Paris"] }), response_body: JSON.stringify({ results: [{ index: 0, relevance_score: 0.99, document: { text: "Paris is the capital of France." } }] }, null, 2), request_truncated: false, response_truncated: false } };
+    // The backend sends only the derived diagnosis; request and response bodies
+    // never reach the console.
+    const detail: RequestDetail = { log, usage: [], attempts: [], account: "太湖员工A / pt@locol.com", error_detail: null };
     api.define("GET", "/api/admin/audit/requests", () => ({ json: { data: [log], pagination: { page: 1, page_size: 20, total: 1, total_pages: 1 }, summary: { all: 1, ok: 1, error: 0, average_latency_ms: 70 } } }), query => expect(Object.fromEntries(query)).toEqual({ page: "1", page_size: "20", status: "all", q: "" }));
     api.respond("GET", "/api/admin/audit/requests/req-layout", detail);
     await page.goto("/audit");
     const panel = page.locator(".request-detail-panel");
-    await expect(panel.getByRole("tabpanel", { name: "Response" })).toContainText("Paris is the capital");
-    await panel.getByRole("tab", { name: "Request", exact: true }).click();
-    await expect(panel.getByRole("tabpanel", { name: "Request" })).toContainText("documents");
-    await panel.getByRole("tab", { name: "Response", exact: true }).click();
+    // Prompt and completion bodies are never rendered.
+    await expect(panel.getByRole("tab", { name: "Request", exact: true })).toHaveCount(0);
+    await expect(panel.getByRole("tab", { name: "Response", exact: true })).toHaveCount(0);
+    await expect(panel).not.toContainText("Paris is the capital");
+    await expect(panel.getByText("账户", { exact: true })).toBeVisible();
     const metadata = panel.locator("details").filter({ has: page.getByText("客户端 IP", { exact: true }) });
     await expect(metadata).toHaveAttribute("open", "");
     await metadata.locator("summary").click();
@@ -121,7 +124,9 @@ for (const mobile of [false, true]) {
     api.respond("GET", "/api/admin/api-keys", { data: [] });
     const log = { id: "rejected", request_id: "req-rejected", project_id: project.id, api_key_id: "key", model: "ui-embedding", status_code: 501, error_code: "provider_capability_not_supported", latency_ms: 10, created_at: fixedTime };
     const message = "No eligible embedding route remains. The upstream inventory model type is not embedding.";
-    const detail: RequestDetail = { log, usage: [], attempts: [], payload: { id: "payload", request_id: log.request_id, created_at: fixedTime, request_body: "{}", response_body: JSON.stringify({ error: { message, details: { stage: "route_selection", upstream_attempted: false } } }), request_truncated: false, response_truncated: false } };
+    // The backend derives this diagnosis from the stored body; the body itself
+    // is never sent.
+    const detail: RequestDetail = { log, usage: [], attempts: [], error_detail: { message, before_upstream: true } };
     api.define("GET", "/api/admin/audit/requests", () => ({ json: { data: [log], pagination: { page: 1, page_size: 20, total: 1, total_pages: 1 }, summary: { all: 1, ok: 0, error: 1, average_latency_ms: 10 } } }), query => expect(Object.fromEntries(query)).toEqual({ page: "1", page_size: "20", status: "all", q: "" }));
     api.respond("GET", "/api/admin/audit/requests/req-rejected", detail);
     await page.goto("/audit");

@@ -5,9 +5,9 @@ import { type AdminResource, type APIKey, type AppData, type FieldConfig, type P
 import { projectKeyDownloadFilename, projectKeyDownloadTemplates } from "../core/project-key-download-templates";
 import { apiKeyCanManage } from "../domain/api-key-management-authz";
 import { apiKeyOwnerSelectOptions, apiKeyOwnerUserID, costCenterLabel, costCenterSelectOptions, ownerUserLabel, projectMemberCanIssueLabel, projectMemberProjectSelectOptions, projectMemberRoleLabel, projectMemberRoleOptions, projectName, projectOwnerLabel, projectSelectOptions, projectTeamLabel, stringifyForm, stringifyValue, teamLabel, teamSelectOptions, truthyValue, userSelectOptions } from "../domain/entities";
-import { countWithUnit, formatTranslationTemplate, tx } from "../i18n/runtime";
+import { countWithUnit, formatTranslationTemplate, languageLocale, tx } from "../i18n/runtime";
 import { openAPIKeyAccess } from "../shared/api-key-access";
-import { adminDelete, adminFetch, adminMutate, keyPatchPayload, projectQuotaSummary, readAdminError, updateAPIKeyStatus } from "./payloads";
+import { adminDelete, adminFetch, adminMutate, keyPatchPayload, projectModelAccessPayload, projectQuotaSummary, readAdminError, updateAPIKeyStatus } from "./payloads";
 import { StatusPill } from "../shared/ui";
 
 export function projectConfig(): ResourceConfig<Project> {
@@ -23,7 +23,7 @@ export function projectConfig(): ResourceConfig<Project> {
       { key: "owner_user_id", label: "负责人", render: (item, ctx) => ownerUserLabel(ctx, item.owner_user_id ?? "") },
       { key: "cost_center", label: "成本中心", render: (item, ctx) => costCenterLabel(ctx, item.cost_center ?? "") },
       { key: "quota", label: "额度", render: (item, ctx) => projectQuotaSummary(ctx, item) },
-      { key: "allowed_models", label: "模型访问", render: (item) => modelAccessSummary(item.model_access_mode, item.allowed_models) },
+      { key: "allowed_models", label: "模型访问", render: (item) => modelAccessSummary(item.model_access_mode, item.allowed_models, item.excluded_models) },
       { key: "status", label: "状态", render: (item) => <StatusPill status={item.status} /> },
     ],
     fields: [
@@ -31,13 +31,14 @@ export function projectConfig(): ResourceConfig<Project> {
       { key: "team_id", label: "默认团队", type: "select", optionsFromData: teamSelectOptions, help: "默认团队继续承担成本、审批和责任归属；协作团队在同一个项目工作台中配置。" },
       { key: "owner_user_id", label: "项目负责人", type: "select", optionsFromData: userSelectOptions, help: "负责人默认拥有该项目的 Key 管理权限。" },
       { key: "cost_center", label: "成本中心", type: "select", optionsFromData: costCenterSelectOptions },
-      { key: "model_access_mode", label: "模型访问模式", type: "select", options: ["inherit", "restricted"], required: true },
+      { key: "model_access_mode", label: "模型访问模式", type: "select", options: ["inherit", "restricted", "excluded"], required: true },
       { key: "allowed_models", label: "项目模型允许列表，逗号分隔", visible: (values) => values.model_access_mode === "restricted", help: "restricted 且留空时禁止项目访问任何模型；所有项目 Key 只能进一步收窄。" },
+      { key: "excluded_models", label: "项目模型禁用列表", visible: (values) => values.model_access_mode === "excluded", help: "未禁用的已启用模型均可访问，留空表示不禁用任何模型。" },
       { key: "status", label: "状态", type: "select", options: ["active", "disabled"], required: true },
     ],
     list: (ctx) => ctx.projects,
-    create: (ctx, values) => adminMutate(ctx, "/api/admin/projects", "POST", values),
-    update: (ctx, item, values) => adminMutate(ctx, `/api/admin/projects/${item.id}`, "PATCH", values),
+    create: (ctx, values) => adminMutate(ctx, "/api/admin/projects", "POST", projectModelAccessPayload(values)),
+    update: (ctx, item, values) => adminMutate(ctx, `/api/admin/projects/${item.id}`, "PATCH", projectModelAccessPayload(values)),
     remove: (ctx, item) => adminDelete(ctx, `/api/admin/projects/${item.id}`),
     actions: [
       {
@@ -270,9 +271,45 @@ export function apiKeyConfig(): ResourceConfig<APIKey> {
   };
 }
 
-function modelAccessSummary(mode: string | undefined, allowed: string[] | undefined) {
+export function ModelAccessList({ label, models, selected, onChange }: {
+  label: string;
+  models: string[];
+  selected: string[];
+  onChange: (models: string[]) => void;
+}) {
+  const [query, setQuery] = useState("");
+  const options = Array.from(new Set([...models, ...selected]));
+  const visible = options.filter((name) => name.toLowerCase().includes(query.trim().toLowerCase()));
+  return (
+    <div className="field project-model-access-list">
+      <strong>{tx(label)}</strong>
+      <input className="project-model-access-search" aria-label={tx("按模型名称搜索")} placeholder={tx("按模型名称搜索")} value={query} onChange={(event) => setQuery(event.target.value)} type="search" />
+      <div className="project-model-access-toolbar">
+        <span role="status">{formatTranslationTemplate(tx("已选 {count} 个模型"), { count: new Intl.NumberFormat(languageLocale()).format(selected.length) })}</span>
+        <div>
+          <button className="text-button" type="button" disabled={visible.length === 0} onClick={() => onChange(Array.from(new Set([...selected, ...visible])))}>{tx("全选当前搜索结果")}</button>
+          <button className="text-button" type="button" disabled={selected.length === 0} onClick={() => onChange([])}>{tx("清空")}</button>
+        </div>
+      </div>
+      <div className="project-model-access-options">
+        {visible.length === 0 ? <div className="empty">{tx(options.length === 0 ? "暂无可选模型" : "没有匹配的模型")}</div> : visible.map((name) => {
+          const checked = selected.includes(name);
+          return (
+            <label className={checked ? "project-model-access-option selected" : "project-model-access-option"} key={name}>
+              <input type="checkbox" checked={checked} onChange={() => onChange(checked ? selected.filter((item) => item !== name) : [...selected, name])} />
+              <span><strong>{name}</strong></span>
+            </label>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function modelAccessSummary(mode: string | undefined, allowed: string[] | undefined, excluded?: string[]) {
   const normalized = mode || ((allowed ?? []).length > 0 ? "restricted" : "inherit");
   if (normalized === "inherit") return tx("继承上级范围");
+  if (normalized === "excluded") return formatTranslationTemplate(tx("禁用模型：{models}"), { models: (excluded ?? []).join(", ") || tx("未禁用任何模型") });
   return (allowed ?? []).join(", ") || tx("禁止全部模型");
 }
 

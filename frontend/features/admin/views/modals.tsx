@@ -2,11 +2,11 @@ import { BookOpen, Boxes, Check, ExternalLink, KeyRound, ShieldCheck, Sparkles }
 import { type Dispatch, type FormEvent, type SetStateAction, useEffect, useMemo, useState } from "react";
 import { type AdminResource, type AdminUser, type AppData, type FieldConfig, type ModalState } from "../core/types";
 import { findProject, ownerUserLabel, projectOwnerLabel, projectSelectOptions, projectTeamLabel } from "../domain/entities";
-import { keyWizardModelOptions, modelAvailabilitySummary } from "../domain/formatting";
+import { keyWizardModelOptions } from "../domain/formatting";
 import { identityProviderDefaultGrantLabel, identityProviderIconLabel, identityProviderTypeLabel, splitList } from "../domain/labels";
 import { tx } from "../i18n/runtime";
 import { defaultFormValues } from "../resources/payloads";
-import { apiKeyConfig } from "../resources/project-key-config";
+import { apiKeyConfig, ModelAccessList } from "../resources/project-key-config";
 import { identityProviderTemplateByKey, identityProviderTemplateHelp, identityProviderTemplatesFromData, inferIdentityProviderTemplateKey, loginIdentityProviderIconConfig, updateIdentityProviderFormValue } from "../shared/auth";
 import { FieldInput } from "../shared/ui";
 import { DetailField } from "./audit";
@@ -360,8 +360,8 @@ export function APIKeyWizardModal({
   // operator switches projects, drop selections the new project cannot call.
   useEffect(() => {
     const project = findProject(data, values.project_id);
-    if (!project || project.model_access_mode !== "restricted") return;
-    const allowed = new Set(project.allowed_models ?? []);
+    if (!project || (project.model_access_mode !== "restricted" && project.model_access_mode !== "excluded")) return;
+    const allowed = new Set(keyWizardModelOptions(data, project).map((model) => model.name));
     setValues((current) => {
       const currentModels = splitList(current.allowed_models);
       const pruned = currentModels.filter((model) => allowed.has(model));
@@ -399,13 +399,6 @@ export function APIKeyWizardModal({
         onChange={(value) => update(key, value)}
       />
     );
-  }
-
-  function toggleModel(modelName: string) {
-    const current = new Set(splitList(values.allowed_models));
-    if (current.has(modelName)) current.delete(modelName);
-    else current.add(modelName);
-    update("allowed_models", Array.from(current).join(", "));
   }
 
   function canContinue(targetStep = step) {
@@ -529,25 +522,12 @@ export function APIKeyWizardModal({
                 </button>
               </div>
               {modelScope === "selected" ? (
-                <div className="wizard-model-list">
-                  {selectableModels.length === 0 ? (
-                    <div className="empty wizard-empty">{tx("当前没有可选择的启用模型。请先在模型目录和路由策略里启用模型。")}</div>
-                  ) : (
-                    selectableModels.map((model) => (
-                      <label className="wizard-model-option" key={model.name}>
-                        <input
-                          checked={selectedModels.includes(model.name)}
-                          onChange={() => toggleModel(model.name)}
-                          type="checkbox"
-                        />
-                        <span>
-                          <strong>{model.name}</strong>
-                          <em>{modelAvailabilitySummary(model, data, false).label}</em>
-                        </span>
-                      </label>
-                    ))
-                  )}
-                </div>
+                <ModelAccessList
+                  label="模型允许列表"
+                  models={selectableModels.map((model) => model.name)}
+                  selected={selectedModels}
+                  onChange={(models) => update("allowed_models", models.join(", "))}
+                />
               ) : null}
             </section>
           ) : null}

@@ -3,7 +3,7 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { ProviderEmbeddingFields } from "./provider-embedding-fields";
 import { ProviderRerankFields } from "./provider-rerank-fields";
-import { RequestErrorSummary, requestErrorInfo } from "./request-error-summary";
+import { RequestErrorSummary } from "./request-error-summary";
 import { retrievalSettings, preserveRetrievalCatalog, validEmbeddingSpaces } from "../domain/retrieval-settings";
 import { providerPayload } from "../resources/payloads";
 import { setActiveLanguage } from "../i18n/runtime";
@@ -51,15 +51,19 @@ describe("retrieval configuration guidance", () => {
   });
 });
 
-it("shows saved error messages and proven pre-upstream failures without interpreting HTML", () => {
+it("shows the backend's error diagnosis without interpreting HTML", () => {
   setActiveLanguage("zh-CN");
-  render(<RequestErrorSummary code="provider_capability_not_supported" responseBody={JSON.stringify({ error: { message: "<b>inventory missing</b>", details: { stage: "route_selection", upstream_attempted: false } } })} />);
+  render(<RequestErrorSummary code="provider_capability_not_supported" detail={{ message: "<b>inventory missing</b>", before_upstream: true }} />);
   expect(screen.getByRole("alert")).toHaveTextContent("尚未发送到上游");
   expect(screen.getByRole("alert")).toHaveTextContent("<b>inventory missing</b>");
   expect(screen.getByRole("alert").querySelector("b")).toBeNull();
-  expect(requestErrorInfo('{"error":')).toBeNull();
-  expect(requestErrorInfo('{"error":{"message":"upstream failed"}}')?.beforeUpstream).toBe(false);
-  expect(requestErrorInfo('{"error":{"details":{"stage":"route_selection","upstream_attempted":"false"}}}')?.beforeUpstream).toBe(false);
+});
+
+it("omits the upstream note when the backend did not mark it", () => {
+  setActiveLanguage("zh-CN");
+  render(<RequestErrorSummary code="upstream_error" detail={{ message: "upstream failed" }} />);
+  expect(screen.getByRole("alert")).not.toHaveTextContent("尚未发送到上游");
+  expect(screen.getByRole("alert")).toHaveTextContent("upstream failed");
 });
 
 it("preserves runtime catalogs without replacing the discovery template", () => {

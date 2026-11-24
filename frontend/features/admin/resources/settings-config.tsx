@@ -1,6 +1,6 @@
 import { type AdminResource, type FieldConfig, notificationChannelTemplates, type ResourceConfig, type SQLiteBackup, type ViewKey } from "../core/types";
 import { notificationChannelLabel, notificationChannelTargetSummary, notificationChannelType, notificationChannelUsesEmail, notificationChannelUsesIncomingWebhook, notificationChannelUsesTelegram, notificationChannelUsesWhatsApp, notificationCredentialSummary } from "../domain/catalog";
-import { apiKeyOwnerSelectOptions, costCenterLabel, costCenterSelectOptions, fieldSummary, oauthDefaultProjectRoleOptions, ownerUserLabel, projectMemberProjectSelectOptions, stringifyValue, teamMemberCount, teamSelectOptions, userSelectOptions } from "../domain/entities";
+import { apiKeyOwnerSelectOptions, costCenterLabel, costCenterSelectOptions, fieldSummary, oauthDefaultProjectRoleOptions, ownerUserLabel, projectMemberProjectSelectOptions, roleDisplayName, stringifyValue, teamMemberCount, teamSelectOptions, userSelectOptions } from "../domain/entities";
 import { appRole } from "../core/navigation";
 import { formatBytes, formatNumber, formatTime } from "../domain/formatting";
 import { boolLabel, dataScopeLabel, identityProviderDefaultGrantLabel, identityProviderLoginEntryLabel, identityProviderTypeLabel, monitorTargetLabel, numberFromUnknown, numberOr } from "../domain/labels";
@@ -198,7 +198,7 @@ export function systemSettingConfig(): ResourceConfig<AdminResource> {
       key: "provider_synthetic_dns_enabled",
       label: "允许 Provider 使用 Synthetic DNS / Fake-IP",
       type: "boolean",
-      help: "仅当 TokenHub 所在主机启用了 Fake-IP 代理，且 Provider 域名因此解析到合成地址时开启。该例外只用于域名解析结果，不允许把字面量 IP 直接配置为 Provider Base URL。",
+      help: "仅当 TokenStation 所在主机启用了 Fake-IP 代理，且 Provider 域名因此解析到合成地址时开启。该例外只用于域名解析结果，不允许把字面量 IP 直接配置为 Provider Base URL。",
     },
     {
       key: "provider_synthetic_dns_allow_private_ranges",
@@ -284,14 +284,28 @@ export function roleConfig(): ResourceConfig<AdminResource> {
     { key: "data_scope", label: "数据范围", type: "select", options: ["global", "team", "project", "self"], required: true },
     { key: "assignable", label: "可分配", type: "boolean" },
   ];
+  const base = genericResourceConfig("role-configs", "角色配置", "配置用户管理新增/编辑时可选择的后台角色。权限边界由系统内置角色模型控制。", fields);
+  const validate = (values: Record<string, string>) => {
+    if (values.role_key?.trim().toLowerCase() === "system_admin") {
+      throw new Error(tx("旧角色标识不可用，请使用 admin"));
+    }
+  };
   return {
-    ...genericResourceConfig("role-configs", "角色配置", "配置用户管理新增/编辑时可选择的后台角色。权限边界由系统内置角色模型控制。", fields),
+    ...base,
+    create: async (ctx, values) => {
+      validate(values);
+      await base.create?.(ctx, values);
+    },
+    update: async (ctx, item, values) => {
+      validate(values);
+      await base.update?.(ctx, item, values);
+    },
     eyebrow: "角色配置",
     createLabel: "新增可选角色",
     columns: [
-      { key: "name", label: "名称" },
+      { key: "name", label: "名称", render: (item) => (stringifyValue(item.fields?.role_key) || item.id).trim().toLowerCase() === "admin" ? roleDisplayName(item) : item.name },
       { key: "role_key", label: "角色标识", render: (item) => stringifyValue(item.fields?.role_key) || item.id },
-      { key: "display_name", label: "显示名称", render: (item) => stringifyValue(item.fields?.display_name) || item.name },
+      { key: "display_name", label: "显示名称", render: roleDisplayName },
       { key: "data_scope", label: "数据范围", render: (item) => dataScopeLabel(stringifyValue(item.fields?.data_scope)) },
       { key: "assignable", label: "可分配", render: (item) => boolLabel(item.fields?.assignable) },
       { key: "status", label: "状态", render: (item) => <StatusPill status={item.status} /> },
@@ -334,7 +348,7 @@ export function sqliteBackupConfig(): ResourceConfig<SQLiteBackup> {
     view: "sqlite-backups",
     title: "数据备份",
     eyebrow: "SQLite 备份",
-    description: "创建、下载和恢复 TokenHub SQLite 数据库快照。",
+    description: "创建、下载和恢复 TokenStation SQLite 数据库快照。",
     createLabel: "创建备份",
     columns: [
       { key: "name", label: "名称" },

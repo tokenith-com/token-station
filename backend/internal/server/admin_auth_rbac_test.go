@@ -1319,8 +1319,12 @@ func TestUserRequestAuditIsScopedToOwnLogs(t *testing.T) {
 		t.Fatalf("request audit should only include user's logs: %s", logs.Body)
 	}
 	detail := doJSON(t, app, http.MethodGet, "/api/admin/audit/requests/req_user_visible", nil, payload.Token)
-	if detail.Code != http.StatusOK || !strings.Contains(detail.Body, "chatcmpl_user") {
+	// Bodies never leave the server; the detail carries the account instead.
+	if detail.Code != http.StatusOK || !strings.Contains(detail.Body, `"account"`) {
 		t.Fatalf("expected own request detail, got %d: %s", detail.Code, detail.Body)
+	}
+	if strings.Contains(detail.Body, "chatcmpl_user") {
+		t.Fatalf("request body must not be returned: %s", detail.Body)
 	}
 	hiddenDetail := doJSON(t, app, http.MethodGet, "/api/admin/audit/requests/req_other_hidden", nil, payload.Token)
 	if hiddenDetail.Code != http.StatusForbidden {

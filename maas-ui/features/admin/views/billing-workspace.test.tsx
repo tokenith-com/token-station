@@ -1,8 +1,8 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, expect, it, vi } from "vitest";
-import { BillingWorkspace } from "../../source-admin/views/billing-workspace";
+import { BillingWorkspace } from "../legacy-source/views/billing-workspace";
 import { setActiveLanguage } from "../i18n/runtime";
-import { setActiveLanguage as setSourceLanguage } from "../../source-admin/i18n/runtime";
+import { setActiveLanguage as setSourceLanguage } from "../legacy-source/i18n/runtime";
 
 const api = { baseURL: "https://fixture.invalid", adminToken: "synthetic" };
 beforeEach(() => {

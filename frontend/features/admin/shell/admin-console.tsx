@@ -52,6 +52,7 @@ import { RoutingPolicySimulator } from "../views/routing-policy-simulator";
 import { ContentSecurityPolicies, SecurityPolicyTabs } from "../views/security-policies";
 import { APIKeyWizardModal, UserImportModal } from "../views/modals";
 import { EditModal, SettingsView } from "../views/settings-table";
+import { SettlementSettingsView } from "../views/settlement-settings";
 import { BillingView, UsageView } from "../views/usage-billing";
 import { APIKeyUsageView } from "../views/api-key-usage";
 
@@ -949,11 +950,13 @@ export function AdminConsole({ defaultBaseURL }: { defaultBaseURL: string }) {
             )
           ) : activeView === "plugin-pages" ? (
             <PluginPageView activePageKey={activePluginPageKey} api={api} data={data} onSelectPage={selectPluginPage} />
-          ) : activeView === "settings" ? (
+          ) : activeView === "settlement-settings" ? (
+            <SettlementSettingsView api={api} />
+          ) : activeView === "settings" || activeView === "role-configs" ? (
             <SettingsView
               api={api}
               data={data}
-              activeTab={settingsTab}
+              activeTab={activeView === "role-configs" ? "role-configs" : settingsTab}
               language={language}
               onTabChange={setSettingsTab}
               onLanguageChange={changeLanguage}

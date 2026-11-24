@@ -126,7 +126,7 @@ import { EditModal, SettingsView } from "../views/settings-table";
 import { usePagination } from "../shared/pagination";
 import { BillingView, UsageView } from "../views/usage-billing";
 import { scopeSupportedAccounts } from "../core/account-roles";
-import { SourceAdminContent } from "../../source-admin/shell/source-admin-content";
+import { SourceAdminContent } from "../legacy-source/shell/source-admin-content";
 import { useLoginIdentityProviders } from "./use-login-identity-providers";
 
 const themeStorageKey = "tokenhub.theme";
@@ -139,12 +139,9 @@ function usesSourceAdminContent(user: AdminUser, view: ViewKey) {
 const apiKeyPageSize = 1000;
 type ConsoleProps = { defaultBaseURL: string };
 
-export function AdminConsole({ defaultBaseURL }: ConsoleProps) {
-  const apiURL = typeof window !== "undefined" && /^\/(?!\/)/.test(defaultBaseURL)
-    ? new URL(defaultBaseURL, window.location.origin).href.replace(/\/+$/, "")
-    : defaultBaseURL;
+export function AdminConsole(props: ConsoleProps) {
   return (
-    <Suspense><AdminConsoleContent defaultBaseURL={apiURL} /></Suspense>
+    <Suspense><AdminConsoleContent {...props} /></Suspense>
   );
 }
 
@@ -870,7 +867,7 @@ function AdminConsoleContent({ defaultBaseURL }: ConsoleProps) {
       return;
     }
     setIssuedKey("");
-    if (currentUser && appRole(currentUser.role) === "consumer") {
+    if (currentUser && ["consumer", "user"].includes(appRole(currentUser.role))) {
       setQuickAPIKeyOpen(true);
     } else {
       setApiKeyWizardInitialValues({});
@@ -1073,7 +1070,10 @@ function AdminConsoleContent({ defaultBaseURL }: ConsoleProps) {
   const isRoleManagementView = activeView === "settings" && appRole(currentUser.role) === "admin";
   const isMemberAuditView = activeView === "audit" && ["team_leader", "user", "consumer"].includes(accountManagementRole);
   const isMemberGatewayView = activeView === "gateway" && ["user", "consumer"].includes(accountManagementRole);
-  const isPersonalAPIKeysView = activeView === "api-keys" && accountManagementRole === "consumer";
+  // Members manage their own keys the same way consumers do: a one-field create
+  // dialog and a list with only enable/disable and delete, so quota and model
+  // scope stay under the team leader's control.
+  const isPersonalAPIKeysView = activeView === "api-keys" && ["consumer", "user"].includes(accountManagementRole);
   const isTeamResourceView = accountManagementRole === "team_leader" && ["usage", "gateway", "api-keys", "projects"].includes(activeView);
   const isMemberKeyListView = activeView === "api-keys" && accountManagementRole === "user";
   const isPersonalUsageView = activeView === "usage" && ["user", "consumer"].includes(accountManagementRole);
@@ -1181,7 +1181,7 @@ function AdminConsoleContent({ defaultBaseURL }: ConsoleProps) {
             ) : activeView === "balance-recharge" && accountManagementRole === "consumer" ? (
               <ConsumerRechargeView api={api} />
             ) : activeView === "billing" ? (
-              accountManagementRole === "consumer" ? <GuestCostDetailsView api={api} data={data} /> : <BillingView data={data} user={currentUser} />
+              accountManagementRole === "consumer" ? <GuestCostDetailsView api={api} data={data} /> : <BillingView api={api} data={data} user={currentUser} loading={loading} onReload={() => load("billing")} statements={false} />
             ) : activeView === "audit" ? (
               <AuditView api={api} data={data} user={currentUser} />
             ) : activeView === "database-status" ? (
@@ -1368,7 +1368,8 @@ function AdminConsoleContent({ defaultBaseURL }: ConsoleProps) {
             loading={loading}
             onClose={() => { if (!loading) setProjectWorkspace(null); }}
             onEdit={() => setProjectWorkspace(current => current ? { ...current, mode: "edit" } : current)}
-            onSave={draft => void saveProjectWorkspace(draft)}
+            canEditModelScope={appRole(currentUser?.role ?? "") === "admin"}
+            onSave={draft => void saveProjectWorkspace(draft, appRole(currentUser?.role ?? "") === "admin")}
             onIssueKey={() => {
               if (!workspaceProject) return;
               setIssuedKey("");
