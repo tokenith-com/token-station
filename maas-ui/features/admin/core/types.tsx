@@ -1482,17 +1482,7 @@ export type ApiContext = {
   adminToken: string;
 };
 
-export type ModalState<T> = {
-  config: ResourceConfig<T>;
-  item?: T;
-  initialValues?: Record<string, string>;
-};
-
-export type ConfirmState<T> = {
-  config: ResourceConfig<T>;
-  item?: T;
-  items?: T[];
-};
+export type { ModalState, ConfirmState } from "./resource-action";
 
 export type SettingsTabKey = "settings" | "role-configs" | "identity-providers";
 

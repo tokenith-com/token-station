@@ -38,4 +38,3 @@ export const routeTranslations: Record<"en" | "ja", Record<string, string>> = {
     "排除指定项目": "指定プロジェクトを除外"
   }
 };
-

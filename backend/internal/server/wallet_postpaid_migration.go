@@ -36,11 +36,12 @@ func migrateWalletPostpaidPostgres(ctx context.Context, db dbschema.MigrationExe
 			}
 		}
 	}
-	if _, err := db.ExecContext(ctx, `ALTER TABLE user_wallets ADD CONSTRAINT user_wallets_frozen_nonnegative CHECK (frozen_fen >= 0)`); err != nil {
-		return fmt.Errorf("restore user_wallets frozen constraint: %w", err)
-	}
-	if _, err := db.ExecContext(ctx, `ALTER TABLE user_wallets ADD CONSTRAINT user_wallets_reserved_nonnegative CHECK (reserved_usage_micros >= 0)`); err != nil {
-		return fmt.Errorf("restore user_wallets reserved constraint: %w", err)
+	if _, err := db.ExecContext(ctx, `ALTER TABLE user_wallets
+		DROP CONSTRAINT IF EXISTS user_wallets_frozen_nonnegative,
+		DROP CONSTRAINT IF EXISTS user_wallets_reserved_nonnegative,
+		ADD CONSTRAINT user_wallets_frozen_nonnegative CHECK (frozen_fen >= 0),
+		ADD CONSTRAINT user_wallets_reserved_nonnegative CHECK (reserved_usage_micros >= 0)`); err != nil {
+		return fmt.Errorf("restore user_wallets nonnegative constraints: %w", err)
 	}
 	return nil
 }

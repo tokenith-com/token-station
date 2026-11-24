@@ -1,4 +1,16 @@
-import type { AdminUser, ApiContext, AppData, ModalState, ViewKey } from "./types";
+import type { AdminUser, ApiContext, AppData, ResourceConfig, ViewKey } from "./types";
+
+export type ModalState<T> = {
+  config: ResourceConfig<T>;
+  item?: T;
+  initialValues?: Record<string, string>;
+};
+
+export type ConfirmState<T> = {
+  config: ResourceConfig<T>;
+  item?: T;
+  items?: T[];
+};
 
 export type ResourceAction<T> = {
   label: string;
