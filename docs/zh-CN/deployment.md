@@ -6,6 +6,8 @@ TokenStation 面向私有化部署，由 Go 后端、Next.js 管理后台和 SQL
 
 启动服务前先准备新库。从源码运行时，在 `backend/` 下使用目标库配置执行 `go run ./cmd/tokenstation db prepare --initialize`。使用 Compose 时，沿用部署的 Compose 文件和环境配置执行 `docker compose run --rm -e TOKENHUB_RUN_MODE=backend tokenstation-backend db prepare --initialize`。已有库需要更新表结构或修复数据时，执行 `db prepare`。详见[数据库演进](database-evolution.md)。
 
+使用订阅账户时，先参阅[订阅与账户 Provider](subscription-providers.md)，了解 Node 与 Claude CLI 依赖、远程 OAuth 回调和同实例会话要求。
+
 ## 数据库选择
 
 TokenStation 支持两种数据库后端：
@@ -352,13 +354,13 @@ docker inspect --format 'memory={{.HostConfig.Memory}} memory_swap={{.HostConfig
 ./deploy/local/run-local.sh stop
 ```
 
-按需构建两个组件，然后以 loopback 方式运行。二进制、控制台产物、数据库、日志和 pid 文件都放在仓库内的 `.tokenhub/`（已被 gitignore），删除该目录即可重置实例。构建过程还可能刷新前端的常规忽略产物（`frontend/node_modules`、`frontend/.next`）。不安装任何系统级内容，也不创建服务账号。
+按需构建两个组件，然后以 loopback 方式运行。二进制、控制台产物、数据库、日志和 pid 文件都放在仓库内的 `.tokenhub/`（已被 gitignore），删除该目录即可重置实例。构建过程还可能刷新前端的常规忽略产物（`maas-ui/node_modules`、`maas-ui/.next`）。不安装任何系统级内容，也不创建服务账号。
 
-它运行的是**生产构建**——和部署时完全相同的 standalone 产物——而不是 dev server，因此能暴露只在生产构建下出现的问题。它使用开发用凭据（`admin` / `admin123456`），只监听 loopback，数据存放在 `.tokenhub/tokenhub.db` 这个 SQLite 数据库中。
+它运行的是**生产构建**——和部署时完全相同的 MaaS 静态产物——而不是 dev server，因此能暴露只在生产构建下出现的问题。它使用开发用凭据（`admin` / `admin123456`），只监听 loopback，数据存放在 `.tokenhub/tokenhub.db` 这个 SQLite 数据库中。
 
 加 `-d` 后服务会脱离启动它的 shell，在该 shell 退出、终端关闭后继续运行；但重启机器不会自动拉起，需要这种能力请使用正式的安装方式。两种模式都会写 pid 文件，因此 `status` 和 `stop` 对前台实例同样有效。`stop` 在发信号前会校验记录的 pid 仍属于本实例，因此不会误杀被系统复用了该号码的其它进程；启动前还会先占用两个端口，端口被占用时直接报错，不会把别的服务的响应误判成启动成功。
 
-需要 Go（版本见 `backend/go.mod`）、Node 22 或更高、npm 和 C 编译器，因为后端通过 cgo 链接 SQLite。
+需要 Go（版本见 `backend/go.mod`）、Node 22.23.1 或更高（版本固定在 `.nvmrc`）、npm 和 C 编译器，因为后端通过 cgo 链接 SQLite。内置订阅适配器也使用 Node；Docker 镜像和原生 Release 安装包已包含该运行时，原生服务会将随包 Node 加入后端进程的 PATH。单独运行后端二进制时，PATH 中需要有兼容的 `node`；无需启动 Magpie 服务或在运行时安装 npm 包。
 
 以上在 Linux 上验证过。macOS 没有 `setsid`，脚本会退化为遍历进程树来停止服务；该路径已实现但未在 macOS 上实测。
 
@@ -419,8 +421,8 @@ docker inspect --format 'memory={{.HostConfig.Memory}} memory_swap={{.HostConfig
 | `TOKENHUB_UPSTREAM_NON_STREAM_TIMEOUT_SECONDS` | `120` | 单个非流式上游请求的整体超时 |
 | `TOKENHUB_UPSTREAM_STREAM_IDLE_TIMEOUT_SECONDS` | `300` | 流式请求没有整体超时；该值限制等待响应头的时长，以及流开始后允许的静默时长。每收到一个字节即重新计时 |
 | `TOKENHUB_MAX_JSON_REQUEST_BYTES` | `8388608`（8 MiB） | `/v1` 接口的 JSON 请求体上限。可填原始字节数或二进制单位（`8m`、`8mib`、`512k`）。超过 512 MiB 会被截断到上限 |
-| `TOKENHUB_MAX_MULTIMODAL_REQUEST_BYTES` | `33554432`（32 MiB） | 多模态对话接口（`/v1/chat/completions`、`/v1/responses`、`/v1/messages`、playground）的更高请求体上限。请将反向代理的 `client_max_body_size` 至少设置为该值 |
-| `TOKENHUB_NGINX_CLIENT_MAX_BODY_SIZE` | `32m` | 仅内置的多实例 nginx 负载均衡器读取该值。它使用 nginx 尺寸语法（`32m`、`512k`），不是后端的字节格式，且应不小于 `TOKENHUB_MAX_MULTIMODAL_REQUEST_BYTES` |
+| `TOKENHUB_MAX_MULTIMODAL_REQUEST_BYTES` | `33554432`（32 MiB） | 多模态对话接口（`/v1/chat/completions`、`/v1/responses`、`/v1/messages`、playground）的更高请求体上限。`/v1/responses` 会先读到 128 MiB，或该值（取较大者），并且不超过 512 MiB。OpenAI 和 Azure 路由在去掉上游已保存的历史项之后，转发正文仍超过该值时会被拒绝。ChatGPT 订阅和 Codex 订阅路由会把完整记录转发到这个读取上限，因为这些 API 拒绝 `store: true`。故障切换里只要还有其他类型的 Provider，就仍使用该值。请把反向代理的 `client_max_body_size` 至少设成这个读取大小。内置 nginx 在提高 `TOKENHUB_NGINX_CLIENT_MAX_BODY_SIZE` 之前保持 `32m` |
+| `TOKENHUB_NGINX_CLIENT_MAX_BODY_SIZE` | `32m` | 仅内置的多实例 nginx 负载均衡器读取该值。它使用 nginx 尺寸语法（`32m`、`512k`），不是后端的字节格式。请把它至少设成 `/v1/responses` 的读取大小（默认 128 MiB，或 `TOKENHUB_MAX_MULTIMODAL_REQUEST_BYTES` 更大时取该值）。默认的 `32m` 会在更大的正文到达 TokenHub 之前拒绝它 |
 | `TOKENHUB_IN_FLIGHT_LEASE_TTL_SECONDS` | `300` | 集群并发租约的过期时间及续租周期基准 |
 | `TOKENHUB_CLUSTER_LOCK_TTL_SECONDS` | `180` | 集群协调锁的过期时间及续租周期基准 |
 | `TOKENHUB_BILLING_REDIS_URL` | 空 | 可选 Redis URL，用于高并发计费准入。设置后，Redis 处理每分钟 RPM/TPM 预留以及 API Key/用户并发租约；数据库仍是持久计费账本 |
@@ -546,7 +548,7 @@ WAL 模式的文件型 SQLite 使用一个主连接处理写入、两个只读�
 
 更新当前配置的目录文件后，可以重启后端，也可以在「系统设置 → 基础设置」中点击「同步模型参考目录」。两种方式都会同步参考元数据、保留自定义对外模型，但不会发布任何模型。
 
-`data/model-catalog.yaml` 提供跟踪目录的参考元数据，它不是路由准入清单，也不会发布模型。`data/provider-catalog.json` 提供 Provider 模板，以及在 Provider 配置中可选择的上游模型。引入选中项只会创建持久化的 Provider 模型库存；对外模型及其统一对客价格需要在模型目录中单独创建，再到路由策略映射到已引入的 Provider 模型。`GET /v1/models` 只返回启用且至少存在一条启用路由的对外模型；配置 API Key 模型白名单时还会进一步过滤。`TOKENHUB_PLUGIN_DIR` 指向后端启动时扫描的持久化插件包目录。Docker Compose 部署中该目录由 `tokenhub-plugins` volume 承载，所以插件包状态会在镜像升级后保留。 容器入口脚本会校验 `TOKENHUB_PLUGIN_DIR` 为非根目录的绝对路径，并在降低 root 权限前创建目录、将其所有者设为运行时的 `node` 用户，首次使用新卷时也会执行。`TOKENHUB_PLUGIN_MARKETPLACE_URL` 可以指向一个 HTTPS JSON 索引，用于在管理后台浏览插件列表；在线索引在完成分离签名和吊销源验证前仅用于发现，离线镜像可作为安装来源。如需为启动加载和刷新回退使用自定义 Provider 目录，将 `TOKENHUB_PROVIDER_CATALOG_FILE` 指向具有相同 `providers` 结构的本地 JSON 文件。
+`data/model-catalog.yaml` 提供跟踪目录的参考元数据，它不是路由准入清单，也不会发布模型。`data/provider-catalog.json` 提供 Provider 模板，以及在 Provider 配置中可选择的上游模型。引入选中项只会创建持久化的 Provider 模型库存；对外模型及其统一对客价格需要在模型目录中单独创建，再到路由策略映射到已引入的 Provider 模型。`GET /v1/models` 只返回启用且至少存在一条启用路由的对外模型；配置 API Key 模型白名单时还会进一步过滤。`TOKENHUB_PLUGIN_DIR` 指向后端启动时扫描的持久化插件包目录。Docker Compose 部署中该目录由 `tokenhub-plugins` volume 承载，所以插件包状态会在镜像升级后保留。 容器入口脚本会校验 `TOKENHUB_PLUGIN_DIR` 为非根目录的绝对路径，并在降低 root 权限前创建目录、将其所有者设为运行时的 `node` 用户，首次使用新卷时也会执行。`TOKENHUB_PLUGIN_MARKETPLACE_URL` 可以指向一个 HTTPS JSON 索引，用于在管理后台浏览插件列表；在线索引在完成分离签名和吊销源验证前仅用于发现，离线镜像可作为安装来源。如需为启动加载和刷新回退使用自定义 Provider 目录，将 `TOKENHUB_PROVIDER_CATALOG_FILE` 指向具有相同 `providers` 结构的本地 JSON 文件。 管理后台的“同步供应商目录”操作与每日定时任务通过 `TOKENHUB_PROVIDER_CATALOG_UPSTREAM_URL` 刷新公共目录；拉取到的快照会存储在本地，并在 24 小时窗口内供目录读取复用，因此目录读取不要求上游可达。纯离线部署可把 `TOKENHUB_PROVIDER_CATALOG_UPSTREAM_URL` 置为空，仅使用内置目录。
 
 ### 连接 Kronk
 

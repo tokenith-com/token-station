@@ -8,6 +8,7 @@ on:
   push:
     branches:
       - main
+      - release
   merge_group:
 
 # Read-only by default, matching container-images.yml. No job here needs more, and
@@ -21,9 +22,21 @@ concurrency:
 
 jobs:
   backend:
-    name: Backend
+    name: Backend (${{ matrix.number }}/4)
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - shard: 0
+            number: 1
+          - shard: 1
+            number: 2
+          - shard: 2
+            number: 3
+          - shard: 3
+            number: 4
     defaults:
       run:
         working-directory: backend
@@ -41,7 +54,17 @@ jobs:
           go-version-file: backend/go.mod
           cache-dependency-path: backend/go.sum
 
+      - name: Set up bundled subscription runtime
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version-file: .nvmrc
+
+      - name: Test bundled subscription adapters
+        if: matrix.shard == 0
+        run: node --test internal/subscriptionworker/*.test.mjs
+
       - name: Check formatting
+        if: matrix.shard == 0
         run: |
           set -euo pipefail
           unformatted="$(gofmt -l .)"
@@ -53,18 +76,21 @@ jobs:
           fi
 
       - name: Vet
+        if: matrix.shard == 0
         run: go vet ./...
 
       - name: Lint
+        if: matrix.shard == 0
         uses: golangci/golangci-lint-action@ba0d7d2ec06a0ea1cb5fa41b2e4a3ab91d21278a # v9.3.0
         with:
           version: v2.12.2
           working-directory: backend
 
       - name: Test
-        run: bash ../tools/test-backend.sh
+        run: node ../tools/test-backend-shard.mjs ${{ matrix.shard }} 4
 
       - name: Migration manifest is current
+        if: matrix.shard == 0
         run: |
           set -euo pipefail
           go run ./cmd/manifestgen
@@ -420,9 +446,12 @@ jobs:
     name: Frontend
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    strategy:
+      matrix:
+        directory: [frontend, maas-ui]
     defaults:
       run:
-        working-directory: frontend
+        working-directory: ${{ matrix.directory }}
     steps:
       - name: Check out repository
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
@@ -434,7 +463,7 @@ jobs:
         with:
           node-version-file: .nvmrc
           cache: npm
-          cache-dependency-path: frontend/package-lock.json
+          cache-dependency-path: ${{ matrix.directory }}/package-lock.json
 
       - name: Install dependencies
         run: npm ci

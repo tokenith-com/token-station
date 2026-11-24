@@ -3,32 +3,25 @@ ARG NODE_IMAGE=node:22.23.1-bookworm-slim
 FROM ${NODE_IMAGE} AS frontend-deps
 
 WORKDIR /src/frontend
-COPY frontend/package.json frontend/package-lock.json ./
+COPY maas-ui/package.json maas-ui/package-lock.json ./
 RUN npm ci
 
 FROM ${NODE_IMAGE} AS frontend-builder
 
 WORKDIR /src/frontend
 COPY --from=frontend-deps /src/frontend/node_modules ./node_modules
-COPY frontend/ ./
-RUN npm run build && \
-    server_path="$(find .next/standalone -type f -name server.js -exec sh -c \
-      'for candidate do candidate_root=${candidate%/*}; if [ -d "$candidate_root/.next" ] && [ -f "$candidate_root/package.json" ]; then echo "$candidate"; fi; done' \
-      sh {} +)" && \
-    test -n "$server_path" && \
-    test "$(printf '%s\n' "$server_path" | wc -l)" -eq 1 && \
-    standalone_root="$(dirname "$server_path")" && \
-    mkdir -p /out/frontend/.next && \
-    cp -a "$standalone_root/." /out/frontend/ && \
-    cp -a .next/static /out/frontend/.next/static && \
-    cp -a public /out/frontend/public && \
-    test -f /out/frontend/server.js
+COPY maas-ui/ ./
+# The production build type-checks test fixtures that import the shared inventory.
+COPY tools/magpie-subscription-coverage.json /src/tools/magpie-subscription-coverage.json
+ARG NEXT_PUBLIC_TOKENHUB_API_BASE_URL=http://localhost:8080
+ARG NEXT_PUBLIC_TOKENHUB_BASE_PATH
+RUN npm run build && mkdir -p /out/frontend && cp -r out /out/frontend/out && cp scripts/serve-static.mjs /out/frontend/server.js && echo '{"type":"module"}' > /out/frontend/package.json
 
 FROM golang:1.26-alpine AS backend-builder
 
 WORKDIR /src
 ARG GOPROXY=https://proxy.golang.org,direct
-ARG TOKENHUB_VERSION=0.10.0
+ARG TOKENHUB_VERSION=0.11.0
 ARG TOKENHUB_BUILD_TYPE=source
 ENV GOPROXY=$GOPROXY
 RUN apk add --no-cache gcc musl-dev
@@ -46,7 +39,7 @@ RUN cd backend && \
 
 FROM ${NODE_IMAGE}
 
-ARG TOKENHUB_VERSION=0.10.0
+ARG TOKENHUB_VERSION=0.11.0
 LABEL org.opencontainers.image.version="${TOKENHUB_VERSION}"
 
 COPY --from=backend-builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt

@@ -44,6 +44,10 @@ backend/data/
 backend/internal/server/data/
 
 # Environment
+/config.yaml
+/backend/config.yaml
+/maas-ui/config.yaml
+/dist/
 .env
 .env.*
 !.env.example

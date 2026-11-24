@@ -9,9 +9,16 @@ tmp
 output
 *.log
 **/.next
+**/.next-*
+**/test-results
+**/ui-test-results
+**/playwright-report
 **/node_modules
 backend/data
-backend/.env
+**/.env
+**/.env.*
+**/config.yaml
+**/out
 deploy/payment-local/
 backend/tokenhub
 backend/tokenstation

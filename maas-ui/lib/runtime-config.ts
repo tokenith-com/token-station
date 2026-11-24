@@ -7,5 +7,5 @@ export type RuntimeConfig = {
 };
 
 export function readRuntimeConfig(): RuntimeConfig {
-  return { apiBaseURL };
+  return { apiBaseURL: apiBaseURL || "/" };
 }

@@ -252,16 +252,24 @@ TokenStation 将模型生命周期拆成三个独立的管理区域：
 | 管理区域 | 含义 |
 | --- | --- |
 | **Provider Channels** | 上游连接及其已引入的模型库存。基于目录创建 Provider 时必须至少选择一个模型，但只引入库存不会对客户端开放；自定义 Provider 可以先空建，待上游连接可用后再加载模型。 |
-| **模型目录** | 只管理提供给业务应用的对外模型，即 API 契约。新建时先从内置模型参考目录选择模板，也可选择空白自定义模型；然后选择一个或多个已引入 Provider 模型，同步生成初始路由。这里的价格是统一对客价格，不随实际命中的 Provider 路由变化。 |
+| **模型目录** | 只管理提供给业务应用的对外模型，即 API 契约。可以从内置参考模板或空白自定义模型开始，选择初始 Provider 线路；也可以通过**从 Provider 引入**，为每个选中的上游模型创建同名对外模型及一条路由。这里的价格是统一对客价格，不随实际命中的 Provider 路由变化。 |
 | **Routing Policies** | 管理对外模型的 Provider 映射，并细调优先级、权重、项目作用域、流量分配和故障转移策略。 |
 
-各区域的职责仍然分开：先添加 Provider 并引入库存；然后从内置参考目录挑选模型，创建它的对外契约、选择至少一条初始 Provider 线路并设置统一对外价格。所选模板会带出模型名、能力、上下文和建议价格，保存前均可调整。创建后，映射的新增、修改和删除只在 Routing Policies 中进行。模型目录只保留只读的上游摘要，行内入口会打开 Routing Policies 并筛选当前对外模型；Provider 渠道列表的“配置路由”会进入完整的 Routing Policies 页面，以便新增映射。例如，可以向客户端开放 `DeepSeek`，但将它路由到 `OpenAI Production / gpt-4.5`。同一个 Provider 模型可以支持多个对外别名，一个对外模型也可以路由到多个 Provider。
+先添加 Provider 并引入库存。需要自定义对外契约时，从内置参考目录挑选模型或选择空白自定义模型，选择至少一条初始 Provider 线路并设置统一对外价格。所选模板会带出模型名、能力、上下文和建议价格，保存前均可调整。创建后，映射的新增、修改和删除只在 Routing Policies 中进行。模型目录只保留只读的上游摘要，行内入口会打开 Routing Policies 并筛选当前对外模型；Provider 渠道列表的“配置路由”会进入完整的 Routing Policies 页面，以便新增映射。例如，可以向客户端开放 `DeepSeek`，但将它路由到 `OpenAI Production / gpt-4.5`。同一个 Provider 模型可以支持多个对外别名，一个对外模型也可以路由到多个 Provider。
+
+需要直接沿用上游模型 ID 时，打开**模型目录 > 从 Provider 引入**，选择已有且已启用的 Provider，再逐个勾选或批量选择已引入模型。搜索会缩小可选列表；批量选择只影响匹配结果，保留搜索范围之外的选择。已禁用或适配器不支持调用的模型不可选。保存前可查看一一对应关系：每个上游 ID 分别生成一个同名对外模型，以及指向当前 Provider 的一条路由。
+
+逐个确认对外售价，也可以向所选模型统一应用输入价和输出价。音频模型还需明确填写每秒美元价格；重排序模型可填写搜索单元价格。上游成本与对外售价仍分别维护，未知价格不等于免费。对于尚未确认零按量成本的订阅模型，可以显式确认按量成本为 0，订阅费用另行核算；这不会替你设置对外售价。其他尚未确认的上游成本需先在 Provider 库存中配置。成本确认先于模型创建保存；即使后续创建失败，已确认的成本仍会保留。
+
+选中模型后，**引入所选模型**可点击并检查必填项。底部会提示未填完整或无效的对外价格，订阅成本确认也固定在引入按钮旁。价格缺失或无效时，点击引入会清除搜索筛选并定位第一个待填写的价格，不会保存任何内容。统一价格只有点击**应用到所选模型**后才生效；若对客免费，请明确填写 `0`。价格填写完整后，按需确认订阅成本，再次点击引入即可。缺少必填项时点击引入会显示明确的错误提示。所选模型全部引入成功且目录刷新完成后，弹窗会自动关闭并显示更新后的模型目录；如有模型引入失败或目录刷新失败，弹窗保持打开，在底部显示结果和错误，剩余模型重试成功后也会自动关闭。
+
+已有对外模型的同名项不可引入，因此不会覆盖其价格或路由；仅用作参考模板的同名条目可以提升为对外模型。每个模型与初始路由一起保存；批量操作允许部分成功，对话框会保留成功结果，重试时只处理尚未完成的项目。需要为已有对外模型增加其他 Provider 时，请使用**路由策略**。
 
 内置 StepFun 渠道会严格区分普通 API 与 Step Plan 凭据：`StepFun (China)` 和 `StepFun (Global)` 使用按量付费的 `/v1` 地址；`StepFun Step Plan (China)` 和 `StepFun Step Plan (Global)` 使用订阅专用的 `/step_plan/v1` 地址。普通 API 与 Step Plan 的 Key 和 Base URL 不能混用，请选择与 Key 所属环境一致的渠道。
 
-Provider 模型价格代表真实上游成本，用于内部审计；模型目录价格代表统一对外收费，用于客户计费估算、额度计算、指标和用量报表。路由只选择上游实现，不会改变对外价格。
+Provider 模型价格代表真实上游成本，用于内部审计；模型目录价格代表统一对外收费，用于客户计费估算、额度计算、指标和用量报表。路由只选择上游实现，不会改变对外价格。chat 模型还可以跟随指定且已确认的 Provider 模型定价策略，所有线路使用同一价格来源。可视化分时编辑、准入快照、来源不可用时的处理及适用边界见[供应商分时价格与对外价格跟随](billing-pricing.md#供应商分时价格与对外价格跟随)。
 
-当 Provider 渠道、模型目录或路由策略还没有配置数据时，控制台会展示同一套三步引导：引入 Provider 库存、从内置模型目录中创建对外模型、再配置路由。主操作按钮始终指向最早尚未完成的前置步骤，避免管理员进入当前还无法完成的表单。
+当 Provider 渠道、模型目录或路由策略还没有配置数据时，控制台会展示同一套三步引导：引入 Provider 库存、从参考目录或直接从 Provider 创建对外模型、再配置路由。主操作按钮始终指向最早尚未完成的前置步骤，避免管理员进入当前还无法完成的表单。
 
 「发布状态」与「运行健康」相互独立。模型要出现在 `GET /v1/models` 中，必须同时满足：对外 `Model` 已启用、至少有一条已启用 `ModelRoute`，且在 API Key 配置了模型白名单时获得授权。Provider 或 Provider Resource 短时不健康不会改变该列表，只会影响当前请求能否成功，并在目录和路由诊断中单独展示。下线对外模型会将它从 `GET /v1/models` 移除，但保留映射，便于之后重新发布。
 
@@ -313,9 +321,11 @@ Jev 在语义选模前检查请求接口、模型输入／输出能力、上下�
 
 已导入的 Provider 模型可在 metadata 中指定 `request_parameter_profile: openai-chat-responses-v1`，同时明确配置 `endpoints`。该协议配置提供 `include`、`truncation`、`service_tier`、`safety_identifier` 等通用控制字段，并根据工具能力识别工具控制字段。Responses 的 `text.format` 请求结构化格式时，仍要求模型支持结构化输出；采样字段仍需模型声明。`reasoning_effort_options` 和 `reasoning_effort_default` 描述推理档位；`sampling_requires_reasoning_effort` 限制采样条件，`chat_tools_requires_reasoning_effort` 指定 Chat 工具调用所需档位或 `unsupported`。可选的 `request_parameter_denied` 是逗号分隔的显式禁用列表，优先于其他允许规则。协议配置不授予上游账号权限，也不替代上游请求格式校验。
 
+`service_tier`、`safety_identifier`、`prompt_cache_options`、`prompt_cache_retention` 和 `store` 这类与端点无关的协议控制字段在适配器原样转发 OpenAI 请求体、且上游提供入站端点时无需声明即可接受，因为网关自己处理它们，而不是把它们当作模型能力。协议桥接（Anthropic、Gemini）和把请求翻译成私有协议的适配器（订阅工作器）仍以声明的字段集为准，被它们丢弃的字段继续被拒绝；`request_parameter_denied` 仍可显式拒绝。`include`、`truncation`、`max_tool_calls`、`text` 和 `stream_options` 只属于 Responses，仍由协议配置门控，因为旧式桥接可能无法理解。`store` 本就属于 Responses 请求信封、在 `/v1/responses` 上已经免声明，现在在 `/v1/chat/completions` 上也同样免声明，不再因端点不同而行为不一致。
+
 GPT-6 Sol／Luna 系列目录条目已携带这些配置，已导入的库存不会自动重写，未启用协议配置的旧线路保留已有协议桥接行为。即使语义评估器关闭、Jev 使用确定性回退，准入检查仍会执行。升级已有 Jev 线路前，应检查其 Provider 模型并测试代表性请求，尤其要检查参数声明为空的库存。更新已有条目时只调整 metadata，保留其他元数据及已配置价格。重新导入会替换 Provider 模型记录，包括价格和状态，不能当作仅更新元数据的操作。其他供应商应使用已核实的自身声明；仅因接口接收 OpenAI 形状的 JSON，不能推断其支持该协议配置。
 
-管理员可在审计中查看 action 为 `routing.jev_admission` 的候选淘汰事件，其中记录候选或绑定路由、固定原因码及已识别的参数名；未知字段名统一替换为 `unknown`。事件不记录提示词、请求参数值、凭据或完整请求体。原因码包括 `parameter_not_declared`、`sampling_reasoning_conflict` 和 `parameter_endpoint_mismatch`。公开错误仍为 `jev_no_eligible_candidates`（503）或 `jev_previous_route_unavailable`（409），不披露候选库存。
+管理员可在审计中查看 action 为 `routing.jev_admission` 的候选淘汰事件，其中记录候选或绑定路由、固定原因码及已识别的参数名；未知字段名统一替换为 `unknown`。事件不记录提示词、请求参数值、凭据或完整请求体。原因码包括 `parameter_not_declared`、`sampling_reasoning_conflict` 和 `parameter_endpoint_mismatch`。公开错误仍为 `jev_no_eligible_candidates`（503）或 `jev_previous_route_unavailable`（409），不披露候选库存。`jev_no_eligible_candidates` 响应新增 `details`：`stage` 为 `jev_admission`、`upstream_attempted` 为 `false`，`reasons` 按参数对所有被拒候选聚合，每项包含 `candidate_count`，按参数名排序，超过十项时截断并标记 `truncated: true`；审计事件在逐候选明细旁记录同一份汇总。
 
 ### 作用域路由策略
 
@@ -371,6 +381,16 @@ GPT-6 Sol／Luna 系列目录条目已携带这些配置，已导入的库存不
 
 「请求日志」中的每条记录会显示 Token 总量和对外计费金额。拥有全局运维可见权限的管理员还可以在详情面板查看根据命中 Provider 模型计算的真实成本；其他用户不会收到该成本字段。详情面板会在上游返回数据时保留完整计费明细，包括缓存读、缓存写和音频输入 Token，以及推理、音频、接受预测和拒绝预测输出 Token；Provider 未返回的字段显示为 0。输入和输出总量已经包含对应明细，不能再次相加，否则会重复计算。
 
+## 调用方取消
+
+确认的调用方断开会在请求及其已调用的路由尝试中记录为 `499/request_cancelled`。分类要求原始调用方上下文已取消，并且错误来自取消或可识别的连接断开。内部取消、协调租约丢失、带类型的供应商或护栏失败以及超时仍属于需要处理的错误。成功完成后发生的调用方取消不会改变成功结果。取消不会触发供应商故障转移或推理强度重试，也不会惩罚或恢复供应商熔断器。已提交的 SSE 响应保留原有 HTTP 状态；记录的 499 不会替换该响应，也不会追加成功结束标记。
+
+只有精确的 `499/request_cancelled` 组合会从请求日志的错误视图以及运营用量、API Key 和用量报表的错误总数中排除。这些请求仍计入总流量、延迟、Token 和费用统计，但不计为成功。在 **请求日志 > 全部** 中搜索 `request_cancelled` 可查看这些请求；搜索 `499` 还会包含其他仍计为错误的 499 结果。历史记录不会被改写。仅保留适配器已报告的用量，不会估算上游用量帧到达之前消耗的 Token。
+
+使用 `sum(tokenhub_gateway_requests_total{status_code="499",error_code="request_cancelled"})` 统计取消数量，或使用 `sum(rate(tokenhub_gateway_requests_total{status_code="499",error_code="request_cancelled"}[5m]))` 查看取消速率。请求和尝试指标保留这些结果，已输出字节的取消流会增加 `tokenhub_gateway_stream_interruptions_total{error_code="request_cancelled"}`。根追踪和尝试追踪保留状态与错误码，但观察级别和 OpenTelemetry 状态不标记为错误。
+
+版本化 Token 费用分析 API 保持现有的 `success`/`error` 契约：取消请求在该导出及其相关指标中仍归为 `error`。这一点与运营失败总数不同，且不会新增导出状态。现有 Responses 作业取消和工作进程丢失的状态转换保持不变；`response_cancelled_worker_lost` 仍属于运营错误。
+
 ## 指标
 
 TokenStation 可以在 `GET /metrics` 暴露 Prometheus 指标。该功能默认关闭，需设置 `TOKENHUB_METRICS_ENABLED=true` 才会启用；关闭时不采集任何数据，端点返回 404。该端点始终需要鉴权：指标会泄露模型名、Provider 和资源标识以及花费，因此不允许匿名访问。请使用 `Authorization: Bearer <token>`，令牌取自 `TOKENHUB_METRICS_TOKEN`；该变量为空时回落到管理员令牌。建议配置独立令牌，避免把管理员凭据放进 Prometheus 抓取配置。通过查询参数传令牌会被拒绝，因为它会被记进访问日志。
@@ -384,7 +404,7 @@ TokenStation 可以在 `GET /metrics` 暴露 Prometheus 指标。该功能默认
 | `tokenhub_gateway_routed_requests_total` | counter | 至少发起过一次候选尝试的逻辑请求数——失败转移深度比率的尝试承载分母。其 `provider_type` 标签为最后一个尝试的候选；跨 Provider 失败转移时，请按 `model` 而非 `provider_type` 聚合深度比率。 |
 | `tokenhub_gateway_overhead_seconds` | histogram | 网关自身开销的近似值：端到端耗时减去被调用尝试耗时之和，负值截断为 0。已在路由阶段被接纳、但在任何尝试前失败的请求，其开销计为完整端到端耗时。图像作业的端到端耗时包含队列等待，因此其开销为上限估计。 |
 | `tokenhub_gateway_time_to_first_byte_seconds` | histogram | 流式请求的客户端体感首字节延迟，从本地受理参考点开始计算，因此包含失败转移重试时间。空 body 的 200 响应会在流结束时记录首字节。 |
-| `tokenhub_gateway_stream_interruptions_total` | counter | 首字节写出后失败的流式请求。`error_code` 为最终分类的错误码：上游 HTTP 级失败保留其错误码，传输级失败与客户端断开均归一为 `internal_error`。 |
+| `tokenhub_gateway_stream_interruptions_total` | counter | 首字节写出后失败的流式请求。`error_code` 为最终分类的错误码：上游 HTTP 级失败保留其错误码，确认的调用方取消使用 `request_cancelled`，其他传输级失败归一为 `internal_error`。 |
 | `tokenhub_gateway_requests_in_flight` | gauge | 正在处理的模型 API 请求数，不含管理后台流量和抓取请求。 |
 | `tokenhub_gateway_tokens_total` | counter | 按类型统计的 Token：`prompt`、`completion`、`cached`、`cache_write`、`reasoning`。 |
 | `tokenhub_gateway_cost_usd_total` | counter | 使用模型目录价格计算的统一对外计费估算；Provider 真实成本只保留在有权限的请求审计中，不进入该指标。 |

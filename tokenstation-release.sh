@@ -51,7 +51,7 @@ else
   (cd "$ROOT/backend"; go test ./...; go vet ./...)
   (cd "$ROOT"; node --test tools/*.test.mjs
     for gate in doc-translations ui-translations env-contract source-lines; do node "tools/check-$gate.mjs"; done)
-  (cd "$ROOT/frontend"; [[ -d node_modules ]] || npm ci
+  (cd "$ROOT/maas-ui"; [[ -d node_modules ]] || npm ci
     npm run lint; npm run typecheck; npm test)
 fi
 bash "$ROOT/tokenstation-build-full-linux-amd64.sh" "$VERSION" "$OUTPUT" "$ROOT"

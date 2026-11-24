@@ -6,6 +6,8 @@ TokenStation は、Go バックエンド、Next.js 管理コンソール、SQLit
 
 新しいデータベースはサーバーの起動前に準備します。ソースから実行する場合は、対象のデータベース設定で `backend/` から `go run ./cmd/tokenstation db prepare --initialize` を実行します。Compose ではデプロイ時と同じ Compose ファイルと環境設定を使用し、`docker compose run --rm -e TOKENHUB_RUN_MODE=backend tokenstation-backend db prepare --initialize` を実行します。既存のデータベースにスキーマ変更や補正が必要な場合は `db prepare` を実行します。詳細は[データベースの進化](database-evolution.md)を参照してください。
 
+サブスクリプションアカウントでは、[サブスクリプションとアカウント Provider](subscription-providers.md)で Node と Claude CLI の依存関係、リモート OAuth コールバック、同一インスタンスのセッション要件を確認してください。
+
 ## データベースの選択
 
 TokenStation は 2 種類のデータベースバックエンドをサポートしています。
@@ -352,13 +354,13 @@ docker inspect --format 'memory={{.HostConfig.Memory}} memory_swap={{.HostConfig
 ./deploy/local/run-local.sh stop
 ```
 
-必要に応じて両コンポーネントをビルドし、ループバック上で実行します。バイナリ、コンソールバンドル、データベース、ログ、pid ファイルはすべてリポジトリ内の `.tokenhub/`（gitignore 済み）に置かれ、そのディレクトリを削除すればインスタンスをリセットできます。ビルド時にはフロントエンドの通常の無視対象成果物（`frontend/node_modules`、`frontend/.next`）も更新されることがあります。システム全体へのインストールもサービスアカウントの作成も行いません。
+必要に応じて両コンポーネントをビルドし、ループバック上で実行します。バイナリ、コンソールバンドル、データベース、ログ、pid ファイルはすべてリポジトリ内の `.tokenhub/`（gitignore 済み）に置かれ、そのディレクトリを削除すればインスタンスをリセットできます。ビルド時にはフロントエンドの通常の無視対象成果物（`maas-ui/node_modules`、`maas-ui/.next`）も更新されることがあります。システム全体へのインストールもサービスアカウントの作成も行いません。
 
-実行されるのは dev サーバーではなく**本番ビルド**（デプロイ時と同じ standalone バンドル）なので、本番ビルドでのみ現れる問題を検出できます。開発用の資格情報（`admin` / `admin123456`）を使用し、ループバックのみにバインドし、データは `.tokenhub/tokenhub.db` の SQLite に保存されます。
+実行されるのは dev サーバーではなく**本番ビルド**（デプロイ時と同じ MaaS 静的ファイル）なので、本番ビルドでのみ現れる問題を検出できます。開発用の資格情報（`admin` / `admin123456`）を使用し、ループバックのみにバインドし、データは `.tokenhub/tokenhub.db` の SQLite に保存されます。
 
 `-d` を付けるとサービスは起動元のシェルから切り離され、シェルの終了後もターミナルを閉じた後も動き続けます。ただし再起動後は自動で復帰しません。それが必要な場合は正式なインストール方法を使用してください。どちらのモードでも pid ファイルを記録するため、`status` と `stop` はフォアグラウンドのインスタンスにも有効です。`stop` はシグナルを送る前に記録された pid が本当にこのインスタンスのものかを検証するので、再利用された pid を誤って kill することはありません。また起動前に両方のポートを確保するため、既に他のサービスが応答しているポートを「起動成功」と誤認することもありません。
 
-バックエンドは cgo 経由で SQLite をリンクするため、Go（バージョンは `backend/go.mod` を参照）、Node 22 以上、npm、C コンパイラが必要です。
+バックエンドは cgo 経由で SQLite をリンクするため、Go（バージョンは `backend/go.mod` を参照）、Node 22.23.1 以上（`.nvmrc` に固定）、npm、C コンパイラが必要です。組み込みサブスクリプションアダプターも Node を使用します。Docker イメージとネイティブ Release パッケージには既に含まれ、ネイティブサービスは同梱 Node をバックエンドの PATH に追加します。バックエンド単体を実行する場合は互換性のある `node` が PATH に必要です。Magpie サービスや実行時の npm インストールは不要です。
 
 以上は Linux で検証済みです。macOS には `setsid` がないため、停止時はプロセスツリーをたどる方式にフォールバックします。この経路は実装済みですが macOS 上では未検証です。
 
@@ -419,8 +421,8 @@ docker inspect --format 'memory={{.HostConfig.Memory}} memory_swap={{.HostConfig
 | `TOKENHUB_UPSTREAM_NON_STREAM_TIMEOUT_SECONDS` | `120` | 非ストリーミングの上流リクエスト 1 件あたりの全体タイムアウト |
 | `TOKENHUB_UPSTREAM_STREAM_IDLE_TIMEOUT_SECONDS` | `300` | ストリーミング呼び出しに全体タイムアウトはありません。この値はレスポンスヘッダーの待機時間と、その後ストリームが無音でいられる時間を制限します。1 バイト受信するたびに計測し直します |
 | `TOKENHUB_MAX_JSON_REQUEST_BYTES` | `8388608`（8 MiB） | `/v1` エンドポイントの JSON リクエストボディ上限。生のバイト数または二進接尾辞（`8m`、`8mib`、`512k`）を指定できます。512 MiB を超える値は上限に丸められます |
-| `TOKENHUB_MAX_MULTIMODAL_REQUEST_BYTES` | `33554432`（32 MiB） | マルチモーダルのチャットエンドポイント（`/v1/chat/completions`、`/v1/responses`、`/v1/messages`、playground）向けの上限。リバースプロキシの `client_max_body_size` をこの値以上に設定してください |
-| `TOKENHUB_NGINX_CLIENT_MAX_BODY_SIZE` | `32m` | 同梱のマルチインスタンス nginx ロードバランサーのみが読み取ります。バックエンドのバイト形式ではなく nginx のサイズ構文（`32m`、`512k`）を使用し、`TOKENHUB_MAX_MULTIMODAL_REQUEST_BYTES` 以上に設定してください |
+| `TOKENHUB_MAX_MULTIMODAL_REQUEST_BYTES` | `33554432`（32 MiB） | マルチモーダルのチャットエンドポイント（`/v1/chat/completions`、`/v1/responses`、`/v1/messages`、playground）向けの上限。`/v1/responses` は 128 MiB、またはこの値の大きい方まで読み、512 MiB を超えません。OpenAI と Azure のルートは、上流に保存済みの過去項目を除いた後もこの値を超える転送本文を拒否します。ChatGPT サブスクリプションと Codex サブスクリプションのルートは、それらの API が `store: true` を拒否するため、完全な記録をこの読み取りサイズまで転送します。フェイルオーバー先にそれ以外のプロバイダーが含まれる場合は、この値のままです。リバースプロキシの `client_max_body_size` は少なくともその読み取りサイズにしてください。同梱 nginx は `TOKENHUB_NGINX_CLIENT_MAX_BODY_SIZE` を上げるまで `32m` のままです |
+| `TOKENHUB_NGINX_CLIENT_MAX_BODY_SIZE` | `32m` | 同梱のマルチインスタンス nginx ロードバランサーのみが読み取ります。バックエンドのバイト形式ではなく nginx のサイズ構文（`32m`、`512k`）を使用します。`/v1/responses` の読み取りサイズ以上にしてください（既定は 128 MiB、`TOKENHUB_MAX_MULTIMODAL_REQUEST_BYTES` の方が大きいときはその値）。既定の `32m` は、それより大きい本文が TokenHub に届く前に拒否します |
 | `TOKENHUB_IN_FLIGHT_LEASE_TTL_SECONDS` | `300` | クラスター全体の同時実行リースの期限と更新間隔の基準 |
 | `TOKENHUB_CLUSTER_LOCK_TTL_SECONDS` | `180` | クラスター調整ロックの期限と更新間隔の基準 |
 | `TOKENHUB_BILLING_REDIS_URL` | 空 | 高同時実行の課金 admission 用の任意 Redis URL。設定すると、分単位 RPM/TPM 予約と API Key/ユーザー同時実行リースを Redis が処理し、データベースは永続的な課金台帳として残ります |
@@ -546,7 +548,7 @@ WAL の保守前には SQLite のバックアップ API または TokenStation �
 
 設定済みカタログファイルを更新した後は、バックエンドを再起動するか、**システム設定 → 基本設定** で **モデル参照カタログを同期** を実行します。どちらも参照メタデータを同期し、カスタム外部モデルを保持しますが、モデルは公開しません。
 
-`data/model-catalog.yaml` は追跡対象カタログの参照メタデータを提供します。ルートの許可リストではなく、モデルを公開するものでもありません。`data/provider-catalog.json` は Provider テンプレートと、Provider 設定時に選択できる上流モデルを提供します。選択項目の取り込みでは永続化された Provider モデルインベントリだけが作成されます。外部モデルと統一された顧客向け価格は Model Directory で個別に作成し、Routing Policies で取り込み済みの Provider モデルへマッピングします。`GET /v1/models` は有効かつ 1 つ以上の有効なルートを持つ外部モデルだけを返し、API Key のモデル許可リストが設定されている場合はさらに絞り込みます。`TOKENHUB_PLUGIN_DIR` は、バックエンド起動時にスキャンされる永続的なプラグインパッケージディレクトリを指します。Docker Compose デプロイではこのディレクトリは `tokenhub-plugins` volume で保持されるため、パッケージ状態はイメージ更新後も残ります。 コンテナのエントリーポイントは `TOKENHUB_PLUGIN_DIR` がルートディレクトリ以外の絶対パスであることを検証し、root 権限を落とす前にディレクトリを作成して実行ユーザー `node` に所有権を設定します。新しいボリュームでも同様です。`TOKENHUB_PLUGIN_MARKETPLACE_URL` は、管理画面でプラグイン一覧を閲覧するための HTTPS JSON インデックスを指せます。オンライン索引は分離署名と失効フィードを検証するまで探索専用で、オフラインミラーはインストール元として利用できます。起動時の読み込みと更新時のフォールバックにカスタム Provider カタログを使うには、同じ `providers` 構造を持つローカル JSON ファイルを `TOKENHUB_PROVIDER_CATALOG_FILE` に指定します。
+`data/model-catalog.yaml` は追跡対象カタログの参照メタデータを提供します。ルートの許可リストではなく、モデルを公開するものでもありません。`data/provider-catalog.json` は Provider テンプレートと、Provider 設定時に選択できる上流モデルを提供します。選択項目の取り込みでは永続化された Provider モデルインベントリだけが作成されます。外部モデルと統一された顧客向け価格は Model Directory で個別に作成し、Routing Policies で取り込み済みの Provider モデルへマッピングします。`GET /v1/models` は有効かつ 1 つ以上の有効なルートを持つ外部モデルだけを返し、API Key のモデル許可リストが設定されている場合はさらに絞り込みます。`TOKENHUB_PLUGIN_DIR` は、バックエンド起動時にスキャンされる永続的なプラグインパッケージディレクトリを指します。Docker Compose デプロイではこのディレクトリは `tokenhub-plugins` volume で保持されるため、パッケージ状態はイメージ更新後も残ります。 コンテナのエントリーポイントは `TOKENHUB_PLUGIN_DIR` がルートディレクトリ以外の絶対パスであることを検証し、root 権限を落とす前にディレクトリを作成して実行ユーザー `node` に所有権を設定します。新しいボリュームでも同様です。`TOKENHUB_PLUGIN_MARKETPLACE_URL` は、管理画面でプラグイン一覧を閲覧するための HTTPS JSON インデックスを指せます。オンライン索引は分離署名と失効フィードを検証するまで探索専用で、オフラインミラーはインストール元として利用できます。起動時の読み込みと更新時のフォールバックにカスタム Provider カタログを使うには、同じ `providers` 構造を持つローカル JSON ファイルを `TOKENHUB_PROVIDER_CATALOG_FILE` に指定します。 管理画面の「プロバイダーカタログを同期」と毎日のスケジューラーは、`TOKENHUB_PROVIDER_CATALOG_UPSTREAM_URL` 経由で公開カタログを更新します。取得したスナップショットはローカルに保存され、24 時間のウィンドウ内でカタログ読み取りに再利用されるため、カタログの読み取りに上流の到達可能性は不要です。完全オフラインのデプロイでは `TOKENHUB_PROVIDER_CATALOG_UPSTREAM_URL` を空にし、同梱カタログのみを使用できます。
 
 ### Kronk への接続
 

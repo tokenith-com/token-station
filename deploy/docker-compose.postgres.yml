@@ -28,6 +28,8 @@ services:
       context: ..
       dockerfile: backend/Dockerfile
       args:
+        NEXT_PUBLIC_TOKENHUB_API_BASE_URL: ${NEXT_PUBLIC_TOKENHUB_API_BASE_URL:-http://localhost:8080}
+        NEXT_PUBLIC_TOKENHUB_BASE_PATH: ${NEXT_PUBLIC_TOKENHUB_BASE_PATH:-}
         GOPROXY: ${GOPROXY:-https://goproxy.cn,direct}
     restart: unless-stopped
     mem_limit: ${TOKENHUB_CONTAINER_MEMORY_LIMIT:-4g}

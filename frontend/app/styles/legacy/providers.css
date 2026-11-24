@@ -110,6 +110,10 @@
   font-weight: 720;
 }
 
+.provider-model-head {
+  flex-wrap: wrap;
+}
+
 .provider-model-head > div:first-child {
   display: flex;
   align-items: baseline;
@@ -1314,6 +1318,8 @@
 
 .provider-model-tools .secondary-button {
   height: 30px;
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 .provider-model-list {
@@ -1465,4 +1471,21 @@
   align-items: center;
   justify-content: flex-end;
   gap: 8px;
+}
+
+@keyframes provider-onboarding-sync-rotate {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.provider-onboarding-sync {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+
+.provider-onboarding-sync-status {
+  color: var(--muted, #6b7280);
+  font-size: 12px;
 }

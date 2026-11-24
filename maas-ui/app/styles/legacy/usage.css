@@ -549,16 +549,6 @@
   font-weight: 760;
 }
 
-.usage-rank-row .usage-rank-account {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  color: var(--ink-2);
-  font-size: calc(11.5 * var(--content-font-unit, 1px));
-  font-weight: 620;
-}
-
 .usage-rank-row small {
   min-width: 0;
   overflow: hidden;

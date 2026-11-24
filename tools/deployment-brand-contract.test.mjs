@@ -11,7 +11,7 @@ test("deployment entrypoints use TokenStation names and preserve executable mode
     const executable = ["deploy/native/tokenstation-run", "deploy/container/tokenstation-build-id"].includes(path);
     assert.equal(Boolean(statSync(new URL(path, root)).mode & 0o111), executable, `${path} must preserve its original mode`);
   }
-  assert.ok(existsSync(new URL("dist/tokenstation", root)));
+  assert.ok(!existsSync(new URL("dist/tokenstation", root)));
   assert.ok(!existsSync(new URL("dist/tokenhub", root)));
   assert.match(read("start.sh"), /build -o.*\.\/cmd\/tokenstation/);
   const dockerfile = read("backend/Dockerfile");

@@ -389,7 +389,7 @@ window.initAlicom4 = function (userConfig,callback) {
     }
 
     jsonp(config.apiServers , config.typePath, config, function (newConfig) {
-            
+
             //错误捕获，第一个load请求可能直接报错
             var newConfig = camelizeKeys(newConfig);
 
@@ -398,7 +398,7 @@ window.initAlicom4 = function (userConfig,callback) {
             }
 
             var type = newConfig.type;
-            
+
             if(config.debug){
                 new _Object(newConfig)._extend(config.debug)
             }

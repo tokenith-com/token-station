@@ -14,7 +14,7 @@ for command in python3 docker curl tar sha256sum awk find cp file git; do
   command -v "$command" >/dev/null || fail "Missing command: $command"
 done
 REPO_ROOT="$(cd "$REPO_ROOT" && pwd)"
-for path in tokenstation-run backend/Dockerfile.native frontend/package-lock.json deploy/native/tokenstation.service data/model-catalog.yaml data/provider-catalog.json LICENSE; do
+for path in tokenstation-run backend/Dockerfile.native maas-ui/package-lock.json deploy/native/tokenstation.service data/model-catalog.yaml data/provider-catalog.json LICENSE; do
   [ -f "$REPO_ROOT/$path" ] || fail "Missing repository file: $path"
 done
 [ -d "$REPO_ROOT/data/builtin-plugins" ] || fail 'Missing builtin plugins'
@@ -55,26 +55,18 @@ cp "$WORK/node-v${NODE_VERSION}-linux-x64/bin/node" "$STAGE/bin/node"
 
 # Build in a temporary source copy so local secrets and build caches are excluded.
 mkdir -p "$WORK/frontend"
-tar -C "$REPO_ROOT/frontend" \
+tar -C "$REPO_ROOT/maas-ui" \
   --exclude='./node_modules' --exclude='./.next' --exclude='./.git' \
   --exclude='./.env' --exclude='./.env.*' -cf - . | tar -C "$WORK/frontend" -xf -
 (
   cd "$WORK/frontend"
   npm ci
-  npm run build
+  NEXT_PUBLIC_TOKENHUB_API_BASE_URL="${NEXT_PUBLIC_TOKENHUB_API_BASE_URL:-http://localhost:8080}" npm run build
 )
-ROOTS=()
-while IFS= read -r candidate; do
-  root="$(dirname "$candidate")"
-  if [ -d "$root/.next" ] && [ -f "$root/package.json" ]; then
-    ROOTS+=("$root")
-  fi
-done < <(find "$WORK/frontend/.next/standalone" -type f -name server.js -print)
-[ "${#ROOTS[@]}" -eq 1 ] || fail 'Expected exactly one standalone frontend root'
-mkdir -p "$STAGE/frontend/.next"
-cp -rL "${ROOTS[0]}/." "$STAGE/frontend/"
-cp -rL "$WORK/frontend/.next/static" "$STAGE/frontend/.next/static"
-cp -rL "$WORK/frontend/public" "$STAGE/frontend/public"
+mkdir -p "$STAGE/frontend"
+cp -R "$WORK/frontend/out" "$STAGE/frontend/out"
+cp "$WORK/frontend/scripts/serve-static.mjs" "$STAGE/frontend/server.js"
+echo '{"type":"module"}' > "$STAGE/frontend/package.json"
 
 cp "$REPO_ROOT/tokenstation-run" "$STAGE/bin/tokenstation-run"
 # Existing systemd units still invoke this path after an in-place update.

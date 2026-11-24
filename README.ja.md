@@ -76,7 +76,7 @@ TokenStation は、モデルの検索、Playground、API アクセス、コス�
 | --- | --- |
 | `backend/` | Go API、認証、ルーティング、永続化、課金、決済サービス |
 | `maas-ui/` | MaaS の企業・個人ポータル。Next.js 静的エクスポート |
-| `frontend/` | 現在のデフォルト構成で使用する従来の Next.js 管理コンソール |
+| `frontend/` | 上流の Next.js 管理コンソール |
 | `data/model-catalog.yaml` | バージョン管理対象のモデルカタログ |
 | `deploy/` | コンテナおよびネイティブデプロイの設定 |
 | `sdk/` | API 統合のスモークテスト |
@@ -86,7 +86,7 @@ TokenStation は、モデルの検索、Playground、API アクセス、コス�
 
 `.nvmrc` の Node バージョンと、バックエンドで宣言された Go ツールチェーンを使用してください。シークレットはローカルで設定し、実際の認証情報や実行時データベースをコミットしないでください。
 
-### バックエンドと従来のコンソールの起動
+### バックエンドと MaaS コンソールの起動
 
 リポジトリのルートで実行します。
 
@@ -96,53 +96,84 @@ TokenStation は、モデルの検索、Playground、API アクセス、コス�
 
 デフォルトのアドレス：
 
-- 従来の管理コンソール：`http://localhost:3000`
+- MaaS コンソール — `http://localhost:5199`
 - バックエンド API：`http://localhost:8080`
 - ヘルスチェック：`http://localhost:8080/healthz`
 
-このスクリプトが起動するのは `frontend/` であり、MaaS コンソールでは**ありません**。
+## 設定とデプロイ
 
-### MaaS コンソールの起動
+TokenStation の配布パッケージは `release` ブランチのバージョンタグからビルドします。
 
-バックエンドを起動した状態で、別のターミナルを開きます。
+### Linux への新規インストール
 
-```bash
-cd maas-ui
-npm ci
-NEXT_PUBLIC_TOKENHUB_API_BASE_URL=http://localhost:8080 npm run dev -- --port 3001
-```
-
-バックエンドの CORS でコンソールのオリジンを許可してください。パスワード、設定済みのシングルサインオン、メール登録を同じ入口から利用できます。
-
-既存の `TOKENHUB_*` および `NEXT_PUBLIC_TOKENHUB_*` 環境変数名は、引き続き互換性のための契約です。製品ブランドに合わせて改名せず、環境変数テンプレートの名前を使用してください。
-
-## デプロイ
-
-### MaaS 静的コンソール
-
-`maas-ui/` でビルドします。例の API アドレスは実際のバックエンド URL に置き換えてください。
+[Releases](https://github.com/tokenith-com/token-station/releases) から対象アーキテクチャの `tokenstation_*.tar.gz` と `checksums.txt` を取得します。以下は amd64 の独立サービスを新しいディレクトリに配置する例です。
 
 ```bash
-NEXT_PUBLIC_TOKENHUB_API_BASE_URL=https://api.example.com npm run build
+archive=tokenstation_0.11.3_linux_amd64.tar.gz
+awk -v f="$archive" '$2 == f {print}' checksums.txt | sha256sum -c - &&
+  sudo install -d /opt/tokenstation &&
+  sudo tar -xzf "$archive" -C /opt/tokenstation
+sudo useradd --system --user-group --no-create-home --shell /usr/sbin/nologin tokenstation
+sudo install -d -m 0750 -o tokenstation -g tokenstation /var/lib/tokenstation
 ```
 
-環境ごとに 1 つの `out/` をビルドして公開します。API URL と任意のパスプレフィックスはビルド時に固定されます。デプロイ先のオリジンに合わせて、HTTPS、静的ルートの処理、バックエンドの CORS を設定してください。[MaaS 静的デプロイガイド](maas-ui/docs/static-DEPLOY.md)を参照してください。
+サーバーに `/etc/tokenstation.env` を作成し、権限を `0600` に設定します。例は SQLite 用です。PostgreSQL の場合は `postgres://user:password@host:5432/database?sslmode=verify-full` を指定します。 ドメインを実際の値に置き換えます。暗号鍵と初期管理者パスワードはそれぞれ `openssl rand -hex 32` で生成します。アップグレード時は既存の暗号鍵を引き継ぎます。
 
-### 既存のマネージド構成
+```dotenv
+TOKENHUB_ENV=prod
+TOKENHUB_HTTP_ADDR=127.0.0.1:18080
+TOKENHUB_FRONTEND_HOST=127.0.0.1
+TOKENHUB_FRONTEND_PORT=13000
+TOKENHUB_PUBLIC_BASE_URL=https://maas.example.com
+TOKENHUB_DATABASE_URL=sqlite:///var/lib/tokenstation/maas.db
+TOKENHUB_SECRET_KEY=<encryption-key>
+TOKENHUB_BOOTSTRAP_ADMIN_PASSWORD=<initial-password>
+TOKENHUB_INSTALL_ROOT=/var/lib/tokenstation
+TOKENHUB_PLUGIN_DIR=/var/lib/tokenstation/plugins
+TOKENHUB_MODEL_CATALOG_FILE=/opt/tokenstation/catalog/model-catalog.yaml
+TOKENHUB_PROVIDER_CATALOG_FILE=/opt/tokenstation/catalog/provider-catalog.json
+```
 
-現在のネイティブおよび Docker のデプロイ経路では、MaaS 静的コンソールではなく従来のコンソールがパッケージ化されます。既存の Docker 構成を使用する場合は、リポジトリのルートで実行します。
+以下を `/etc/systemd/system/tokenstation.service` に保存します。
+
+```ini
+[Unit]
+Description=TokenStation MaaS
+After=network.target
+
+[Service]
+User=tokenstation
+WorkingDirectory=/var/lib/tokenstation
+EnvironmentFile=/etc/tokenstation.env
+ExecStart=/opt/tokenstation/bin/tokenstation-run
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
+```
+
+新規導入では以下を実行します。既存のデータベースではバックアップ後に使用中のインスタンスを停止し、`--initialize` を付けずに `db prepare` を実行します。
 
 ```bash
-cp deploy/.env.example deploy/.env
-# Configure the image/version and replace all change-me secrets before starting.
-./deploy/install.sh
+sudo systemd-run --wait --pipe --collect -p User=tokenstation \
+  -p WorkingDirectory=/var/lib/tokenstation -p EnvironmentFile=/etc/tokenstation.env \
+  /opt/tokenstation/bin/tokenstation db prepare --initialize
+sudo systemctl daemon-reload
+sudo systemctl enable --now tokenstation.service
+curl -fsS http://127.0.0.1:18080/readyz
 ```
 
-デプロイ前にイメージとリリースの取得元を確認してください。既存のデフォルト設定は、個別に公開された TokenStation MaaS リリースではなく、上流の配布チャネルを参照している可能性があります。それらにこのブランチの変更が含まれていると想定しないでください。
+HTTPS リバースプロキシで `/api/`、`/v1/`、`/v1beta/` をそのまま `127.0.0.1:18080` に転送し、その他のリクエストをフロントエンドの `127.0.0.1:13000` に転送します。
 
-SQLite は単一インスタンスのインストールに適しています。PostgreSQL はマルチインスタンス構成で永続データを共有できますが、レプリカ間の協調とコネクションプールを明示的に設定する必要があります。[デプロイガイド](docs/ja/deployment.md)と [PostgreSQL ガイド](docs/ja/postgresql-setup.md)に従ってください。
+### 任意の設定
 
-既存のデータベースをアップグレードする前に、バックアップを作成し、対象バージョンとマイグレーション履歴を照合してください。分岐した開発ブランチから競合するマイグレーションを適用済みの場合は、アップグレード前に履歴の整合性を確保する必要があります。チェックサム検証を回避したり、マイグレーション記録を上書きしたりしないでください。
+| 変数 | 用途 |
+| --- | --- |
+| `TOKENHUB_CORS_ALLOWED_ORIGINS` | クロスオリジン API アクセスを許可するオリジン。複数指定はカンマ区切り。 |
+| `TOKENHUB_PAYMENT_CONFIG_FILE` | 決済設定ファイルの絶対パス。認証情報はサーバー上で管理します。 |
+| `NEXT_PUBLIC_TOKENHUB_API_BASE_URL`, `NEXT_PUBLIC_TOKENHUB_BASE_PATH` | 配布版はルートで公開します。API URL を空にすると、`/api/admin/auth/login` など同一オリジンのパスを使用します。 コンソールをサブパスで公開する場合だけ、サイトのベースパスを設定します。 |
+
+変数一覧 · [backend/.env.example](backend/.env.example) · [maas-ui/.env.example](maas-ui/.env.example)
 
 ## ドキュメント
 
@@ -152,7 +183,7 @@ SQLite は単一インスタンスのインストールに適しています。P
 - [管理者ガイド](docs/ja/administrator-guide.md)
 - [アーキテクチャ](docs/ja/architecture.md)
 - [課金と価格設定](docs/ja/billing-pricing.md)
-- [MaaS 静的デプロイ](maas-ui/docs/static-DEPLOY.md)
+- [MaaS 静的デプロイ](maas-ui/docs/static-deploy.md)
 - [開発・コントリビューションガイド](CONTRIBUTING.ja.md)
 
 ## ライセンス

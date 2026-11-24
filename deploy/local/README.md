@@ -2,8 +2,7 @@
 
 Runs the TokenStation backend and admin console on your own machine from a
 production build, with no Docker, no root and no systemd. The application itself
-is unchanged: the backend is a single Go binary and the console is the Next.js
-standalone server.
+is unchanged: the backend is a single Go binary and the console is the static MaaS build.
 
 This is **not** a deployment path. To install TokenStation on a server, use the
 native systemd installer described in
@@ -23,7 +22,7 @@ Builds both components if needed, then runs them on loopback. All runtime state
 lands in `.tokenhub/` inside the repository (gitignored): the binary, the console
 bundle, the database, the logs and the pid files. Deleting `.tokenhub/` resets
 the instance; building may also refresh the usual ignored frontend artefacts
-(`frontend/node_modules`, `frontend/.next`). Nothing is installed system-wide and
+(`maas-ui/node_modules`, `maas-ui/.next`). Nothing is installed system-wide and
 no service account is created.
 
 In background mode the services are detached from the launching shell and survive
@@ -38,7 +37,7 @@ Verified on Linux. macOS has no `setsid`, so the script falls back to stopping
 the process tree by walking children; that path is implemented but has not been
 exercised on a macOS host.
 
-Unlike `start.sh`, this runs the **production** build — the same standalone
+Unlike `start.sh`, this runs the **production** build — the same static MaaS
 bundle a deployment runs — rather than a dev server, so it surfaces problems that
 only appear in a production build. It uses development credentials
 (`admin` / `admin123456`) and binds loopback only.

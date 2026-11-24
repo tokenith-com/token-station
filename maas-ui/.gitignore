@@ -31,3 +31,7 @@ next-env.d.ts
 
 /.qoder/
 /test-results-components.json
+
+/playwright-report/
+/test-results/
+/ui-test-results/

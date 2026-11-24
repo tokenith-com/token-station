@@ -1,6 +1,8 @@
 name: Native release assets
 
 on:
+  push:
+    tags: ["v[0-9]+.[0-9]+.[0-9]+"]
   release:
     types:
       - published
@@ -15,7 +17,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: native-release-${{ github.repository }}-${{ github.event.release.tag_name || inputs.tag }}
+  group: native-release-${{ github.repository }}-${{ github.event.release.tag_name || inputs.tag || github.ref_name }}
   cancel-in-progress: false
 
 env:
@@ -32,20 +34,30 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
 
+        with:
+          fetch-depth: 0
+
       - name: Validate release tag
         id: release
         env:
           EVENT_NAME: ${{ github.event_name }}
           INPUT_TAG: ${{ inputs.tag }}
+          PUSH_TAG: ${{ github.ref_name }}
           RELEASE_TAG: ${{ github.event.release.tag_name }}
         run: |
           set -euo pipefail
           raw_tag="$INPUT_TAG"
           if [[ "$EVENT_NAME" == "release" ]]; then
             raw_tag="$RELEASE_TAG"
+          elif [[ "$EVENT_NAME" == "push" ]]; then
+            raw_tag="$PUSH_TAG"
           fi
 
           version="$(.github/release/normalize-release-tag.sh "$raw_tag")"
+          git merge-base --is-ancestor "refs/tags/$raw_tag^{commit}" refs/remotes/origin/release || {
+            echo "Release tags must point to commits on the release branch." >&2
+            exit 1
+          }
           echo "tag=v${version}" >>"$GITHUB_OUTPUT"
           echo "version=${version}" >>"$GITHUB_OUTPUT"
 
@@ -72,48 +84,24 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
-          cache-dependency-path: frontend/package-lock.json
+          cache-dependency-path: maas-ui/package-lock.json
           package-manager-cache: false
 
       - name: Build standalone frontend
-        working-directory: frontend
+        working-directory: maas-ui
         env:
           ARCH: ${{ matrix.arch }}
+          NEXT_PUBLIC_TOKENHUB_API_BASE_URL: ${{ vars.NEXT_PUBLIC_TOKENHUB_API_BASE_URL }}
         run: |
           set -euo pipefail
           npm ci
           npm run build
 
-          server_paths=()
-          while IFS= read -r candidate; do
-            candidate_root="$(dirname "$candidate")"
-            if [[ -d "$candidate_root/.next" && -f "$candidate_root/package.json" ]]; then
-              server_paths+=("$candidate")
-            fi
-          done < <(find .next/standalone -type f -name server.js -print)
-          if [[ "${#server_paths[@]}" -ne 1 ]]; then
-            printf 'expected exactly one standalone server root, found %s\n' "${#server_paths[@]}" >&2
-            for candidate in "${server_paths[@]}"; do
-              printf 'candidate: %s\n' "$candidate" >&2
-            done
-            exit 1
-          fi
-          server_path="${server_paths[0]}"
-          standalone_root="$(dirname "$server_path")"
           bundle="../native-frontend-${ARCH}"
-          mkdir -p "$bundle/frontend/.next"
-          cp -rL "$standalone_root/." "$bundle/frontend/"
-          cp -a .next/static "$bundle/frontend/.next/static"
-          cp -a public "$bundle/frontend/public"
-          test -f "$bundle/frontend/server.js"
-
-          sharp_binary="$(find "$bundle" -type f -path '*/@img/sharp-linux-*/lib/*.node' -print -quit)"
-          test -n "$sharp_binary"
-          if [[ "$ARCH" == "arm64" ]]; then
-            file "$sharp_binary" | grep -Eq 'ARM aarch64|aarch64'
-          else
-            file "$sharp_binary" | grep -Eq 'x86-64|x86_64'
-          fi
+          mkdir -p "$bundle/frontend"
+          cp -R out "$bundle/frontend/out"
+          cp scripts/serve-static.mjs "$bundle/frontend/server.js"
+          echo '{"type":"module"}' > "$bundle/frontend/package.json"
           tar -C "$bundle" -czf "../native-frontend-${ARCH}.tar.gz" frontend
 
       - name: Upload frontend bundle
@@ -126,6 +114,9 @@ jobs:
 
   backend:
     name: Build native backend (linux/${{ matrix.arch }})
+    permissions:
+      contents: read
+      packages: write
     needs: prepare
     runs-on: ${{ matrix.runner }}
     strategy:
@@ -145,15 +136,25 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c # v4
 
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@af1e73f918a031802d376d3c8bbc3fe56130a9b0 # v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Build static backend
         env:
           ARCH: ${{ matrix.arch }}
           VERSION: ${{ needs.prepare.outputs.version }}
         run: |
           set -euo pipefail
+          cache_ref="ghcr.io/${GITHUB_REPOSITORY,,}/native-build-cache:${ARCH}"
           mkdir -p "native-backend-${ARCH}"
           docker buildx build \
             --platform "linux/${ARCH}" \
+            --cache-from "type=registry,ref=${cache_ref}" \
+            --cache-to "type=registry,ref=${cache_ref},mode=max,ignore-error=true" \
             --file backend/Dockerfile.native \
             --target artifact \
             --build-arg "TOKENHUB_VERSION=${VERSION}" \
@@ -321,6 +322,13 @@ jobs:
           set -euo pipefail
           cd dist
           sha256sum tokenstation_*.tar.gz tokenhub_*.tar.gz >checksums.txt
+          if [[ "$GITHUB_EVENT_NAME" == push ]]; then
+            gh release create "$RELEASE_TAG" tokenstation_*.tar.gz tokenhub_*.tar.gz checksums.txt \
+              --repo "$GITHUB_REPOSITORY" --verify-tag --prerelease \
+              --title "$RELEASE_TAG" \
+              --notes "Linux amd64 and arm64 packages with the MaaS console. See the README at this tag for configuration and systemd deployment."
+            exit 0
+          fi
           gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" >/dev/null
           gh release upload "$RELEASE_TAG" \
             tokenstation_*.tar.gz \

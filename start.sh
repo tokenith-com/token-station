@@ -162,7 +162,19 @@ cleanup() {
 trap cleanup INT TERM EXIT
 
 GO_CMD="$(find_go)"
+require_command node
 require_command npm
+node - "$ROOT_DIR/.nvmrc" <<'NODE'
+const fs = require("node:fs");
+const required = fs.readFileSync(process.argv[2], "utf8").trim();
+const current = process.versions.node.split(".").map(Number);
+const minimum = required.split(".").map(Number);
+const difference = current.map((value, index) => value - minimum[index]).find(value => value !== 0) ?? 0;
+if (difference < 0) {
+  console.error(`Node.js ${required} or newer is required for the console and bundled subscription adapters.`);
+  process.exit(1);
+}
+NODE
 
 if [ ! -d "$FRONTEND_DIR/node_modules" ]; then
   log "Frontend dependencies not found, running npm install"
@@ -190,6 +202,9 @@ log "Starting backend: $TOKENHUB_HTTP_ADDR"
   if [ -n "$TOKENHUB_PAYMENT_CONFIG_FILE" ]; then
     backend_env+=(TOKENHUB_PAYMENT_CONFIG_FILE="$TOKENHUB_PAYMENT_CONFIG_FILE")
   fi
+  if [[ "$TOKENHUB_DATABASE_URL" == "sqlite://$ROOT_DIR/backend/data/tokenstation.db" ]]; then
+    env "${backend_env[@]}" "$BACKEND_BIN" db prepare --initialize
+  fi
   exec env "${backend_env[@]}" "$BACKEND_BIN"
 ) &
 BACKEND_PID=$!
@@ -198,6 +213,7 @@ log "Starting frontend: http://localhost:$FRONTEND_PORT"
 (
   cd "$FRONTEND_DIR"
   exec env \
+    NEXT_PUBLIC_TOKENHUB_API_BASE_URL="${NEXT_PUBLIC_TOKENHUB_API_BASE_URL:-$TOKENHUB_API_BASE_URL}" \
     TOKENHUB_API_BASE_URL="$TOKENHUB_API_BASE_URL" \
     "$NEXT_BIN" dev --hostname "$FRONTEND_HOST" --port "$FRONTEND_PORT"
 ) &

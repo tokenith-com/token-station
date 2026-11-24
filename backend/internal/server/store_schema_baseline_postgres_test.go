@@ -136,7 +136,7 @@ func TestPostgresBaselineSQLIsCurrent(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer referenceSQL.Close()
-	if err := migrateSchemaObjects(referenceGorm, "postgres"); err != nil {
+	if err := migratePostgresBaselineObjects(referenceGorm); err != nil {
 		t.Fatalf("build reference schema: %v", err)
 	}
 
