@@ -13,6 +13,7 @@ test("typesafe decision modality and input-only pricing can be configured", asyn
     return { json: { data: model } };
   });
   await page.goto("/models");
+    await page.locator('.model-layout-toggle button[data-layout="table"]').click();
   await page.getByRole("group", { name: "发布状态" }).getByRole("button", { name: "全部", exact: true }).click();
   const row = page.getByRole("row").filter({ hasText: model.name });
   await expect(row).toBeVisible();
@@ -24,9 +25,9 @@ test("typesafe decision modality and input-only pricing can be configured", asyn
   await dialog.getByLabel("系列", { exact: true }).fill("jev");
   await dialog.getByLabel("能力标签，逗号分隔", { exact: true }).fill("systemone");
   await dialog.getByLabel("显示名称", { exact: true }).fill("Jev Support Decisions");
-  await dialog.getByLabel(/^对外输入价 ¥\/1M/).fill("0.042");
-  await dialog.getByLabel("对外输出价 ¥/1M", { exact: true }).fill("0");
-  await expect(dialog.getByLabel("对外输出价 ¥/1M", { exact: true })).toHaveValue("0");
+  await dialog.getByLabel(/^对外输入价 \$\/1M/).fill("0.042");
+  await dialog.getByLabel("对外输出价 $/1M", { exact: true }).fill("0");
+  await expect(dialog.getByLabel("对外输出价 $/1M", { exact: true })).toHaveValue("0");
   await capture(page, testInfo, dialog, "typesafe-decision-model", "Jev 决策模型：独立能力与免费输出", "viewport");
   await dialog.getByRole("button", { name: "保存", exact: true }).click();
   await expect(dialog).toBeHidden();

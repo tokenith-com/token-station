@@ -3,6 +3,7 @@ import type { AdminResource, AdminUser } from "../core/types";
 import { emptyData } from "../domain/catalog";
 import { setActiveLanguage } from "../i18n/runtime";
 import { resourceConfigFor } from "./settings-config";
+import { defaultFormValues } from "./payloads";
 
 const admin: AdminUser = { id: "usr_admin", username: "admin", name: "Admin", email: "admin@example.test", role: "admin", status: "active", team_id: "team_a" };
 const template: AdminResource = { id: "quota_default", kind: "quota-policies", name: "Default user quota", status: "active", fields: { scope: "user", scope_id: "all_users", monthly_cost_usd: 50 } };
@@ -60,6 +61,11 @@ describe("default user quota configuration", () => {
 
 describe("quota policy scope choices", () => {
   const scopeField = () => config.fields.find((item) => item.key === "scope")!;
+
+  it("defaults team leader forms to their permitted user scope", () => {
+    expect(defaultFormValues(config, emptyData(), { ...admin, role: "team_leader" }).scope).toBe("user");
+    expect(defaultFormValues(config, emptyData(), admin).scope).toBe("project");
+  });
 
   it("lets an administrator pick every scope", () => {
     const options = scopeField().optionsFromData!(emptyData(), admin);

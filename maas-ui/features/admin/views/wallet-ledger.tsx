@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import type { ApiContext } from "../core/types";
+import { PaginationControls, usePagination } from "../shared/pagination";
 import { loadWalletLedger, walletReadErrorCopy, walletMoney, type WalletCopy, type WalletLedgerResponse } from "./wallet-contract";
 
 export function WalletLedger(props: { api: ApiContext; teamID: string; copy: WalletCopy }) {
@@ -7,15 +8,21 @@ export function WalletLedger(props: { api: ApiContext; teamID: string; copy: Wal
 }
 function WalletLedgerContent({ api, teamID, copy }: { api: ApiContext; teamID: string; copy: WalletCopy }) {
   const { tx, locale } = copy;
-  const [offset, setOffset] = useState(0);
+  const [total, setTotal] = useState(0);
+  const pagination = usePagination(total, teamID);
+  const offset = pagination.startIndex;
+  const limit = pagination.pageSize;
   const [revision, setRevision] = useState(0);
   const [state, setState] = useState<{ data?: WalletLedgerResponse; error?: string }>({});
   useEffect(() => {
     let active = true;
-    if (teamID) void loadWalletLedger(api, teamID, offset).then(data => { if (active) setState({ data }); }, error => { if (active) setState({ error: walletReadErrorCopy(error) }); });
+    if (teamID) void loadWalletLedger(api, teamID, offset, undefined, limit).then(data => { if (active) { setTotal(data.total); setState({ data }); } }, error => { if (active) setState({ error: walletReadErrorCopy(error) }); });
     return () => { active = false; };
-  }, [api, teamID, offset, revision]);
-  function page(next: number) { setState({}); setOffset(next); }
+  }, [api, teamID, offset, limit, revision]);
+  const controls = { ...pagination,
+    setPage: (next: number) => { if (next === pagination.page) return; setState({}); pagination.setPage(next); },
+    setPageSize: (next: number) => { if (next === pagination.pageSize) return; setState({}); pagination.setPageSize(next); },
+  };
   return <section aria-label={tx("资金流水")}>
     <h3>{tx("资金流水")}</h3>
     {!teamID ? <p>{tx("未关联团队，无法读取钱包")}</p> : state.error ? <div role="alert">{tx("资金流水加载失败")}：{tx(state.error)} <button type="button" className="secondary-button" onClick={() => { setState({}); setRevision(value => value + 1); }}>{tx("重试")}</button></div> : !state.data ? <p role="status">{tx("正在加载资金流水…")}</p> : <>
@@ -26,7 +33,7 @@ function WalletLedgerContent({ api, teamID, copy }: { api: ApiContext; teamID: s
         <td>{walletMoney(entry.actual_amount_micros ?? (entry.kind === "call" ? undefined : entry.amount_micros), locale)}</td><td>{entry.kind === "call" ? walletMoney(entry.reserved_micros, locale) : "—"}</td><td>{walletMoney(entry.before_balance_micros, locale)}</td><td>{walletMoney(entry.after_balance_micros, locale)}</td>
         <td>{entry.actor_name || entry.actor_user_id || "—"}</td><td style={{ overflowWrap: "anywhere" }}>{entry.remark || "—"}</td><td>{entry.request_id}</td>
       </tr>)}</tbody></table></div>}
-      <div className="modal-actions"><button className="secondary-button" type="button" disabled={offset === 0} onClick={() => page(Math.max(0, offset - 20))}>{tx("上一页")}</button><span>{new Intl.NumberFormat(locale).format(state.data.total)} {tx("条记录")}</span><button className="secondary-button" type="button" disabled={offset + 20 >= state.data.total} onClick={() => page(offset + 20)}>{tx("下一页")}</button></div>
+      <PaginationControls pagination={controls} totalItems={total} alwaysVisible />
     </>}
   </section>;
 }

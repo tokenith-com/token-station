@@ -95,6 +95,7 @@ for (const locale of locales) {
     await editor.getByTitle(locale.close, { exact: true }).click();
 
     await openLocalizedPage(page, "/models", locale);
+    await page.locator('.model-layout-toggle button[data-layout="table"]').click();
     const models = page.locator(".model-directory-table");
     await expect(models.getByRole("columnheader")).toHaveCount(6);
     await expect(models.getByRole("columnheader", { name: locale.price, exact: true })).toHaveCount(1);

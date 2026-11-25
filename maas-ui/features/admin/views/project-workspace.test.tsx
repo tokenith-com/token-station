@@ -1,4 +1,4 @@
-import { render } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { emptyData } from "../domain/catalog";
 import { ProjectWorkspace, projectWorkspaceDraft, saveProjectWorkspaceDraft } from "./project-workspace";
@@ -80,5 +80,39 @@ describe("project workspace model scope", () => {
     const body = JSON.parse(calls[0]) as Record<string, unknown>;
     expect(body.model_access_mode).toBe("restricted");
     expect(body.allowed_models).toEqual(["model-a", "model-b"]);
+  });
+});
+
+
+describe("consumer project workspace", () => {
+  const consumer = { ...project, id: "prj_consumer", team_id: "", teams: [] };
+  it("allows model scope submission without a primary team", () => {
+    const onSave = vi.fn();
+    render(<ProjectWorkspace mode="edit" data={emptyData()} project={consumer} loading={false} onClose={vi.fn()} onEdit={vi.fn()} onSave={onSave} onIssueKey={vi.fn()} onAction={vi.fn()} onCreateMember={vi.fn()} onEditMember={vi.fn()} onDeleteMember={vi.fn()} />);
+    expect(screen.queryByText("主团队（必选）")).not.toBeInTheDocument();
+    expect(document.querySelector("select[required]")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "保存更改" }));
+    expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ model_access_mode: "restricted", allowed_models: ["model-a", "model-b"] }));
+  });
+  it("saves model restrictions without team writes, even if the draft has stale team selections", async () => {
+    const original = globalThis.fetch;
+    const fetch = vi.fn().mockResolvedValue(Response.json(consumer));
+    globalThis.fetch = fetch;
+    try {
+      const draft = { ...projectWorkspaceDraft(consumer), primary_team_id: "stale-team" };
+      await saveProjectWorkspaceDraft({ baseURL: "http://gateway.local", adminToken: "fixture" }, consumer, draft);
+      expect(fetch).toHaveBeenCalledTimes(1);
+      const [path, init] = fetch.mock.calls[0];
+      expect(String(path)).toContain("/api/admin/projects/prj_consumer");
+      expect(init.method).toBe("PATCH");
+      const body = JSON.parse(init.body);
+      expect(body).not.toHaveProperty("team_id");
+      expect(body).toMatchObject({ model_access_mode: "restricted", allowed_models: ["model-a", "model-b"] });
+    } finally { globalThis.fetch = original; }
+  });
+  it("retains required primary team selection for enterprise projects", () => {
+    renderWorkspace(true);
+    expect(screen.getByText("主团队（必选）")).toBeInTheDocument();
+    expect(document.querySelector("select[required]")).not.toBeNull();
   });
 });

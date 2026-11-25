@@ -28,13 +28,13 @@ for (const scenario of ["save", "failed-save"] as const) {
     await page.getByRole("combobox", { name: "作用域", exact: true }).selectOption("user");
     const target = page.getByRole("combobox", { name: /^作用域对象/ });
     await target.selectOption("all_users");
-    await page.getByRole("spinbutton", { name: "月成本 ¥", exact: true }).fill("50");
+    await page.getByRole("spinbutton", { name: "月成本 $", exact: true }).fill("50");
     await capture(page, testInfo, target.locator(".."), `default-user-${scenario}-target`, "默认用户额度：独立额度与严格合并说明");
     await page.getByRole("button", { name: "保存", exact: true }).click();
     if (scenario === "failed-save") {
       await expect(page.getByRole("alert").getByText("Policy could not be saved", { exact: true })).toBeVisible();
       await expect(target).toHaveValue("all_users");
-      await expect(page.getByRole("spinbutton", { name: "月成本 ¥", exact: true })).toHaveValue("50");
+      await expect(page.getByRole("spinbutton", { name: "月成本 $", exact: true })).toHaveValue("50");
       return;
     }
     const row = page.getByRole("row").filter({ hasText: "Default monthly allowance" });
@@ -42,7 +42,7 @@ for (const scenario of ["save", "failed-save"] as const) {
     await expect(row).toContainText("所有用户（每人独立额度）");
     await row.getByRole("button", { name: "编辑", exact: true }).click();
     await expect(target).toHaveValue("all_users");
-    await page.getByRole("spinbutton", { name: "月成本 ¥", exact: true }).fill("25");
+    await page.getByRole("spinbutton", { name: "月成本 $", exact: true }).fill("25");
     await page.getByRole("button", { name: "保存", exact: true }).click();
     await expect(target).toHaveCount(0);
     await expect(row).toContainText("按用户分别统计");
@@ -72,13 +72,13 @@ const teamMember: AdminUser = {
 test.describe("quota default-user permissions", () => {
   test.use({ sessionUser: teamLeader });
 
-  test("quota default-user-team-leader-cannot-access-policies", async ({ page, api }, testInfo) => {
+  test("quota team-leader-manages-members-without-global-scope", async ({ page, api }, testInfo) => {
     api.define("GET", "/api/admin/api-keys", () => ({ json: { data: [] } }), query => {
       expect(Object.fromEntries(query)).toEqual({ page: "1", page_size: "1000", limit: "1000" });
     });
     api.respond("GET", "/api/admin/users", { data: [teamLeader, teamMember] });
     api.respond("GET", "/api/admin/resources/teams", { data: [{ id: "team_ui", name: "UI Review Team", status: "active" }] });
-    const wallet = { id: "wallet_ui_team", scope_type: "team", scope_id: "team_ui", balance_micro: 0, credit_limit_micro: 0, reserved_micro: 0, available_micro: 0, settled_usage_micro: 0, currency: "CNY", status: "active", created_at: "2026-06-20T00:00:00Z", updated_at: "2026-06-20T00:00:00Z" };
+    const wallet = { id: "wallet_ui_team", scope_type: "team", scope_id: "team_ui", balance_micro: 0, credit_limit_micro: 0, reserved_micro: 0, available_micro: 0, settled_usage_micro: 0, currency: "USD", status: "active", created_at: "2026-06-20T00:00:00Z", updated_at: "2026-06-20T00:00:00Z" };
     api.respond("GET", "/api/admin/teams/team_ui/wallet", { data: wallet });
     api.define("GET", "/api/admin/audit/requests", () => ({ json: { data: [] } }), query => {
       expect(Object.fromEntries(query)).toEqual({ page: "1", page_size: "100", q: "", status: "all" });
@@ -86,11 +86,17 @@ test.describe("quota default-user permissions", () => {
     api.respond("GET", "/api/admin/usage/timeseries", { data: [] });
     api.respond("GET", "/api/admin/resources/announcements", { data: [] });
 
+    api.respond("GET", "/api/admin/resources/quota-policies", { data: [] });
     await page.goto("/quota-policies");
-    await expect(page).toHaveURL(/\/overview\/?$/);
-    await expect(page.getByRole("button", { name: "新增额度策略", exact: true })).toHaveCount(0);
-    await expect(page.getByRole("heading", { name: "额度策略", exact: true })).toHaveCount(0);
-    expect(api.calls.filter(call => call.path === "/api/admin/resources/quota-policies")).toHaveLength(0);
-    await capture(page, testInfo, page.locator(".app-shell"), "default-user-team-leader-target", "Team leaders cannot access global quota policies", "viewport");
+    await expect(page).toHaveURL(/\/quota-policies\/?$/);
+    await page.getByRole("button", { name: "新增额度策略", exact: true }).first().click();
+    const scope = page.getByRole("combobox", { name: "作用域", exact: true });
+    await expect(scope).toHaveValue("user");
+    await expect(scope.locator('option[value]:not([value=""])')).toHaveCount(1);
+    await expect(scope.locator('option[value="project"], option[value="global"]')).toHaveCount(0);
+    const target = page.getByRole("combobox", { name: /^作用域对象/ });
+    await expect(target.locator('option[value="all_users"]')).toHaveCount(0);
+    await expect(target.locator(`option[value="${teamMember.id}"]`)).toHaveCount(1);
+    await capture(page, testInfo, page.locator("form.modal"), "team-leader-member-quota", "Team leaders manage member quotas without platform scopes", "viewport");
   });
 });

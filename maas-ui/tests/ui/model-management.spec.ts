@@ -25,6 +25,7 @@ for (const mobile of [false, true]) {
     if (mobile) await page.setViewportSize({ width: 390, height: 844 });
     installDirectory(api);
     await page.goto("/models");
+    await page.locator('.model-layout-toggle button[data-layout="table"]').click();
     const table = page.locator(".model-directory-table");
     await expect(table.getByRole("columnheader")).toHaveCount(6);
     await expect(table.getByText(disabled.name, { exact: true })).toHaveCount(0);
@@ -112,6 +113,7 @@ for (const locale of [
     await page.setViewportSize({ width: 2800, height: 1000 });
     installDirectory(api);
     await page.goto("/models");
+    await page.locator('.model-layout-toggle button[data-layout="table"]').click();
     const directory = page.locator(".model-directory");
     const row = directory.getByRole("row").filter({ hasText: published.name });
     const actions = row.locator(".model-management-actions");
@@ -202,7 +204,7 @@ test("models create-template-save-failure", async ({ page, api }, info) => {
   await editor.getByRole("button", { name: new RegExp(template.name) }).click();
   await editor.getByRole("button", { name: "下一步：选择 Provider 模型" }).click();
   await expect(editor.getByRole("button", { name: "高级模型设置" })).toHaveAttribute("aria-expanded", "false");
-  for (const label of [/^对外缓存写价 ¥\/1M/, /^对外 5 分钟缓存写价 ¥\/1M/, /^对外 1 小时缓存写价 ¥\/1M/, /^分时价格配置（JSON）/]) await expect(editor.getByLabel(label)).not.toBeVisible();
+  for (const label of [/^对外缓存写价 \$\/1M/, /^对外 5 分钟缓存写价 \$\/1M/, /^对外 1 小时缓存写价 \$\/1M/, /^分时价格配置（JSON）/]) await expect(editor.getByLabel(label)).not.toBeVisible();
   await editor.getByLabel("对外模型 ID", { exact: true }).fill("ui-reviewed-alias");
   await editor.getByRole("checkbox", { name: `${provider.name} / ${inventory.upstream_model}` }).check();
   await capture(page, info, editor, "models-create-template", "从模板创建模型：必填字段与定价", "viewport");
@@ -215,6 +217,6 @@ test("models create-template-save-failure", async ({ page, api }, info) => {
   const pricingPeriods = editor.getByLabel(/^分时价格配置（JSON）/);
   await pricingPeriods.scrollIntoViewIfNeeded();
   await expect(pricingPeriods).toHaveValue(JSON.stringify(pricedTemplate.pricing_periods, null, 2));
-  for (const label of [/^对外缓存写价 ¥\/1M/, /^对外 5 分钟缓存写价 ¥\/1M/, /^对外 1 小时缓存写价 ¥\/1M/]) await expect(editor.getByLabel(label)).toHaveValue("0");
+  for (const label of [/^对外缓存写价 \$\/1M/, /^对外 5 分钟缓存写价 \$\/1M/, /^对外 1 小时缓存写价 \$\/1M/]) await expect(editor.getByLabel(label)).toHaveValue("0");
   await capture(page, info, editor, "models-create-advanced-pricing", "高级模型设置：缓存写入费用与分时价格", "viewport");
 });

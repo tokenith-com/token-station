@@ -8,7 +8,8 @@ const { apiOrigin, distDirectory, outputDirectory } = configuration;
 const frontend = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const args = process.argv.slice(2);
 const capture = args.includes("--capture");
-const forwarded = args.filter(arg => arg !== "--capture");
+const sameOrigin = args.includes("--same-origin");
+const forwarded = args.filter(arg => arg !== "--capture" && arg !== "--same-origin");
 if (forwarded.some(arg => arg === "-c" || arg.startsWith("-c=") || arg === "--config" || arg.startsWith("--config="))) {
   throw new Error("The UI configuration is fixed; use a test file filter or --grep to select scenarios.");
 }
@@ -24,7 +25,7 @@ const environment = Object.fromEntries(Object.entries(process.env).filter(([key]
 Object.assign(environment, {
   TOKENHUB_UI_RUN: "1", TOKENHUB_UI_CAPTURE: capture ? "1" : "0",
   // 静态部署没有代理，浏览器直连 apiOrigin（由 MockAPI 拦截）。
-  NEXT_PUBLIC_TOKENHUB_API_BASE_URL: apiOrigin, TOKENHUB_NEXT_DIST_DIR: distDirectory, NEXT_TELEMETRY_DISABLED: "1",
+  NEXT_PUBLIC_TOKENHUB_API_BASE_URL: sameOrigin ? "/" : apiOrigin, TOKENHUB_NEXT_DIST_DIR: distDirectory, NEXT_TELEMETRY_DISABLED: "1", TOKENHUB_UI_SAME_ORIGIN: sameOrigin ? "1" : "0",
 });
 let child;
 let interrupted = false;

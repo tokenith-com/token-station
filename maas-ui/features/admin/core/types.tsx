@@ -5,6 +5,7 @@ import type { ResourceAction } from "./resource-action";
 
 export type Summary = {
   request_count: number;
+  success_count?: number;
   input_tokens: number;
   cached_input_tokens?: number;
   cache_write_input_tokens?: number;
@@ -1136,8 +1137,8 @@ export type RequestDetail = {
   log: RequestLog;
   usage: UsageRecord[];
   attempts: RouteAttemptLog[];
-  // Prompt and completion bodies never leave the server; only this derived
-  // diagnosis is sent back.
+  // Full snapshots are returned only to platform administrators.
+  payload?: RequestPayloadLog | null;
   error_detail?: { message?: string; before_upstream?: boolean } | null;
   // Resolved server-side because members cannot read the user directory.
   account?: string;
@@ -1203,6 +1204,7 @@ export type UsageDaily = {
 
 export type APIKeyUsageMetrics = {
   request_count: number;
+  success_count?: number;
   error_count: number;
   average_latency_ms: number;
   input_tokens: number;

@@ -73,6 +73,7 @@ test("route-management opens-unmapped-model-from-directory", async ({ page, api 
     return { json: created };
   });
   await page.goto("/models");
+    await page.locator('.model-layout-toggle button[data-layout="table"]').click();
   await page.getByRole("button", { name: "草稿/待映射", exact: true }).click();
   const row = page.getByRole("row").filter({ hasText: unmapped.name });
   await row.getByRole("button", { name: `路由策略：${unmapped.name}`, exact: true }).click();

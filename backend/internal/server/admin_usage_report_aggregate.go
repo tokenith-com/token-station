@@ -102,6 +102,10 @@ func (a *usageReportAggregate) addRequest(log UsageReportRequest) {
 	bucket := usageReportBucket(a.buckets, usageReportBucketKey(log.CreatedAt, a.location, a.granularity))
 	a.summary.RequestCount++
 	bucket.RequestCount++
+	if log.StatusCode < 400 {
+		a.summary.SuccessCount++
+		bucket.SuccessCount++
+	}
 	if isOperationalError(log.StatusCode, log.ErrorCode) {
 		a.summary.Errors++
 		bucket.Errors++
@@ -209,6 +213,7 @@ func addUsageReportTokens(summary *UsageSummary, record UsageRecord) {
 
 func mergeUsageReportSummary(summary *UsageSummary, other UsageSummary) {
 	summary.RequestCount += other.RequestCount
+	summary.SuccessCount += other.SuccessCount
 	summary.UsageRecordCount += other.UsageRecordCount
 	summary.InputTokens += other.InputTokens
 	summary.CachedInputTokens += other.CachedInputTokens

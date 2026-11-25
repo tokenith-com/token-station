@@ -1,6 +1,7 @@
 import { memberContentTestJaTranslations, modelAccessModeTranslations } from "./user-model-access";
 
 export const jaTranslations: Record<string, string> = {
+  "C 端默认项目无需关联团队，模型范围适用于所有 C 端用户。": "コンシューマー既定プロジェクトはチーム不要で、モデル範囲はすべてのコンシューマーに適用されます。",
     "结算配置": "決済設定", "配置团队钱包结算使用的 USD → CNY 汇率。": "チームウォレットの決済に使用する USD → CNY 為替レートを設定します。", "请填写此字段": "このフィールドを入力してください",
     "继承上级": "上位設定を継承",
     "总览": "概要",

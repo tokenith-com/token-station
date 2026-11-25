@@ -158,7 +158,11 @@ func main() {
 }
 
 export function apiGatewayBaseURL(baseURL: string) {
-  const trimmed = (baseURL || "http://localhost:8080").replace(/\/+$/, "");
+  const configured = baseURL.trim() || "http://localhost:8080";
+  const absolute = configured.startsWith("/") && typeof window !== "undefined"
+    ? new URL(configured, window.location.origin).href
+    : configured;
+  const trimmed = absolute.replace(/\/+$/, "");
   return trimmed.endsWith("/v1") ? trimmed : `${trimmed}/v1`;
 }
 

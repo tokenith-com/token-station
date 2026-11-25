@@ -72,7 +72,7 @@ test("api-key-edit clears the restricted allowlist without switching to inherita
   setup(api, { patch });
   const { row, modal } = await openEditor(page);
   await modal.getByRole("textbox", { name: /模型允许列表/ }).fill("");
-  await expect(modal).toContainText("restricted 且留空表示禁止此 Key 访问任何模型。");
+  await expect(modal).toContainText("白名单模式且留空表示禁止此 Key 访问任何模型。");
   await modal.getByRole("button", { name: "保存", exact: true }).click();
   await expect(modal).toHaveCount(0);
   await expect(row).toContainText("禁止全部模型");

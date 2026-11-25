@@ -76,7 +76,7 @@ for (const size of [{ width: 1366, height: 598 }, { width: 1920, height: 1080 }]
     const errors: string[] = [];
     page.on("pageerror", error => errors.push(error.message));
     await page.goto("/usage/");
-    await expect(page.locator(".sidebar .nav-item")).toHaveText(["团队总览", "团队报表", "可用模型", "模型演练场", "Key 管理", "接口文档", "团队成员", "请求日志"]);
+    await expect(page.locator(".sidebar .nav-item")).toHaveText(["团队总览", "团队报表", "可用模型", "模型演练场", "Key 管理", "接口文档", "团队成员", "用户模型权限", "用户额度", "请求日志"]);
     await expectPageFits(page);
     await expect(page.getByRole("navigation", { name: "当前位置" })).toContainText("团队报表");
     await page.getByRole("button", { name: "7 天", exact: true }).click();
@@ -191,7 +191,7 @@ for (const role of ["admin", "team_leader", "user"] as const) {
       ? [{ view: "users", label: "新增用户" }, { view: "teams", label: "新增团队分组" }, { view: "models", label: "新建对外模型" }, { view: "providers", label: "添加供应商" }, { view: "projects", label: "新建项目并配置团队" }]
       : role === "team_leader"
         ? [{ view: "users", label: "新增团队成员" }, { view: "teams", label: "新增团队分组" }, { view: "api-keys", label: "发放 Key" }, { view: "projects", label: "新建项目并配置团队" }]
-        : [{ view: "api-keys", label: "创建 Key" }];
+        : [{ view: "api-keys", label: "新建 API Key" }];
     for (const { view, label } of dialogs) {
       await test.step(view, async () => {
         await page.goto(`${viewRoutes[view as keyof typeof viewRoutes]}/`);

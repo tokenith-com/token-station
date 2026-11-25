@@ -17,9 +17,10 @@ for (const mobile of [false, true]) {
     api.respond("GET", "/api/admin/routing-rules", { data: routes });
     api.respond("GET", "/api/admin/provider-catalog", { data: [] });
     await page.goto("/models");
+    await page.locator('.model-layout-toggle button[data-layout="table"]').click();
     const table = page.locator(".model-directory-table");
-    await expect(table.getByRole("row").filter({ hasText: "ui-bge-embedding" })).toContainText("¥0.500000");
-    await expect(table.getByRole("row").filter({ hasText: "ui-bge-rerank" })).toContainText("¥0.003000");
+    await expect(table.getByRole("row").filter({ hasText: "ui-bge-embedding" })).toContainText("$0.500000");
+    await expect(table.getByRole("row").filter({ hasText: "ui-bge-rerank" })).toContainText("$0.003000");
     await expect(table).not.toContainText("0 ctx");
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
     if (!mobile) expect(await page.locator(".model-directory-table-wrap").evaluate(el => el.scrollWidth <= el.clientWidth + 1)).toBe(true);
@@ -87,10 +88,10 @@ test(`retrieval-layout inventory-${mobile ? "mobile" : "desktop"}`, async ({ pag
   const editor = page.locator(".provider-modal");
   await editor.getByRole("tab", { name: "模型", exact: true }).click();
   const inventory = editor.locator(".provider-model-inventory");
-  await expect(inventory.getByText("缓存读成本 ¥/1M", { exact: true })).toHaveCount(0);
+  await expect(inventory.getByText("缓存读成本 $/1M", { exact: true })).toHaveCount(0);
   await expect(inventory.getByText("输入成本尚未确认（不阻断已有线路）", { exact: true })).toBeVisible();
   await capture(page, testInfo, editor, `unconfirmed-cost-${mobile ? "mobile" : "desktop"}`, "零输入成本未确认提示", "viewport");
-  await inventory.getByLabel("输入成本 ¥/1M: bge-m3", { exact: true }).fill("0.4");
+  await inventory.getByLabel("输入成本 $/1M: bge-m3", { exact: true }).fill("0.4");
   await inventory.locator(".retrieval-cost-row").filter({ hasText: "bge-m3" }).getByRole("button", { name: "保存成本", exact: true }).click();
   await expect(inventory).toContainText("渠道成本价已保存");
   await expect(inventory.locator(".retrieval-cost-row").filter({hasText:"bge-m3"}).getByRole("button",{name:"保存成本",exact:true})).toBeEnabled();
@@ -111,9 +112,10 @@ test("retrieval-layout distinguishes free and unknown prices", async ({ page, ap
   api.respond("GET", "/api/admin/routing-rules", { data: freeModels.map((model, index) => ({ ...routes[0], id: `free-route-${index}`, model_name: model.name })) });
   api.respond("GET", "/api/admin/provider-catalog", { data: [] });
   await page.goto("/models");
+    await page.locator('.model-layout-toggle button[data-layout="table"]').click();
   const table = page.locator(".model-directory-table");
-  await expect(table.getByRole("row").filter({ hasText: "confirmed-free" })).toContainText("¥0.000000/Mt");
-  await expect(table.getByRole("row").filter({ hasText: "unconfirmed-price" })).toContainText("¥-");
+  await expect(table.getByRole("row").filter({ hasText: "confirmed-free" })).toContainText("$0.000000/Mt");
+  await expect(table.getByRole("row").filter({ hasText: "unconfirmed-price" })).toContainText("$-");
   await capture(page, info, table, "free-vs-unknown", "明确免费与未配置单价", "viewport");
 });
 
@@ -134,7 +136,7 @@ for (const mobile of [false, true]) {
     await expect(panel.getByRole("alert")).toContainText(message);
     expect(await panel.evaluate(el => el.scrollWidth <= el.clientWidth + 1)).toBe(true);
     expect(await panel.getByRole("alert").evaluate(el => el.scrollWidth <= el.clientWidth + 1)).toBe(true);
-    await expect(panel.locator(".request-usage-total")).not.toContainText("¥0.000000");
+    await expect(panel.locator(".request-usage-total")).not.toContainText("$0.000000");
     await expect(panel.getByRole("alert")).toContainText("请求在路由检查阶段被拒绝，尚未发送到上游。");
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
     await panel.getByRole("alert").scrollIntoViewIfNeeded();

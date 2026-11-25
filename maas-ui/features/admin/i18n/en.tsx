@@ -1,4 +1,5 @@
 export const enTranslations: Record<string, string> = {
+  "C 端默认项目无需关联团队，模型范围适用于所有 C 端用户。": "The default consumer project requires no team; its model scope applies to all consumers.",
     "结算配置": "Settlement Settings", "配置团队钱包结算使用的 USD → CNY 汇率。": "Configure the USD → CNY exchange rate for team wallet settlement.", "请填写此字段": "Please fill out this field",
     "继承上级": "Inherit from parent",
     "总览": "Overview",

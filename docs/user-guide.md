@@ -4,6 +4,12 @@ Language: English | [简体中文](zh-CN/user-guide.md) | [日本語](ja/user-gu
 
 This guide is for employees and application developers who call approved large language models through TokenStation.
 
+## Request Log Privacy
+
+Only platform administrators (`admin`) can inspect stored request and response body snapshots in Request Logs. Security administrators, team leaders, members, and consumers cannot retrieve these snapshots through the request-detail API or console. Error diagnosis remains available within each role's existing request access scope. This does not change snapshot capture, redaction, truncation, or retention; missing or expired bodies cannot be recovered from this view.
+
+Success rate uses requests with status codes below 400 divided by all requests in the same scope. Client cancellations (499/request_cancelled) count toward total requests, but are neither successes nor operational errors.
+
 ## What You Need
 
 | Item | Purpose |
