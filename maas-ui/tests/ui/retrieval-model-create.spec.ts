@@ -31,11 +31,11 @@ for (const modality of ["rerank", "embedding"] as const) {
     const confirmation = editor.getByRole("radiogroup", { name: "确认检索模型收费配置（包含免费价格）", exact: true });
     await expect(confirmation).toBeVisible();
     if (modality === "rerank") {
-      const price = editor.getByLabel("搜索单元价格 ¥/次", { exact: true });
+      const price = editor.getByLabel("搜索单元价格 $/次", { exact: true });
       await expect(price).toHaveValue("0.003");
       await price.fill("0.004");
     } else {
-      await expect(editor.getByLabel("搜索单元价格 ¥/次", { exact: true })).toHaveCount(0);
+      await expect(editor.getByLabel("搜索单元价格 $/次", { exact: true })).toHaveCount(0);
     }
     await editor.locator(".model-create-pricing-note").scrollIntoViewIfNeeded();
     await capture(page, testInfo, editor, `create-${modality}-pricing`, "检索模型创建定价配置", "viewport");

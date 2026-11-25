@@ -174,7 +174,7 @@ function UsageRangeToolbar({ rangeOption, customFrom, customTo, error, onPreset,
 }
 
 function UsageSummary({ metrics }: { metrics: APIKeyUsageMetrics }) {
-  const successCount = Math.max(0, metrics.request_count - metrics.error_count);
+  const successCount = metrics.success_count ?? Math.max(0, metrics.request_count - metrics.error_count);
   return (
     <section className="api-key-usage-kpis">
       <UsageKPI label="请求总数" value={formatNumber(metrics.request_count)} detail={formatTranslationTemplate(tx("成功 {success} · 失败 {failure}"), { success: formatNumber(successCount), failure: formatNumber(metrics.error_count) })} />

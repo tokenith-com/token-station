@@ -23,6 +23,7 @@ type APIKeyUsageQuery struct {
 
 type APIKeyUsageMetrics struct {
 	RequestCount      int64   `json:"request_count"`
+	SuccessCount      int64   `json:"success_count"`
 	ErrorCount        int64   `json:"error_count"`
 	AverageLatencyMS  int64   `json:"average_latency_ms"`
 	InputTokens       int64   `json:"input_tokens"`
@@ -80,6 +81,7 @@ type apiKeyUsageDatabaseRow struct {
 	ErrorCode         string
 	LastOccurredAt    apiKeyUsageTime
 	RequestCount      int64
+	SuccessCount      int64
 	ErrorCount        int64
 	AverageLatency    float64
 	InputTokens       int64
@@ -215,6 +217,7 @@ func (s *GormStore) apiKeyUsageBaseQuery(db *gorm.DB, query APIKeyUsageQuery) *g
 
 func apiKeyUsageMetricSelect() string {
 	return `COUNT(*) AS request_count,
+		COALESCE(SUM(CASE WHEN rl.status_code < 400 THEN 1 ELSE 0 END), 0) AS success_count,
 		COALESCE(SUM(CASE WHEN ` + operationalErrorSQL("rl.") + ` THEN 1 ELSE 0 END), 0) AS error_count,
 		COALESCE(AVG(rl.latency_ms), 0) AS average_latency,
 		COALESCE(SUM(usage_agg.input_tokens), 0) AS input_tokens,
@@ -296,7 +299,7 @@ func apiKeyUsageBreakdownRows(rows []apiKeyUsageDatabaseRow) []APIKeyUsageBreakd
 
 func apiKeyUsageMetricsFromRow(row apiKeyUsageDatabaseRow) APIKeyUsageMetrics {
 	return APIKeyUsageMetrics{
-		RequestCount: row.RequestCount, ErrorCount: row.ErrorCount, AverageLatencyMS: int64(row.AverageLatency + 0.5),
+		RequestCount: row.RequestCount, SuccessCount: row.SuccessCount, ErrorCount: row.ErrorCount, AverageLatencyMS: int64(row.AverageLatency + 0.5),
 		InputTokens: row.InputTokens, CachedInputTokens: row.CachedInputTokens, CacheWriteTokens: row.CacheWriteTokens,
 		InputAudioTokens: row.InputAudioTokens, OutputTokens: row.OutputTokens, ReasoningTokens: row.ReasoningTokens,
 		OutputAudioTokens: row.OutputAudioTokens, AcceptedTokens: row.AcceptedTokens, RejectedTokens: row.RejectedTokens,

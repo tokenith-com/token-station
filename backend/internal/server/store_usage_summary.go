@@ -25,6 +25,7 @@ type UsageSummaryQuery struct {
 
 type UsageSummary struct {
 	RequestCount      int64
+	SuccessCount      int64
 	UsageRecordCount  int64
 	InputTokens       int64
 	CachedInputTokens int64
@@ -57,6 +58,7 @@ func (s *GormStore) QueryUsageSummary(ctx context.Context, query UsageSummaryQue
 
 	var requests struct {
 		RequestCount int64
+		SuccessCount int64
 		Errors       int64
 	}
 	requestQuery, err := applyUsageSummaryScope(s.analyticsDB.WithContext(ctx).Model(&RequestLog{}), s.dbDriver, query.RequestLogs)
@@ -65,7 +67,9 @@ func (s *GormStore) QueryUsageSummary(ctx context.Context, query UsageSummaryQue
 	}
 	if err := requestQuery.Select(
 		"COALESCE(SUM(CASE WHEN COALESCE(project_id, '') <> ? THEN 1 ELSE 0 END), 0) AS request_count, "+
+			"COALESCE(SUM(CASE WHEN COALESCE(project_id, '') <> ? AND status_code < 400 THEN 1 ELSE 0 END), 0) AS success_count, "+
 			"COALESCE(SUM(CASE WHEN COALESCE(project_id, '') <> ? AND "+operationalErrorSQL("")+" THEN 1 ELSE 0 END), 0) AS errors",
+		"admin_playground",
 		"admin_playground",
 		"admin_playground",
 	).Scan(&requests).Error; err != nil {
@@ -74,6 +78,7 @@ func (s *GormStore) QueryUsageSummary(ctx context.Context, query UsageSummaryQue
 
 	return UsageSummary{
 		RequestCount:      requests.RequestCount,
+		SuccessCount:      requests.SuccessCount,
 		UsageRecordCount:  usage.UsageRecordCount,
 		InputTokens:       usage.InputTokens,
 		CachedInputTokens: usage.CachedInputTokens,

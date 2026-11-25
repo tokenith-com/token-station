@@ -18,6 +18,7 @@ func summarizeUsage(records []UsageRecord, logs []RequestLog) map[string]any {
 	var input, cachedInput, cacheWrite, output, reasoningOutput, total int64
 	var cost float64
 	errorsCount := 0
+	successCount := 0
 	for _, record := range records {
 		input += record.InputTokens
 		cachedInput += record.CachedInputTokens
@@ -31,12 +32,16 @@ func summarizeUsage(records []UsageRecord, logs []RequestLog) map[string]any {
 		if isPlaygroundRequestLog(log) {
 			continue
 		}
+		if log.StatusCode < 400 {
+			successCount++
+		}
 		if isOperationalError(log.StatusCode, log.ErrorCode) {
 			errorsCount++
 		}
 	}
 	return map[string]any{
 		"request_count":            billableRequestLogCount(logs),
+		"success_count":            successCount,
 		"usage_record_count":       len(records),
 		"input_tokens":             input,
 		"cached_input_tokens":      cachedInput,

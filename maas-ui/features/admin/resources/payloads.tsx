@@ -539,7 +539,7 @@ export function defaultFormValues<T>(config: ResourceConfig<T>, data: AppData, c
         : "";
     }
     if (field.key === "auth_type") values[field.key] = providerResourceAPIKeyType;
-    if (field.key === "scope") values[field.key] = "project";
+    if (field.key === "scope") values[field.key] = config.view === "quota-policies" && currentUser && appRole(currentUser.role) !== "admin" ? "user" : "project";
     if (field.key === "period") values[field.key] = "monthly";
     if (field.key === "enforcement") values[field.key] = "block";
     if (field.key === "dataset") values[field.key] = "requests";

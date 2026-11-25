@@ -1139,7 +1139,7 @@ export type UsageDashboardRankRow = UsageBreakdownRow & {
 export function roleUsageMonitorStats(data: AppData) {
   const requests = data.summary.request_count;
   const failedRequests = data.summary.errors;
-  const successRequests = Math.max(0, requests - failedRequests);
+  const successRequests = data.summary.success_count ?? Math.max(0, requests - failedRequests);
   const latencyLogs = data.logs.filter((log) => log.latency_ms > 0);
   const avgLatencyMS = latencyLogs.length
     ? Math.round(latencyLogs.reduce((sum, log) => sum + log.latency_ms, 0) / latencyLogs.length)

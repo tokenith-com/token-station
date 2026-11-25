@@ -21,6 +21,7 @@ func (s *Server) usageSummaryForUser(ctx context.Context, user AdminUser) (map[s
 func usageSummaryPayload(summary UsageSummary) map[string]any {
 	return map[string]any{
 		"request_count":            summary.RequestCount,
+		"success_count":            summary.SuccessCount,
 		"usage_record_count":       summary.UsageRecordCount,
 		"input_tokens":             summary.InputTokens,
 		"cached_input_tokens":      summary.CachedInputTokens,

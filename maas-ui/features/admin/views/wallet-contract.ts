@@ -75,8 +75,8 @@ export async function loadWalletBalance(api: ApiContext, teamID: string) {
   if (payload.currency !== "USD" || payload.wallet?.team_id !== teamID || !Number.isSafeInteger(payload.wallet.balance_micros) || payload.wallet.balance_micros < 0) throw new WalletReadError("malformed");
   return payload.wallet.balance_micros as number;
 }
-export async function loadWalletLedger(api: ApiContext, teamID: string, offset = 0, requestID?: string): Promise<WalletLedgerResponse> {
-  const query = new URLSearchParams({ limit: "20", offset: String(offset) });
+export async function loadWalletLedger(api: ApiContext, teamID: string, offset = 0, requestID?: string, limit = 20): Promise<WalletLedgerResponse> {
+  const query = new URLSearchParams({ limit: String(limit), offset: String(offset) });
   if (requestID) query.set("request_id", requestID);
   const payload = await readWallet(api, `${walletPath(teamID)}/ledger?${query}`);
   if (payload.currency !== "USD" || !Array.isArray(payload.entries) || !Number.isSafeInteger(payload.total) || payload.total < 0 || !payload.entries.every(validLedgerEntry)) throw new WalletReadError("malformed");

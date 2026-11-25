@@ -158,14 +158,26 @@ describe("Wallet ledger lifecycle", () => {
     const fetch = vi.fn().mockImplementation(async () => Response.json({ currency: "USD", total: 21, entries: [] })); vi.stubGlobal("fetch", fetch);
     render(<WalletLedger api={api} teamID="demo" copy={copy} />);
     await screen.findByText("暂无资金流水");
+    expect(await screen.findByText("1 / 2")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "上一页" })).toBeDisabled();
     fireEvent.click(screen.getByRole("button", { name: "下一页" }));
     await waitFor(() => expect(fetch).toHaveBeenCalledTimes(2));
     expect(String(fetch.mock.calls[1][0])).toContain("limit=20&offset=20");
     await waitFor(() => expect(screen.getByRole("button", { name: "下一页" })).toBeDisabled());
+    expect(screen.getByText("2 / 2")).toBeInTheDocument();
+    expect(screen.getByText("第 21-21 条，共 21 条")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "上一页" }));
     await waitFor(() => expect(fetch).toHaveBeenCalledTimes(3));
     expect(String(fetch.mock.calls[2][0])).toContain("limit=20&offset=0");
+    await screen.findByText("1 / 2");
+    fireEvent.change(screen.getByRole("combobox"), { target: { value: "10" } });
+    await waitFor(() => expect(fetch).toHaveBeenCalledTimes(4));
+    expect(String(fetch.mock.calls[3][0])).toContain("limit=10&offset=0");
+    expect(await screen.findByText("1 / 3")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "最后一页" }));
+    await waitFor(() => expect(fetch).toHaveBeenCalledTimes(5));
+    expect(String(fetch.mock.calls[4][0])).toContain("limit=10&offset=20");
+    expect(await screen.findByText("3 / 3")).toBeInTheDocument();
   });
   it("separates held reservations from actual charged amounts", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(Response.json({ currency: "USD", total: 1, entries: [{ id: "call", request_id: "call", kind: "call", status: "reserved", amount_micros: -5_000_000, actual_amount_micros: 0, reserved_micros: 5_000_000, created_at: "2026-11-14T00:00:00Z" }] })));

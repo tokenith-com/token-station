@@ -22,7 +22,7 @@ for (const catalogAvailable of [true, false]) {
     await page.goto("/usage");
     const attribution = section(page, "项目归因");
     const expectedName = catalogAvailable ? project.name : project.id;
-    const cost = new Intl.NumberFormat("zh-CN", { style: "currency", currency: "CNY" }).format(0.25);
+    const cost = "$0.25";
     await expect(attribution.getByRole("row", { name: `${expectedName} 2 150 20 ${cost}`, exact: true })).toBeVisible();
     await expect(attribution.getByRole("cell", { name: "prj_archived", exact: true })).toBeVisible();
     await expect(attribution.getByRole("cell", { name: "unknown", exact: true })).toBeVisible();

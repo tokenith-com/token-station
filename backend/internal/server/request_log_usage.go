@@ -102,9 +102,9 @@ func nonEmptyStrings(values ...string) []string {
 	return out
 }
 
-// requestErrorDetail is the part of a stored response body the console may
-// show: the upstream error message and whether routing rejected the call before
-// any upstream attempt. The bodies themselves never leave the server.
+// requestErrorDetailFromPayload extracts the diagnosis visible to every role:
+// the upstream error message and whether routing rejected the call before an
+// upstream attempt. Full body visibility is enforced by the detail handler.
 func requestErrorDetailFromPayload(payload any) map[string]any {
 	record, ok := payload.(RequestPayloadLog)
 	if !ok || strings.TrimSpace(record.ResponseBody) == "" {

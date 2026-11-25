@@ -85,7 +85,7 @@ export async function saveProjectWorkspaceDraft(
       allowed_models: draft.model_access_mode === "restricted" ? draft.allowed_models : [],
       excluded_models: draft.model_access_mode === "excluded" ? draft.excluded_models : [],
     }),
-    team_id: draft.primary_team_id,
+    ...(project?.id !== "prj_consumer" && { team_id: draft.primary_team_id }),
   };
   const saved = await projectJSON<Project>(
     api,
@@ -96,7 +96,7 @@ export async function saveProjectWorkspaceDraft(
   );
 
   try {
-    await syncProjectTeams(api, saved, draft);
+    if (project?.id !== "prj_consumer") await syncProjectTeams(api, saved, draft);
   } catch (error) {
     const detail = error instanceof Error ? error.message : tx("保存失败");
     throw new ProjectWorkspaceSaveError(`${tx("项目已保存，但部分团队设置失败")}：${detail}`, saved.id);
@@ -195,6 +195,7 @@ export function ProjectWorkspace({
 }) {
   const [draft, setDraft] = useState<ProjectWorkspaceDraft>(() => projectWorkspaceDraft(project));
   const editable = mode !== "view";
+  const consumerProject = project?.id === "prj_consumer";
 
   useEffect(() => {
     setDraft(projectWorkspaceDraft(project));
@@ -258,8 +259,8 @@ export function ProjectWorkspace({
         </header>
 
         <div className="project-workspace-summary" aria-label={tx("当前配置")}>
-          <span><strong>{tx("主团队")}</strong>{draft.primary_team_id ? teamLabel(data, draft.primary_team_id) : tx("待选择")}</span>
-          <span><strong>{tx("团队访问")}</strong>{countWithUnit(teamCount, "个团队", "team", "チーム")}</span>
+          {!consumerProject ? <><span><strong>{tx("主团队")}</strong>{draft.primary_team_id ? teamLabel(data, draft.primary_team_id) : tx("待选择")}</span>
+          <span><strong>{tx("团队访问")}</strong>{countWithUnit(teamCount, "个团队", "team", "チーム")}</span></> : <span>{tx("C 端默认项目无需关联团队，模型范围适用于所有 C 端用户。")}</span>}
           <span><strong>{tx("项目成员")}</strong>{project ? countWithUnit(projectMembersForProject(data, project.id).length, "人", "member", "人") : tx("创建后配置")}</span>
           <span><strong>{tx("项目额度")}</strong>{projectQuotaPolicy(data, project ?? ({ id: "" } as Project)) ? tx("已配置") : tx("未配置")}</span>
         </div>
@@ -310,7 +311,7 @@ export function ProjectWorkspace({
             )}
           </ProjectSection>
 
-          <ProjectSection
+          {!consumerProject ? <ProjectSection
             icon={<ShieldCheck size={18} />}
             index="02"
             title="团队与权限"
@@ -323,7 +324,7 @@ export function ProjectWorkspace({
             ) : project ? (
               <ProjectTeamsOverview data={data} project={project} />
             ) : null}
-          </ProjectSection>
+          </ProjectSection> : null}
 
           <ProjectSection
             icon={<UsersRound size={18} />}
@@ -396,7 +397,7 @@ export function ProjectWorkspace({
 
         <footer className="project-workspace-actions">
           <div>
-            {editable ? <span>{tx("团队设置与基本信息将一起保存。")}</span> : <span>{tx("团队配置始终在项目工作台中显性展示。")}</span>}
+            {consumerProject ? <span>{tx("C 端默认项目无需关联团队，模型范围适用于所有 C 端用户。")}</span> : editable ? <span>{tx("团队设置与基本信息将一起保存。")}</span> : <span>{tx("团队配置始终在项目工作台中显性展示。")}</span>}
           </div>
           <div>
             <button className="secondary-button" onClick={onClose} type="button">{tx(editable ? "取消" : "关闭")}</button>

@@ -17,8 +17,7 @@ function dataWithAccount(): AppData {
   return data;
 }
 
-// Request and response snapshots stay in the backend. The console never renders
-// them, so no role can read someone else's prompt or completion from the UI.
+// Only platform administrators may inspect stored request/response snapshots.
 describe("request detail privacy", () => {
   it("hides the request and response snapshot section", () => {
     render(<RequestDetailPanel data={emptyData()} requestID="req-one" detail={detail} loading={false} error="" />);
@@ -26,9 +25,20 @@ describe("request detail privacy", () => {
     expect(screen.queryByText("请求与响应")).not.toBeInTheDocument();
   });
 
-  it("hides the snapshot for a platform administrator as well", () => {
-    render(<RequestDetailPanel data={emptyData()} requestID="req-one" detail={detail} loading={false} error="" role="admin" />);
+  const withPayload: RequestDetail = { ...detail, payload: { id: "body", request_id: "req-one", request_body: "Synthetic request content", response_body: "Synthetic response content", request_truncated: false, response_truncated: false, created_at: detail.log.created_at } };
+
+  it("shows both snapshots only to platform administrators", () => {
+    render(<RequestDetailPanel data={emptyData()} requestID="req-one" detail={withPayload} loading={false} error="" role="admin" />);
+    expect(screen.getByText("请求与响应")).toBeInTheDocument();
+    expect(screen.getByText("Synthetic request content")).toBeInTheDocument();
+    expect(screen.getByText("Synthetic response content")).toBeInTheDocument();
+  });
+
+  it.each(["security", "team_leader", "user", "consumer"] as const)("hides snapshots for %s even if supplied", role => {
+    render(<RequestDetailPanel data={emptyData()} requestID="req-one" detail={withPayload} loading={false} error="" role={role} />);
     expect(screen.queryByText("请求与响应")).not.toBeInTheDocument();
+    expect(screen.queryByText("Synthetic request content")).not.toBeInTheDocument();
+    expect(screen.queryByText("Synthetic response content")).not.toBeInTheDocument();
   });
 
   it("keeps the remaining detail fields selectable across requests", () => {

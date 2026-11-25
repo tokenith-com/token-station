@@ -142,6 +142,7 @@ export function AuditView({ api, data, user }: { api: ApiContext; data: AppData;
           log: payload.log,
           usage: payload.usage ?? [],
           attempts: payload.attempts ?? [],
+          payload: appRole(user.role) === "admin" ? payload.payload ?? null : null,
           error_detail: payload.error_detail ?? null,
           account: payload.account,
         });
@@ -157,7 +158,7 @@ export function AuditView({ api, data, user }: { api: ApiContext; data: AppData;
     return () => {
       alive = false;
     };
-  }, [activeAuditTab, api, selectedRequestID]);
+  }, [activeAuditTab, api, selectedRequestID, user.role]);
 
   const requestStats = useMemo(() => {
     const successRate = requestSummary.all ? Math.round((requestSummary.ok / requestSummary.all) * 100) : 0;
@@ -506,8 +507,7 @@ export function RequestDetailPanel({
         </div>
       </div>
 
-      {/* Payload snapshots stay in the backend; the console hides them so member
-          and consumer views never expose someone else's prompt or completion. */}
+      {role === "admin" ? <RequestPayloadSection key={requestID} payload={detail.payload ?? null} /> : null}
       <details open className="request-secondary-details" key={`metadata-${requestID}`}><summary>{tx("详情")}</summary><div className="request-detail-grid">
         {showsProject ? <DetailField label="项目" value={projectName(data, log.project_id)} /> : null}
         <DetailField label="账户" value={detail.account || requestAccountLabel(data, log)} />

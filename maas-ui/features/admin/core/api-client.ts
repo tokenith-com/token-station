@@ -1,19 +1,19 @@
 import { formatTranslationTemplate, tx } from "../i18n/runtime";
 import type { AdminUser } from "./types";
 
-// 纯静态部署下浏览器直连后端，后端必须放行本站 Origin 的 CORS。
-// 地址在构建期固化，由 AdminConsoleBoot 通过 props 传入，AdminConsole 在发请求前写入这里。
-let backendBaseURL = "";
+// Static deployments use either a same-origin path or an explicit backend URL.
+// Preserve the distinction between an unconfigured address and the root path.
+let backendBaseURL: string | null = null;
 
 export function configureBackendBaseURL(value: string) {
-  backendBaseURL = value.trim().replace(/\/+$/, "");
+  const configured = value.trim();
+  backendBaseURL = configured ? configured.replace(/\/+$/, "") : null;
 }
 
-// 未配置时退回相对路径：AdminConsoleBoot 已拦住缺少地址的构建，
-// 这里的默认值只用于测试或并存的旧部署，不会静默请求错误的后端。
+// Only an unconfigured client uses the legacy development proxy.
 export function backendURL(path: string) {
   const suffix = path.startsWith("/") ? path : `/${path}`;
-  return backendBaseURL ? `${backendBaseURL}${suffix}` : `/api/backend${suffix}`;
+  return backendBaseURL !== null ? `${backendBaseURL}${suffix}` : `/api/backend${suffix}`;
 }
 
 // 直连时必须由浏览器声明 JSON：否则后端未认证时回 302 + HTML 登录页，

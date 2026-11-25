@@ -100,7 +100,7 @@ test("login-home keeps the form, model scrolling, theme and mobile layout", asyn
   await page.getByRole("button", { name: "切换到浅色模式" }).click();
   await page.locator(".tc-login-preview-language button").click();
   await page.getByRole("option", { name: "English", exact: true }).click();
-  await expect(page.getByRole("heading", { name: "Every model. One gateway." })).toBeVisible();
+  await expect(page.locator("#tc-login-preview-title").filter({ hasText: "Make every token count." })).toBeVisible();
   await expect(page.locator(".tc-login-preview")).toHaveAttribute("lang", "en");
   await expectHeaderAlignment();
   await page.locator(".tc-login-preview-language button").click();

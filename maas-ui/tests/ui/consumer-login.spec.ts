@@ -36,7 +36,7 @@ async function submitLogin(page: Page) {
   await page.getByRole("textbox", { name: "账号", exact: true }).fill(account);
   await page.getByLabel("密码", { exact: true }).fill(password);
   await page.locator(".tc-login-form").getByRole("button", { name: "登录", exact: true }).click();
-  await expect(page.locator(".tc-login-card").getByRole("alert")).toHaveText(loginError);
+  await expect(page.locator(".tc-login-card").getByRole("alert")).toHaveText("401 · 账号或密码不正确");
 }
 
 async function expectBrand(page: Page) {
