@@ -1095,6 +1095,11 @@ func copyOpenAIStreamAndUsageWithLimit(w io.Writer, body io.Reader, provider Pro
 			// instead of recording the stream as a silent success.
 			return usage, failure
 		}
+		// The protocol is complete once its terminal marker reaches the caller.
+		// Waiting for transport EOF lets a normal client close become a false 499.
+		if strings.TrimSpace(event.Data) == "[DONE]" {
+			return usage, nil
+		}
 	}
 }
 

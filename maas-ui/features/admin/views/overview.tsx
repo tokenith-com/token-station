@@ -1,3 +1,4 @@
+import { formatSuccessRate } from "../domain/success-rate";
 import { Activity, BarChart3, Boxes, Check, CircleDollarSign, Code2, Database, FileText, Gauge, KeyRound, LayoutDashboard, Server, ShieldCheck, X } from "lucide-react";
 import { type ReactNode, useEffect, useState } from "react";
 import { appRole, canAccessView } from "../core/navigation";
@@ -23,7 +24,7 @@ export function OverviewView({
   const role = appRole(user.role);
 
   if (role === "team_leader" || role === "user" || role === "consumer") {
-    return <RoleOverviewContent data={data} />;
+    return <RoleOverviewContent data={data} user={user} />;
   }
 
   const apiKeyCount = data.summary.api_key_count ?? data.keys.length;
@@ -154,10 +155,10 @@ export function OverviewView({
   );
 }
 
-function RoleOverviewContent({ data }: { data: AppData }) {
+function RoleOverviewContent({ data, user }: { data: AppData; user: AdminUser }) {
   const stats = roleUsageMonitorStats(data);
   const modelCostRows = usageDashboardCostRows(data.breakdown.models ?? [], (row) => modelDisplayName(data, row.id)).slice(0, 5);
-  const apiKeyRows = usageDashboardAPIKeyRows(data).slice(0, 5);
+  const apiKeyRows = usageDashboardAPIKeyRows(data, user).slice(0, 5);
   const failures = data.logs
     .filter((log) => requestLogFailed(log))
     .sort((left, right) => right.created_at.localeCompare(left.created_at))
@@ -170,7 +171,7 @@ function RoleOverviewContent({ data }: { data: AppData }) {
       <div className="role-overview-kpis token-kpis">
         <TokenKpiCard icon={<BarChart3 size={20} strokeWidth={2} />} label="请求量" tone="violet" value={formatNumber(stats.requests)}
           detail={`${formatNumber(stats.failedRequests)} ${tx("失败")}`} />
-        <TokenKpiCard icon={<Check size={20} strokeWidth={2} />} label="成功率" tone="violet" value={stats.successRate.toFixed(stats.successRate >= 99 ? 1 : 2)} unit="%"
+        <TokenKpiCard icon={<Check size={20} strokeWidth={2} />} label="成功率" tone="violet" value={formatSuccessRate(stats.successRate)} unit="%"
           detail={`${formatNumber(stats.successRequests)} / ${formatNumber(stats.requests)}`} />
         <TokenKpiCard icon={<Gauge size={20} strokeWidth={2} />} label="平均延时" tone="purple" value={formatNumber(Math.round(stats.avgLatencyMS))} unit="ms"
           detail={tx("最近请求")} />
@@ -238,7 +239,7 @@ export function RoleUsageMonitorDashboard({
   const role = appRole(user.role);
   const stats = roleUsageMonitorStats(data);
   const modelCostRows = usageDashboardCostRows(data.breakdown.models ?? [], (row) => modelDisplayName(data, row.id)).slice(0, 5);
-  const apiKeyRows = usageDashboardAPIKeyRows(data).slice(0, 5);
+  const apiKeyRows = usageDashboardAPIKeyRows(data, user).slice(0, 5);
   const failures = data.logs
     .filter((log) => requestLogFailed(log))
     .sort((left, right) => right.created_at.localeCompare(left.created_at))
@@ -276,7 +277,7 @@ export function RoleUsageMonitorDashboard({
 
       <div className="usage-monitor-kpis">
         <UsageMonitorKPI label="请求量" value={formatNumber(stats.requests)} detail={countWithUnit(stats.failedRequests, "次失败", "failed", "件失敗", "failed")} icon={BarChart3} tone="blue" />
-        <UsageMonitorKPI label="成功率" value={`${stats.successRate.toFixed(stats.successRate >= 99 ? 1 : 2)}%`} detail={`${formatNumber(stats.successRequests)} / ${formatNumber(stats.requests)}`} icon={Check} tone="green" />
+        <UsageMonitorKPI label="成功率" value={`${formatSuccessRate(stats.successRate)}%`} detail={`${formatNumber(stats.successRequests)} / ${formatNumber(stats.requests)}`} icon={Check} tone="green" />
         <UsageMonitorKPI label="平均延迟" value={latencyDisplay(stats.avgLatencyMS)} detail={stats.zeroLatencyRequests > 0 ? countWithUnit(stats.zeroLatencyRequests, "次无延迟记录", "zero-latency", "件の遅延なし", "zero-latency") : tx("最近请求")} icon={Gauge} tone="red" />
         <UsageMonitorKPI label="总成本" value={`$${formatDashboardMoney(stats.cost)}`} detail={`${tx("总 Token")} ${compactNumber(stats.totalTokens)}`} icon={CircleDollarSign} tone="amber" />
         <UsageMonitorKPI label="Token 消耗" value={compactNumber(stats.totalTokens)} detail={`${tx("输入")} ${compactNumber(stats.inputTokens)} / ${tx("输出")} ${compactNumber(stats.outputTokens)}`} icon={Database} tone="purple" />
@@ -1243,10 +1244,12 @@ export function usageDashboardCostRows(rows: UsageBreakdownRow[], labelFor: (row
     .sort((left, right) => right.cost - left.cost || right.total_tokens - left.total_tokens || right.request_count - left.request_count);
 }
 
-export function usageDashboardAPIKeyRows(data: AppData): UsageDashboardRankRow[] {
-  const rows = usageDashboardCostRows(data.breakdown.api_keys ?? [], (row) => apiKeyAuditLabel(data, row.id));
+export function usageDashboardAPIKeyRows(data: AppData, currentUser?: AdminUser): UsageDashboardRankRow[] {
+  // Members cannot read the user directory, but their own session is authoritative.
+  const labelData = currentUser ? { ...data, users: [currentUser, ...data.users.filter(user => user.id !== currentUser.id)] } : data;
+  const rows = usageDashboardCostRows(data.breakdown.api_keys ?? [], (row) => apiKeyAuditLabel(labelData, row.id));
   return rows.map((row) => {
-    const parts = apiKeyAuditParts(data, row.id);
+    const parts = apiKeyAuditParts(labelData, row.id);
     return parts.account ? { ...row, primaryLabel: parts.key, secondaryLabel: parts.account } : row;
   });
 }

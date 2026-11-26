@@ -5,6 +5,7 @@ import { appRole, canViewAdminAudit } from "../core/navigation";
 import { type AdminUser, type ApiContext, type AppData, type AppRole, type RequestDetail, type RequestLog, type RequestLogPage, type RequestLogPagination, type RequestLogSummary, type RequestPayloadLog } from "../core/types";
 import { auditRequestPagePath, auditRequestTimeRangeParameters, type AuditRequestStatus, type AuditRequestTimeRange } from "../domain/audit-request-page";
 import { copyText } from "../domain/clipboard";
+import { formatSuccessRate } from "../domain/success-rate";
 import { apiKeyAuditLabel, apiKeyOwnerUserID, ownerUserLabel, projectName, providerAttemptLabel, providerAuditLabel, providerResourceAuditLabel } from "../domain/entities";
 import { compactNumber, formatMoney, formatNumber, formatTime } from "../domain/formatting";
 import { actionLabel, enumValueLabel, resourceTypeLabel } from "../domain/labels";
@@ -161,7 +162,7 @@ export function AuditView({ api, data, user }: { api: ApiContext; data: AppData;
   }, [activeAuditTab, api, selectedRequestID, user.role]);
 
   const requestStats = useMemo(() => {
-    const successRate = requestSummary.all ? Math.round((requestSummary.ok / requestSummary.all) * 100) : 0;
+    const successRate = requestSummary.all ? (requestSummary.ok / requestSummary.all) * 100 : 0;
     return {
       total: requestSummary.all,
       failures: requestSummary.error,
@@ -264,7 +265,7 @@ export function AuditView({ api, data, user }: { api: ApiContext; data: AppData;
 
             <div className="metrics request-metrics">
               <RequestMetric label="总请求" value={formatNumber(requestStats.total)} icon={Activity} />
-              <RequestMetric label="成功率" value={`${requestStats.successRate}%`} icon={Check} />
+              <RequestMetric label="成功率" value={`${formatSuccessRate(requestStats.successRate)}%`} icon={Check} />
               <RequestMetric label="失败请求" value={formatNumber(requestStats.failures)} icon={AlertCircle} />
               <RequestMetric label="平均延迟" value={`${requestStats.averageLatency}ms`} icon={Gauge} />
             </div>

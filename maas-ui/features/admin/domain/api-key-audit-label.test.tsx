@@ -26,7 +26,7 @@ it("appends the owning account to the key label", () => {
 
 it("falls back to the key label when the owner is unknown", () => {
   const label = apiKeyAuditLabel(dataWithKey("usr_missing"), "key_1");
-  expect(label).toBe("员工A (sk_w43x...XQZXAh) · usr_missing");
+  expect(label).toBe("员工A (sk_w43x...XQZXAh)");
 });
 
 it("leaves the label alone for an untracked key id", () => {
@@ -41,6 +41,6 @@ it("splits the key label so the account can sit on its own line", () => {
 
 it("omits the account part when the owner is unknown", () => {
   const parts = apiKeyAuditParts(dataWithKey("usr_missing"), "key_1");
-  expect(parts.account).toBe("usr_missing");
+  expect(parts.account).toBe("");
   expect(apiKeyAuditParts(dataWithKey("usr_member"), "key_missing").account).toBe("");
 });

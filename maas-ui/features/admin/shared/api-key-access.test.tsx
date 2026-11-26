@@ -38,6 +38,25 @@ describe("API key setup", () => {
     if (protocol === "anthropic") expect(config.example).toContain("anthropic-version: 2023-06-01");
   });
 
+  it.each(["chat", "responses", "anthropic", "gemini"] as const)("resolves same-origin setup for %s", protocol => {
+    const config = apiKeyAccessConfig("/", protocol, secret, "test-model");
+    expect(new URL(config.base).origin).toBe(window.location.origin);
+    expect(new URL(config.endpoint).origin).toBe(window.location.origin);
+    expect(config.example).toContain(`curl '${config.endpoint}'`);
+    const prefixed = apiKeyAccessConfig("/gateway/v1/", protocol, secret, "test-model");
+    expect(prefixed.endpoint).toContain(`${window.location.origin}/gateway/`);
+  });
+
+  it("shows and copies the absolute address for a newly issued same-origin key", async () => {
+    const copy = vi.fn().mockResolvedValue(undefined);
+    vi.stubGlobal("navigator", { clipboard: { writeText: copy } });
+    render(<APIKeyAccessModal baseURL="/" secret={secret} onClose={() => undefined} />);
+    expect(screen.getByLabelText("接入地址（Base URL）")).toHaveValue(`${window.location.origin}/v1`);
+    expect(screen.getByLabelText("请求地址")).toHaveValue(`${window.location.origin}/v1/chat/completions`);
+    await act(async () => fireEvent.click(screen.getByRole("button", { name: "复制地址" })));
+    expect(copy).toHaveBeenCalledWith(`${window.location.origin}/v1`);
+  });
+
   it("uses placeholders and escapes shell metacharacters in examples", () => {
     expect(apiKeyAccessConfig("https://gateway.example.test", "chat", "", "").example).toContain(apiKeyPlaceholder);
     expect(apiKeyAccessConfig("https://gateway.example.test", "chat", "", "").example).toContain("YOUR_MODEL");

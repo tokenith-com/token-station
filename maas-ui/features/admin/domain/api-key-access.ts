@@ -1,3 +1,5 @@
+import { apiGatewayBaseURL } from "./formatting";
+
 export const apiKeyPlaceholder = "YOUR_TOKENHUB_API_KEY";
 export const modelPlaceholder = "YOUR_MODEL";
 export const accessProtocols = [
@@ -13,7 +15,8 @@ function shellQuote(value: string) {
 }
 
 export function apiKeyAccessConfig(baseURL: string, protocol: AccessProtocol, secret: string, model: string) {
-  const root = baseURL.trim().replace(/\/+$/, "").replace(/\/(v1|v1beta)$/, "");
+  const configured = baseURL.trim().replace(/\/+$/, "").replace(/\/(v1|v1beta)$/, "") || "/";
+  const root = apiGatewayBaseURL(configured).replace(/\/v1$/, "");
   const modelID = model.trim() || modelPlaceholder;
   const key = secret || apiKeyPlaceholder;
   const base = protocol === "anthropic" || protocol === "gemini" ? root : `${root}/v1`;

@@ -668,7 +668,9 @@ export function apiKeyAuditParts(data: AppData, apiKeyID?: string) {
   const key = data.keys.find((item) => item.id === apiKeyID);
   if (!key) return { key: apiKeyID, account: "" };
   const owner = apiKeyOwnerUserID(data, key);
-  const account = owner ? ownerUserLabel(data, owner) : "";
+  // A scoped directory may omit this owner; never present an internal ID as a name.
+  const ownerUser = data.users.find((user) => user.id === owner || user.username === owner || user.email === owner);
+  const account = ownerUser ? [ownerUser.name || ownerUser.username, ownerUser.email].filter(Boolean).join(" / ") : "";
   return {
     key: `${key.name || key.id} (${key.key_prefix}...${key.key_suffix})`,
     account: account && account !== "-" ? account : "",
