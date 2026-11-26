@@ -1,3 +1,5 @@
+import { ResponseUsageDetails } from "./response-usage-details";
+import { RequestPayloadViewer } from "./request-payload-viewer";
 import { RequestErrorSummary } from "./request-error-summary";
 import { Activity, AlertCircle, Check, Copy, Gauge, Search, ShieldCheck } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
@@ -496,7 +498,7 @@ export function RequestDetailPanel({
         <RequestErrorSummary code={log.error_code} detail={detail.error_detail} />
       ) : null}
 
-      <div className="request-subsection">
+      <div className="request-subsection request-section-card">
         <div className="request-subsection-title">
           <span>{tx("Token 与成本")}</span>
           <strong>{detail.usage.length ? countWithUnit(detail.usage.length, "条记录", "record", "件の記録") : tx("暂无记录")}</strong>
@@ -508,8 +510,7 @@ export function RequestDetailPanel({
         </div>
       </div>
 
-      {role === "admin" ? <RequestPayloadSection key={requestID} payload={detail.payload ?? null} /> : null}
-      <details open className="request-secondary-details" key={`metadata-${requestID}`}><summary>{tx("详情")}</summary><div className="request-detail-grid">
+      <details open className="request-secondary-details request-section-card" key={`metadata-${requestID}`}><summary>{tx("详情")}</summary><div className="request-detail-grid">
         {showsProject ? <DetailField label="项目" value={projectName(data, log.project_id)} /> : null}
         <DetailField label="账户" value={detail.account || requestAccountLabel(data, log)} />
         <DetailField label="API Key" value={apiKeyAuditLabel(data, log.api_key_id)} />
@@ -518,8 +519,9 @@ export function RequestDetailPanel({
         <DetailField label="策略作用域 / 优先级" value={log.routing_policy_id ? `${tx(log.routing_policy_scope || "-")} / P${log.routing_policy_priority || 0}` : "-"} />
         <DetailField label="客户端 IP" value={log.client_ip || "-"} />
       </div></details>
-      <details open className="request-secondary-details" key={`usage-${requestID}`}><summary>{tx("Token 与成本")} · {tx("详情")}</summary>
-        <div className="request-usage-breakdown">
+      {role === "admin" ? <RequestPayloadSection key={requestID} payload={detail.payload ?? null} /> : null}
+      <details open className="request-secondary-details request-section-card" key={`usage-${requestID}`}><summary>{tx("Token 与成本")} · {tx("详情")}</summary>
+        {role === "admin" ? <ResponseUsageDetails payload={detail.payload ?? null} /> : <div className="request-usage-breakdown">
           <UsageBreakdownGroup
             label="输入"
             total={usageTotals.input_tokens}
@@ -541,7 +543,7 @@ export function RequestDetailPanel({
               ["output_rejected_prediction_tokens", usageTotals.rejected_prediction_tokens],
             ]}
           />
-        </div>
+        </div>}
       </details>
 
 
@@ -651,7 +653,7 @@ export function requestAccountLabel(data: AppData, log: RequestLog) {
 
 export function RequestPayloadSection({ payload }: { payload: RequestPayloadLog | null }) {
   return (
-    <div className="request-subsection">
+    <div className="request-subsection request-section-card">
       <div className="request-subsection-title">
         <span>{tx("请求与响应")}</span>
         <strong>{payload ? tx("已记录快照") : tx("未记录")}</strong>
@@ -659,18 +661,7 @@ export function RequestPayloadSection({ payload }: { payload: RequestPayloadLog 
       {!payload ? (
         <div className="compact-empty">{tx("这条历史记录没有保存 request / response 快照")}</div>
       ) : (
-        <div className="payload-grid">
-          <PayloadBlock
-            title="Request"
-            body={payload.request_body || tx("未记录请求内容")}
-            truncated={payload.request_truncated}
-          />
-          <PayloadBlock
-            title="Response"
-            body={payload.response_body || tx("未记录响应内容")}
-            truncated={payload.response_truncated}
-          />
-        </div>
+        <RequestPayloadViewer payload={payload} />
       )}
     </div>
   );

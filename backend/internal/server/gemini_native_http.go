@@ -372,7 +372,7 @@ func (s *Server) executeRoutedGemini(r *http.Request, routed RoutedCall, request
 }
 
 func (s *Server) handleStreamingGemini(w http.ResponseWriter, r *http.Request, routed RoutedCall, request ResponsesRequest, payload map[string]any, reverseNames map[string]string, auditPayload any) {
-	tracker := &streamWriteTracker{writer: w}
+	tracker := &streamWriteTracker{writer: w, capture: &auditStreamCapture{}}
 	_, route, usage, attempts, streamErr := executeRoutedWithStore(r.Context(), s.store, routed, true, func(ctx context.Context, candidate RouteSelection, omitReasoningEffort bool, attempt int) (struct{}, Usage, error) {
 		prepared, err := s.prepareRouteForUpstream(ctx, candidate)
 		if err != nil {
@@ -435,7 +435,7 @@ func (s *Server) handleStreamingGemini(w http.ResponseWriter, r *http.Request, r
 		ErrorCode:       code,
 		ErrorMessage:    errorMessageOrEmpty(streamErr),
 		RequestPayload:  auditPayload,
-		ResponsePayload: auditStreamPayload(status, code, streamErr),
+		ResponsePayload: tracker.auditPayload(status, code, streamErr, route.Provider),
 	})
 	if streamErr != nil && !tracker.Wrote() {
 		w.Header().Del("cache-control")

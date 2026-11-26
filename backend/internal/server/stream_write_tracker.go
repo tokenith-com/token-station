@@ -8,6 +8,7 @@ import (
 
 type streamWriteTracker struct {
 	writer       io.Writer
+	capture      *auditStreamCapture
 	wrote        bool
 	bytesWritten int64
 	// firstWriteAt records when the first byte reached the client. It is stamped
@@ -41,6 +42,9 @@ func (w *streamWriteTracker) Write(data []byte) (int, error) {
 		}
 	}
 	n, err := w.writer.Write(data)
+	if w.capture != nil && n > 0 {
+		w.capture.add(data[:n])
+	}
 	if n > 0 && w.firstWriteAt.IsZero() {
 		// Only a positive write is a byte the client could perceive: a
 		// disconnected client can yield (0, err), which must not count as a

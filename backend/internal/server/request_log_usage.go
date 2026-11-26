@@ -113,6 +113,7 @@ func requestErrorDetailFromPayload(payload any) map[string]any {
 	var decoded struct {
 		Error struct {
 			Message string         `json:"message"`
+			Code    string         `json:"code"`
 			Details map[string]any `json:"details"`
 		} `json:"error"`
 	}
@@ -124,6 +125,11 @@ func requestErrorDetailFromPayload(payload any) map[string]any {
 		detail["message"] = message
 	}
 	stage, _ := decoded.Error.Details["stage"].(string)
+	// Only known diagnostic stages may cross the body-visibility boundary.
+	switch stage {
+	case "route_selection", "validation", "upstream_connect", "upstream_read", "client_write", "settlement":
+		detail["stage"] = stage
+	}
 	attempted, hasAttempted := decoded.Error.Details["upstream_attempted"].(bool)
 	if stage == "route_selection" && hasAttempted && !attempted {
 		detail["before_upstream"] = true

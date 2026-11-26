@@ -8,8 +8,8 @@ import (
 )
 
 const (
-	auditPayloadMaxBytes   = 8 * 1024
-	auditPayloadScanBudget = 64 * 1024
+	auditPayloadMaxBytes   = 64 * 1024
+	auditPayloadScanBudget = 512 * 1024
 	auditPayloadMaxDepth   = 64
 	auditPayloadOmitted    = `{"omitted":"payload_exceeds_audit_limit"}`
 )

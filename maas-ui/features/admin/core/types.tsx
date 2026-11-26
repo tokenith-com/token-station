@@ -1139,7 +1139,7 @@ export type RequestDetail = {
   attempts: RouteAttemptLog[];
   // Full snapshots are returned only to platform administrators.
   payload?: RequestPayloadLog | null;
-  error_detail?: { message?: string; before_upstream?: boolean } | null;
+  error_detail?: { message?: string; stage?: string; before_upstream?: boolean } | null;
   // Resolved server-side because members cannot read the user directory.
   account?: string;
 };
