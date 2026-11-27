@@ -1,3 +1,4 @@
+import { useCustomerTerminology } from "../i18n/customer-copy";
 import { formatSuccessRate } from "../domain/success-rate";
 import { Activity, BarChart3, Boxes, Check, CircleDollarSign, Code2, Database, FileText, Gauge, KeyRound, LayoutDashboard, Server, ShieldCheck, X } from "lucide-react";
 import { type ReactNode, useEffect, useState } from "react";
@@ -342,13 +343,14 @@ export function UsageMonitorKPI({
   icon: typeof Activity;
   tone: "blue" | "green" | "red" | "amber" | "purple";
 }) {
+  const ui = useCustomerTerminology();
   const metricValue = splitDashboardMetricValue(value);
 
   return (
     <article className={`usage-monitor-kpi ${tone}`}>
       <span className="usage-monitor-kpi-icon"><Icon size={17} /></span>
       <div>
-        <span className="dashboard-kpi-label">{tx(label)}</span>
+        <span className="dashboard-kpi-label">{ui(label)}</span>
         <strong className="dashboard-kpi-value">
           {metricValue.amount}
           {metricValue.unit ? <small className="dashboard-kpi-unit">{metricValue.unit}</small> : null}
@@ -476,12 +478,13 @@ export function TokenMixPanel({ input, output, total }: { input: number; output:
 }
 
 export function UsageCostRankPanel({ title, empty, rows }: { title: string; empty: string; rows: UsageDashboardRankRow[] }) {
+  const ui = useCustomerTerminology();
   const max = Math.max(...rows.map((row) => row.cost || row.total_tokens), 1);
   return (
     <article className="usage-monitor-panel rank">
       <div className="usage-monitor-panel-head compact">
         <div>
-          <h2>{tx(title)}</h2>
+          <h2>{ui(title)}</h2>
           <span>{tx("按估算成本降序")}</span>
         </div>
       </div>
@@ -890,6 +893,7 @@ export function OverviewMetricCard({
   value: string;
   values: number[];
 }) {
+  const ui = useCustomerTerminology();
   const metricValue = splitDashboardMetricValue(value);
 
   return (
@@ -897,7 +901,7 @@ export function OverviewMetricCard({
       <div className="overview-card-head">
         <div className="metric-label dashboard-kpi-label">
           <Icon size={17} />
-          {tx(label)}
+          {ui(label)}
         </div>
         {badge ? <span>{tx(badge)}</span> : null}
       </div>
@@ -1220,12 +1224,13 @@ export function roleUsageMonitorStats(data: AppData) {
 }
 
 function TokenKpiCard({ icon, label, value, detail, tone, accent, unit, prefix }: { icon: ReactNode; label: string; value: string; detail: string; tone: "violet" | "purple" | "indigo"; accent?: boolean; unit?: string; prefix?: string }) {
+  const ui = useCustomerTerminology();
   return (
     <article className={`token-kpi-card ${tone}`}>
       <span className="token-kpi-deco" aria-hidden="true" />
       <div className="token-kpi-icon" aria-hidden="true">{icon}</div>
       <div className="token-kpi-copy">
-        <p className="token-kpi-label dashboard-kpi-label">{tx(label)}</p>
+        <p className="token-kpi-label dashboard-kpi-label">{ui(label)}</p>
         <p className={accent ? "token-kpi-value dashboard-kpi-value accent" : "token-kpi-value dashboard-kpi-value"}>
           {prefix ? <em>{prefix}</em> : null}
           {value}

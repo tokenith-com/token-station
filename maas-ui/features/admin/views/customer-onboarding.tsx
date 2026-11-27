@@ -1,3 +1,4 @@
+import { useCustomerTerminology } from "../i18n/customer-copy";
 import { X } from "lucide-react";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { tx } from "../i18n/runtime";
@@ -14,6 +15,7 @@ export function CustomerOnboardingDialog({ onClose, onSubmit }: {
   onClose: () => void;
   onSubmit: (values: PlatformAccountValues) => Promise<boolean>;
 }) {
+  const ui = useCustomerTerminology();
   const [step, setStep] = useState(0);
   const [values, setValues] = useState<PlatformAccountValues>(() => ({ idempotency_key: crypto.randomUUID() }));
   const [error, setError] = useState("");
@@ -57,11 +59,11 @@ export function CustomerOnboardingDialog({ onClose, onSubmit }: {
     }}>
       <header className="platform-account-dialog-header"><h2 id="customer-onboarding-title">{tx("开通客户")}</h2><button aria-label={tx("关闭")} disabled={saving} onClick={onClose} type="button"><X size={17} /></button></header>
       <div className="platform-account-dialog-body">
-        <ol aria-label={tx("开通步骤")} className="customer-onboarding-steps">{steps.map((title, index) => <li aria-current={index === step ? "step" : undefined} key={title}>{tx(title)}</li>)}</ol>
+        <ol aria-label={tx("开通步骤")} className="customer-onboarding-steps">{steps.map((title, index) => <li aria-current={index === step ? "step" : undefined} key={title}>{ui(title)}</li>)}</ol>
         {step === 3 ? <h3 data-step-title tabIndex={-1}>{tx("确认开通")}</h3> : null}
         {step < 3 ? <AccountFormSection title={steps[step]}>{fields[step].map(([key, label]) => <AccountField key={key} label={label} required><input autoComplete={key.includes("assword") ? "new-password" : "off"} disabled={saving} maxLength={key.includes("assword") ? undefined : 255} onChange={event => { setError(""); setValues(current => ({ ...current, [key]: event.target.value })); }} required type={key.includes("assword") ? "password" : key === "leader_email" ? "email" : "text"} value={values[key] ?? ""} /></AccountField>)}</AccountFormSection> : <>
-          <p className="platform-account-form-hint">{tx("确认后将一次性创建成本中心、团队、项目和负责人账号，不会自动充值或发放 Key。")}</p>
-          <dl className="customer-onboarding-summary">{fields.flat().filter(([key]) => !key.includes("assword")).map(([key, label]) => <div key={key}><dt>{tx(label)}</dt><dd>{values[key]}</dd></div>)}</dl>
+          <p className="platform-account-form-hint">{ui("确认后将一次性创建成本中心、团队、项目和负责人账号，不会自动充值或发放 Key。")}</p>
+          <dl className="customer-onboarding-summary">{fields.flat().filter(([key]) => !key.includes("assword")).map(([key, label]) => <div key={key}><dt>{ui(label)}</dt><dd>{values[key]}</dd></div>)}</dl>
         </>}
         {error ? <p className="platform-account-form-error" role="alert">{error}</p> : null}
       </div>

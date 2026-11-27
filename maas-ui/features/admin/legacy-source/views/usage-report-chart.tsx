@@ -63,7 +63,7 @@ export function UsageReportChart({ report }: { report: UsageReport }) {
               <span className="global-usage-bar-output" aria-hidden="true" style={{ height: `${point.output_tokens / max * 100}%` }} />
               <span className="global-usage-bar-input" aria-hidden="true" style={{ height: `${point.input_tokens / max * 100}%` }} />
             </button>
-            <span className={`global-usage-bar-label${index === 0 ? " first" : index === points.length - 1 ? " last" : ""}`} aria-hidden="true">{index % labelInterval === 0 || index === points.length - 1 ? pointLabel(point, report, true) : ""}</span>
+            <span className="global-usage-bar-label" aria-hidden="true">{index % labelInterval === 0 || index === points.length - 1 ? pointLabel(point, report, true) : ""}</span>
           </div>)}
         </div>
       </div>

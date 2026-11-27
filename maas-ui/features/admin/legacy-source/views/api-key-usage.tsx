@@ -1,3 +1,4 @@
+import { useCustomerTerminology } from "../../i18n/customer-copy";
 import { ArrowLeft, Search } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { appRole } from "../../core/navigation";
@@ -127,12 +128,13 @@ export function APIKeyUsageView({ api, data, user, keyID, onBack }: { api: ApiCo
 }
 
 function APIKeyIdentity({ data, keyData }: { data: AppData; keyData: APIKeyUsageResponse["key"] }) {
+  const ui = useCustomerTerminology();
   const ownerID = keyData.owner_user_id || keyData.metadata?.created_by || "";
   const successor = data.keys.find((item) => item.rotated_from_id === keyData.id);
   return (
     <section className="api-key-identity">
       <IdentityField label="Key" value={`${keyData.key_prefix}...${keyData.key_suffix}`} />
-      <IdentityField label="归属项目" value={projectName(data, keyData.project_id)} />
+      <IdentityField label={ui("归属项目")} value={projectName(data, keyData.project_id)} />
       <IdentityField label="归属用户" value={ownerID ? usageMemberLabel(data, ownerID) : "-"} />
       <IdentityField label="用途/环境" value={keyData.group || "-"} />
       <IdentityField label="最后使用" value={keyData.last_used_at ? formatTime(keyData.last_used_at) : tx("尚未使用")} />
@@ -144,7 +146,8 @@ function APIKeyIdentity({ data, keyData }: { data: AppData; keyData: APIKeyUsage
 }
 
 function IdentityField({ label, value }: { label: string; value: string }) {
-  return <div><span>{tx(label)}</span><strong>{value}</strong></div>;
+  const ui = useCustomerTerminology();
+  return <div><span>{ui(label)}</span><strong>{value}</strong></div>;
 }
 
 function UsageRangeToolbar({ rangeOption, customFrom, customTo, error, onPreset, onCustomFrom, onCustomTo, onApply }: {
@@ -188,7 +191,8 @@ function UsageSummary({ metrics }: { metrics: APIKeyUsageMetrics }) {
 }
 
 function UsageKPI({ label, value, detail }: { label: string; value: string; detail: string }) {
-  return <article><span>{tx(label)}</span><strong>{value}</strong><small>{detail}</small></article>;
+  const ui = useCustomerTerminology();
+  return <article><span>{ui(label)}</span><strong>{value}</strong><small>{detail}</small></article>;
 }
 
 function QuotaOverview({ usage }: { usage: APIKeyUsageResponse }) {
@@ -213,12 +217,13 @@ function QuotaOverview({ usage }: { usage: APIKeyUsageResponse }) {
 }
 
 function QuotaCard({ label, used, limit, money = false, tokens = false }: { label: string; used: number; limit: number; money?: boolean; tokens?: boolean }) {
+  const ui = useCustomerTerminology();
   const percent = limit > 0 ? Math.max(0, used / limit * 100) : 0;
   const value = money ? formatUSD(used) : tokens ? compactNumber(used) : formatNumber(used);
   const limitValue = limit > 0 ? (money ? formatUSD(limit) : tokens ? compactNumber(limit) : formatNumber(limit)) : tx("不限");
   return (
     <article className="api-key-quota-card">
-      <span>{tx(label)}</span><strong>{value}</strong><small>{formatTranslationTemplate(tx("上限 {limit}"), { limit: limitValue })}</small>
+      <span>{ui(label)}</span><strong>{value}</strong><small>{formatTranslationTemplate(tx("上限 {limit}"), { limit: limitValue })}</small>
       {limit > 0 ? <div className="api-key-quota-track"><span style={{ width: `${Math.min(100, percent)}%` }} /></div> : null}
       {limit > 0 ? <em>{formatStandalonePercent(percent)}</em> : null}
     </article>

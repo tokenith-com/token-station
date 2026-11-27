@@ -1,3 +1,4 @@
+import { useCustomerTerminology } from "../../i18n/customer-copy";
 import { Boxes, KeyRound, Search, Server, UserRoundCheck } from "lucide-react";
 import { type FieldConfig, type ProviderCredentialMode } from "../core/types";
 import { enumOptionLabel } from "../domain/labels";
@@ -14,6 +15,7 @@ export function ProviderInlineField({
   values: Record<string, string>;
   onChange: (value: string) => void;
 }) {
+  const ui = useCustomerTerminology();
   if (!(field.visible?.(values) ?? true)) return null;
   const autoComplete = field.autoComplete ?? "off";
   const inputName = `tokenhub-provider-account-${field.key}`;
@@ -21,21 +23,21 @@ export function ProviderInlineField({
   if (field.type === "select") {
     return (
       <label className="field" data-field-key={field.key}>
-        <span>{tx(field.label)}</span>
+        <span>{ui(field.label)}</span>
         <select value={value} onChange={(event) => { clearCustomValidity(event); onChange(event.target.value); }} onInvalid={handleRequiredFieldInvalid} required={field.required}>
           <option value="">{tx("请选择")}</option>
           {options.map((option) => (
             <option key={option.value} value={option.value}>{tx(option.label)}</option>
           ))}
         </select>
-        {field.help ? <small>{tx(field.help)}</small> : null}
+        {field.help ? <small>{ui(field.help)}</small> : null}
       </label>
     );
   }
   if (field.type === "textarea") {
     return (
       <label className="field" data-field-key={field.key}>
-        <span>{tx(field.label)}</span>
+        <span>{ui(field.label)}</span>
         <textarea
           autoComplete={autoComplete}
           data-1p-ignore={autoComplete === "off" || autoComplete === "new-password" ? "true" : undefined}
@@ -44,10 +46,10 @@ export function ProviderInlineField({
           value={value}
           onChange={(event) => { clearCustomValidity(event); onChange(event.target.value); }}
           onInvalid={handleRequiredFieldInvalid}
-          placeholder={tx(field.placeholder)}
+          placeholder={ui(field.placeholder)}
           required={field.required}
         />
-        {field.help ? <small>{tx(field.help)}</small> : null}
+        {field.help ? <small>{ui(field.help)}</small> : null}
       </label>
     );
   }
@@ -55,8 +57,8 @@ export function ProviderInlineField({
     const checked = value === "true";
     return (
       <label className="field" data-field-key={field.key}>
-        <span>{tx(field.label)}</span>
-        <div className="boolean-toggle" role="radiogroup" aria-label={tx(field.label)}>
+        <span>{ui(field.label)}</span>
+        <div className="boolean-toggle" role="radiogroup" aria-label={ui(field.label)}>
           <button aria-checked={checked} className={checked ? "active" : ""} onClick={() => onChange("true")} role="radio" type="button">
             {tx("开启")}
           </button>
@@ -64,13 +66,13 @@ export function ProviderInlineField({
             {tx("关闭开关")}
           </button>
         </div>
-        {field.help ? <small>{tx(field.help)}</small> : null}
+        {field.help ? <small>{ui(field.help)}</small> : null}
       </label>
     );
   }
   return (
     <label className="field" data-field-key={field.key}>
-      <span>{tx(field.label)}</span>
+      <span>{ui(field.label)}</span>
       <input
         autoComplete={autoComplete}
         data-1p-ignore={autoComplete === "off" || autoComplete === "new-password" ? "true" : undefined}
@@ -80,10 +82,10 @@ export function ProviderInlineField({
         type={field.type === "number" ? "number" : field.type === "password" ? "password" : "text"}
         onChange={(event) => { clearCustomValidity(event); onChange(event.target.value); }}
         onInvalid={handleRequiredFieldInvalid}
-        placeholder={tx(field.placeholder)}
+        placeholder={ui(field.placeholder)}
         required={field.required}
       />
-      {field.help ? <small>{tx(field.help)}</small> : null}
+      {field.help ? <small>{ui(field.help)}</small> : null}
     </label>
   );
 }

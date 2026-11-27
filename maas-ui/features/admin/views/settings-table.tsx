@@ -1,3 +1,4 @@
+import { useCustomerTerminology } from "../i18n/customer-copy";
 import { Edit3, Info, Plus, RefreshCw, Search, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { type FormEvent, useMemo, useState } from "react";
@@ -149,12 +150,13 @@ export function SystemSettingsPanel({
   onRestoreModelCatalog: () => void;
   onEdit: (item: AdminResource) => void;
 }) {
+  const ui = useCustomerTerminology();
   const current = items.find((item) => item.id === "cfg_gateway") ?? items[0];
   const settingFields = config.fields.filter((field) => !["name", "description", "status"].includes(field.key));
   return (
     <section className="section system-settings-section">
       <div className="section-header">
-        <h2>{tx(config.eyebrow)}</h2>
+        <h2>{ui(config.eyebrow)}</h2>
       </div>
       <div className="section-body">
         <LanguagePreferenceRow language={language} onChange={onLanguageChange} />
@@ -187,9 +189,9 @@ export function SystemSettingsPanel({
             <div className="system-settings-summary">
               {settingFields.map((field) => (
                 <div className="system-setting-item" key={field.key}>
-                  <span>{tx(field.label)}</span>
+                  <span>{ui(field.label)}</span>
                   <strong>{settingValue(current, field.key)}</strong>
-                  {field.help ? <small>{tx(field.help)}</small> : null}
+                  {field.help ? <small>{ui(field.help)}</small> : null}
                 </div>
               ))}
             </div>
@@ -227,11 +229,12 @@ function settingValue(item: AdminResource, key: string) {
 }
 
 export function APIKeyFlowHint({ data }: { data: AppData }) {
+  const ui = useCustomerTerminology();
   return (
     <div className="workflow-hint">
       <div>
         <strong>{tx("Key 归属逻辑")}</strong>
-        <span>{tx("内部应用配置项目下发放的 Key；额度、模型白名单、用量和成本都会归属到该项目。")}</span>
+        <span>{ui("内部应用配置项目下发放的 Key；额度、模型白名单、用量和成本都会归属到该项目。")}</span>
       </div>
       <div className="workflow-hint-stats">
         <span>{countWithLabel(data.projects.length, "个项目")}</span>
@@ -288,6 +291,7 @@ export function EntityTable<T>({
   selectedRowID?: string;
   currentUser?: AdminUser | null;
 }) {
+  const ui = useCustomerTerminology();
   if (loading && items.length === 0) {
     return <TableSkeleton columns={Math.max(3, config.columns.length + 1)} rows={5} />;
   }
@@ -300,7 +304,7 @@ export function EntityTable<T>({
         <thead>
           <tr>
             {config.columns.map((column) => (
-              <th data-column={column.key} key={column.key}>{tx(column.label)}</th>
+              <th data-column={column.key} key={column.key}>{ui(column.label)}</th>
             ))}
             <th data-column="actions">{tx("操作")}</th>
           </tr>
@@ -337,18 +341,18 @@ export function EntityTable<T>({
                     {config.view === "api-keys" && apiBaseURL ? <APIKeyDownloadMenu baseURL={apiBaseURL} data={data} item={item as APIKey} /> : null}
                     {onRowClick && rowOpenLabel ? (
                       <button className="text-button" onClick={() => onRowClick(item)} type="button">
-                        {tx(rowOpenLabel)}
+                        {ui(rowOpenLabel)}
                       </button>
                     ) : null}
                     {(config.actions ?? [])
                       .filter((action) => action.visible?.(item, currentUser, data) ?? true)
                       .map((action) => action.href ? (
-                        <Link className="text-button row-action-link" href={action.href(item)} key={action.label} title={tx(action.title ?? action.label)}>
-                          {tx(action.label)}
+                        <Link className="text-button row-action-link" href={action.href(item)} key={action.label} title={ui(action.title ?? action.label)}>
+                          {ui(action.label)}
                         </Link>
                       ) : (
-                        <button className="text-button" disabled={loading} key={action.label} onClick={() => onAction(action, item)} title={tx(action.title ?? action.label)} type="button">
-                          {tx(action.label)}
+                        <button className="text-button" disabled={loading} key={action.label} onClick={() => onAction(action, item)} title={ui(action.title ?? action.label)} type="button">
+                          {ui(action.label)}
                         </button>
                       ))}
                     {config.update && canUpdate ? (
@@ -386,18 +390,19 @@ export function ResourceEmptyState<T>({
   query: string;
   onCreate?: () => void;
 }) {
+  const ui = useCustomerTerminology();
   const copy = resourceEmptyCopy(config.view, Boolean(query.trim()));
   return (
     <div className="resource-empty">
       <div className="resource-empty-icon">
         <Search size={18} />
       </div>
-      <strong>{tx(copy.title)}</strong>
-      <span>{tx(copy.description)}</span>
+      <strong>{ui(copy.title)}</strong>
+      <span>{ui(copy.description)}</span>
       {onCreate && !query.trim() ? (
         <button className="button" onClick={onCreate} type="button">
           <Plus size={16} />
-          {tx(config.createLabel ?? "新增")}
+          {ui(config.createLabel ?? "新增")}
         </button>
       ) : null}
     </div>
@@ -489,6 +494,7 @@ export function EditModal<T>({
   onClose: () => void;
   onSave: (values: Record<string, string>) => void;
 }) {
+  const ui = useCustomerTerminology();
   const initial = {
     ...(state.item ? state.config.toForm?.(state.item) ?? {} : defaultFormValues(state.config, data, currentUser)),
     ...(state.initialValues ?? {}),
@@ -559,11 +565,11 @@ export function EditModal<T>({
   return (
     <>
     <div className="modal-backdrop" role="presentation">
-      <form className="modal" onSubmit={submit} role="dialog" aria-modal="true" aria-label={tx(state.config.title)} {...focus}>
+      <form className="modal" onSubmit={submit} role="dialog" aria-modal="true" aria-label={ui(state.config.title)} {...focus}>
         <div className="modal-header">
           <div>
             <p className="eyebrow">{state.item ? tx("编辑") : tx("新增")}</p>
-            <h2>{tx(state.config.title)}</h2>
+            <h2>{ui(state.config.title)}</h2>
           </div>
           <button className="icon-button" disabled={loading} onClick={close} type="button" title={tx("关闭")}>×</button>
         </div>

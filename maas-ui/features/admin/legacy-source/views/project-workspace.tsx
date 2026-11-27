@@ -1,3 +1,4 @@
+import { useCustomerTerminology } from "../../i18n/customer-copy";
 import { CircleAlert, FolderKanban, Gauge, KeyRound, Pencil, Plus, ShieldCheck, Trash2, UsersRound, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { type AdminResource, type ApiContext, type AppData, type Project, type ProjectTeam, type ResourceAction } from "../core/types";
@@ -193,6 +194,7 @@ export function ProjectWorkspace({
   onDeleteMember: (member: AdminResource) => void;
   canEditModelScope?: boolean;
 }) {
+  const ui = useCustomerTerminology();
   const [draft, setDraft] = useState<ProjectWorkspaceDraft>(() => projectWorkspaceDraft(project));
   const editable = mode !== "view";
   const consumerProject = project?.id === "prj_consumer";
@@ -226,7 +228,7 @@ export function ProjectWorkspace({
     });
   }
 
-  const title = mode === "create" ? tx("创建项目") : project?.name || tx("项目详情");
+  const title = mode === "create" ? ui("创建项目") : project?.name || ui("项目详情");
   const teamCount = new Set([
     draft.primary_team_id,
     ...draft.additional_teams.map((row) => row.team_id),
@@ -244,14 +246,14 @@ export function ProjectWorkspace({
                 <h2 id="project-workspace-title">{title}</h2>
                 {project ? <StatusPill status={project.status} /> : null}
               </div>
-              <p>{tx("在同一个工作台中管理项目信息、团队访问、成员和额度。")}</p>
+              <p>{ui("在同一个工作台中管理项目信息、团队访问、成员和额度。")}</p>
             </div>
           </div>
           <div className="project-workspace-header-actions">
             {mode === "view" && project ? (
               <>
                 <button className="secondary-button" onClick={onIssueKey} type="button"><KeyRound size={15} />{tx("发放 Key")}</button>
-                <button className="button" onClick={onEdit} type="button"><Pencil size={15} />{tx("编辑项目")}</button>
+                <button className="button" onClick={onEdit} type="button"><Pencil size={15} />{ui("编辑项目")}</button>
               </>
             ) : null}
             <button className="icon-button" onClick={onClose} type="button" title={tx("关闭")}><X size={18} /></button>
@@ -259,10 +261,10 @@ export function ProjectWorkspace({
         </header>
 
         <div className="project-workspace-summary" aria-label={tx("当前配置")}>
-          {!consumerProject ? <><span><strong>{tx("主团队")}</strong>{draft.primary_team_id ? teamLabel(data, draft.primary_team_id) : tx("待选择")}</span>
-          <span><strong>{tx("团队访问")}</strong>{countWithUnit(teamCount, "个团队", "team", "チーム")}</span></> : <span>{tx("C 端默认项目无需关联团队，模型范围适用于所有 C 端用户。")}</span>}
-          <span><strong>{tx("项目成员")}</strong>{project ? countWithUnit(projectMembersForProject(data, project.id).length, "人", "member", "人") : tx("创建后配置")}</span>
-          <span><strong>{tx("项目额度")}</strong>{projectQuotaPolicy(data, project ?? ({ id: "" } as Project)) ? tx("已配置") : tx("未配置")}</span>
+          {!consumerProject ? <><span><strong>{ui("主团队")}</strong>{draft.primary_team_id ? teamLabel(data, draft.primary_team_id) : tx("待选择")}</span>
+          <span><strong>{ui("团队访问")}</strong>{countWithUnit(teamCount, "个团队", "team", "チーム")}</span></> : <span>{ui("C 端默认项目无需关联团队，模型范围适用于所有 C 端用户。")}</span>}
+          <span><strong>{ui("项目成员")}</strong>{project ? countWithUnit(projectMembersForProject(data, project.id).length, "人", "member", "人") : tx("创建后配置")}</span>
+          <span><strong>{ui("项目额度")}</strong>{projectQuotaPolicy(data, project ?? ({ id: "" } as Project)) ? tx("已配置") : tx("未配置")}</span>
         </div>
 
         <div className="project-workspace-body">
@@ -270,12 +272,12 @@ export function ProjectWorkspace({
             icon={<FolderKanban size={18} />}
             index="01"
             title="基本信息"
-            description="定义项目的名称、负责人、成本中心和启用状态。"
+            description={ui("定义项目的名称、负责人、成本中心和启用状态。")}
           >
             {editable ? (
               <div className="project-basics-grid">
                 <label className="field">
-                  <span>{tx("项目名称")}</span>
+                  <span>{ui("项目名称")}</span>
                   <input value={draft.name} onChange={(event) => setDraft((current) => ({ ...current, name: event.target.value }))} required />
                 </label>
                 <label className="field">
@@ -286,12 +288,12 @@ export function ProjectWorkspace({
                   </select>
                 </label>
                 <label className="field">
-                  <span>{tx("项目负责人")}</span>
+                  <span>{ui("项目负责人")}</span>
                   <select value={draft.owner_user_id} onChange={(event) => setDraft((current) => ({ ...current, owner_user_id: event.target.value }))}>
                     <option value="">{tx("请选择")}</option>
                     {userSelectOptions(data).map((option) => <option key={option.value} value={option.value}>{tx(option.label)}</option>)}
                   </select>
-                  <small>{tx("负责人默认拥有该项目的 Key 管理权限。")}</small>
+                  <small>{ui("负责人默认拥有该项目的 Key 管理权限。")}</small>
                 </label>
                 <label className="field">
                   <span>{tx("成本中心")}</span>
@@ -303,9 +305,9 @@ export function ProjectWorkspace({
               </div>
             ) : (
               <div className="project-readonly-grid">
-                <ProjectSummaryField label="项目名称" value={project?.name || "-"} />
+                <ProjectSummaryField label={ui("项目名称")} value={project?.name || "-"} />
                 <ProjectSummaryField label="状态" value={project?.status === "active" ? tx("启用") : tx("停用")} />
-                <ProjectSummaryField label="项目负责人" value={ownerUserLabel(data, project?.owner_user_id ?? "")} />
+                <ProjectSummaryField label={ui("项目负责人")} value={ownerUserLabel(data, project?.owner_user_id ?? "")} />
                 <ProjectSummaryField label="成本中心" value={costCenterLabel(data, project?.cost_center ?? "")} />
               </div>
             )}
@@ -314,9 +316,9 @@ export function ProjectWorkspace({
           {!consumerProject ? <ProjectSection
             icon={<ShieldCheck size={18} />}
             index="02"
-            title="团队与权限"
-            description="主团队承担成本、审批和责任归属；协作团队按所选角色获得项目访问权限。"
-            action={mode === "view" ? <button className="text-button" onClick={onEdit} type="button">{tx("管理团队")}</button> : null}
+            title={ui("团队与权限")}
+            description={ui("主团队承担成本、审批和责任归属；协作团队按所选角色获得项目访问权限。")}
+            action={mode === "view" ? <button className="text-button" onClick={onEdit} type="button">{ui("管理团队")}</button> : null}
             emphasized
           >
             {editable ? (
@@ -329,8 +331,8 @@ export function ProjectWorkspace({
           <ProjectSection
             icon={<UsersRound size={18} />}
             index="03"
-            title="项目成员"
-            description="直接授权给个人；个人角色与所属团队权限按最高角色合并。"
+            title={ui("项目成员")}
+            description={ui("直接授权给个人；个人角色与所属团队权限按最高角色合并。")}
             action={project ? <button className="secondary-button compact-button" onClick={onCreateMember} type="button"><Plus size={15} />{tx("添加成员")}</button> : null}
           >
             {project ? (
@@ -344,7 +346,7 @@ export function ProjectWorkspace({
             icon={<Gauge size={18} />}
             index="04"
             title="模型访问"
-            description="项目模型访问规则先于路由执行，项目内 API Key 只能在此范围内进一步收窄。"
+            description={ui("项目模型访问规则先于路由执行，项目内 API Key 只能在此范围内进一步收窄。")}
           >
             {editable && canEditModelScope ? (
               <div className="project-model-access">
@@ -355,7 +357,7 @@ export function ProjectWorkspace({
                     <option value="restricted">{tx("指定模型允许列表")}</option>
                     <option value="excluded">{tx("指定模型禁用列表")}</option>
                   </select>
-                  <small>{tx("Key 的允许列表会与项目范围取交集，不能扩大项目权限。")}</small>
+                  <small>{ui("Key 的允许列表会与项目范围取交集，不能扩大项目权限。")}</small>
                 </label>
                 {draft.model_access_mode !== "inherit" ? (
                   <div>
@@ -373,7 +375,7 @@ export function ProjectWorkspace({
             ) : (
               <div className="project-readonly-grid">
                 {editable && !canEditModelScope ? (
-                  <p className="project-model-access-notice">{tx("项目模型范围由平台管理员统一设置。你可以通过用户模型权限和 Key 的允许列表进一步收窄，但不能扩大范围。")}</p>
+                  <p className="project-model-access-notice">{ui("项目模型范围由平台管理员统一设置。你可以通过用户模型权限和 Key 的允许列表进一步收窄，但不能扩大范围。")}</p>
                 ) : null}
                 <ProjectSummaryField label="模型访问模式" value={tx(draft.model_access_mode === "inherit" ? "继承全部已启用模型" : draft.model_access_mode === "excluded" ? "指定模型禁用列表" : "指定模型允许列表")} />
                 <ProjectSummaryField label={draft.model_access_mode === "excluded" ? "项目模型禁用列表" : "模型允许列表"} value={draft.model_access_mode === "inherit" ? tx("继承上级范围") : draft.model_access_mode === "excluded" ? draft.excluded_models.join(", ") || tx("未禁用任何模型") : draft.allowed_models.join(", ") || tx("禁止全部模型")} />
@@ -384,8 +386,8 @@ export function ProjectWorkspace({
           <ProjectSection
             icon={<Gauge size={18} />}
             index="05"
-            title="项目额度"
-            description="配置项目专属请求、Token、成本和并发额度。"
+            title={ui("项目额度")}
+            description={ui("配置项目专属请求、Token、成本和并发额度。")}
           >
             {project ? (
               <ProjectQuotaSection data={data} project={project} onAction={onAction} />
@@ -397,7 +399,7 @@ export function ProjectWorkspace({
 
         <footer className="project-workspace-actions">
           <div>
-            {consumerProject ? <span>{tx("C 端默认项目无需关联团队，模型范围适用于所有 C 端用户。")}</span> : editable ? <span>{tx("团队设置与基本信息将一起保存。")}</span> : <span>{tx("团队配置始终在项目工作台中显性展示。")}</span>}
+            {consumerProject ? <span>{ui("C 端默认项目无需关联团队，模型范围适用于所有 C 端用户。")}</span> : editable ? <span>{ui("团队设置与基本信息将一起保存。")}</span> : <span>{ui("团队配置始终在项目工作台中显性展示。")}</span>}
           </div>
           <div>
             <button className="secondary-button" onClick={onClose} type="button">{tx(editable ? "取消" : "关闭")}</button>
@@ -426,6 +428,7 @@ function ProjectSection({
   emphasized?: boolean;
   children: React.ReactNode;
 }) {
+  const ui = useCustomerTerminology();
   return (
     <section className={`project-workspace-section${emphasized ? " emphasized" : ""}`}>
       <div className="project-workspace-section-head">
@@ -433,8 +436,8 @@ function ProjectSection({
           <span className="project-section-icon">{icon}</span>
           <div>
             <span>{index}</span>
-            <h3>{tx(title)}</h3>
-            <p>{tx(description)}</p>
+            <h3>{ui(title)}</h3>
+            <p>{ui(description)}</p>
           </div>
         </div>
         {action}
@@ -445,9 +448,10 @@ function ProjectSection({
 }
 
 function ProjectSummaryField({ label, value }: { label: string; value: string }) {
+  const ui = useCustomerTerminology();
   return (
     <div className="project-summary-field">
-      <span>{tx(label)}</span>
+      <span>{ui(label)}</span>
       <strong>{value || "-"}</strong>
     </div>
   );
@@ -464,6 +468,7 @@ function ProjectTeamsEditor({
   onChange: React.Dispatch<React.SetStateAction<ProjectWorkspaceDraft>>;
   onPrimaryTeamChange: (teamID: string) => void;
 }) {
+  const ui = useCustomerTerminology();
   const options = teamSelectOptions(data);
   const selectedTeamIDs = new Set([draft.primary_team_id, ...draft.additional_teams.map((row) => row.team_id)].filter(Boolean));
 
@@ -480,28 +485,28 @@ function ProjectTeamsEditor({
         <ShieldCheck size={17} />
         <div>
           <strong>{tx("责任归属和访问权限分开配置")}</strong>
-          <span>{tx("主团队决定成本归属、额度审批和默认责任；团队角色决定哪些成员可以访问项目。")}</span>
+          <span>{ui("主团队决定成本归属、额度审批和默认责任；团队角色决定哪些成员可以访问项目。")}</span>
         </div>
       </div>
 
       <div className="project-primary-team-card">
         <div className="project-team-card-title">
           <div>
-            <strong>{tx("主团队（必选）")}</strong>
-            <span className="project-team-kind">{tx("责任团队")}</span>
+            <strong>{ui("主团队（必选）")}</strong>
+            <span className="project-team-kind">{ui("责任团队")}</span>
           </div>
           <p>{tx("只能有 1 个，用于成本归属、额度审批和默认责任。")}</p>
         </div>
         <div className="project-team-editor-grid">
           <label className="field">
-            <span>{tx("主团队")}</span>
+            <span>{ui("主团队")}</span>
             <select value={draft.primary_team_id} onChange={(event) => onPrimaryTeamChange(event.target.value)} required>
-              <option value="">{tx("选择主团队")}</option>
+              <option value="">{ui("选择主团队")}</option>
               {options.map((option) => <option key={option.value} value={option.value}>{tx(option.label)}</option>)}
             </select>
           </label>
           <TeamRoleField
-            label="团队在项目中的权限"
+            label={ui("团队在项目中的权限")}
             role={draft.primary_role}
             includeLegacy
             onChange={(role) => onChange((current) => ({ ...current, primary_role: role }))}
@@ -512,17 +517,17 @@ function ProjectTeamsEditor({
       <div className="project-additional-teams">
         <div className="project-additional-teams-head">
           <div>
-            <strong>{tx("协作团队（可选）")}</strong>
-            <span>{tx("添加后，该团队成员将按所选项目角色获得访问权限。")}</span>
+            <strong>{ui("协作团队（可选）")}</strong>
+            <span>{ui("添加后，该团队成员将按所选项目角色获得访问权限。")}</span>
           </div>
         </div>
         <div className="project-team-draft-list">
           {draft.additional_teams.length === 0 ? (
-            <div className="project-team-empty"><UsersRound size={18} /><span>{tx("暂无协作团队。需要跨团队协作时可添加。")}</span></div>
+            <div className="project-team-empty"><UsersRound size={18} /><span>{ui("暂无协作团队。需要跨团队协作时可添加。")}</span></div>
           ) : draft.additional_teams.map((row) => (
             <div className="project-team-draft-row" key={row.key}>
               <label className="field">
-                <span>{tx("协作团队")}</span>
+                <span>{ui("协作团队")}</span>
                 <select value={row.team_id} onChange={(event) => updateAdditional(row.key, { team_id: event.target.value })}>
                   <option value="">{tx("请选择")}</option>
                   {options.map((option) => (
@@ -537,7 +542,7 @@ function ProjectTeamsEditor({
                 </select>
               </label>
               <TeamRoleField
-                label="团队项目角色"
+                label={ui("团队项目角色")}
                 role={row.role}
                 includeLegacy={row.role === "team_leader"}
                 onChange={(role) => updateAdditional(row.key, { role })}
@@ -545,7 +550,7 @@ function ProjectTeamsEditor({
               <button
                 className="danger-button project-team-remove"
                 onClick={() => onChange((current) => ({ ...current, additional_teams: current.additional_teams.filter((item) => item.key !== row.key) }))}
-                title={tx("移除团队")}
+                title={ui("移除团队")}
                 type="button"
               >
                 <Trash2 size={15} />
@@ -573,16 +578,17 @@ function TeamRoleField({
   includeLegacy?: boolean;
   onChange: (role: ProjectTeam["role"]) => void;
 }) {
+  const ui = useCustomerTerminology();
   return (
     <label className="field project-team-role-field">
-      <span>{tx(label)}</span>
+      <span>{ui(label)}</span>
       <select value={role} onChange={(event) => onChange(event.target.value as ProjectTeam["role"])}>
-        {includeLegacy ? <option value="team_leader">{tx("仅团队负责人（兼容）")}</option> : null}
+        {includeLegacy ? <option value="team_leader">{ui("仅团队负责人（兼容）")}</option> : null}
         <option value="viewer">{tx("只读成员")}</option>
         <option value="developer">{tx("开发成员")}</option>
-        <option value="maintainer">{tx("项目维护者")}</option>
+        <option value="maintainer">{ui("项目维护者")}</option>
       </select>
-      <small>{tx(projectTeamRoleDescription(role))}</small>
+      <small>{ui(projectTeamRoleDescription(role))}</small>
     </label>
   );
 }
@@ -609,6 +615,7 @@ function normalizedProjectTeams(project: Project) {
 }
 
 function ProjectTeamsOverview({ data, project }: { data: AppData; project: Project }) {
+  const ui = useCustomerTerminology();
   const links = normalizedProjectTeams(project);
   const primary = links.find((link) => link.is_primary);
   const additional = links.filter((link) => !link.is_primary);
@@ -617,25 +624,25 @@ function ProjectTeamsOverview({ data, project }: { data: AppData; project: Proje
       <div className={`project-primary-team-card${primary ? "" : " missing"}`}>
         <div className="project-team-card-title">
           <div>
-            <strong>{tx("主团队")}</strong>
-            <span className="project-team-kind">{tx("责任团队")}</span>
+            <strong>{ui("主团队")}</strong>
+            <span className="project-team-kind">{ui("责任团队")}</span>
           </div>
-          <p>{tx("负责项目成本归属、额度审批和最终责任。")}</p>
+          <p>{ui("负责项目成本归属、额度审批和最终责任。")}</p>
         </div>
         {primary ? <ProjectTeamAccessRow data={data} link={primary} /> : (
-          <div className="project-team-warning"><CircleAlert size={16} /><span>{tx("尚未设置主团队，请立即进入编辑模式完成配置。")}</span></div>
+          <div className="project-team-warning"><CircleAlert size={16} /><span>{ui("尚未设置主团队，请立即进入编辑模式完成配置。")}</span></div>
         )}
       </div>
       <div className="project-additional-teams">
         <div className="project-additional-teams-head">
           <div>
-            <strong>{tx("协作团队")}</strong>
-            <span>{tx("通过团队关系获得项目访问权限。")}</span>
+            <strong>{ui("协作团队")}</strong>
+            <span>{ui("通过团队关系获得项目访问权限。")}</span>
           </div>
           <span>{countWithUnit(additional.length, "个团队", "team", "チーム")}</span>
         </div>
         {additional.length === 0 ? (
-          <div className="project-team-empty"><UsersRound size={18} /><span>{tx("暂无协作团队。需要跨团队协作时可添加。")}</span></div>
+          <div className="project-team-empty"><UsersRound size={18} /><span>{ui("暂无协作团队。需要跨团队协作时可添加。")}</span></div>
         ) : (
           <div className="project-team-access-list">
             {additional.map((link) => <ProjectTeamAccessRow data={data} key={link.team_id} link={link} />)}
@@ -647,13 +654,14 @@ function ProjectTeamsOverview({ data, project }: { data: AppData; project: Proje
 }
 
 function ProjectTeamAccessRow({ data, link }: { data: AppData; link: ProjectTeam }) {
+  const ui = useCustomerTerminology();
   return (
     <div className="project-team-access-row">
       <div>
         <strong>{teamLabel(data, link.team_id)}</strong>
-        <span>{tx(projectTeamRoleDescription(link.role))}</span>
+        <span>{ui(projectTeamRoleDescription(link.role))}</span>
       </div>
-      <span className={`project-team-role role-${link.role}`}>{tx(projectTeamRoleLabel(link.role))}</span>
+      <span className={`project-team-role role-${link.role}`}>{ui(projectTeamRoleLabel(link.role))}</span>
     </div>
   );
 }
@@ -676,16 +684,17 @@ function ProjectMembersSection({
   onEditMember: (member: AdminResource) => void;
   onDeleteMember: (member: AdminResource) => void;
 }) {
+  const ui = useCustomerTerminology();
   const members = projectMembersForProject(data, project.id);
   return (
     <div>
       <div className="project-access-inheritance-note">
         <UsersRound size={16} />
-        <span>{tx("同一用户从多个团队或单独成员关系获得权限时，系统采用最高角色。")}</span>
+        <span>{ui("同一用户从多个团队或单独成员关系获得权限时，系统采用最高角色。")}</span>
       </div>
       <div className="project-member-list">
         {members.length === 0 ? (
-          <div className="empty compact-empty">{tx("暂无项目成员")}</div>
+          <div className="empty compact-empty">{ui("暂无项目成员")}</div>
         ) : members.map((member) => (
           <ProjectMemberRow
             key={member.id}
@@ -701,10 +710,11 @@ function ProjectMembersSection({
 }
 
 function ProjectPendingSection({ text }: { text: string }) {
+  const ui = useCustomerTerminology();
   return (
     <div className="project-workspace-pending">
       <CircleAlert size={17} />
-      <span>{tx(text)}</span>
+      <span>{ui(text)}</span>
     </div>
   );
 }
@@ -718,6 +728,7 @@ function ProjectQuotaSection({
   project: Project;
   onAction: (action: ResourceAction<Project>) => void;
 }) {
+  const ui = useCustomerTerminology();
   const quota = projectQuotaPolicy(data, project);
   const [values, setValues] = useState<ProjectQuotaValues>(() => projectQuotaValues(quota));
 
@@ -732,7 +743,7 @@ function ProjectQuotaSection({
     <div className="project-workspace-quota">
       <div className="quota-status-row">
         <div>
-          <strong>{hasQuota ? tx("已配置项目专属额度") : tx("未配置项目专属额度")}</strong>
+          <strong>{hasQuota ? ui("已配置项目专属额度") : ui("未配置项目专属额度")}</strong>
           <span>{tx("留空或填 0 表示该项不限额；Key 自身额度仍会叠加生效。")}</span>
         </div>
         <StatusPill status={values.status || "active"} />
@@ -741,7 +752,7 @@ function ProjectQuotaSection({
       {quotaIssue || pendingApproval ? (
         <div className="quota-request-banner">
           <div>
-            <strong>{pendingApproval ? tx("已有额度提升申请待审批") : tx("最近触发了项目额度限制")}</strong>
+            <strong>{pendingApproval ? tx("已有额度提升申请待审批") : ui("最近触发了项目额度限制")}</strong>
             <span>
               {pendingApproval
                 ? `${approvalTriggerLabel(pendingApproval.trigger)} ${pendingApproval.id}，${tx("可在审批记录中处理。")}`
@@ -763,7 +774,7 @@ function ProjectQuotaSection({
       <div className="project-quota-grid">
         {projectQuotaFields.map((field) => (
           <label className="field" key={field.key}>
-            <span>{tx(field.label)}</span>
+            <span>{ui(field.label)}</span>
             <input
               min="0"
               type="number"

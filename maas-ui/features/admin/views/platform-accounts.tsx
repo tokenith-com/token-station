@@ -1,3 +1,4 @@
+import { useCustomerTerminology } from "../i18n/customer-copy";
 import { ChevronLeft, ChevronRight, Plus, Search, X } from "lucide-react";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { type AdminUser, type AppData } from "../core/types";
@@ -36,6 +37,7 @@ export function PlatformAccountsView({
   onDelete: (user: AdminUser) => void;
   onOnboard?: (values: PlatformAccountValues) => Promise<boolean>;
 }) {
+  const ui = useCustomerTerminology();
   const isTeamView = variant === "team";
   const canOnboard = !isTeamView && currentUser.role.trim().toLowerCase() === "admin" && Boolean(onOnboard);
   const [onboardingOpen, setOnboardingOpen] = useState(false);
@@ -108,7 +110,7 @@ export function PlatformAccountsView({
               <th>{tx("用户名")}</th>
               {isTeamView ? <th>{tx("邮箱")}</th> : null}
               <th>{tx("角色")}</th>
-              <th>{tx("团队")}</th>
+              <th>{ui("团队")}</th>
               <th>{tx("状态")}</th>
               <th>{tx("创建时间")}</th>
               <th>{tx("操作")}</th>
@@ -228,6 +230,7 @@ function PlatformAccountDialog({
   onClose: () => void;
   onSubmit: (values: PlatformAccountValues) => Promise<boolean>;
 }) {
+  const ui = useCustomerTerminology();
   const isCreate = state.mode === "create";
   const isEdit = state.mode === "edit";
   const isTeamView = variant === "team";
@@ -282,7 +285,7 @@ function PlatformAccountDialog({
     }
     const teamID = values.team_id || defaultTeamID;
     if (isCreate && !isTeamView && !teamID) {
-      setValidationError(tx("暂无可用的主团队，请联系平台管理员配置团队后重试"));
+      setValidationError(ui("暂无可用的主团队，请联系平台管理员配置团队后重试"));
       return;
     }
     // 团队视图的新建走团队成员接口，团队由后端按调用者强制指定。
@@ -298,7 +301,7 @@ function PlatformAccountDialog({
     }} role="presentation">
       <form aria-labelledby="platform-account-dialog-title" aria-modal="true" className={`platform-account-dialog${isTeamView ? " team-account-dialog" : ""} is-${state.mode}`} onSubmit={submit} role="dialog">
         <header className="platform-account-dialog-header">
-          <h2 id="platform-account-dialog-title">{tx(title)}</h2>
+          <h2 id="platform-account-dialog-title">{ui(title)}</h2>
           <button aria-label={tx("关闭")} disabled={loading} onClick={onClose} type="button"><X size={17} /></button>
         </header>
 
@@ -329,7 +332,7 @@ function PlatformAccountDialog({
 
           {isCreate && isTeamView ? (
             <p className="platform-account-form-hint">
-              {tx("创建后将自动加入你负责的第一个活跃项目空间，项目角色为 developer（可发放 Key）。")}
+              {ui("创建后将自动加入你负责的第一个活跃项目空间，项目角色为 developer（可发放 Key）。")}
             </p>
           ) : null}
 
@@ -366,9 +369,10 @@ function PlatformAccountDialog({
 }
 
 export function AccountFormSection({ title, children }: { title: string; children: React.ReactNode }) {
+  const ui = useCustomerTerminology();
   return (
     <section className="platform-account-form-section">
-      <h3><i aria-hidden="true" />{tx(title)}</h3>
+      <h3><i aria-hidden="true" />{ui(title)}</h3>
       <div className="platform-account-form-fields">{children}</div>
     </section>
   );
@@ -385,9 +389,10 @@ export function AccountField({
   className?: string;
   children: React.ReactNode;
 }) {
+  const ui = useCustomerTerminology();
   return (
     <label className={`platform-account-field ${className}`.trim()}>
-      <span>{required ? <b aria-hidden="true">*</b> : null}{tx(label)}</span>
+      <span>{required ? <b aria-hidden="true">*</b> : null}{ui(label)}</span>
       {children}
     </label>
   );

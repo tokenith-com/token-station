@@ -15,6 +15,9 @@ func providerCredentialLoaderForType(store Store, providerType string) func(cont
 		if err == nil && snapshot.ID != "" {
 			credentials.resourceSnapshot = snapshot
 		}
+		if err == nil {
+			captureAuditCredentials(ctx, credentials)
+		}
 		return credentials, err
 	}
 }

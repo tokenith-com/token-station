@@ -1,3 +1,4 @@
+import { CustomerStaticText } from "../../i18n/customer-copy";
 import type { AdminResource, AppData, ResourceConfig } from "../core/types";
 import { apiKeyOwnerSelectOptions, ownerUserLabel, stringifyValue } from "../domain/entities";
 import { tx } from "../i18n/runtime";
@@ -27,7 +28,7 @@ function modelAccessSummary(item: AdminResource) {
   if (mode === "excluded") {
     return tx("黑名单 · {count} 个模型").replace("{count}", String(selectedModels(item.fields?.excluded_models).length));
   }
-  return tx("继承项目范围");
+  return <CustomerStaticText value="继承项目范围" />;
 }
 
 // Only configured directory models are selectable. The raw model list carries
@@ -56,8 +57,8 @@ export function userModelAccessConfig(): ResourceConfig<AdminResource> {
       key: "model_access_mode",
       label: "范围模式",
       type: "select",
-      optionsFromData: () => [
-        { value: "inherit", label: tx("继承项目范围") },
+      optionsFromData: (_data, currentUser) => [
+        { value: "inherit", label: tx(currentUser?.role === "admin" ? "继承客户项目范围" : "继承项目范围") },
         { value: "restricted", label: tx("白名单模式") },
         { value: "excluded", label: tx("黑名单模式") },
       ],

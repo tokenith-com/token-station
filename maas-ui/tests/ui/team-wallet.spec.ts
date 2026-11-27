@@ -21,7 +21,7 @@ test.describe("team-wallet report overview", () => {
       expect(Number(query.get("offset")) % Number(query.get("limit"))).toBe(0);
       expect(query.size).toBe(2);
     });
-    api.define("GET", "/api/admin/usage/report", () => ({ json: usageReport("today") }), query => { expect(query.get("range")).toBe("today"); });
+    api.define("GET", "/api/admin/usage/report", input => ({ json: usageReport(input.query.get("range") as "all" | "today" | "7d" | "30d") }), query => { expect(["all", "today", "7d", "30d"]).toContain(query.get("range")); });
     await page.goto("/usage");
     const ledger = page.getByRole("region", { name: "资金流水" });
     await expect(ledger.locator(".page-buttons")).toContainText("1 / 3");
@@ -43,7 +43,7 @@ test.describe("team-wallet report overview", () => {
       api.define("GET", `${walletPath}/ledger`, () => ({ json: { entries: [], total: 0, limit: 20, offset: 0, currency: "USD" } }), query => {
         expect(Object.fromEntries(query)).toEqual({ limit: "20", offset: "0" });
       });
-      api.define("GET", "/api/admin/usage/report", () => ({ json: usageReport("today") }), query => { expect(query.get("range")).toBe("today"); });
+      api.define("GET", "/api/admin/usage/report", input => ({ json: usageReport(input.query.get("range") as "all" | "today" | "7d" | "30d") }), query => { expect(["all", "today", "7d", "30d"]).toContain(query.get("range")); });
       await page.goto("/usage");
       const overview = page.locator(".team-wallet-overview");
       await expect(overview.getByText("结算配置未完成，请联系管理员", { exact: true })).toBeVisible();

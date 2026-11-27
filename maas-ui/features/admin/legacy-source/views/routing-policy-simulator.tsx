@@ -1,3 +1,4 @@
+import { useCustomerTerminology } from "../../i18n/customer-copy";
 import { PlayCircle } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { type ApiContext, type AppData } from "../core/types";
@@ -26,6 +27,7 @@ type RoutingPolicyResolution = {
 };
 
 export function RoutingPolicySimulator({ api, data }: { api: ApiContext; data: AppData }) {
+  const ui = useCustomerTerminology();
   const [projectID, setProjectID] = useState("");
   const [keyID, setKeyID] = useState("");
   const [model, setModel] = useState("");
@@ -67,7 +69,7 @@ export function RoutingPolicySimulator({ api, data }: { api: ApiContext; data: A
       <form className="routing-policy-simulator" onSubmit={simulate}>
         <div className="routing-policy-simulator-fields">
           <label className="field">
-            <span>{tx("项目")}</span>
+            <span>{ui("项目")}</span>
             <select required value={projectID} onChange={(event) => setProjectID(event.target.value)}>
               <option value="">{tx("请选择")}</option>
               {data.projects.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}

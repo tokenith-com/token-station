@@ -1,3 +1,4 @@
+import { useCustomerTerminology } from "../i18n/customer-copy";
 import { useEffect, useState } from "react";
 import type { APIKey } from "../core/types";
 import { accessProtocols, apiKeyAccessConfig, apiKeyPlaceholder, type AccessProtocol } from "../domain/api-key-access";
@@ -30,6 +31,7 @@ export function APIKeyAccessDialogs({ baseURL, issuedKey, onCloseIssuedKey }: {
 export function APIKeyAccessModal({ baseURL, secret = "", apiKey, onClose }: {
   baseURL: string; secret?: string; apiKey?: APIKey; onClose: () => void;
 }) {
+  const ui = useCustomerTerminology();
   const [protocol, setProtocol] = useState<AccessProtocol>("chat");
   const [model, setModel] = useState("");
   const [resolvedSecret, setResolvedSecret] = useState(secret);
@@ -82,7 +84,7 @@ export function APIKeyAccessModal({ baseURL, secret = "", apiKey, onClose }: {
         <details open className="api-key-access-example">
           <summary>{tx("请求示例（cURL）")}</summary>
           <label className="field"><span>{tx("模型 ID")}</span><input value={model} placeholder={tx("填写此 Key 可用的模型 ID")} onChange={event => setModel(event.target.value)} /></label>
-          <p>{tx("协议支持不代表模型可用。请填写符合项目和 Key 权限的模型 ID，再运行示例。")}</p>
+          <p>{ui("协议支持不代表模型可用。请填写符合项目和 Key 权限的模型 ID，再运行示例。")}</p>
           <CopyField label={tx("请求地址")} value={config.endpoint} copyLabel={tx("复制请求地址")} />
           <CopyField label="cURL" value={config.example} copyLabel={tx("复制示例")} multiline />
         </details>

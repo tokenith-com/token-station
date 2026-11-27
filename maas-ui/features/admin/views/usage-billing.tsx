@@ -1,3 +1,5 @@
+import { useCustomerTerminology } from "../i18n/customer-copy";
+import { DepartmentTokenChart } from "./department-token-chart";
 import { CirclePause, CirclePlay, Pencil, Plus, RefreshCw, TestTube2, X } from "lucide-react";
 import { type FormEvent, useState } from "react";
 import { type ApiContext, type BillingConnector } from "../core/types";
@@ -45,6 +47,7 @@ export type ExecutiveMemberRow = UsageBreakdownRow & {
 };
 
 export function ExecutiveUsageReport({ data, periodLabel = tx("全部") }: { data: AppData; periodLabel?: string }) {
+  const ui = useCustomerTerminology();
   const departments = executiveDepartmentRows(data);
   const members = executiveMemberRows(data);
   const totalTokens = data.summary.total_tokens || departments.reduce((sum, row) => sum + row.total_tokens, 0);
@@ -62,7 +65,7 @@ export function ExecutiveUsageReport({ data, periodLabel = tx("全部") }: { dat
   const tokenDetail = `${tx("输入")} ${compactNumber(totalInput)} / ${tx("缓存读")} ${compactNumber(data.summary.cached_input_tokens ?? 0)} / ${tx("输出")} ${compactNumber(totalOutput)}`;
   const departmentDetail = topDepartment
     ? `${tx("最高")}：${topDepartment.name} · ${departmentShare}%`
-    : tx("暂无部门归因");
+    : ui("暂无客户团队归因");
   const generatedDetail = `${tx("统计时间")} ${generatedAt}`;
   const requestDetail = countWithUnit(data.summary.request_count, "次请求", "request", "件のリクエスト");
 
@@ -72,28 +75,28 @@ export function ExecutiveUsageReport({ data, periodLabel = tx("全部") }: { dat
         <div>
           <p className="eyebrow">Executive Usage Report</p>
           <h2>{tx("企业 AI 用量看板")}</h2>
-          <span>{tx("面向管理层的部门、个人与 Token 消耗对比")}</span>
+          <span>{ui("面向管理层的客户团队、个人与 Token 消耗对比")}</span>
         </div>
-        <div className="executive-report-tools">
+        <p className="executive-report-context">
           <span>{periodLabel}</span>
-          <span>{tx("按部门")}</span>
+          <span>{ui("按客户团队")}</span>
           <span>{tx("Token 口径")}</span>
-        </div>
+        </p>
       </header>
 
       <div className="executive-kpi-grid">
         <ExecutiveKPI label="总 Token 消耗" value={compactNumber(totalTokens)} detail={tokenDetail} />
-        <ExecutiveKPI label="覆盖部门" value={formatNumber(departments.length)} detail={departmentDetail} />
+        <ExecutiveKPI label={ui("覆盖客户团队")} value={formatNumber(departments.length)} detail={departmentDetail} />
         <ExecutiveKPI label="活跃成员" value={formatNumber(activeMembers)} detail={generatedDetail} />
         <ExecutiveKPI label="估算成本" value={`$${formatMoney(data.summary.estimated_cost_usd)}`} detail={requestDetail} />
       </div>
 
       <div className="executive-grid">
-        <article className="executive-panel executive-chart-panel">
+        <article className="executive-panel executive-chart-panel department-comparison-panel">
           <div className="executive-panel-head">
             <div>
-              <h3>{tx("部门 Token 消耗对比")}</h3>
-              <span>{tx("输入 Token 与输出 Token 分段展示，按总量排序")}</span>
+              <h3>{ui("客户团队 Token 消耗对比")}</h3>
+              <span>{tx("输入与输出共用刻度，按总 Token 排序")}</span>
             </div>
             <div className="executive-legend">
               <span><i className="input" />{tx("输入")}</span>
@@ -106,7 +109,7 @@ export function ExecutiveUsageReport({ data, periodLabel = tx("全部") }: { dat
         <article className="executive-panel executive-department-panel">
           <div className="executive-panel-head compact">
             <div>
-              <h3>{tx("部门排行")}</h3>
+              <h3>{ui("客户团队排行")}</h3>
               <span>Top {Math.min(departments.length, 8)} · {tx("Token 消耗")}</span>
             </div>
           </div>
@@ -132,9 +135,10 @@ export function ExecutiveUsageReport({ data, periodLabel = tx("全部") }: { dat
 }
 
 export function ExecutiveKPI({ label, value, detail }: { label: string; value: string; detail: string }) {
+  const ui = useCustomerTerminology();
   return (
     <article className="executive-kpi">
-      <span>{tx(label)}</span>
+      <span>{ui(label)}</span>
       <strong>{value}</strong>
       <small>{detail}</small>
     </article>
@@ -142,56 +146,12 @@ export function ExecutiveKPI({ label, value, detail }: { label: string; value: s
 }
 
 export function ExecutiveDepartmentChart({ rows }: { rows: ExecutiveDepartmentRow[] }) {
-  if (rows.length === 0) return <div className="empty">{tx("暂无部门 Token 数据")}</div>;
-  const width = 960;
-  const height = 320;
-  const left = 54;
-  const right = 28;
-  const top = 28;
-  const bottom = 70;
-  const chartHeight = height - top - bottom;
-  const baseline = height - bottom;
-  const max = Math.max(...rows.map((row) => row.total_tokens), 1);
-  const gap = 18;
-  const barWidth = Math.max(28, (width - left - right - gap * (rows.length - 1)) / rows.length);
-  const ticks = [0.25, 0.5, 0.75, 1];
-
-  return (
-    <div className="executive-chart-wrap">
-      <svg className="executive-chart" viewBox={`0 0 ${width} ${height}`} role="img" aria-label={tx("部门 Token 消耗对比")}>
-        {ticks.map((tick) => {
-          const y = baseline - chartHeight * tick;
-          return (
-            <g key={tick}>
-              <line x1={left} x2={width - right} y1={y} y2={y} />
-              <text x={10} y={y + 4}>{compactNumber(max * tick)}</text>
-            </g>
-          );
-        })}
-        {rows.map((row, index) => {
-          const x = left + index * (barWidth + gap);
-          const inputHeight = Math.max(0, (row.input_tokens / max) * chartHeight);
-          const outputHeight = Math.max(0, (row.output_tokens / max) * chartHeight);
-          const totalHeight = inputHeight + outputHeight || Math.max(4, (row.total_tokens / max) * chartHeight);
-          const inputY = baseline - inputHeight;
-          const outputY = inputY - outputHeight;
-          return (
-            <g key={row.id}>
-              <rect className="executive-bar-bg" x={x} y={top} width={barWidth} height={chartHeight} rx="8" />
-              {row.output_tokens > 0 ? <rect className="executive-bar-output" x={x} y={outputY} width={barWidth} height={outputHeight} rx="8" /> : null}
-              <rect className="executive-bar-input" x={x} y={row.input_tokens > 0 ? inputY : baseline - totalHeight} width={barWidth} height={row.input_tokens > 0 ? inputHeight : totalHeight} rx="8" />
-              <text className="executive-bar-value" x={x + barWidth / 2} y={Math.max(18, baseline - totalHeight - 8)}>{compactNumber(row.total_tokens)}</text>
-              <text className="executive-bar-label" x={x + barWidth / 2} y={height - 34}>{shortLabel(row.name, 8)}</text>
-            </g>
-          );
-        })}
-      </svg>
-    </div>
-  );
+  return <DepartmentTokenChart rows={rows} />;
 }
 
 export function ExecutiveDepartmentRanking({ rows, totalTokens }: { rows: ExecutiveDepartmentRow[]; totalTokens: number }) {
-  if (rows.length === 0) return <div className="empty">{tx("暂无部门排行数据")}</div>;
+  const ui = useCustomerTerminology();
+  if (rows.length === 0) return <div className="empty">{ui("暂无客户团队排行数据")}</div>;
   return (
     <div className="executive-rank-list">
       {rows.map((row, index) => {
@@ -213,6 +173,7 @@ export function ExecutiveDepartmentRanking({ rows, totalTokens }: { rows: Execut
 }
 
 export function ExecutiveMemberTable({ rows, totalTokens }: { rows: ExecutiveMemberRow[]; totalTokens: number }) {
+  const ui = useCustomerTerminology();
   if (rows.length === 0) return <div className="empty">{tx("暂无个人排行数据")}</div>;
   return (
     <div className="executive-table-wrap">
@@ -221,7 +182,7 @@ export function ExecutiveMemberTable({ rows, totalTokens }: { rows: ExecutiveMem
           <tr>
             <th>{tx("排名")}</th>
             <th>{tx("成员")}</th>
-            <th>{tx("部门")}</th>
+            <th>{ui("客户团队")}</th>
             <th>{tx("请求")}</th>
             <th>{tx("输入 Token")}</th>
             <th>{tx("输出 Token")}</th>
@@ -272,7 +233,7 @@ export function executiveDepartmentRows(data: AppData): ExecutiveDepartmentRow[]
       const teamID = user?.team_id || "unknown";
       const current = byTeam.get(teamID) ?? {
         id: teamID,
-        name: teamID === "unknown" ? tx("未归属部门") : teamLabel(data, teamID),
+        name: teamID === "unknown" ? tx("未归属客户团队") : teamLabel(data, teamID),
         member_count: 0,
         request_count: 0,
         input_tokens: 0,
@@ -307,7 +268,7 @@ export function executiveMemberRows(data: AppData): ExecutiveMemberRow[] {
       return {
         ...row,
         name: user ? displayText(user.name) || user.username || user.email : usageMemberLabel(data, row.id),
-        department: user?.team_id ? teamLabel(data, user.team_id) : tx("未归属部门"),
+        department: user?.team_id ? teamLabel(data, user.team_id) : tx("未归属客户团队"),
       };
     });
   return sortUsageRows(rows);
@@ -441,6 +402,7 @@ export function BillingView({
 
 
 export function DailyUsageSection({ data, user, report: daily }: { data: AppData; user: AdminUser; report: UsageReport }) {
+  const ui = useCustomerTerminology();
   const summary = daily.summary;
   const role = appRole(user.role);
   const showMemberBreakdown = role === "team_leader";
@@ -474,7 +436,7 @@ export function DailyUsageSection({ data, user, report: daily }: { data: AppData
         <DailyTokenTypeTable rows={tokenTypeRows} />
         <DailyUsageTable title="今日模型用量" label="模型" rows={daily.breakdown.models ?? []} nameForRow={(row) => row.id} paginationKey="daily-usage-models" />
         {showMemberBreakdown ? <DailyUsageTable title="今日成员用量" label="成员" rows={daily.breakdown.members ?? []} nameForRow={(row) => usageMemberLabel(data, row.id)} paginationKey="daily-usage-members" /> : null}
-        <DailyUsageTable title="今日项目归因" label="项目" rows={daily.breakdown.projects ?? []} nameForRow={(row) => projectName(data, row.id)} paginationKey="daily-usage-projects" />
+        <DailyUsageTable title={ui("今日项目归因")} label={ui("项目")} rows={daily.breakdown.projects ?? []} nameForRow={(row) => projectName(data, row.id)} paginationKey="daily-usage-projects" />
         <DailyUsageTable title="今日 API Key 用量" label="API Key" rows={daily.breakdown.api_keys ?? []} nameForRow={(row) => apiKeyAuditLabel(data, row.id)} paginationKey="daily-usage-api-keys" />
         {showProviderBreakdown ? <DailyUsageTable title="今日 Provider 用量" label="Provider" rows={daily.breakdown.providers ?? []} nameForRow={(row) => findProvider(data, row.id)?.name || row.id} paginationKey="daily-usage-providers" /> : null}
         {showProviderBreakdown ? <DailyUsageTable title="今日资源账号用量" label="资源账号" rows={daily.breakdown.provider_resources ?? []} nameForRow={(row) => providerResourceAuditLabel(data, row.id)} paginationKey="daily-usage-provider-resources" /> : null}
@@ -508,11 +470,12 @@ function DailyTokenTypeTable({ rows }: { rows: UsageBreakdownRow[] }) {
 
 
 function DailyUsageTable({ title, label, rows, nameForRow, paginationKey }: { title: string; label: string; rows: UsageBreakdownRow[]; nameForRow: (row: UsageBreakdownRow) => string; paginationKey: string }) {
+  const ui = useCustomerTerminology();
   return (
     <article className="executive-panel">
       <div className="executive-panel-head compact">
         <div>
-          <h3>{tx(title)}</h3>
+          <h3>{ui(title)}</h3>
           <span>{tx("按 Token 降序")}</span>
         </div>
       </div>

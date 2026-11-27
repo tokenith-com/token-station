@@ -1,3 +1,4 @@
+import { useCustomerTerminology } from "../i18n/customer-copy";
 import { ResponseUsageDetails } from "./response-usage-details";
 import { RequestPayloadViewer } from "./request-payload-viewer";
 import { RequestErrorSummary } from "./request-error-summary";
@@ -382,6 +383,7 @@ export function RequestDetailPanel({
   showProviderCost?: boolean;
   role?: AppRole;
 }) {
+  const ui = useCustomerTerminology();
   const [copied, setCopied] = useState(false);
 
   if (!requestID) {
@@ -511,7 +513,7 @@ export function RequestDetailPanel({
       </div>
 
       <details open className="request-secondary-details request-section-card" key={`metadata-${requestID}`}><summary>{tx("详情")}</summary><div className="request-detail-grid">
-        {showsProject ? <DetailField label="项目" value={projectName(data, log.project_id)} /> : null}
+        {showsProject ? <DetailField label={ui("项目")} value={projectName(data, log.project_id)} /> : null}
         <DetailField label="账户" value={detail.account || requestAccountLabel(data, log)} />
         <DetailField label="API Key" value={apiKeyAuditLabel(data, log.api_key_id)} />
         <DetailField label="Provider 资源" value={providerResourceAuditLabel(data, log.provider_resource_id)} />
@@ -595,18 +597,20 @@ export function RequestDetailPanel({
 }
 
 export function DetailField({ label, value }: { label: string; value: React.ReactNode }) {
+  const ui = useCustomerTerminology();
   return (
     <div className="detail-field">
-      <span>{tx(label)}</span>
+      <span>{ui(label)}</span>
       <strong>{value}</strong>
     </div>
   );
 }
 
 export function UsageStat({ label, value }: { label: string; value: string }) {
+  const ui = useCustomerTerminology();
   return (
     <div className="usage-stat">
-      <span>{tx(label)}</span>
+      <span>{ui(label)}</span>
       <strong>{value}</strong>
     </div>
   );
@@ -621,10 +625,11 @@ export function UsageBreakdownGroup({
   total: number;
   rows: Array<[string, number]>;
 }) {
+  const ui = useCustomerTerminology();
   return (
     <div className="usage-breakdown-group">
       <div className="usage-breakdown-head">
-        <span>{tx(label)}</span>
+        <span>{ui(label)}</span>
         <strong>{formatNumber(total)}</strong>
       </div>
       <div className="usage-breakdown-rows">
@@ -690,11 +695,12 @@ export function RequestMetric({
   value: string;
   icon: React.ComponentType<{ size?: number }>;
 }) {
+  const ui = useCustomerTerminology();
   return (
     <article className="metric compact-metric">
       <div className="metric-label">
         <Icon size={17} />
-        {tx(label)}
+        {ui(label)}
       </div>
       <div className="metric-value">{value}</div>
     </article>

@@ -1,3 +1,4 @@
+import { useCustomerTerminology } from "../i18n/customer-copy";
 import { formatSuccessRate } from "../domain/success-rate";
 import { Activity, BarChart3, Boxes, Check, CircleDollarSign, Code2, Database, FileText, Gauge, KeyRound, LayoutDashboard, Server, ShieldCheck, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
@@ -267,11 +268,12 @@ export function UsageMonitorKPI({
   icon: typeof Activity;
   tone: "blue" | "green" | "red" | "amber" | "purple";
 }) {
+  const ui = useCustomerTerminology();
   return (
     <article className={`usage-monitor-kpi ${tone}`}>
       <span className="usage-monitor-kpi-icon"><Icon size={17} /></span>
       <div>
-        <span>{tx(label)}</span>
+        <span>{ui(label)}</span>
         <strong>{value}</strong>
         <small>{detail}</small>
       </div>
@@ -377,12 +379,13 @@ export function TokenMixPanel({ input, output, total }: { input: number; output:
 }
 
 export function UsageCostRankPanel({ title, empty, rows }: { title: string; empty: string; rows: UsageDashboardRankRow[] }) {
+  const ui = useCustomerTerminology();
   const max = Math.max(...rows.map((row) => row.cost || row.total_tokens), 1);
   return (
     <article className="usage-monitor-panel rank">
       <div className="usage-monitor-panel-head compact">
         <div>
-          <h2>{tx(title)}</h2>
+          <h2>{ui(title)}</h2>
           <span>{tx("按估算成本降序")}</span>
         </div>
       </div>
@@ -828,12 +831,13 @@ export function OverviewMetricCard({
   value: string;
   values: number[];
 }) {
+  const ui = useCustomerTerminology();
   return (
     <article className="metric compact-metric overview-metric-card">
       <div className="overview-card-head">
         <div className="metric-label">
           <Icon size={17} />
-          {tx(label)}
+          {ui(label)}
         </div>
         {badge ? <span>{tx(badge)}</span> : null}
       </div>

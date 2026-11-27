@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"reflect"
 	"time"
-	"unicode/utf8"
 )
 
 const (
@@ -43,19 +42,39 @@ func auditPayloadBody(value any) (string, bool) {
 	if !auditPayloadFits(reflect.ValueOf(decoded), &budget, 0) {
 		return auditPayloadOmitted, true
 	}
-	raw, err = json.MarshalIndent(redactAuditValue(decoded), "", "  ")
+	redacted := redactAuditValue(decoded)
+	raw, err = json.MarshalIndent(redacted, "", "  ")
 	if err != nil {
 		return `{"error":"payload_not_serializable"}`, false
 	}
 	if len(raw) <= auditPayloadMaxBytes {
 		return string(raw), false
 	}
-	const suffix = "\n... truncated"
-	end := auditPayloadMaxBytes - len(suffix)
-	for end > 0 && !utf8.RuneStart(raw[end]) {
-		end--
+	// Drop whole events, not JSON bytes, so the diagnostic envelope remains readable.
+	if object, ok := redacted.(map[string]any); ok && object["capture_kind"] == "bounded_sse_events" {
+		object["truncated"] = true
+		events, _ := object["events"].([]any)
+		for len(events) > 0 {
+			events = events[:len(events)-1]
+			object["events"] = events
+			raw, err = json.MarshalIndent(object, "", "  ")
+			if err == nil && len(raw) <= auditPayloadMaxBytes {
+				return string(raw), true
+			}
+		}
+		// Error details may themselves be large; retain only bounded envelope facts.
+		metadata := map[string]any{"truncated": true, "omitted": "payload_exceeds_audit_limit", "events": []any{}}
+		for _, key := range []string{"stream", "captured", "status_code", "capture_kind", "terminal_observed"} {
+			if value, present := object[key]; present {
+				metadata[key] = value
+			}
+		}
+		raw, _ = json.Marshal(metadata)
+		if len(raw) <= auditPayloadMaxBytes {
+			return string(raw), true
+		}
 	}
-	return string(raw[:end]) + suffix, true
+	return auditPayloadOmitted, true
 }
 
 // auditPayloadFits estimates input size and traversal work, not encoded JSON

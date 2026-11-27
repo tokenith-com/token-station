@@ -16,8 +16,9 @@ const auditStreamEventCount = 128
 // propagates parsing errors to a caller. Raw bytes live only in this bounded
 // request-local buffer; only complete, redacted events reach persistent storage.
 type auditStreamCapture struct {
-	raw       []byte
-	truncated bool
+	raw         []byte
+	truncated   bool
+	credentials *auditCredentialCapture
 }
 
 func (c *auditStreamCapture) add(data []byte) {
@@ -29,12 +30,36 @@ func (c *auditStreamCapture) add(data []byte) {
 	c.raw = append(c.raw, data...)
 }
 
+// Keep only secret-bearing values, not mutable provider maps or account metadata.
+func (w *streamWriteTracker) captureAuditProvider(provider Provider) {
+	if w.capture == nil {
+		return
+	}
+	if w.capture.credentials == nil {
+		w.capture.credentials = &auditCredentialCapture{}
+	}
+	w.capture.credentials.add(provider)
+}
+
 func (w *streamWriteTracker) auditPayload(status int, code string, streamErr error, provider Provider) map[string]any {
 	payload := auditStreamPayload(status, code, streamErr)
 	if w.capture == nil {
 		return payload
 	}
 	c := w.capture
+	w.captureAuditProvider(provider)
+	defer func() { c.raw = nil; c.credentials = nil }()
+	redact := c.credentials.redact
+	if details, present := payload["error"]; present {
+		if raw, err := json.Marshal(details); err == nil {
+			var sanitized any
+			if err := json.Unmarshal(redact(raw), &sanitized); err == nil {
+				payload["error"] = sanitized
+			} else {
+				payload["error"] = map[string]any{"message": providerHeaderMask}
+			}
+		}
+	}
 	events := make([]map[string]any, 0)
 	decoder := newSSEDecoder(bytes.NewReader(c.raw))
 	decoder.assembler.limit = auditStreamEventBytes
@@ -63,7 +88,7 @@ func (w *streamWriteTracker) auditPayload(status int, code string, streamErr err
 		if strings.TrimSpace(frame.Data) == "[DONE]" {
 			data = "[DONE]"
 		} else {
-			if err := json.Unmarshal(redactProviderErrorSecrets([]byte(frame.Data), provider), &data); err != nil {
+			if err := json.Unmarshal(redact([]byte(frame.Data)), &data); err != nil {
 				data = map[string]any{"omitted": "invalid_or_incomplete_event"}
 			}
 		}
@@ -73,7 +98,12 @@ func (w *streamWriteTracker) auditPayload(status int, code string, streamErr err
 			c.truncated = true
 		}
 		data = redactAuditValue(data)
-		item := map[string]any{"event": frame.Event, "data": data}
+		eventJSON, _ := json.Marshal(frame.Event)
+		var event string
+		if err := json.Unmarshal(redact(eventJSON), &event); err != nil {
+			event = providerHeaderMask
+		}
+		item := map[string]any{"event": event, "data": data}
 		encoded, err := json.Marshal(item)
 		if err != nil || size+len(encoded) > auditStreamEventBytes || len(events) >= auditStreamEventCount {
 			c.truncated = true

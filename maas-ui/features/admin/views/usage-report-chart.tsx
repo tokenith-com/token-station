@@ -93,7 +93,7 @@ export function UsageReportChart({ report }: { report: UsageReport }) {
         {ticks.map((ratio) => <span key={ratio} style={{ bottom: `${ratio * 100}%` }}>{count(tokenMax * ratio, true)}</span>)}
       </div>
       <div className="global-usage-chart-scroll">
-        <div className="global-usage-bars" style={{ gridTemplateColumns: `repeat(${points.length}, minmax(14px, 1fr))` }} onMouseLeave={() => setActiveDate(null)}>
+        <div className="global-usage-bars" style={{ gridTemplateColumns: `repeat(${points.length}, minmax(48px, 1fr))` }} onMouseLeave={() => setActiveDate(null)}>
           <svg className="global-usage-line" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
             <polyline points={linePoints} vectorEffect="non-scaling-stroke" />
           </svg>
@@ -118,7 +118,7 @@ export function UsageReportChart({ report }: { report: UsageReport }) {
                 <span className="global-usage-bar-cached" aria-hidden="true" style={{ height: `${cached / tokenMax * 100}%` }} />
               </button>
               <span className="global-usage-dot" aria-hidden="true" style={{ bottom: `${point.request_count / requestMax * 100}%` }} />
-              <span className={`global-usage-bar-label${index === 0 ? " first" : index === points.length - 1 ? " last" : ""}`} aria-hidden="true">{index % labelInterval === 0 || index === points.length - 1 ? pointLabel(point, report, true) : ""}</span>
+              <span className="global-usage-bar-label" aria-hidden="true">{index % labelInterval === 0 || index === points.length - 1 ? pointLabel(point, report, true) : ""}</span>
             </div>;
           })}
         </div>

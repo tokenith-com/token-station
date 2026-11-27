@@ -1,3 +1,4 @@
+import { useCustomerTerminology } from "../../i18n/customer-copy";
 import { localizeBuiltinContribution } from "../i18n/builtin-admin-ui";
 import { ExternalLink, Play } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
@@ -168,15 +169,16 @@ function ProviderPluginFormAction({
   result: string;
   onRun: () => void;
 }) {
+  const ui = useCustomerTerminology();
   const Icon = field.type === "oauth_button" ? ExternalLink : Play;
   return (
     <div className="field provider-plugin-action-field" data-field-key={field.name}>
-      <span>{tx(field.label)}</span>
+      <span>{ui(field.label)}</span>
       <button className="secondary-button" disabled={busy || !registered} onClick={onRun} type="button">
         <Icon size={14} />
         {tx(busy ? "执行中" : field.label)}
       </button>
-      {field.help ? <small>{tx(field.help)}</small> : null}
+      {field.help ? <small>{ui(field.help)}</small> : null}
       {!registered ? <small>{tx("该插件动作尚未注册。")}</small> : null}
       {error ? <small className="provider-quota-error">{error}</small> : null}
       {result && result !== "{}" ? <pre className="plugin-action-result">{result}</pre> : null}

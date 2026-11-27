@@ -374,10 +374,12 @@ func (s *Server) executeRoutedGemini(r *http.Request, routed RoutedCall, request
 func (s *Server) handleStreamingGemini(w http.ResponseWriter, r *http.Request, routed RoutedCall, request ResponsesRequest, payload map[string]any, reverseNames map[string]string, auditPayload any) {
 	tracker := &streamWriteTracker{writer: w, capture: &auditStreamCapture{}}
 	_, route, usage, attempts, streamErr := executeRoutedWithStore(r.Context(), s.store, routed, true, func(ctx context.Context, candidate RouteSelection, omitReasoningEffort bool, attempt int) (struct{}, Usage, error) {
+		ctx = tracker.auditContext(ctx)
 		prepared, err := s.prepareRouteForUpstream(ctx, candidate)
 		if err != nil {
 			return struct{}{}, Usage{}, err
 		}
+		tracker.captureAuditProvider(prepared.Provider)
 		upstream := request
 		if omitReasoningEffort {
 			upstream = withoutResponsesReasoningEffort(upstream)

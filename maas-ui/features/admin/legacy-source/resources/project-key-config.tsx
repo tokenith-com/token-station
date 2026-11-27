@@ -1,3 +1,4 @@
+import { useCustomerTerminology } from "../../i18n/customer-copy";
 import { ChevronDown, Download } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
@@ -58,13 +59,14 @@ export function projectConfig(): ResourceConfig<Project> {
 }
 
 export function ProjectTeamListCell({ data, project }: { data: AppData; project: Project }) {
+  const ui = useCustomerTerminology();
   const primaryTeamID = project.team_id || project.teams?.find((link) => link.is_primary)?.team_id || "";
   const additionalCount = new Set((project.teams ?? []).map((link) => link.team_id).filter((teamID) => teamID && teamID !== primaryTeamID)).size;
   return (
     <div className="project-list-team-cell">
       <span className={primaryTeamID ? "" : "missing"}>
-        <strong>{primaryTeamID ? teamLabel(data, primaryTeamID) : tx("未配置主团队")}</strong>
-        {primaryTeamID ? <em>{tx("主团队")}</em> : null}
+        <strong>{primaryTeamID ? teamLabel(data, primaryTeamID) : ui("未配置主团队")}</strong>
+        {primaryTeamID ? <em>{ui("主团队")}</em> : null}
       </span>
       {additionalCount > 0 ? <small>+{countWithUnit(additionalCount, "个团队", "team", "チーム")}</small> : null}
     </div>
@@ -277,12 +279,13 @@ export function ModelAccessList({ label, models, selected, onChange }: {
   selected: string[];
   onChange: (models: string[]) => void;
 }) {
+  const ui = useCustomerTerminology();
   const [query, setQuery] = useState("");
   const options = Array.from(new Set(models));
   const visible = options.filter((name) => name.toLowerCase().includes(query.trim().toLowerCase()));
   return (
     <div className="field project-model-access-list">
-      <strong>{tx(label)}</strong>
+      <strong>{ui(label)}</strong>
       <input className="project-model-access-search" aria-label={tx("按模型名称搜索")} placeholder={tx("按模型名称搜索")} value={query} onChange={(event) => setQuery(event.target.value)} type="search" />
       <div className="project-model-access-toolbar">
         <span role="status">{formatTranslationTemplate(tx("已选 {count} 个模型"), { count: new Intl.NumberFormat(languageLocale()).format(selected.length) })}</span>

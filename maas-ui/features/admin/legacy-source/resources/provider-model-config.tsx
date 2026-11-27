@@ -1,3 +1,4 @@
+import { CustomerStaticSummary } from "../../i18n/customer-copy";
 import { type ProviderAccountOAuthGenerateResponse, type ProviderAccountOAuthResult } from "../core/session";
 import { type AdminUser, type ApiContext, type AppData, type FieldConfig, type Model, type ModelRoute, type PluginActionDescriptor, type Provider, type ProviderResource, type ResourceConfig } from "../core/types";
 import { modelCategory, modelCategoryFormOptions, modelCategoryLabel } from "../domain/catalog";
@@ -601,7 +602,7 @@ export function routeConfig(): ResourceConfig<ModelRoute> {
       { key: "provider_model", label: "上游模型" },
       { key: "priority", label: "优先级" },
       { key: "weight", label: "权重" },
-      { key: "project_scope", label: "项目作用域", render: (item, ctx) => routeProjectScopeSummary(item, ctx) },
+      { key: "project_scope", label: "项目作用域", render: (item, ctx) => <CustomerStaticSummary render={ui => routeProjectScopeSummary(item, ctx, ui)} /> },
       { key: "score", label: "评分", render: (item) => routeScoreSummary(item) },
       { key: "strategy", label: "策略", render: (item) => routeStrategyLabel(item.strategy) },
       { key: "sticky_session", label: "粘性", render: (item) => item.sticky_session ? tx("开启") : tx("关闭开关") },

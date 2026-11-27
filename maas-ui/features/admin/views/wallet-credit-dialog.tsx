@@ -1,3 +1,4 @@
+import { useCustomerTerminology } from "../i18n/customer-copy";
 import { useRef, useState } from "react";
 import type { ApiContext } from "../core/types";
 import { adminFetch } from "../resources/payloads";
@@ -8,6 +9,7 @@ export function WalletCreditDialog({ api, userID, teamID, teamName, owner, balan
   api: ApiContext; userID: string; teamID: string; teamName: string; owner: string;
   balance?: number; balanceError?: boolean; onRetryBalance?: () => void; copy: WalletCopy; onClose: () => void; onSaved: () => void;
 }) {
+  const ui = useCustomerTerminology();
   const { tx, locale } = copy;
   const storageKey = pendingWalletKey(api, userID, teamID);
   const [restored, setRestored] = useState(() => { try { return { payload: readPendingCredit(storageKey), failed: false }; } catch { return { failed: true }; } });
@@ -76,10 +78,10 @@ export function WalletCreditDialog({ api, userID, teamID, teamName, owner, balan
     } finally { inFlight.current = false; setBusy(false); }
   }
   return <div className="modal-backdrop"><div {...focus} className="modal" role="dialog" aria-modal="true" aria-labelledby="wallet-credit-title"><form onSubmit={event => { event.preventDefault(); void submit(); }}>
-    <div className="modal-header"><h2 id="wallet-credit-title">{tx("团队入账")}</h2><button className="secondary-button" type="button" disabled={busy} onClick={onClose}>{tx("关闭")}</button></div>
+    <div className="modal-header"><h2 id="wallet-credit-title">{ui("团队入账")}</h2><button className="secondary-button" type="button" disabled={busy} onClick={onClose}>{tx("关闭")}</button></div>
     <div className="modal-body wallet-credit-body">
       <p className="wallet-full-row">{tx("仅记录线下收款或授信入账，不提供在线支付。")}</p>
-      <label className="field"><span>{tx("团队名称")}</span><input readOnly value={teamName} /></label>
+      <label className="field"><span>{ui("团队名称")}</span><input readOnly value={teamName} /></label>
       <label className="field"><span>{tx("负责人")}</span><input readOnly value={owner} /></label>
       <p className="wallet-full-row wallet-balance-summary">{tx("当前余额")} <strong>{walletMoney(balance, locale)}</strong></p>
       {balanceError ? <p role="alert"><button type="button" className="secondary-button" onClick={onRetryBalance}>{tx("余额加载失败，重试")}</button></p> : balance === undefined ? <p role="status">{tx("加载中")}</p> : null}

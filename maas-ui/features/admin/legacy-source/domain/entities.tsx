@@ -651,6 +651,7 @@ export function providerAttemptLabel(data: AppData, attempt: RouteAttemptLog) {
 
 export function providerResourceAuditLabel(data: AppData, resourceID?: string) {
   if (!resourceID) return "-";
+  if (resourceID === "unknown") return tx("未关联资源账号");
   const resource = data.providerResources.find((item) => item.id === resourceID);
   if (!resource) return resourceID;
   const provider = findProvider(data, resource.provider_id);
@@ -716,11 +717,11 @@ export function routeScoreSummary(route: ModelRoute) {
   return `质量 ${route.quality_score ?? 50} / 成本 ${route.cost_score ?? 50}`;
 }
 
-export function routeProjectScopeSummary(route: ModelRoute, data: AppData) {
+export function routeProjectScopeSummary(route: ModelRoute, data: AppData, localize: (value: string) => string = tx) {
   const scope = route.project_scope || "all";
-  if (scope === "all") return tx("所有项目");
+  if (scope === "all") return localize("所有项目");
   const names = (route.project_ids ?? []).map((projectID) => findProject(data, projectID)?.name || projectID);
-  const prefix = scope === "include" ? tx("仅指定项目") : tx("排除指定项目");
+  const prefix = scope === "include" ? localize("仅指定项目") : localize("排除指定项目");
   return `${prefix}: ${compactList(names) || "-"}`;
 }
 

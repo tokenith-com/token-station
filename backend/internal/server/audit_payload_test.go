@@ -32,7 +32,7 @@ func TestAuditPayloadCapsEncodedBytesAndPreservesUTF8(t *testing.T) {
 		strings.Repeat("\x00", 30000),
 	} {
 		body, truncated := auditPayloadBody(map[string]any{"content": content, "password": "hidden"})
-		if !truncated || len(body) > auditPayloadMaxBytes || !utf8.ValidString(body) || !strings.HasSuffix(body, "\n... truncated") {
+		if !truncated || len(body) > auditPayloadMaxBytes || !utf8.ValidString(body) || !json.Valid([]byte(body)) {
 			t.Fatalf("invalid byte-limited snapshot: bytes=%d truncated=%v valid_utf8=%v", len(body), truncated, utf8.ValidString(body))
 		}
 		if strings.Contains(body, "hidden") {

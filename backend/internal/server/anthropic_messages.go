@@ -993,10 +993,12 @@ func (s *Server) handleAnthropicMessagesStream(
 	tracker := &streamWriteTracker{writer: w, capture: &auditStreamCapture{}}
 	_, route, usage, attempts, err := executeRoutedWithStore(r.Context(), s.store, routed, false,
 		func(ctx context.Context, candidate RouteSelection, _ bool, attempt int) (struct{}, Usage, error) {
+			ctx = tracker.auditContext(ctx)
 			prepared, prepareErr := s.prepareRouteForUpstream(ctx, candidate)
 			if prepareErr != nil {
 				return struct{}{}, Usage{}, prepareErr
 			}
+			tracker.captureAuditProvider(prepared.Provider)
 			attemptReq := anthropicRequestForRoute(req, prepared)
 			protocol := s.anthropicGatewayRouteProtocol(routed.Call, prepared)
 			if transformErr := s.runGatewayAnthropicRequestTransformHooks(ctx, routed.Call, prepared, &attemptReq, protocol); transformErr != nil {

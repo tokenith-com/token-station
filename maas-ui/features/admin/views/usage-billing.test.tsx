@@ -30,7 +30,7 @@ describe("UsageView project attribution", () => {
     data.breakdown.members = [{ ...data.breakdown.projects[0], id: user.id }];
 
     const report: UsageReport = {
-      range: "today", timezone: "UTC", window_start: "2026-09-07T00:00:00Z", window_end: "2026-09-07T02:00:00Z",
+      range: "all", timezone: "UTC", window_start: "2026-09-07T00:00:00Z", window_end: "2026-09-07T02:00:00Z",
       granularity: "hour", summary: data.summary, breakdown: data.breakdown, timeseries: [],
     };
     vi.stubGlobal("fetch", vi.fn(async (input: string) => input.endsWith("/exchange-rate") ? Response.json({ configured: false, usd_to_cny: "", paid_calls_enabled: false }) : Response.json(report)));
@@ -61,7 +61,7 @@ describe("Usage aligned with the master report page", () => {
     const data = emptyData();
     data.summary.total_tokens = 111;
     data.dailyUsage.summary.total_tokens = 222;
-    const ranges: UsageRange[] = ["today", "7d", "30d", "all"];
+    const ranges: UsageRange[] = ["all", "today", "7d", "30d"];
     const fetch = vi.fn(async (input: string) => {
       const range = new URL(input, "http://example.test").searchParams.get("range") as UsageRange;
       const tokens = (ranges.indexOf(range) + 1) * 100;
@@ -75,7 +75,7 @@ describe("Usage aligned with the master report page", () => {
     vi.stubGlobal("fetch", fetch);
     render(<UsageView api={api} data={data} user={{ ...member, role }} />);
 
-    for (const [index, label] of ["今日", "7 天", "30 天", "全部"].entries()) {
+    for (const [index, label] of ["全部", "今日", "7 天", "30 天"].entries()) {
       if (index) fireEvent.click(screen.getByRole("button", { name: label }));
       expect(await screen.findByRole("cell", { name: `model-${ranges[index]}` })).toBeInTheDocument();
       const tokens = (index + 1) * 100;
@@ -93,7 +93,7 @@ describe("Usage aligned with the master report page", () => {
   });
 
   it.each(["admin", "team_leader", "user", "guest"])("preserves attribution permissions for %s even when the response includes restricted rows", async role => {
-    const report = usageReport("today", 100);
+    const report = usageReport("all", 100);
     const row = { id: "restricted", request_count: 1, input_tokens: 100, output_tokens: 0, total_tokens: 100, estimated_cost_usd: 1 };
     report.breakdown.members = [{ ...row, id: "private-member" }];
     report.breakdown.providers = [{ ...row, id: "private-provider" }];
@@ -108,7 +108,7 @@ describe("Usage aligned with the master report page", () => {
     expect(Boolean(screen.queryByRole("heading", { name: "资源账号用量" }))).toBe(role === "admin");
     expect(Boolean(screen.queryByRole("heading", { name: "成本中心用量" }))).toBe(role === "admin");
     expect(Boolean(screen.queryByRole("heading", { name: "项目归因" }))).toBe(role === "admin");
-    expect(Boolean(screen.queryByText("部门与成员报告"))).toBe(role === "admin");
+    expect(Boolean(screen.queryByText("客户团队与成员报告"))).toBe(role === "admin");
     expect(screen.getByRole("heading", { name: "API Key 用量" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Token 类型" })).toBeInTheDocument();
   });
@@ -119,7 +119,7 @@ describe("Usage aligned with the master report page", () => {
       todayAttempts += 1;
       return todayAttempts === 1
         ? new Response(JSON.stringify({ error: { message: "Synthetic report unavailable" } }), { status: 503 })
-        : new Response(JSON.stringify(usageReport("today", 321)));
+        : new Response(JSON.stringify(usageReport("all", 321)));
     });
     vi.stubGlobal("fetch", fetch);
     render(<UsageView api={api} data={emptyData()} user={member} />);
@@ -137,7 +137,7 @@ describe("Usage aligned with the master report page", () => {
   it("refreshes the selected period every 30 seconds and stops when leaving the page", async () => {
     vi.useFakeTimers();
     let todayTokens = 321;
-    const fetch = vi.fn<(input: string, init: RequestInit) => Promise<Response>>().mockImplementation(async () => Response.json(usageReport("today", todayTokens)));
+    const fetch = vi.fn<(input: string, init: RequestInit) => Promise<Response>>().mockImplementation(async () => Response.json(usageReport("all", todayTokens)));
     vi.stubGlobal("fetch", fetch);
     const { unmount } = render(<UsageView api={api} data={emptyData()} user={member} />);
     await act(async () => {});

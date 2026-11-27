@@ -27,8 +27,8 @@ test("gateway overview shows breadcrumbs and distinguishes cumulative totals fro
 });
 
 const ranges = [
-  { value: "today", label: "今日" }, { value: "7d", label: "7 天" },
-  { value: "30d", label: "30 天" }, { value: "all", label: "全部" },
+  { value: "all", label: "全部" }, { value: "today", label: "今日" },
+  { value: "7d", label: "7 天" }, { value: "30d", label: "30 天" },
 ] as const;
 
 for (const viewport of ["desktop", "mobile"] as const) {
@@ -40,7 +40,9 @@ for (const viewport of ["desktop", "mobile"] as const) {
     await expect(page.locator(".page-context-chip")).toHaveCount(0);
     const group = usage.getByRole("group", { name: "用量时间范围" });
     await expect(group.getByRole("button")).toHaveCount(4);
-    await expect(group.getByRole("button", { name: "今日", exact: true })).toHaveAttribute("aria-pressed", "true");
+    await expect(group.getByRole("button").first()).toHaveText("全部");
+    await expect(usage.locator("details:not([open])")).toHaveCount(0);
+    await expect(group.getByRole("button", { name: "全部", exact: true })).toHaveAttribute("aria-pressed", "true");
     for (const range of ranges) {
       await group.getByRole("button", { name: range.label, exact: true }).click();
       await expect(group.getByRole("button", { name: range.label, exact: true })).toHaveAttribute("aria-pressed", "true");
@@ -57,6 +59,14 @@ for (const viewport of ["desktop", "mobile"] as const) {
       await usage.locator(".global-usage-chart").scrollIntoViewIfNeeded();
       await capture(page, info, usage.locator(".global-usage-chart"), "global-usage-mobile-chart", "全局用量：移动端输入输出趋势", "viewport");
     }
+    for (const column of await usage.locator(".global-usage-bar-column").all()) {
+      const label = column.locator(".global-usage-bar-label");
+      if (!(await label.textContent())?.trim()) continue;
+      const barBox = await column.locator(".global-usage-bar").boundingBox();
+      const labelBox = await label.boundingBox();
+      expect(Math.abs((barBox!.x + barBox!.width / 2) - (labelBox!.x + labelBox!.width / 2))).toBeLessThan(1.5);
+    }
+    await group.getByRole("button", { name: "全部", exact: true }).click();
     const count = usageCalls(api).length;
     await usage.getByRole("button", { name: "刷新", exact: true }).click();
     await expect.poll(() => usageCalls(api).length).toBe(count + 1);
@@ -68,7 +78,7 @@ for (const viewport of ["desktop", "mobile"] as const) {
 test("global-usage loading and late response preserve the selected range", async ({ page, api }, info) => {
   let release!: (response: MockResponse) => void;
   const delayed = new Promise<MockResponse>(resolve => { release = resolve; });
-  installUsageFixtures(api, range => range === "today" ? delayed : { json: usageReport(range) });
+  installUsageFixtures(api, range => range === "all" ? delayed : { json: usageReport(range) });
   try {
     await page.goto("/usage");
     const usage = page.locator(".global-usage");
@@ -77,12 +87,12 @@ test("global-usage loading and late response preserve the selected range", async
     await capture(page, info, usage, "global-usage-loading", "全局用量：请求完成前显示加载状态", "viewport");
     await usage.getByRole("button", { name: "7 天", exact: true }).click();
     await expect(usage.locator('.global-usage-stats [aria-label="请求数"]')).toContainText("17");
-    release({ json: usageReport("today") });
+    release({ json: usageReport("all") });
     await expect(usage.getByRole("button", { name: "7 天", exact: true })).toHaveAttribute("aria-pressed", "true");
     await expect(usage.getByText("ui-today-model-with-a-long-enterprise-deployment-name", { exact: true })).toHaveCount(0);
     await expect(usage.locator(".global-usage-cost")).toContainText("$8.50");
   } finally {
-    release({ json: usageReport("today") });
+    release({ json: usageReport("all") });
   }
 });
 
@@ -145,7 +155,7 @@ for (const locale of [
     expect(await page.evaluate(key => localStorage.getItem(key), languageStorageKey)).toBe(locale.language);
     const usage = page.locator(".global-usage");
     const group = usage.getByRole("group", { name: locale.group });
-    await expect(group.getByRole("button", { name: locale.today, exact: true })).toHaveAttribute("aria-pressed", "true");
+    await expect(group.getByRole("button", { name: locale.all, exact: true })).toHaveAttribute("aria-pressed", "true");
     for (const label of [locale.seven, locale.thirty, locale.all]) await expect(group.getByRole("button", { name: label, exact: true })).toBeVisible();
     await group.getByRole("button", { name: locale.thirty, exact: true }).click();
     await expect(usage.locator(".global-usage-cost")).toContainText(locale.cost);

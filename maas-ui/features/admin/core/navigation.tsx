@@ -102,9 +102,9 @@ export const adminNavGroups: NavGroup[] = [
     title: "组织治理",
     icon: Users,
     items: [
-      { view: "projects", label: "项目空间", icon: LayoutDashboard },
+      { view: "projects", label: "客户项目", icon: LayoutDashboard },
       { view: "api-keys", label: "Key 管理", icon: KeyRound },
-      { view: "teams", label: "团队分组", icon: Users },
+      { view: "teams", label: "客户团队", icon: Users },
       { view: "user-model-access", label: "用户模型权限", icon: ShieldCheck },
       { view: "approvals", label: "审批记录", icon: ShieldCheck },
     ],
@@ -180,9 +180,9 @@ export const sourceAdminNavGroups: NavGroup[] = [
   {
     title: "组织治理",
     items: [
-      { view: "projects", label: "项目空间", icon: LayoutDashboard },
+      { view: "projects", label: "客户项目", icon: LayoutDashboard },
       { view: "api-keys", label: "Key 管理", icon: KeyRound },
-      { view: "teams", label: "团队分组", icon: Users },
+      { view: "teams", label: "客户团队", icon: Users },
       { view: "user-model-access", label: "用户模型权限", icon: ShieldCheck },
       { view: "approvals", label: "审批记录", icon: ShieldCheck },
     ],
@@ -520,7 +520,7 @@ export function topSearchEntityItems(user: AdminUser, data: AppData): TopSearchI
         id: `project:${project.id}`,
         view: "projects",
         label,
-        group: "项目空间",
+        group: appRole(user.role) === "admin" ? "客户项目" : "项目空间",
         description: "项目、Key、额度和成本归属",
         icon: LayoutDashboard,
         tone: "entity",

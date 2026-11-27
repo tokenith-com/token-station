@@ -1,4 +1,5 @@
 "use client";
+import { useCustomerTerminology } from "../i18n/customer-copy";
 
 import { ChevronLeft, ChevronRight, ListFilter } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -106,10 +107,11 @@ export function PlatformOverviewContent({ api, data }: { api: ApiContext; data: 
 }
 
 export function OverviewKpi({ label, value, detail, tone, unit, prefix }: { label: string; value: string; detail?: string; tone: "cyan" | "blue" | "indigo" | "violet"; unit?: string; prefix?: string }) {
+  const ui = useCustomerTerminology();
   return (
     <article className={`platform-overview-kpi ${tone}`}>
       <div className="platform-overview-kpi-copy">
-        <span className="dashboard-kpi-label">{tx(label)}</span>
+        <span className="dashboard-kpi-label">{ui(label)}</span>
         <strong className="dashboard-kpi-value">
           {prefix ? <em>{prefix}</em> : null}
           {value}
@@ -219,6 +221,7 @@ function OverviewTrendChart({ points, metric }: { points: UsagePoint[]; metric: 
 }
 
 function MemberRankingTable({ rows, totalTokens }: { rows: ExecutiveMemberRow[]; totalTokens: number }) {
+  const ui = useCustomerTerminology();
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [shareSort, setShareSort] = useState<"desc" | "asc">("desc");
@@ -236,7 +239,7 @@ function MemberRankingTable({ rows, totalTokens }: { rows: ExecutiveMemberRow[];
             <tr>
               <th>{tx("排名")}</th>
               <th>{tx("成员")}</th>
-              <th>{tx("部门")}</th>
+              <th>{ui("客户团队")}</th>
               <th>{tx("Key（已用/归属）")}</th>
               <th>{tx("请求")}</th>
               <th>{tx("输入 token")}</th>

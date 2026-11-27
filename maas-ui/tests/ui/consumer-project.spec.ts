@@ -20,9 +20,9 @@ test("consumer-project model scope saves without team membership", async ({ page
   });
   await page.goto("/projects/");
   await page.getByRole("button", { name: "查看与配置", exact: true }).click();
-  await page.getByRole("button", { name: "编辑项目", exact: true }).click();
+  await page.getByRole("button", { name: "编辑客户项目", exact: true }).click();
   const dialog = page.getByRole("dialog", { name: project.name });
-  await expect(dialog.getByText("主团队（必选）", { exact: true })).toHaveCount(0);
+  await expect(dialog.getByText("主客户团队（必选）", { exact: true })).toHaveCount(0);
   await dialog.getByRole("combobox", { name: /^模型访问模式/ }).selectOption("restricted");
   await dialog.getByText(model.name, { exact: true }).click();
   await dialog.getByRole("button", { name: "保存更改", exact: true }).click();

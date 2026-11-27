@@ -1,3 +1,4 @@
+import { useCustomerTerminology } from "../../i18n/customer-copy";
 import { useMemo, useState } from "react";
 import Select, { type MultiValue } from "react-select";
 import { type AdminUser, type AppData, type FieldConfig, type Model } from "../core/types";
@@ -32,11 +33,12 @@ export function ConfirmDialog({
   onCancel: () => void;
   onConfirm: () => void;
 }) {
+  const ui = useCustomerTerminology();
   const focus = useModalFocus(loading ? undefined : onCancel);
   return (
     <div className="modal-backdrop" role="presentation">
-      <div className="confirm-modal" role="dialog" aria-modal="true" aria-label={tx(title)} {...focus}>
-        <h2>{tx(title)}</h2>
+      <div className="confirm-modal" role="dialog" aria-modal="true" aria-label={ui(title)} {...focus}>
+        <h2>{ui(title)}</h2>
         <p>{tx(message)}</p>
         <div className="modal-actions">
           <button className="secondary-button" onClick={onCancel} disabled={loading} type="button">{tx("取消")}</button>
@@ -70,11 +72,12 @@ export function FieldInput({
   editing: boolean;
   onChange: (value: string) => void;
 }) {
+  const ui = useCustomerTerminology();
   const [filter, setFilter] = useState("");
   const readOnly = editing && field.readOnlyOnEdit;
   const autoComplete = field.autoComplete ?? "off";
   const inputName = `tokenhub-${field.key}`;
-  let options = field.optionsFromData?.(data, currentUser, values) ?? (field.options ?? []).map((option) => ({ value: option, label: enumOptionLabel(field.key, option) }));
+  let options = field.optionsFromData?.(data, currentUser, values) ?? (field.options ?? []).map((option) => ({ value: option, label: ui(enumOptionLabel(field.key, option)) }));
   if (field.type !== "multi-select" && field.type !== "tag-select" && value && !options.some((option) => option.value === value)) {
     options = [...options, { value, label: value }];
   }
@@ -84,7 +87,7 @@ export function FieldInput({
     const selected = splitList(value).map((item) => optionsByValue.get(item) ?? { value: item, label: item });
     return (
       <div className="field tag-select-field" data-field-key={field.key}>
-        <label htmlFor={inputName}>{tx(field.label)}</label>
+        <label htmlFor={inputName}>{ui(field.label)}</label>
         <Select
           className="tag-select"
           classNamePrefix="tag-select"
@@ -102,7 +105,7 @@ export function FieldInput({
           required={field.required}
           value={selected}
         />
-        {field.help ? <small>{tx(field.help)}</small> : null}
+        {field.help ? <small>{ui(field.help)}</small> : null}
       </div>
     );
   }
@@ -116,7 +119,7 @@ export function FieldInput({
     const updateSelected = (next: Set<string>) => onChange(Array.from(next).join(", "));
     return (
       <div className="field multi-select-field" data-field-key={field.key}>
-        <span>{tx(field.label)}</span>
+        <span>{ui(field.label)}</span>
         <div className="multi-select-tools">
           <input
             value={filter}
@@ -158,28 +161,28 @@ export function FieldInput({
           ))}
         </div>
         <small>{selectedCount > 0 ? (field.key === "model_name" ? selectedModelsText(selectedCount) : selectedOptionsText(selectedCount)) : tx(field.emptySelectionText ?? (field.key === "model_name" ? "请选择至少一个统一模型" : "请选择至少一个选项"))}</small>
-        {field.help ? <small>{tx(field.help)}</small> : null}
+        {field.help ? <small>{ui(field.help)}</small> : null}
       </div>
     );
   }
   if (field.type === "select" || field.type === "multi-select") {
     return (
       <label className="field" data-field-key={field.key}>
-        <span>{tx(field.label)}</span>
+        <span>{ui(field.label)}</span>
         <select value={value} onChange={(event) => { clearCustomValidity(event); onChange(event.target.value); }} onInvalid={handleRequiredFieldInvalid} required={field.required} disabled={readOnly}>
           <option value="">{tx("请选择")}</option>
           {options.map((option) => (
             <option key={option.value} value={option.value}>{tx(option.label)}</option>
           ))}
         </select>
-        {field.help ? <small>{tx(field.help)}</small> : null}
+        {field.help ? <small>{ui(field.help)}</small> : null}
       </label>
     );
   }
   if (field.type === "textarea") {
     return (
       <label className="field" data-field-key={field.key}>
-        <span>{tx(field.label)}</span>
+        <span>{ui(field.label)}</span>
         <textarea
           autoComplete={autoComplete}
           data-1p-ignore={autoComplete === "off" || autoComplete === "new-password" ? "true" : undefined}
@@ -188,11 +191,11 @@ export function FieldInput({
           value={value}
           onChange={(event) => { clearCustomValidity(event); onChange(event.target.value); }}
           onInvalid={handleRequiredFieldInvalid}
-          placeholder={tx(field.placeholder)}
+          placeholder={ui(field.placeholder)}
           required={field.required}
           readOnly={readOnly}
         />
-        {field.help ? <small>{tx(field.help)}</small> : null}
+        {field.help ? <small>{ui(field.help)}</small> : null}
       </label>
     );
   }
@@ -200,8 +203,8 @@ export function FieldInput({
     const checked = value === "true";
     return (
       <label className="field" data-field-key={field.key}>
-        <span>{tx(field.label)}</span>
-        <div className="boolean-toggle" role="radiogroup" aria-label={tx(field.label)}>
+        <span>{ui(field.label)}</span>
+        <div className="boolean-toggle" role="radiogroup" aria-label={ui(field.label)}>
           <button
             aria-checked={checked}
             className={checked ? "active" : ""}
@@ -223,13 +226,13 @@ export function FieldInput({
             {tx("关闭开关")}
           </button>
         </div>
-        {field.help ? <small>{tx(field.help)}</small> : null}
+        {field.help ? <small>{ui(field.help)}</small> : null}
       </label>
     );
   }
   return (
     <label className="field" data-field-key={field.key}>
-      <span>{tx(field.label)}</span>
+      <span>{ui(field.label)}</span>
       <input
         autoComplete={autoComplete}
         data-1p-ignore={autoComplete === "off" || autoComplete === "new-password" ? "true" : undefined}
@@ -239,11 +242,11 @@ export function FieldInput({
         type={field.type === "number" ? "number" : field.type === "password" ? "password" : "text"}
         onChange={(event) => { clearCustomValidity(event); onChange(event.target.value); }}
         onInvalid={handleRequiredFieldInvalid}
-        placeholder={tx(field.placeholder)}
+        placeholder={ui(field.placeholder)}
         required={field.required}
         readOnly={readOnly}
       />
-      {field.help ? <small>{tx(field.help)}</small> : null}
+      {field.help ? <small>{ui(field.help)}</small> : null}
     </label>
   );
 }
@@ -255,10 +258,11 @@ export function DataSection({
   title: string;
   children: React.ReactNode;
 }) {
+  const ui = useCustomerTerminology();
   return (
     <section className="section">
       <div className="section-header">
-        <h2>{tx(title)}</h2>
+        <h2>{ui(title)}</h2>
       </div>
       <div className="section-body">{children}</div>
     </section>
@@ -274,6 +278,7 @@ export function SimpleTable({
   rows: React.ReactNode[][];
   paginationKey?: string;
 }) {
+  const ui = useCustomerTerminology();
   if (rows.length === 0) return <div className="empty">{tx("暂无数据")}</div>;
   if (paginationKey) {
     return <PaginatedSimpleTable columns={columns} rows={rows} paginationKey={paginationKey} />;
@@ -282,7 +287,7 @@ export function SimpleTable({
     <div className="table-wrap">
       <table>
         <thead>
-          <tr>{columns.map((column) => <th key={column}>{tx(column)}</th>)}</tr>
+          <tr>{columns.map((column) => <th key={column}>{ui(column)}</th>)}</tr>
         </thead>
         <tbody>
           {rows.map((row, index) => (
@@ -303,6 +308,7 @@ export function PaginatedSimpleTable({
   rows: React.ReactNode[][];
   paginationKey: string;
 }) {
+  const ui = useCustomerTerminology();
   const pagination = usePagination(rows.length, paginationKey);
   const visibleRows = useMemo(
     () => rows.slice(pagination.startIndex, pagination.endIndex),
@@ -313,7 +319,7 @@ export function PaginatedSimpleTable({
       <div className="table-wrap">
         <table>
           <thead>
-            <tr>{columns.map((column) => <th key={column}>{tx(column)}</th>)}</tr>
+            <tr>{columns.map((column) => <th key={column}>{ui(column)}</th>)}</tr>
           </thead>
           <tbody>
             {visibleRows.map((row, index) => (
@@ -328,6 +334,7 @@ export function PaginatedSimpleTable({
 }
 
 export function StatusPill({ status, label }: { status: string; label?: string }) {
+  const ui = useCustomerTerminology();
   const normalized = String(status).toLowerCase();
   const kind =
     normalized === "active" || normalized === "healthy" || normalized === "ok" || normalized === "confirmed" || normalized === "approved"
@@ -337,7 +344,7 @@ export function StatusPill({ status, label }: { status: string; label?: string }
         : normalized === "error" || normalized === "down" || normalized === "disabled" || normalized === "rejected" || normalized === "failed" || normalized === "revoked" || normalized === "expired"
           ? "error"
           : "";
-  return <span className={`pill ${kind}`}>{label ? tx(label) : enumValueLabel(status)}</span>;
+  return <span className={`pill ${kind}`}>{label ? ui(label) : enumValueLabel(status)}</span>;
 }
 
 export function ModelNameCell({ model, data }: { model: Model; data?: Pick<AppData, "plugins" | "providerAdapters"> }) {

@@ -198,15 +198,15 @@ export function costCenterConfig(): ResourceConfig<AdminResource> {
   const fields: FieldConfig[] = [
     { key: "code", label: "成本中心编码", required: true },
     { key: "owner", label: "负责人" },
-    { key: "department", label: "部门" },
+    { key: "department", label: "客户团队" },
     { key: "monthly_budget_usd", label: "月预算 $", type: "number" },
   ];
   return {
-    ...genericResourceConfig("cost-centers", "成本中心", "企业内部部门、成本中心和预算归属配置", fields),
+    ...genericResourceConfig("cost-centers", "成本中心", "企业内部客户团队、成本中心和预算归属配置", fields),
     columns: [
       { key: "code", label: "编码", render: (item) => stringifyValue(item.fields?.code) || item.id },
       { key: "name", label: "名称" },
-      { key: "department", label: "部门", render: (item) => stringifyValue(item.fields?.department) || "-" },
+      { key: "department", label: "客户团队", render: (item) => stringifyValue(item.fields?.department) || "-" },
       { key: "owner", label: "负责人", render: (item) => stringifyValue(item.fields?.owner) || "-" },
       { key: "monthly_budget_usd", label: "月预算", render: (item) => `$${formatMoney(numberFromUnknown(item.fields?.monthly_budget_usd))}` },
       { key: "status", label: "状态", render: (item) => <StatusPill status={item.status} /> },
@@ -305,7 +305,7 @@ export function reportExportDefinitions(): Array<{
     {
       dataset: "cost-centers",
       label: reportDatasetLabel("cost-centers"),
-      description: "成本中心、负责人和部门归属配置",
+      description: "成本中心、负责人和客户团队归属配置",
       icon: Database,
       tone: "slate",
     },

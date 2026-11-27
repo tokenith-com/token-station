@@ -188,7 +188,7 @@ for (const role of ["admin", "team_leader", "user"] as const) {
     await page.setViewportSize({ width: 1093, height: 500 });
     await installLayoutFixtures(page, role);
     const dialogs = role === "admin"
-      ? [{ view: "users", label: "新增用户" }, { view: "teams", label: "新增团队分组" }, { view: "models", label: "新建对外模型" }, { view: "providers", label: "添加供应商" }, { view: "projects", label: "新建项目并配置团队" }]
+      ? [{ view: "users", label: "新增用户" }, { view: "teams", label: "新增客户团队分组" }, { view: "models", label: "新建对外模型" }, { view: "providers", label: "添加供应商" }, { view: "projects", label: "新建客户项目并配置客户团队" }]
       : role === "team_leader"
         ? [{ view: "users", label: "新增团队成员" }, { view: "teams", label: "新增团队分组" }, { view: "api-keys", label: "发放 Key" }, { view: "projects", label: "新建项目并配置团队" }]
         : [{ view: "api-keys", label: "新建 API Key" }];
