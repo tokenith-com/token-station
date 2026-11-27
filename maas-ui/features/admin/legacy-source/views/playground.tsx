@@ -1,3 +1,4 @@
+import { useCustomerTerminology } from "../../i18n/customer-copy";
 import { providerBlockedAddressMessage } from "../resources/provider-network-errors";
 import {
   ArrowDown,
@@ -242,6 +243,7 @@ export function PlaygroundPage({ api, data, canViewRoutes }: { api: ApiContext; 
 }
 
 export function PlaygroundPanel({ api, data, canViewRoutes }: { api: ApiContext; data: AppData; canViewRoutes: boolean }) {
+  const ui = useCustomerTerminology();
   const models = useMemo(() => {
     const candidates = playgroundModels(data, canViewRoutes);
     return canViewRoutes ? candidates.filter((model) => activeRouteCount(model.name, data) > 0) : candidates;
@@ -650,9 +652,9 @@ export function PlaygroundPanel({ api, data, canViewRoutes }: { api: ApiContext;
         <div className="playground-config-body">
           <h2>{tx("模型配置")}</h2>
           <label className="playground-field">
-            <span>{tx("选择项目")}</span>
+            <span>{ui("选择项目")}</span>
             <select value={projectID} onChange={(event) => setProjectID(event.target.value)} disabled={projects.length === 0 || loading}>
-              {projects.length === 0 ? <option value="">{tx("暂无可选项目")}</option> : null}
+              {projects.length === 0 ? <option value="">{ui("暂无可选项目")}</option> : null}
               {projects.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}
             </select>
           </label>

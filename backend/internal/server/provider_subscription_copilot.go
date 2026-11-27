@@ -195,6 +195,7 @@ func (a *CopilotSubscriptionAdapter) request(ctx context.Context, provider Provi
 		if err != nil {
 			return nil, err
 		}
+		captureAuditCredentials(ctx, ProviderResourceCredentials{AccessToken: session.Token})
 		base := firstNonEmpty(session.Endpoints.API, provider.BaseURL, copilotSubscriptionBaseURL)
 		endpoint, err := subscriptionEndpoint(base, copilotSubscriptionBaseURL, path, func(candidate string) bool { return copilotSubscriptionAPIHost(host, candidate) })
 		if err != nil {
@@ -221,6 +222,7 @@ func (a *CopilotSubscriptionAdapter) request(ctx context.Context, provider Provi
 			req.Header.Set("X-GitHub-Api-Version", "2025-10-01")
 		}
 		if selected, ok := ctx.Value(copilotSubscriptionAutoKey{}).(copilotSubscriptionAutoSession); ok && selected.Token != "" {
+			captureAuditCredentials(ctx, ProviderResourceCredentials{AccessToken: selected.Token})
 			req.Header.Set("Copilot-Session-Token", selected.Token)
 			provider.Headers = cloneStringMap(provider.Headers)
 			if provider.Headers == nil {

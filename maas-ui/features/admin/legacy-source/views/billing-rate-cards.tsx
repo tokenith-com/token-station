@@ -1,3 +1,4 @@
+import { useCustomerTerminology } from "../../i18n/customer-copy";
 import { useState } from "react";
 import type { ApiContext, AppData } from "../core/types";
 import { formatStatementAmount } from "../domain/billing-statements";
@@ -13,7 +14,8 @@ const emptyRates = (): Rates => ({ input: "", cache_read: "", cache_write: "", c
 const rateLabels: [keyof Rates, string][] = [["input", "普通输入"], ["cache_read", "缓存读取"], ["cache_write", "其他缓存写入"], ["cache_write_5m", "5 分钟缓存写入"], ["cache_write_1h", "1 小时缓存写入"], ["output", "输出"]];
 
 function RateFields({ rates, update }: { rates: Rates; update: (key: keyof Rates, value: string) => void }) {
-  return <div className="form-grid">{rateLabels.map(([key, label]) => <label key={key}>{tx(label)}<input inputMode="decimal" value={rates[key]} onChange={(event) => update(key, event.target.value)} /></label>)}</div>;
+  const ui = useCustomerTerminology();
+  return <div className="form-grid">{rateLabels.map(([key, label]) => <label key={key}>{ui(label)}<input inputMode="decimal" value={rates[key]} onChange={(event) => update(key, event.target.value)} /></label>)}</div>;
 }
 
 export function BillingRateCards({ api, data }: { api: ApiContext; data: AppData }) {

@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { emptyData } from "../domain/catalog";
 import type { AppData, RequestDetail } from "../core/types";
@@ -30,7 +30,13 @@ describe("request detail privacy", () => {
   it("shows both snapshots only to platform administrators", () => {
     render(<RequestDetailPanel data={emptyData()} requestID="req-one" detail={withPayload} loading={false} error="" role="admin" />);
     expect(screen.getByText("请求与响应")).toBeInTheDocument();
+    const metadata = screen.getByText("详情", { selector: "summary" }).closest("details")!;
+    const payloadSection = screen.getByRole("region", { name: "请求与响应" });
+    expect(metadata.compareDocumentPosition(payloadSection) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    fireEvent.click(screen.getByText("展开报文内容"));
     expect(screen.getByText("Synthetic request content")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("tab", { name: "响应内容" }));
+    fireEvent.click(screen.getByText("展开报文内容"));
     expect(screen.getByText("Synthetic response content")).toBeInTheDocument();
   });
 

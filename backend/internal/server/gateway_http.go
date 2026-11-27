@@ -156,14 +156,16 @@ func (s *Server) handleChatCompletions(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if req.Stream {
-		tracker := &streamWriteTracker{writer: w}
+		tracker := &streamWriteTracker{writer: w, capture: &auditStreamCapture{}}
 		allowEffortFallback := normalizedReasoningEffort(req.ReasoningEffort) != nil
 		_, route, usage, attempts, streamErr := executeRoutedWithStore(r.Context(), s.store, routed, allowEffortFallback,
 			func(ctx context.Context, candidate RouteSelection, omitReasoningEffort bool, attempt int) (struct{}, Usage, error) {
+				ctx = tracker.auditContext(ctx)
 				prepared, prepareErr := s.prepareRouteForUpstream(ctx, candidate)
 				if prepareErr != nil {
 					return struct{}{}, Usage{}, prepareErr
 				}
+				tracker.captureAuditProvider(prepared.Provider)
 				upstreamReq := req
 				if omitReasoningEffort {
 					upstreamReq.ReasoningEffort = nil
@@ -204,7 +206,7 @@ func (s *Server) handleChatCompletions(w http.ResponseWriter, r *http.Request) {
 			ErrorCode:       code,
 			ErrorMessage:    errorMessageOrEmpty(streamErr),
 			RequestPayload:  auditPayload,
-			ResponsePayload: auditStreamPayload(status, code, streamErr),
+			ResponsePayload: tracker.auditPayload(status, code, streamErr, route.Provider),
 		})
 		if streamErr != nil && !tracker.Wrote() {
 			// Nothing reached the client, so the response is a plain JSON error.

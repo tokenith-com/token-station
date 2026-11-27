@@ -1,4 +1,5 @@
 "use client";
+import { useCustomerTerminology } from "../i18n/customer-copy";
 
 import { AlertCircle, ChevronDown, ChevronRight, FlaskConical, Info, Pencil, Plus, Search, ShieldCheck, Trash2, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -95,6 +96,7 @@ export function SecurityPolicyTabs({ active, onChange }: { active: "access" | "c
 }
 
 export function ContentSecurityPolicies({ api, data }: { api: ApiContext; data: AppData }) {
+  const ui = useCustomerTerminology();
   const [policies, setPolicies] = useState<GuardrailPolicy[]>([]);
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(true);
@@ -132,7 +134,7 @@ export function ContentSecurityPolicies({ api, data }: { api: ApiContext; data: 
 
   async function savePolicy() {
     if (!draft) return;
-    const validationError = validateDraft(draft);
+    const validationError = validateDraft(draft, ui);
     if (validationError) {
       setError(validationError);
       return;
@@ -209,7 +211,7 @@ export function ContentSecurityPolicies({ api, data }: { api: ApiContext; data: 
           <div className="guardrail-empty">
             <ShieldCheck size={22} />
             <strong>{query ? tx("没有匹配的内容安全策略") : tx("还没有内容安全策略")}</strong>
-            <span>{query ? tx("请调整搜索条件。") : tx("创建一条策略，添加检测项并选择应用项目。")}</span>
+            <span>{query ? tx("请调整搜索条件。") : ui("创建一条策略，添加检测项并选择应用项目。")}</span>
             {!query ? <button className="secondary-button" onClick={() => setDraft(newPolicyDraft())} type="button"><Plus size={16} />{tx("新增策略")}</button> : null}
           </div>
         ) : (
@@ -224,7 +226,7 @@ export function ContentSecurityPolicies({ api, data }: { api: ApiContext; data: 
                   <StatusPill status={policy.status} />
                 </button>
                 <span>{countWithUnit(policy.detection_items.length, "项", "item", "件")}</span>
-                <span>{scopeSummary(policy, data)}</span>
+                <span>{scopeSummary(policy, data, ui)}</span>
                 <span>{tx("请求发送前")}</span>
                 <span>{formatTime(policy.updated_at ?? "")}</span>
                 <span className="guardrail-row-actions">
@@ -244,6 +246,7 @@ export function ContentSecurityPolicies({ api, data }: { api: ApiContext; data: 
 }
 
 function GuardrailPolicyEditor({ api, data, draft, saving, onChange, onClose, onSave }: { api: ApiContext; data: AppData; draft: GuardrailPolicyDraft; saving: boolean; onChange: (draft: GuardrailPolicyDraft) => void; onClose: () => void; onSave: () => void }) {
+  const ui = useCustomerTerminology();
   const allProjects = draft.bindings.some((binding) => binding.scope_type === "all_projects");
   const selectedProjects = new Set(draft.bindings.filter((binding) => binding.scope_type === "project").map((binding) => binding.scope_id));
   const [testOpen, setTestOpen] = useState(false);
@@ -265,7 +268,7 @@ function GuardrailPolicyEditor({ api, data, draft, saving, onChange, onClose, on
   }
 
   async function runTest() {
-    const validationError = validateDraft(draft);
+    const validationError = validateDraft(draft, ui);
     if (validationError) {
       setTestError(validationError);
       return;
@@ -323,14 +326,14 @@ function GuardrailPolicyEditor({ api, data, draft, saving, onChange, onClose, on
           </section>
 
           <section className="guardrail-editor-section">
-            <div className="guardrail-editor-section-title"><div><h3>{tx("应用范围")}</h3><span>{tx("API Key 自动继承所属项目的内容安全策略。")}</span></div></div>
+            <div className="guardrail-editor-section-title"><div><h3>{tx("应用范围")}</h3><span>{ui("API Key 自动继承所属项目的内容安全策略。")}</span></div></div>
             <div className="guardrail-scope-switch" role="radiogroup" aria-label={tx("应用范围")}>
-              <button aria-checked={allProjects} className={allProjects ? "active" : ""} onClick={() => onChange({ ...draft, bindings: [{ scope_type: "all_projects" }] })} role="radio" type="button">{tx("全部项目")}</button>
-              <button aria-checked={!allProjects} className={!allProjects ? "active" : ""} onClick={() => onChange({ ...draft, bindings: [] })} role="radio" type="button">{tx("指定项目")}</button>
+              <button aria-checked={allProjects} className={allProjects ? "active" : ""} onClick={() => onChange({ ...draft, bindings: [{ scope_type: "all_projects" }] })} role="radio" type="button">{ui("全部项目")}</button>
+              <button aria-checked={!allProjects} className={!allProjects ? "active" : ""} onClick={() => onChange({ ...draft, bindings: [] })} role="radio" type="button">{ui("指定项目")}</button>
             </div>
             {!allProjects ? (
               <div className="guardrail-project-list">
-                {data.projects.length === 0 ? <span className="guardrail-project-empty">{tx("暂无可选项目")}</span> : data.projects.map((project) => (
+                {data.projects.length === 0 ? <span className="guardrail-project-empty">{ui("暂无可选项目")}</span> : data.projects.map((project) => (
                   <label className="guardrail-project-option" key={project.id}>
                     <input checked={selectedProjects.has(project.id)} onChange={(event) => {
                       const bindings = draft.bindings.filter((binding) => binding.scope_type === "project" && binding.scope_id !== project.id);
@@ -432,11 +435,11 @@ function policyPayload(draft: GuardrailPolicyDraft) {
   return { name: draft.name.trim(), description: draft.description?.trim() ?? "", status: draft.status, detection_items: draft.detection_items.map((item) => ({ id: item.id, name: item.name.trim(), detector_type: item.detector_type, action: item.action, config: item.config })), bindings: draft.bindings.map((binding) => ({ ...binding, checkpoint: "before_provider", protocol: "all" })) };
 }
 
-function validateDraft(draft: GuardrailPolicyDraft) {
+function validateDraft(draft: GuardrailPolicyDraft, ui: (value: string) => string) {
   if (!draft.name.trim()) return tx("请输入策略名称");
   if (draft.detection_items.length === 0) return tx("请至少添加一个检测项");
   if (draft.detection_items.some((item) => !item.name.trim())) return tx("请输入检测项名称");
-  if (draft.bindings.length === 0) return tx("请选择至少一个项目");
+  if (draft.bindings.length === 0) return ui("请选择至少一个项目");
   for (const item of draft.detection_items) {
     if (item.detector_type === "pattern" && stringList(item.config.keywords).length === 0 && stringList(item.config.regex).length === 0) return tx("自定义文本规则至少需要一个关键词或正则表达式");
     if (item.detector_type === "sensitive_data" && stringList(item.config.data_types).length === 0) return tx("请至少选择一种敏感数据类型");
@@ -444,8 +447,8 @@ function validateDraft(draft: GuardrailPolicyDraft) {
   return "";
 }
 
-function scopeSummary(policy: GuardrailPolicy, data: AppData) {
-  if (policy.bindings.some((binding) => binding.scope_type === "all_projects")) return tx("全部项目");
+function scopeSummary(policy: GuardrailPolicy, data: AppData, ui: (value: string) => string) {
+  if (policy.bindings.some((binding) => binding.scope_type === "all_projects")) return ui("全部项目");
   const count = policy.bindings.filter((binding) => binding.scope_type === "project").length;
   if (count === 1) return data.projects.find((project) => project.id === policy.bindings[0]?.scope_id)?.name ?? countWithUnit(1, "个项目", "project", "プロジェクト");
   return countWithUnit(count, "个项目", "project", "プロジェクト");

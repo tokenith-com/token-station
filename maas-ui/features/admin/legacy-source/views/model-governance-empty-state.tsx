@@ -1,3 +1,4 @@
+import { useCustomerTerminology } from "../../i18n/customer-copy";
 import { Boxes, ChevronRight, Plus, Route, ServerCog } from "lucide-react";
 import { type ReactNode } from "react";
 import { tx } from "../i18n/runtime";
@@ -66,6 +67,7 @@ export function ModelGovernanceEmptyState({
   onAction?: () => void;
   actions?: ReactNode;
 }) {
+  const ui = useCustomerTerminology();
   const StageIcon = stage === "providers" ? ServerCog : stage === "models" ? Boxes : Route;
   return (
     <div className="model-governance-empty-state">
@@ -73,8 +75,8 @@ export function ModelGovernanceEmptyState({
         <div className={`model-governance-empty-emblem ${stage}`} aria-hidden="true">
           <StageIcon size={29} strokeWidth={1.8} />
         </div>
-        <h3>{tx(title)}</h3>
-        <p>{tx(description)}</p>
+        <h3>{ui(title)}</h3>
+        <p>{ui(description)}</p>
         {actionLabel && onAction ? (
           <button className="button model-governance-empty-action" onClick={onAction} type="button">
             <Plus size={16} />

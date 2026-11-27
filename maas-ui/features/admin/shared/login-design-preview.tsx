@@ -1,4 +1,5 @@
 "use client";
+import { useCustomerTerminology } from "../i18n/customer-copy";
 
 import { deploymentPath } from "@/lib/deployment-path";
 import { Moon, Pause, Play, Sun } from "lucide-react";
@@ -45,6 +46,7 @@ const tokens = [
 ];
 
 export function LoginDesignPreview({ theme, language, onThemeToggle, onLanguageChange, children }: LoginDesignPreviewProps) {
+  const ui = useCustomerTerminology();
   const [brandsPaused, setBrandsPaused] = useState(false);
   const number = new Intl.NumberFormat(language);
   const date = new Intl.DateTimeFormat(language, { month: "numeric", day: "numeric", timeZone: "UTC" });
@@ -75,7 +77,7 @@ export function LoginDesignPreview({ theme, language, onThemeToggle, onLanguageC
               <span>{tx("多样化模型统一接入")}</span>
               <span>{tx("释放每一枚 Token 的价值")}</span>
             </h1>
-            <p className="tc-login-preview-subtitle">{tx("一个入口连接多种模型，让团队专注创造，让用量与成本清晰可见。")}</p>
+            <p className="tc-login-preview-subtitle">{ui("一个入口连接多种模型，让团队专注创造，让用量与成本清晰可见。")}</p>
             <div className="tc-login-preview-routing" aria-hidden="true">
               <svg viewBox="0 0 520 100" fill="none">
                 <path d="M0 50H138L190 18H320L372 50H520M138 50H372M138 50L190 82H320L372 50" />

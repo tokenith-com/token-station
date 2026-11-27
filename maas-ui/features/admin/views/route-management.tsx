@@ -1,3 +1,4 @@
+import { useCustomerTerminology } from "../i18n/customer-copy";
 import { Plus, Settings2, X } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import type { AppData, Model } from "../core/types";
@@ -14,6 +15,7 @@ export function RouteSummaryTable({ models, data, loading, onConfigure }: {
   loading: boolean;
   onConfigure: (model: Model) => void;
 }) {
+  const ui = useCustomerTerminology();
   return (
     <div className="route-summary-scroll">
       <table className="route-summary-table">
@@ -28,7 +30,7 @@ export function RouteSummaryTable({ models, data, loading, onConfigure }: {
             <tr key={model.name}>
               <td><strong>{model.name}</strong><small>{model.modality || "chat"}</small></td>
               <td data-label={tx("路由方式")}>{routeSummaryStrategy(routes)}</td>
-              <td data-label={tx("模型来源")}><span title={sources.join(", ")}>{sources.slice(0, 2).join(", ") || "—"}{sources.length > 2 ? ` +${formatLocaleNumber(sources.length - 2)}` : ""}</span><small>{countRatioWithUnit(active, routes.length, "条启用线路", "active route", "件の有効ルート")}</small>{restricted.length ? <small title={restricted.map((route) => routeProjectScopeSummary(route, data)).join("; ")}>{tx("含项目范围限制")}</small> : null}</td>
+              <td data-label={tx("模型来源")}><span title={sources.join(", ")}>{sources.slice(0, 2).join(", ") || "—"}{sources.length > 2 ? ` +${formatLocaleNumber(sources.length - 2)}` : ""}</span><small>{countRatioWithUnit(active, routes.length, "条启用线路", "active route", "件の有効ルート")}</small>{restricted.length ? <small title={restricted.map((route) => routeProjectScopeSummary(route, data, ui)).join("; ")}>{ui("含项目范围限制")}</small> : null}</td>
               <td><StatusPill status={active && model.status === "active" ? "active" : "disabled"} label={!routes.length ? tx("未配置") : active && model.status === "active" ? tx("已启用") : tx("已停用")} />{active > 0 && model.status === "active" && (runtime === "unavailable" || runtime === "degraded") ? <small className="route-summary-warning">{tx(runtime === "degraded" ? "部分线路异常" : "线路需检查")}</small> : null}</td>
               <td><button aria-label={formatTranslationTemplate(tx("配置路由：{model}"), { model: model.name })} className="secondary-button" disabled={loading} onClick={() => onConfigure(model)} type="button"><Settings2 size={14} />{tx("配置")}</button></td>
             </tr>

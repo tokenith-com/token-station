@@ -19,10 +19,14 @@ for (const role of ["admin", "team_leader"] as const) {
       await page.goto("/audit/");
       await expect(page.locator(".request-id-line")).toContainText(log.request_id);
       if (role === "admin") {
+        await page.getByText("展开报文内容", { exact: true }).click();
         await expect(page.getByText("Synthetic private request", { exact: true })).toBeVisible();
+        await page.getByRole("tab", { name: "响应内容", exact: true }).click();
+        await page.getByText("展开报文内容", { exact: true }).click();
         await expect(page.getByText("Synthetic private response", { exact: true })).toBeVisible();
       } else {
         await expect(page.getByText("请求与响应", { exact: true })).toHaveCount(0);
+        await expect(page.getByText("展开报文内容", { exact: true })).toHaveCount(0);
         await expect(page.getByText("Synthetic private request", { exact: true })).toHaveCount(0);
       }
       await capture(page, info, page.locator(".request-detail-panel"), `request-payload-${role}`, `请求正文权限：${role}`, "viewport");

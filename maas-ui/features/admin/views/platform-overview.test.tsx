@@ -42,7 +42,7 @@ it("uses the all-time usage report for ranking metrics and shares instead of ove
   expect(screen.getByRole("img")).not.toHaveTextContent("¥");
   expect(fetcher).toHaveBeenCalledWith(expect.stringMatching(/\/api\/admin\/usage\/report\?range=all$/), expect.anything());
   expect(within(table).getAllByRole("columnheader").map(cell => cell.textContent)).toEqual([
-    "排名", "成员", "部门", "Key（已用/归属）", "请求", "输入 token", "缓存读", "缓存命中率", "输出 token", "总 token", "占比", "成本",
+    "排名", "成员", "客户团队", "Key（已用/归属）", "请求", "输入 token", "缓存读", "缓存命中率", "输出 token", "总 token", "占比", "成本",
   ]);
   expect(within(table).getAllByRole("cell").map(cell => cell.textContent)).toEqual([
     "1", "成员姓名", "研发部", "2 / 5", "12", "1,000", "250", "25.0%", "200", "1,200", "30%", "$2.50",
@@ -72,7 +72,7 @@ it("matches master's member filtering and identity resolution while retaining sh
   await userEvent.setup().click(screen.getByRole("button", { name: "占比" }));
   rows = within(table).getAllByRole("row");
   expect(within(rows[1]).getAllByRole("cell").map(cell => cell.textContent)).toEqual([
-    "1", "archived-member", "未归属部门", "0 / 0", "1", "0", "10", "0%", "50", "50", "0.5%", "$0.000000",
+    "1", "archived-member", "未归属客户团队", "0 / 0", "1", "0", "10", "0%", "50", "50", "0.5%", "$0.000000",
   ]);
 });
 

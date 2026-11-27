@@ -247,11 +247,11 @@ func redactAuditValue(value any) any {
 	case map[string]any:
 		out := make(map[string]any, len(typed))
 		for key, item := range typed {
-			if isSensitiveAuditKey(key) {
+			if isSensitiveAuditKey(key) || isAuditMediaField(typed, key) {
 				out[key] = "[redacted]"
 				continue
 			}
-			out[key] = redactAuditValue(item)
+			out[key] = redactAuditMediaContainer(key, redactAuditValue(item))
 		}
 		return out
 	case []any:

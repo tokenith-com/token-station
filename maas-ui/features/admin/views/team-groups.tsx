@@ -1,3 +1,4 @@
+import { useCustomerTerminology } from "../i18n/customer-copy";
 import { Plus, Search, X } from "lucide-react";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { type AdminResource, type AppData } from "../core/types";
@@ -32,6 +33,7 @@ export function TeamGroupsView({
   onToggleStatus: (group: AdminResource) => Promise<void>;
   onDelete: (group: AdminResource) => void;
 }) {
+  const ui = useCustomerTerminology();
   const groups = useMemo(() => data.resources.teams ?? [], [data.resources.teams]);
   const [query, setQuery] = useState("");
   const [groupFilter, setGroupFilter] = useState("all");
@@ -58,18 +60,18 @@ export function TeamGroupsView({
   const visibleGroups = filteredGroups.slice(pagination.startIndex, pagination.endIndex);
 
   return (
-    <section aria-label={tx("团队分组列表")} className="platform-accounts-view team-groups-view">
+    <section aria-label={ui("团队分组列表")} className="platform-accounts-view team-groups-view">
       <div className="platform-accounts-toolbar">
         <button className="platform-account-create" onClick={() => setDialog({ mode: "create" })} type="button">
           <Plus size={14} />
-          {tx("新增团队分组")}
+          {ui("新增团队分组")}
         </button>
 
         <div className="platform-account-filters">
           <label className="platform-account-search">
             <Search aria-hidden="true" size={14} />
             <input
-              aria-label={tx("搜索团队分组")}
+              aria-label={ui("搜索团队分组")}
               onChange={(event) => setQuery(event.target.value)}
               placeholder={tx("搜索")}
               type="search"
@@ -126,7 +128,7 @@ export function TeamGroupsView({
                 </tr>
               );
             }) : (
-              <tr><td className="platform-account-empty" colSpan={6}>{loading ? tx("加载中") : tx("暂无符合条件的团队分组")}</td></tr>
+              <tr><td className="platform-account-empty" colSpan={6}>{loading ? tx("加载中") : ui("暂无符合条件的团队分组")}</td></tr>
             )}
           </tbody>
         </table>
@@ -160,6 +162,7 @@ function TeamGroupDialog({
   onClose: () => void;
   onSubmit: (values: TeamGroupValues) => Promise<void>;
 }) {
+  const ui = useCustomerTerminology();
   const group = state.mode === "edit" ? state.group : null;
   const [values, setValues] = useState<TeamGroupValues>({
     name: group?.name ?? "",
@@ -197,7 +200,7 @@ function TeamGroupDialog({
     }} role="presentation">
       <form aria-labelledby="team-group-dialog-title" aria-modal="true" className={`platform-account-dialog team-group-dialog is-${state.mode}`} onSubmit={submit} role="dialog">
         <header className="platform-account-dialog-header">
-          <h2 id="team-group-dialog-title">{tx(title)}</h2>
+          <h2 id="team-group-dialog-title">{ui(title)}</h2>
           <button aria-label={tx("关闭")} disabled={loading} onClick={onClose} type="button"><X size={17} /></button>
         </header>
         <div className="platform-account-dialog-body">

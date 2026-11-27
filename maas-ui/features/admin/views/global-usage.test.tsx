@@ -28,7 +28,7 @@ describe("Global usage ranges", () => {
     const user = userEvent.setup();
     const week = pending<Response>();
     const month = pending<Response>();
-    const fetch = vi.fn((input: string) => input.endsWith("range=7d") ? week.promise : input.endsWith("range=30d") ? month.promise : Promise.resolve(response(report("today", 11))));
+    const fetch = vi.fn((input: string) => input.endsWith("range=7d") ? week.promise : input.endsWith("range=30d") ? month.promise : Promise.resolve(response(report("all", 11))));
     vi.stubGlobal("fetch", fetch);
     render(<GlobalUsageView api={api} data={emptyData()} user={admin} />);
     await waitFor(() => expect(requests()).toHaveTextContent("11"));
@@ -41,34 +41,34 @@ describe("Global usage ranges", () => {
     await act(async () => { week.resolve(response(report("7d", 22))); });
     expect(requests()).toHaveTextContent("33");
     expect(screen.getByRole("button", { name: "30 天" })).toHaveAttribute("aria-pressed", "true");
-    expect(fetch.mock.calls.map(([url]) => url)).toEqual([`/api/backend/api/admin/usage/report?range=today`, `/api/backend/api/admin/usage/report?range=7d`, `/api/backend/api/admin/usage/report?range=30d`]);
+    expect(fetch.mock.calls.map(([url]) => url)).toEqual([`/api/backend/api/admin/usage/report?range=all`, `/api/backend/api/admin/usage/report?range=7d`, `/api/backend/api/admin/usage/report?range=30d`]);
   });
 
   it("shows request errors without treating failures as zero usage and retries the selected range", async () => {
     const user = userEvent.setup();
-    const fetch = vi.fn().mockResolvedValueOnce(response(report("today", 11)))
+    const fetch = vi.fn().mockResolvedValueOnce(response(report("all", 11)))
       .mockResolvedValueOnce(new Response(JSON.stringify({ error: { message: "Synthetic report unavailable" } }), { status: 503 }))
-      .mockResolvedValueOnce(response(report("all", 44)));
+      .mockResolvedValueOnce(response(report("30d", 44)));
     vi.stubGlobal("fetch", fetch);
     render(<GlobalUsageView api={api} data={emptyData()} user={admin} />);
     await waitFor(() => expect(requests()).toHaveTextContent("11"));
-    await user.click(screen.getByRole("button", { name: "全部" }));
+    await user.click(screen.getByRole("button", { name: "30 天" }));
     expect(await screen.findByRole("alert")).toHaveTextContent("Synthetic report unavailable");
     expect(screen.queryByRole("group", { name: "请求数" })).not.toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "重试" }));
     await waitFor(() => expect(requests()).toHaveTextContent("44"));
-    expect(fetch.mock.calls.at(-1)?.[0]).toBe(`/api/backend/api/admin/usage/report?range=all`);
+    expect(fetch.mock.calls.at(-1)?.[0]).toBe(`/api/backend/api/admin/usage/report?range=30d`);
   });
 
   it("refreshes on a timer without overlapping requests and aborts on unmount", async () => {
     vi.useFakeTimers();
     const first = pending<Response>();
-    const fetch = vi.fn().mockReturnValueOnce(first.promise).mockResolvedValue(response(report("today", 2)));
+    const fetch = vi.fn().mockReturnValueOnce(first.promise).mockResolvedValue(response(report("all", 2)));
     vi.stubGlobal("fetch", fetch);
     const { unmount } = render(<GlobalUsageView api={api} data={emptyData()} user={admin} />);
     await act(async () => { await vi.advanceTimersByTimeAsync(30_000); });
     expect(fetch).toHaveBeenCalledTimes(1);
-    await act(async () => { first.resolve(response(report("today", 1))); });
+    await act(async () => { first.resolve(response(report("all", 1))); });
     expect(requests()).toHaveTextContent("1");
     await act(async () => { await vi.advanceTimersByTimeAsync(30_000); });
     expect(fetch).toHaveBeenCalledTimes(2);
@@ -81,21 +81,21 @@ describe("Global usage ranges", () => {
   });
 
   it("keeps restricted provider attribution out of personal usage details", async () => {
-    const payload = report("today", 1);
+    const payload = report("all", 1);
     payload.summary.estimated_cost_usd = 12.34;
     payload.breakdown.providers = [{ id: "private-provider", request_count: 1, input_tokens: 10, output_tokens: 5, total_tokens: 15, estimated_cost_usd: 2 }];
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(response(payload)));
     render(<GlobalUsageView api={api} data={emptyData()} user={{ ...admin, role: "user" }} />);
     await waitFor(() => expect(requests()).toHaveTextContent("1"));
     expect(screen.getByText("本人估算金额").parentElement).toHaveTextContent("12.34");
-    expect(vi.mocked(fetch).mock.calls.map(([url]) => url)).toEqual(["/api/backend/api/admin/usage/report?range=today"]);
+    expect(vi.mocked(fetch).mock.calls.map(([url]) => url)).toEqual(["/api/backend/api/admin/usage/report?range=all"]);
     expect(screen.queryByText("private-provider")).not.toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: "供应商用量" })).not.toBeInTheDocument();
   });
 
   it.each([
-    { data: report("today", 11) },
-    { ...report("today", 11), timeseries: { data: [] } },
+    { data: report("all", 11) },
+    { ...report("all", 11), timeseries: { data: [] } },
     report("7d", 11),
   ])("rejects reports that do not match the selected 0.10 response contract", async payload => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify(payload))));

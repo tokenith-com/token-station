@@ -1,3 +1,4 @@
+import { useCustomerTerminology } from "../i18n/customer-copy";
 import { BookOpen, Boxes, Check, ExternalLink, KeyRound, ShieldCheck, Sparkles } from "lucide-react";
 import { type Dispatch, type FormEvent, type SetStateAction, useEffect, useMemo, useState } from "react";
 import { type AdminResource, type AdminUser, type AppData, type FieldConfig, type ModalState } from "../core/types";
@@ -344,6 +345,7 @@ export function APIKeyWizardModal({
   onClose: () => void;
   onCreate: (values: Record<string, string>) => void;
 }) {
+  const ui = useCustomerTerminology();
   const config = useMemo(() => apiKeyConfig(), []);
   const [step, setStep] = useState(0);
   const [modelScope, setModelScope] = useState<"all" | "selected">(initialValues?.allowed_models ? "selected" : "all");
@@ -469,11 +471,11 @@ export function APIKeyWizardModal({
           {step === 0 ? (
             <section className="wizard-panel">
               <div className="wizard-panel-head">
-                <h3>{tx("选择 Key 归属项目")}</h3>
-                <p>{tx("Key 必须挂在项目空间下，用量和成本会归集到这个项目。")}</p>
+                <h3>{ui("选择 Key 归属项目")}</h3>
+                <p>{ui("Key 必须挂在项目空间下，用量和成本会归集到这个项目。")}</p>
               </div>
               {projectOptions.length === 0 ? (
-                <div className="empty wizard-empty">{tx("当前账号没有可发放 Key 的项目权限，请联系项目负责人或管理员把你加入项目。")}</div>
+                <div className="empty wizard-empty">{ui("当前账号没有可发放 Key 的项目权限，请联系项目负责人或管理员把你加入项目。")}</div>
               ) : (
                 <div className="wizard-project-grid">
                   {projectOptions.map((option) => {
@@ -486,7 +488,7 @@ export function APIKeyWizardModal({
                         type="button"
                       >
                         <strong>{project?.name || option.label}</strong>
-                        <span>{tx("团队")}：{projectTeamLabel(data, option.value)}</span>
+                        <span>{ui("团队")}：{projectTeamLabel(data, option.value)}</span>
                         <span>{tx("负责人")}：{projectOwnerLabel(data, option.value)}</span>
                       </button>
                     );
@@ -516,7 +518,7 @@ export function APIKeyWizardModal({
             <section className="wizard-panel">
               <div className="wizard-panel-head">
                 <h3>{tx("设置模型范围")}</h3>
-                <p>{tx("留空表示不限制 Key 级模型白名单；实际可调用模型仍受模型目录、路由策略和项目权限约束。")}</p>
+                <p>{ui("留空表示不限制 Key 级模型白名单；实际可调用模型仍受模型目录、路由策略和项目权限约束。")}</p>
               </div>
               <div className="wizard-choice-row">
                 <button className={modelScope === "all" ? "wizard-choice active" : "wizard-choice"} onClick={() => setModelScope("all")} type="button">
@@ -580,7 +582,7 @@ export function APIKeyWizardModal({
                 <p>{tx("完整 Key 只会展示一次。关闭弹窗后只能看到前后缀，后续需要通过轮换生成新 Key。")}</p>
               </div>
               <div className="wizard-review-grid">
-                <ReviewItem label="归属项目" value={selectedProject?.name || values.project_id || "-"} />
+                <ReviewItem label={ui("归属项目")} value={selectedProject?.name || values.project_id || "-"} />
                 <ReviewItem label="归属用户" value={ownerUserLabel(data, values.owner_user_id)} />
                 <ReviewItem label="用途/环境" value={values.group || "default"} />
                 <ReviewItem label="Key 名称" value={values.name || "-"} />
@@ -613,9 +615,10 @@ export function APIKeyWizardModal({
 }
 
 export function ReviewItem({ label, value }: { label: string; value: React.ReactNode }) {
+  const ui = useCustomerTerminology();
   return (
     <div className="wizard-review-item">
-      <span>{tx(label)}</span>
+      <span>{ui(label)}</span>
       <strong>{value}</strong>
     </div>
   );

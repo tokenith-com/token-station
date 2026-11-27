@@ -1,3 +1,4 @@
+import { useCustomerTerminology } from "../i18n/customer-copy";
 import { deploymentPath } from "@/lib/deployment-path";
 import { AlertCircle, Check, ChevronDown, ChevronRight, LogOut, Moon, Search, Sun, Wallet, X } from "lucide-react";
 import { Fragment, useEffect, useRef, useState } from "react";
@@ -42,6 +43,7 @@ export function Sidebar({
   openGroups: Record<string, boolean>;
   onToggleGroup: (title: string) => void;
 }) {
+  const ui = useCustomerTerminology();
   const visibleGroups = navGroupsForUser(user)
     .map(group => ({ ...group, items: group.items.map(item => filterNavItemByAccess(item, user)).filter((item): item is NavItem => Boolean(item)) }))
     .filter(group => group.items.length > 0);
@@ -61,7 +63,7 @@ export function Sidebar({
             <div className={groupOpen ? "nav-group" : "nav-group closed"} key={group.title}>
               <button aria-expanded={groupOpen} aria-hidden={collapsed || undefined} tabIndex={collapsed ? -1 : undefined} className={groupOpen ? "nav-title" : "nav-title closed"} onClick={() => onToggleGroup(group.title)} title={collapsed ? undefined : tx(groupOpen ? "点击收起" : "点击展开")} type="button">
                 <span className="nav-title-label">
-                  <span>{tx(group.title)}</span>
+                  <span>{ui(group.title)}</span>
                 </span>
                 <ChevronDown className="nav-chevron" size={14} />
               </button>
@@ -74,7 +76,7 @@ export function Sidebar({
                         return item.children.map(child => {
                           const ChildIcon = child.icon;
                           return (
-                            <SidebarNavItem active={activeView === child.view} collapsed={collapsed} label={tx(child.label)} key={child.view} onSelect={() => onSelect(child.view)}>
+                            <SidebarNavItem active={activeView === child.view} collapsed={collapsed} label={ui(child.label)} key={child.view} onSelect={() => onSelect(child.view)}>
                               <ChildIcon size={16} />
                             </SidebarNavItem>
                           );
@@ -89,7 +91,7 @@ export function Sidebar({
                             onClick={() => onToggleGroup(`nav:${item.label}`)}
                             type="button">
                             <Icon size={16} />
-                            <span>{tx(item.label)}</span>
+                            <span>{ui(item.label)}</span>
                             <ChevronDown className="nav-chevron" size={14} />
                           </button>
                           {childOpen ? (
@@ -103,7 +105,7 @@ export function Sidebar({
                                     onClick={() => onSelect(child.view)}
                                     type="button">
                                     <ChildIcon size={16} />
-                                    <span>{tx(child.label)}</span>
+                                    <span>{ui(child.label)}</span>
                                   </button>
                                 );
                               })}
@@ -116,7 +118,7 @@ export function Sidebar({
                       <SidebarNavItem
                         active={activeView === item.view}
                         collapsed={collapsed}
-                        label={tx(item.label)}
+                        label={ui(item.label)}
                         key={item.view}
                         onSelect={() => onSelect(item.view)}>
                         <Icon size={16} />
@@ -134,6 +136,7 @@ export function Sidebar({
 }
 
 export function PageHeader({ activeView, data, meta, user, onSelect }: { activeView: ViewKey; data: AppData; meta: { title: string; description: string; eyebrow?: string }; user: AdminUser; onSelect?: (view: ViewKey) => void }) {
+  const ui = useCustomerTerminology();
   const path = navPathForView(user, activeView);
   const chips = pageHeaderChips(activeView, data, user);
   const pathGroup = path.group || pageHeaderFallbackGroup(activeView, user);
@@ -152,9 +155,9 @@ export function PageHeader({ activeView, data, meta, user, onSelect }: { activeV
               <Fragment key={`${crumb.label}-${index}`}>
                 {index > 0 ? <ChevronRight aria-hidden="true" className="page-breadcrumb-separator" size={13} /> : null}
                 {target && onSelect && !current ? (
-                  <button type="button" onClick={() => onSelect(target)}>{tx(crumb.label)}</button>
+                  <button type="button" onClick={() => onSelect(target)}>{ui(crumb.label)}</button>
                 ) : (
-                  <span className={current ? "current" : undefined} aria-current={current ? "page" : undefined}>{tx(crumb.label)}</span>
+                  <span className={current ? "current" : undefined} aria-current={current ? "page" : undefined}>{ui(crumb.label)}</span>
                 )}
               </Fragment>
             );
@@ -162,11 +165,11 @@ export function PageHeader({ activeView, data, meta, user, onSelect }: { activeV
         </nav>
       </div>
       <div className="page-context-side">
-        <span className="scope-chip">{tx(roleScopeDescription(user))}</span>
+        <span className="scope-chip">{ui(roleScopeDescription(user))}</span>
         {chips.map(chip => (
           <span className="page-context-chip" key={chip.label}>
             <strong>{chip.value}</strong>
-            <em>{tx(chip.label)}</em>
+            <em>{ui(chip.label)}</em>
           </span>
         ))}
       </div>
@@ -175,13 +178,14 @@ export function PageHeader({ activeView, data, meta, user, onSelect }: { activeV
 }
 
 export function StatusStack({ error, notice, onClearError, onClearNotice }: { error: string; notice: string; onClearError: () => void; onClearNotice: () => void }) {
+  const ui = useCustomerTerminology();
   if (!error && !notice) return null;
   return (
     <div className="status-stack">
       {error ? (
         <div className="status-line error">
           <AlertCircle size={16} />
-          <span>{error}</span>
+          <span>{ui(error)}</span>
           <button className="icon-button subtle" onClick={onClearError} title={tx("关闭")} type="button">
             <X size={14} />
           </button>
@@ -190,7 +194,7 @@ export function StatusStack({ error, notice, onClearError, onClearNotice }: { er
       {notice ? (
         <div className="status-line success">
           <Check size={16} />
-          <span>{notice}</span>
+          <span>{ui(notice)}</span>
           <button className="icon-button subtle" onClick={onClearNotice} title={tx("关闭")} type="button">
             <X size={14} />
           </button>
@@ -394,6 +398,7 @@ function ConsoleTopNav({ activeView, api, user, theme, language, sidebarCollapse
 }
 
 export function StandardTopNav({ activeView, data, user, theme, onSelectView, onThemeToggle }: TopNavProps) {
+  const ui = useCustomerTerminology();
   const inputRef = useRef<HTMLInputElement | null>(null);
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
@@ -475,7 +480,7 @@ export function StandardTopNav({ activeView, data, user, theme, onSelectView, on
                       <Icon size={16} />
                     </span>
                     <span className="top-search-result-body">
-                      <strong>{tx(item.label)}</strong>
+                      <strong>{ui(item.label)}</strong>
                       <small>
                         {tx(item.group)} · {tx(item.description)}
                       </small>
@@ -499,7 +504,7 @@ export function StandardTopNav({ activeView, data, user, theme, onSelectView, on
           {quickActions.map(item => {
             const Icon = item.icon;
             return (
-              <button className={item.view === activeView ? "top-icon-button active" : "top-icon-button"} key={item.view} onClick={() => openResult(item.view)} title={tx(item.label)} type="button">
+              <button className={item.view === activeView ? "top-icon-button active" : "top-icon-button"} key={item.view} onClick={() => openResult(item.view)} title={ui(item.label)} type="button">
                 <Icon size={17} />
               </button>
             );

@@ -1,3 +1,4 @@
+import { useCustomerTerminology } from "../i18n/customer-copy";
 import { useEffect, useState } from "react";
 import type { ApiContext } from "../core/types";
 import { PaginationControls, usePagination } from "../shared/pagination";
@@ -7,6 +8,7 @@ export function WalletLedger(props: { api: ApiContext; teamID: string; copy: Wal
   return <WalletLedgerContent key={`${props.api.baseURL}:${props.api.adminToken}:${props.teamID}`} {...props} />;
 }
 function WalletLedgerContent({ api, teamID, copy }: { api: ApiContext; teamID: string; copy: WalletCopy }) {
+  const ui = useCustomerTerminology();
   const { tx, locale } = copy;
   const [total, setTotal] = useState(0);
   const pagination = usePagination(total, teamID);
@@ -25,7 +27,7 @@ function WalletLedgerContent({ api, teamID, copy }: { api: ApiContext; teamID: s
   };
   return <section aria-label={tx("资金流水")}>
     <h3>{tx("资金流水")}</h3>
-    {!teamID ? <p>{tx("未关联团队，无法读取钱包")}</p> : state.error ? <div role="alert">{tx("资金流水加载失败")}：{tx(state.error)} <button type="button" className="secondary-button" onClick={() => { setState({}); setRevision(value => value + 1); }}>{tx("重试")}</button></div> : !state.data ? <p role="status">{tx("正在加载资金流水…")}</p> : <>
+    {!teamID ? <p>{ui("未关联团队，无法读取钱包")}</p> : state.error ? <div role="alert">{tx("资金流水加载失败")}：{tx(state.error)} <button type="button" className="secondary-button" onClick={() => { setState({}); setRevision(value => value + 1); }}>{tx("重试")}</button></div> : !state.data ? <p role="status">{tx("正在加载资金流水…")}</p> : <>
       {state.data.entries.length === 0 ? <p>{tx("暂无资金流水")}</p> : <div className="table-scroll wallet-ledger-scroll"><table className="data-table wallet-ledger-table"><thead><tr>{[tx("时间"), tx("类型"), tx("状态"), tx("实际金额（USD）"), tx("预留金额（USD）"), tx("入账前余额"), tx("入账后余额"), tx("操作人"), tx("备注"), tx("请求 ID")].map(label => <th key={label}>{label}</th>)}</tr></thead><tbody>{state.data.entries.map(entry => <tr key={`${entry.kind}:${entry.id}`}>
         <td>{entry.created_at ? new Intl.DateTimeFormat(locale, { dateStyle: "medium", timeStyle: "short" }).format(new Date(entry.created_at)) : "—"}</td>
         <td>{entry.kind === "call" ? tx("模型调用") : entry.credit_type === "offline_receipt" ? tx("线下收款") : entry.credit_type === "approved_credit" ? tx("授信入账") : tx("历史入账")}</td>

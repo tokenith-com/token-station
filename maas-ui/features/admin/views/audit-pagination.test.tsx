@@ -66,3 +66,12 @@ it("renders the server-resolved account name for a member without the user direc
   expect(await screen.findByText("太湖员工A / pt@locol.com")).toBeInTheDocument();
   expect(screen.queryByText("usr_z2NA16gRki-BcS70")).not.toBeInTheDocument();
 });
+
+it("preserves a fractional success rate for one success in 243 requests", async () => {
+  vi.mocked(adminFetch).mockResolvedValue(Response.json({
+    data: [], pagination: { page: 1, page_size: 20, total: 243, total_pages: 13 },
+    summary: { all: 243, ok: 1, error: 0, average_latency_ms: 10 },
+  }));
+  render(<AuditView api={{ baseURL: "/", adminToken: "fixture" }} data={emptyData()} user={{ id: "member", username: "member", name: "Member", email: "member@example.test", role: "user", status: "active" }} />);
+  expect(await screen.findByText("0.41%")).toBeInTheDocument();
+});

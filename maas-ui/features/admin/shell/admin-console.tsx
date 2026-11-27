@@ -1,4 +1,5 @@
 "use client";
+import { useCustomerTerminology } from "../i18n/customer-copy";
 import { exchangeOAuthLoginCode, resolvePendingOAuthLoginResult, safeOAuthLoginErrorCode } from "../domain/oauth-login";
 import { modelRoutePolicyPayload } from "../views/model-routing-policy";
 import { type ModelRoutePolicy } from "../core/types";
@@ -126,6 +127,7 @@ import { EditModal, SettingsView } from "../views/settings-table";
 import { usePagination } from "../shared/pagination";
 import { BillingView, UsageView } from "../views/usage-billing";
 import { scopeSupportedAccounts } from "../core/account-roles";
+import { CustomerCopyProvider, customerResourceConfig } from "../i18n/customer-copy";
 import { SourceAdminContent } from "../legacy-source/shell/source-admin-content";
 import { useLoginIdentityProviders } from "./use-login-identity-providers";
 
@@ -161,6 +163,7 @@ function AdminConsoleContent({ defaultBaseURL }: ConsoleProps) {
   currentToken.current = adminToken;
   const loadGeneration = useRef(0);
   const [currentUser, setCurrentUser] = useState<AdminUser | null>(null);
+  const ui = useCustomerTerminology(Boolean(currentUser && appRole(currentUser.role) === "admin"));
   const [pendingLoginOTP, setPendingLoginOTP] = useState<{ identity: string; payload: Awaited<ReturnType<typeof loginWithPassword>> } | null>(null);
   const [oauthReturnURL, setOAuthReturnURL] = useState(() => currentOAuthReturnURL());
   const [bootstrapped, setBootstrapped] = useState(false);
@@ -197,7 +200,7 @@ function AdminConsoleContent({ defaultBaseURL }: ConsoleProps) {
 
   const api = useMemo(() => ({ baseURL, adminToken }), [baseURL, adminToken]);
   const providerTypeOptions = providerTypeOptionsFromData(data);
-  const activeConfig = resourceConfigFor(activeView);
+  const activeConfig = useMemo(() => customerResourceConfig(resourceConfigFor(activeView), Boolean(currentUser && appRole(currentUser.role) === "admin")), [activeView, currentUser]);
   const activeMeta = activeConfig ?? standaloneViewMeta[activeView] ?? standaloneViewMeta.overview!;
   setActiveLanguage(language);
 
@@ -988,7 +991,7 @@ function AdminConsoleContent({ defaultBaseURL }: ConsoleProps) {
       setNotice(tx(name ? `团队成员已创建，并已加入项目空间「${name}」` : `团队成员已创建，并已加入项目空间 ${project_id}`));
       return true;
     } catch (err) {
-      if (!isAuthExpiredError(err)) setError(err instanceof Error ? err.message : tx("创建团队成员失败"));
+      if (!isAuthExpiredError(err)) setError(err instanceof Error ? err.message : ui("创建团队成员失败"));
       return false;
     } finally { setLoading(false); }
   }
@@ -1080,7 +1083,7 @@ function AdminConsoleContent({ defaultBaseURL }: ConsoleProps) {
   const isGuestCostView = accountManagementRole === "consumer" && ["billing", "balance-recharge"].includes(activeView);
 
   return (
-    <ModalErrorProvider
+    <CustomerCopyProvider administrator={appRole(currentUser.role) === "admin"}><ModalErrorProvider
       onError={(reason, fallback) => {
         if (!isAuthExpiredError(reason)) setError(reason instanceof Error ? reason.message : fallback);
       }}>
@@ -1537,7 +1540,7 @@ function AdminConsoleContent({ defaultBaseURL }: ConsoleProps) {
           ? issuedKey ? <IssuedKeyModal value={issuedKey} onClose={() => setIssuedKey("")} /> : null
           : !usesSourceAdminContent(currentUser, activeView) && <APIKeyAccessDialogs key={currentUser.id} baseURL={api.baseURL} issuedKey={issuedKey} onCloseIssuedKey={() => setIssuedKey("")} />}
       </main>
-    </ModalErrorProvider>
+    </ModalErrorProvider></CustomerCopyProvider>
   );
 }
 

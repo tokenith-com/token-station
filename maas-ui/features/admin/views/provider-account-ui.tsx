@@ -1,3 +1,4 @@
+import { useCustomerTerminology } from "../i18n/customer-copy";
 import { AlertCircle, Check, Copy, KeyRound, Send } from "lucide-react";
 import { useState } from "react";
 import type { ProviderAccountQuota, ProviderQuotaMetric, ProviderQuotaWindow, ProviderResource } from "../core/types";
@@ -18,9 +19,10 @@ export async function launchProviderAccountAuthorization(action: ProviderAccount
 }
 
 export function QuotaMetric({ label, value }: { label: string; value: string }) {
+  const ui = useCustomerTerminology();
   return (
     <div className="provider-quota-metric">
-      <span>{tx(label)}</span>
+      <span>{ui(label)}</span>
       <strong>{value}</strong>
     </div>
   );

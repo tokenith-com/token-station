@@ -1,4 +1,5 @@
 "use client";
+import { useCustomerTerminology } from "../../i18n/customer-copy";
 
 import { Info } from "lucide-react";
 import { type FormEvent, useEffect, useRef, useState } from "react";
@@ -19,6 +20,7 @@ function normalizedRate(value: string) {
 }
 
 export function SettlementSettingsView({ api }: { api: ApiContext }) {
+  const ui = useCustomerTerminology();
   const [rate, setRate] = useState<TeamWalletExchangeRate>();
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(true);
@@ -164,7 +166,7 @@ export function SettlementSettingsView({ api }: { api: ApiContext }) {
         <div className="section-header"><h2 id="settlement-rules-heading">{tx("汇率生效规则")}</h2></div>
         <div className="section-body settlement-rules-body">
           <div className="system-settings-note settlement-rules-note" role="note"><Info size={18} aria-hidden="true" /><span>{tx("新汇率仅用于后续调用预扣；进行中的预扣请求继续使用原汇率快照。")}</span></div>
-          <p className="muted settlement-rules-footnote">{tx("保存汇率不会重算历史账单，也不会直接改变团队余额。")}</p>
+          <p className="muted settlement-rules-footnote">{ui("保存汇率不会重算历史账单，也不会直接改变团队余额。")}</p>
         </div>
       </section>
     </div>

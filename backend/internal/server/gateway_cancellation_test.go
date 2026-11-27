@@ -77,6 +77,10 @@ func TestGatewayCancellationChatStream(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	payload, ok := detail["payload"].(RequestPayloadLog)
+	if !ok || !strings.Contains(payload.ResponseBody, "bounded_sse_events") || !strings.Contains(payload.ResponseBody, "partial") || !strings.Contains(payload.ResponseBody, `"terminal_observed": false`) {
+		t.Fatalf("cancelled stream diagnostics missing or fabricated: %+v", payload)
+	}
 	attempts := detail["attempts"].([]RouteAttemptLog)
 	if len(attempts) != 1 || attempts[0].StatusCode != 499 || attempts[0].ErrorCode != "request_cancelled" || !attempts[0].Invoked {
 		t.Fatalf("attempt outcome = %+v", attempts)

@@ -1,3 +1,4 @@
+import { useCustomerTerminology } from "../i18n/customer-copy";
 import { CalendarRange, CirclePause, CirclePlay, Download, Eye, LockKeyhole, Plus, RefreshCw, X } from "lucide-react";
 import { type FormEvent, useState } from "react";
 import { type ApiContext, type AppData, type ReconciliationDetail, type ReconciliationItem, type ReconciliationRule, type ReconciliationRun } from "../core/types";
@@ -222,7 +223,8 @@ function ReconciliationDetailPanel({ detail, loading, onClose, onPage }: { detai
 }
 
 function ReconciliationMetric({ label, value }: { label: string; value: number }) {
-  return <div><span>{tx(label)}</span><strong>{formatReconciliationNumber(value)}</strong></div>;
+  const ui = useCustomerTerminology();
+  return <div><span>{ui(label)}</span><strong>{formatReconciliationNumber(value)}</strong></div>;
 }
 
 function ReconciliationSourceRecords({ item }: { item: ReconciliationItem }) {
@@ -238,6 +240,7 @@ function ReconciliationSourceRecords({ item }: { item: ReconciliationItem }) {
 }
 
 function ReconciliationRuleEditor({ api, connectors, onClose, onSaved }: { api: ApiContext; connectors: AppData["billingConnectors"]; onClose: () => void; onSaved: () => Promise<void> }) {
+  const ui = useCustomerTerminology();
   const closeOnError = useModalError(onClose);
   const [values, setValues] = useState(() => {
     const supportsDetail = connectors[0]?.type !== "newapi";
@@ -338,7 +341,7 @@ function ReconciliationRuleEditor({ api, connectors, onClose, onSaved }: { api: 
           <label className="field"><span>{tx("定时周期（分钟，0 为手动）")}</span><input min="0" max="43200" type="number" value={values.schedule_interval_minutes} onChange={(event) => update("schedule_interval_minutes", event.target.value)} /></label>
           <label className="field"><span>{tx("币种")}</span><input maxLength={3} placeholder="USD" value={values.currency} onChange={(event) => update("currency", event.target.value.toUpperCase())} required /></label>
           <label className="field"><span>{tx("USD 汇率（1 USD = 目标币种）")}</span><input inputMode="decimal" value={values.usd_exchange_rate} onChange={(event) => update("usd_exchange_rate", event.target.value)} required /></label>
-          <label className="field reconciliation-wide-field"><span>{tx("Provider 维度映射（JSON）")}</span><textarea rows={5} value={values.dimension_mappings} onChange={(event) => update("dimension_mappings", event.target.value)} /><small>{tx("外部值映射到 TokenStation 的 Provider、资源账号、模型或项目标识。")}</small></label>
+          <label className="field reconciliation-wide-field"><span>{tx("Provider 维度映射（JSON）")}</span><textarea rows={5} value={values.dimension_mappings} onChange={(event) => update("dimension_mappings", event.target.value)} /><small>{ui("外部值映射到 TokenStation 的 Provider、资源账号、模型或项目标识。")}</small></label>
           {error ? <div className="billing-inline-error reconciliation-wide-field" role="alert">{error}</div> : null}
         </div>
         <div className="modal-actions"><button className="button secondary" onClick={onClose} type="button">{tx("取消")}</button><button className="button" disabled={busy} type="submit">{busy ? tx("保存中...") : tx("保存")}</button></div>

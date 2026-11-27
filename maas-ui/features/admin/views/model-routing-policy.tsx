@@ -1,3 +1,4 @@
+import { useCustomerTerminology } from "../i18n/customer-copy";
 import { Activity, AlertTriangle, BarChart3, CircleDollarSign, CircleHelp, Gauge, GripVertical, ListOrdered, Save, Scale, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { type AppData, type Model, type ModelRoute, type ModelRoutePolicy, type ModelRoutePolicyRoute, type ModelRouteStrategy } from "../core/types";
@@ -137,6 +138,7 @@ export function ModelRoutingPolicyEditor({
   onSave: (model: Model, policy: ModelRoutePolicy) => void;
   onDirtyChange?: (dirty: boolean) => void;
 }) {
+  const ui = useCustomerTerminology();
   const persistedStrategies = useMemo(() => new Set(routes.map((route) => route.strategy || "balanced")), [routes]);
   const persistedStrategy = normalizeStrategy(persistedStrategies.values().next().value ?? "priority_weighted");
   const unknownStrategies = [...persistedStrategies].filter((value) => !strategyOptions.some((option) => option.value === value));
@@ -271,7 +273,7 @@ export function ModelRoutingPolicyEditor({
       ) : null}
 
       {!needsStrategyChoice && (strategy === "priority_weighted" || strategy === "adaptive") ? (
-        <div className="route-policy-share-note">{tx("项目作用域过滤后将按可用 Provider 重新计算占比。")}</div>
+        <div className="route-policy-share-note">{ui("项目作用域过滤后将按可用 Provider 重新计算占比。")}</div>
       ) : null}
       {!needsStrategyChoice && (strategy === "quality" || strategy === "cost" || strategy === "balanced") ? (
         <div className="route-policy-share-note">{tx("质量和成本评分由管理员维护，不会自动读取实时价格或模型评测。")}</div>
@@ -344,6 +346,7 @@ function ModelRoutePolicyRow({
   onEdit: () => void;
   onDelete: () => void;
 }) {
+  const ui = useCustomerTerminology();
   const provider = findProvider(data, route.provider_id);
   const providerModel = data.providerModels.find((model) => model.provider_id === route.provider_id && model.upstream_model === route.provider_model);
   return (
@@ -378,7 +381,7 @@ function ModelRoutePolicyRow({
       <div className="route-upstream-model">
         <strong>{route.provider_model}</strong>
         <span>{tx("渠道成本")} {priceMetric(providerModel?.input_price_usd_per_1m)} {tx("输入")} / {priceMetric(providerModel?.output_price_usd_per_1m)} {tx("输出")}</span>
-        <span>{routeProjectScopeSummary(route, data)}</span>
+        <span>{routeProjectScopeSummary(route, data, ui)}</span>
       </div>
       <RouteParameterControl strategy={strategy} draft={draft} share={share} disabled={loading} onChange={onChange} />
       <StatusPill status={route.status} />
@@ -405,6 +408,7 @@ function RouteParameterControl({
   disabled: boolean;
   onChange: (key: keyof RouteDraft, value: number) => void;
 }) {
+  const ui = useCustomerTerminology();
   if (strategy === "jev") return <div className="route-policy-order-value">{tx("按模型适用条件选择")}</div>;
   if (strategy === "priority_only") {
     return <div className="route-policy-order-value">{tx("从上到下")}</div>;
@@ -420,9 +424,9 @@ function RouteParameterControl({
     <div className={fields.length > 1 ? "route-policy-parameters multi" : "route-policy-parameters"}>
       {fields.map((field) => (
         <label key={field.key}>
-          <span>{tx(field.label)}</span>
+          <span>{ui(field.label)}</span>
           <input
-            aria-label={tx(field.label)}
+            aria-label={ui(field.label)}
             disabled={disabled}
             max={field.max}
             min={1}

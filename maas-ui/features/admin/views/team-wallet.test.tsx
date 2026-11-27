@@ -41,7 +41,7 @@ describe("Team wallet summary", () => {
 
   it("limits the leader's read-only ledger to their own team", async () => {
     const data = emptyData();
-    const fetch = vi.fn().mockImplementation(async (path: string) => Response.json(path.includes("/ledger?") ? { entries: [], total: 0, limit: 20, offset: 0, currency: "USD" } : path.includes("/wallet") ? wallet : { range: "today", timezone: "UTC", window_start: "", window_end: "", granularity: "day", summary: data.summary, breakdown: data.breakdown, timeseries: [] }));
+    const fetch = vi.fn().mockImplementation(async (path: string) => Response.json(path.includes("/ledger?") ? { entries: [], total: 0, limit: 20, offset: 0, currency: "USD" } : path.includes("/wallet") ? wallet : { range: "all", timezone: "UTC", window_start: "", window_end: "", granularity: "day", summary: data.summary, breakdown: data.breakdown, timeseries: [] }));
     vi.stubGlobal("fetch", fetch);
     render(<UsageView api={api} data={data} user={{ id: "leader", name: "Leader", username: "leader", email: "leader@example.test", role: "team_leader", status: "active", team_id: "team/demo" }} />);
     const ledger = screen.getByRole("region", { name: "资金流水" });
@@ -52,7 +52,7 @@ describe("Team wallet summary", () => {
 
   it("does not request a ledger for a leader without a team", async () => {
     const data = emptyData();
-    const fetch = vi.fn().mockResolvedValue(Response.json({ range: "today", timezone: "UTC", window_start: "", window_end: "", granularity: "day", summary: data.summary, breakdown: data.breakdown, timeseries: [] }));
+    const fetch = vi.fn().mockResolvedValue(Response.json({ range: "all", timezone: "UTC", window_start: "", window_end: "", granularity: "day", summary: data.summary, breakdown: data.breakdown, timeseries: [] }));
     vi.stubGlobal("fetch", fetch);
     render(<UsageView api={api} data={data} user={{ id: "leader", name: "Leader", username: "leader", email: "leader@example.test", role: "team_leader", status: "active" }} />);
     expect(within(screen.getByRole("region", { name: "资金流水" })).getByText("未关联团队，无法读取钱包")).toBeInTheDocument();
@@ -62,11 +62,11 @@ describe("Team wallet summary", () => {
 
   it.each(["user", "guest"])("does not expose wallet reads to %s", async role => {
     const data = emptyData();
-    const fetch = vi.fn().mockResolvedValue(Response.json({ range: "today", timezone: "UTC", window_start: "", window_end: "", granularity: "day", summary: data.summary, breakdown: data.breakdown, timeseries: [] }));
+    const fetch = vi.fn().mockResolvedValue(Response.json({ range: "all", timezone: "UTC", window_start: "", window_end: "", granularity: "day", summary: data.summary, breakdown: data.breakdown, timeseries: [] }));
     vi.stubGlobal("fetch", fetch);
     render(<UsageView api={api} data={data} user={{ id: "member", name: "Member", username: "member", email: "member@example.test", role, status: "active" }} />);
     await screen.findByRole("group", { name: "请求数" });
     expect(screen.queryByRole("region", { name: "团队钱包" })).not.toBeInTheDocument();
-    expect(fetch.mock.calls.map(([path]) => path)).toEqual(["/api/backend/api/admin/usage/report?range=today"]);
+    expect(fetch.mock.calls.map(([path]) => path)).toEqual(["/api/backend/api/admin/usage/report?range=all"]);
   });
 });

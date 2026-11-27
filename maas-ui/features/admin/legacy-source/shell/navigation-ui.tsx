@@ -1,3 +1,4 @@
+import { useCustomerTerminology } from "../../i18n/customer-copy";
 import { AlertCircle, Check, ChevronDown, ChevronRight, LogOut, Moon, PanelLeftClose, PanelLeftOpen, Search, Sun, X } from "lucide-react";
 import { Fragment, useEffect, useRef, useState } from "react";
 import { appRole, filterNavItemByAccess, isNavItemActive, isNavParentItem, navGroupsForUser, normalizeSearchText, readRecentViews, roleScopeDescription, standaloneViewMeta, topQuickActionsForUser, topSearchItemsForUser, topSearchResults } from "../../core/navigation";
@@ -166,6 +167,7 @@ export function PageHeader({
   user: AdminUser;
   onSelect?: (view: ViewKey) => void;
 }) {
+  const ui = useCustomerTerminology();
   const chips = pageHeaderChips(activeView, data, user);
   const crumbs = pageHeaderCrumbs(user, activeView, meta);
   return (
@@ -180,11 +182,11 @@ export function PageHeader({
                 {index > 0 ? <ChevronRight aria-hidden="true" className="page-breadcrumb-separator" size={13} /> : null}
                 {target && onSelect && !current ? (
                   <button type="button" onClick={() => onSelect(target)}>
-                    {tx(crumb.label)}
+                    {ui(crumb.label)}
                   </button>
                 ) : (
                   <span className={current ? "current" : undefined} aria-current={current ? "page" : undefined}>
-                    {tx(crumb.label)}
+                    {ui(crumb.label)}
                   </span>
                 )}
               </Fragment>
@@ -193,11 +195,11 @@ export function PageHeader({
         </nav>
       </div>
       <div className="page-context-side">
-        <span className="scope-chip">{tx(roleScopeDescription(user))}</span>
+        <span className="scope-chip">{ui(roleScopeDescription(user))}</span>
         {chips.map((chip) => (
           <span className="page-context-chip" key={chip.label}>
             <strong>{chip.value}</strong>
-            <em>{tx(chip.label)}</em>
+            <em>{ui(chip.label)}</em>
           </span>
         ))}
       </div>
@@ -216,13 +218,14 @@ export function StatusStack({
   onClearError: () => void;
   onClearNotice: () => void;
 }) {
+  const ui = useCustomerTerminology();
   if (!error && !notice) return null;
   return (
     <div className="status-stack">
       {error ? (
         <div className="status-line error">
           <AlertCircle size={16} />
-          <span>{error}</span>
+          <span>{ui(error)}</span>
           <button className="icon-button subtle" onClick={onClearError} title={tx("关闭")} type="button">
             <X size={14} />
           </button>
@@ -231,7 +234,7 @@ export function StatusStack({
       {notice ? (
         <div className="status-line success">
           <Check size={16} />
-          <span>{notice}</span>
+          <span>{ui(notice)}</span>
           <button className="icon-button subtle" onClick={onClearNotice} title={tx("关闭")} type="button">
             <X size={14} />
           </button>

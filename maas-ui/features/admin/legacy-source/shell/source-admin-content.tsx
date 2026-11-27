@@ -1,5 +1,6 @@
 "use client";
 
+import { customerResourceConfig } from "../../i18n/customer-copy";
 import { BillingWorkspace } from "../views/billing-workspace";
 
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
@@ -106,7 +107,7 @@ export function SourceAdminContent({ baseURL, adminToken, currentUser, language,
   const [themeOverridesLoaded, setThemeOverridesLoaded] = useState(false);
 
   const api = useMemo(() => ({ baseURL, adminToken }), [baseURL, adminToken]);
-  const activeConfig = resourceConfigFor(activeView);
+  const activeConfig = useMemo(() => customerResourceConfig(resourceConfigFor(activeView), appRole(currentUser.role) === "admin"), [activeView, currentUser.role]);
   const activeMeta = activeConfig ?? standaloneViewMeta[activeView] ?? standaloneViewMeta.overview!;
   const simRegistry = useMemo(() => simRegistryFromPlugins(data.plugins), [data.plugins]);
   const shellState = useMemo(

@@ -1,3 +1,4 @@
+import { useCustomerTerminology } from "../i18n/customer-copy";
 import type { AppData, Model, ModelRoute, SemanticRoutingCandidate, SemanticRoutingPolicy } from "../core/types";
 import { formatTranslationTemplate, tx } from "../i18n/runtime";
 
@@ -56,6 +57,7 @@ export function SemanticRoutingFields({ value, routes, data, disabled, onChange 
   disabled: boolean;
   onChange: (value: SemanticRoutingPolicy) => void;
 }) {
+  const ui = useCustomerTerminology();
   const options = jevModelOptions(routes, data, value);
   const candidates = value.candidates ?? [];
   const name = (candidate: SemanticRoutingCandidate) => `${candidate.provider_model} · ${data.providers.find(provider => provider.id === candidate.provider_id)?.name ?? candidate.provider_id}`;
@@ -98,7 +100,7 @@ export function SemanticRoutingFields({ value, routes, data, disabled, onChange 
         })}
       </div>
       <p>{tx("候选模型来自当前统一模型的已有线路。同一 Provider 下同一模型的多个账号合并为一个选项。")}</p>
-      <p>{tx("服务端须开启 Jev 并允许当前项目向 TypeSafe 发送必要的用户文本。已有会话绑定和 Responses 续接优先保持原线路。")}</p>
+      <p>{ui("服务端须开启 Jev 并允许当前项目向 TypeSafe 发送必要的用户文本。已有会话绑定和 Responses 续接优先保持原线路。")}</p>
     </fieldset>
   );
 }

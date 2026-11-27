@@ -1,3 +1,4 @@
+import { useCustomerTerminology } from "../../i18n/customer-copy";
 import { ArrowRight, Bot, Check, ChevronDown, CircleAlert, KeyRound, Plus, Search, Terminal, X } from "lucide-react";
 import { type FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { appRole } from "../../core/navigation";
@@ -32,6 +33,7 @@ export function QuickAccessView({
   onCreateKey: (values: Record<string, string>, onCreated: () => void) => void;
   onManageKeys: () => void;
 }) {
+  const ui = useCustomerTerminology();
   const hasKeys = data.keys.length > 0;
   const models = useMemo(() => playgroundModels(data), [data]);
   const [openStep, setOpenStep] = useState<QuickAccessStep | null>(() => hasKeys ? "models" : "keys");
@@ -74,7 +76,7 @@ export function QuickAccessView({
       <header className="quick-access-intro">
         <p className="eyebrow">{tx("快速接入")}</p>
         <h1>{tx("通过 API 或 AI 工具调用 TokenStation 模型")}</h1>
-        <p>{tx("完成以下配置后，即可使用项目 API Key 调用已授权的模型服务。")}</p>
+        <p>{ui("完成以下配置后，即可使用项目 API Key 调用已授权的模型服务。")}</p>
       </header>
 
       <div className="quick-access-steps">
@@ -146,6 +148,7 @@ export function QuickAPIKeyModal({
   onClose: () => void;
   onCreate: (values: Record<string, string>) => void;
 }) {
+  const ui = useCustomerTerminology();
   const personalKey = appRole(user.role) === "user";
   const projectOptions = useMemo(() => projectSelectOptions(data, user), [data, user]);
   const [values, setValues] = useState<Record<string, string>>(() => {
@@ -204,7 +207,7 @@ export function QuickAPIKeyModal({
 
             {personalKey ? null : projectOptions.length > 1 ? (
               <label className="quick-key-field">
-                <span>{tx("归属项目")}</span>
+                <span>{ui("归属项目")}</span>
                 <select
                   disabled={loading}
                   onChange={(event) => setValues((current) => ({ ...current, project_id: event.target.value }))}
@@ -215,7 +218,7 @@ export function QuickAPIKeyModal({
               </label>
             ) : (
               <div className="quick-key-project">
-                <span>{tx("归属项目")}</span>
+                <span>{ui("归属项目")}</span>
                 <strong>{selectedProject?.name || projectOptions[0]?.label}</strong>
               </div>
             )}
@@ -228,8 +231,8 @@ export function QuickAPIKeyModal({
         ) : (
           <div className="quick-key-no-project">
             <CircleAlert size={22} />
-            <strong>{tx("当前没有可发放 Key 的项目")}</strong>
-            <p>{tx("请联系项目负责人或管理员将你加入项目并授予发放 Key 权限。")}</p>
+            <strong>{ui("当前没有可发放 Key 的项目")}</strong>
+            <p>{ui("请联系项目负责人或管理员将你加入项目并授予发放 Key 权限。")}</p>
           </div>
         )}
 
@@ -267,6 +270,7 @@ function QuickAccessStepPanel({
   onToggle: () => void;
   children: React.ReactNode;
 }) {
+  const ui = useCustomerTerminology();
   return (
     <section className={`quick-access-step${open ? " open" : ""}${disabled ? " disabled" : ""}`}>
       <button
@@ -278,7 +282,7 @@ function QuickAccessStepPanel({
       >
         <span className="quick-access-step-title">
           <strong>Step {step}</strong>
-          <span>{tx(title)}</span>
+          <span>{ui(title)}</span>
           {completed ? <Check className="quick-access-complete" aria-label={tx("已完成")} size={18} strokeWidth={2.4} /> : null}
         </span>
         <span className="quick-access-step-meta">

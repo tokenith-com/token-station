@@ -1,3 +1,4 @@
+import { useCustomerTerminology } from "../i18n/customer-copy";
 import { ModelRoutingPolicyEditor, modelRoutePolicySignature } from "./model-routing-policy";
 import { AlertCircle, Boxes, ChevronDown, CircleHelp, Gauge, Plus, RefreshCw, Search, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
@@ -783,10 +784,11 @@ export function ModelCatalogCard({
 }
 
 export function ModelMetric({ label, value, muted }: { label: string; value: string; muted?: boolean }) {
+  const ui = useCustomerTerminology();
   return (
     <div className={muted ? "model-metric muted" : "model-metric"}>
       <strong>{value}</strong>
-      <span>{tx(label)}</span>
+      <span>{ui(label)}</span>
     </div>
   );
 }
@@ -819,6 +821,7 @@ export function ModelCatalogSortHeader({
   sort: ModelCatalogPriceSort;
   onSort: (sort: ModelCatalogPriceSort) => void;
 }) {
+  const ui = useCustomerTerminology();
   const active = sort.key === sortKey;
   return (
     <button
@@ -827,7 +830,7 @@ export function ModelCatalogSortHeader({
       title={tx("点击排序")}
       type="button"
     >
-      <span>{tx(label)}</span>
+      <span>{ui(label)}</span>
       <ChevronDown aria-hidden="true" className="model-sort-icon" size={13} />
     </button>
   );

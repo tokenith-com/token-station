@@ -1,3 +1,4 @@
+import { useCustomerTerminology } from "../../i18n/customer-copy";
 import { RefreshCw } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 import { appRole } from "../../core/navigation";
@@ -10,7 +11,7 @@ import { adminFetch, isAuthExpiredError, readAdminError } from "../resources/pay
 import { DataSection, SimpleTable } from "../shared/ui";
 import { UsageReportChart, UsageReportMetrics } from "./usage-report-chart";
 
-const ranges: UsageRange[] = ["today", "7d", "30d", "all"];
+const ranges: UsageRange[] = ["all", "today", "7d", "30d"];
 
 function rangeLabel(range: UsageRange) {
   return { today: tx("今日"), "7d": tx("7 天"), "30d": tx("30 天"), all: tx("全部") }[range];
@@ -24,7 +25,8 @@ export function GlobalUsageView({ api, data, user, renderReport }: {
   user: AdminUser;
   renderReport?: (data: AppData, label: string) => ReactNode;
 }) {
-  const [range, setRange] = useState<UsageRange>("today");
+  const ui = useCustomerTerminology();
+  const [range, setRange] = useState<UsageRange>("all");
   const [result, setResult] = useState<ReportState>();
   const [refreshing, setRefreshing] = useState(true);
   const [revision, setRevision] = useState(0);
@@ -79,24 +81,25 @@ export function GlobalUsageView({ api, data, user, renderReport }: {
         <UsageReportChart report={report} />
         <UsageReportBreakdowns key={range} data={scopedData} user={user} report={report} />
       </div>
-      {renderReport ? <details open className="global-usage-details"><summary>{tx("部门与成员报告")}</summary>{renderReport(scopedData, rangeLabel(range))}</details> : null}
+      {renderReport ? <details open className="global-usage-details"><summary>{ui("客户团队与成员报告")}</summary>{renderReport(scopedData, rangeLabel(range))}</details> : null}
     </> : null}
   </section>;
 }
 
 function UsageReportBreakdowns({ data, user, report }: { data: AppData; user: AdminUser; report: UsageReport }) {
+  const ui = useCustomerTerminology();
   const role = appRole(user.role);
   const breakdown = report.breakdown;
   return <>
     <div className="two-column">
       <UsageTable title={tx("模型用量")} label={tx("模型")} rows={breakdown.models ?? []} paginationKey="usage-models" name={row => row.id} />
-      {role === "admin" ? <UsageTable title={tx("项目归因")} label={tx("项目")} rows={breakdown.projects ?? []} paginationKey="usage-projects" name={row => projectName(data, row.id)} /> : null}
+      {role === "admin" ? <UsageTable title={ui("项目归因")} label={ui("项目")} rows={breakdown.projects ?? []} paginationKey="usage-projects" name={row => projectName(data, row.id)} /> : null}
     </div>
     <details open className="global-usage-details"><summary>{tx("更多用量明细")}</summary><div className="two-column">
       {role === "team_leader" ? <UsageTable title={tx("成员用量")} label={tx("成员")} rows={breakdown.members ?? []} paginationKey="usage-members" name={row => usageMemberLabel(data, row.id)} /> : null}
       <UsageTable title={tx("API Key 用量")} label="API Key" rows={breakdown.api_keys ?? []} paginationKey="usage-api-keys" name={row => apiKeyAuditLabel(data, row.id)} />
       {role === "admin" ? <UsageTable title={tx("供应商用量")} label={tx("供应商")} rows={breakdown.providers ?? []} paginationKey="usage-providers" name={row => findProvider(data, row.id)?.name || row.id} /> : null}
-      {role === "admin" ? <UsageTable title={tx("资源账号用量")} label={tx("资源账号")} rows={breakdown.provider_resources ?? []} paginationKey="usage-resources" name={row => providerResourceAuditLabel(data, row.id)} /> : null}
+      {role === "admin" ? <UsageTable title={tx("资源账号用量")} label={tx("资源账号")} rows={breakdown.provider_resources ?? []} paginationKey="usage-resources" description={(breakdown.provider_resources ?? []).some(row => row.id === "unknown") ? tx("未关联资源账号：包含使用供应商直接凭证或未记录资源账号归属的用量。") : undefined} name={row => providerResourceAuditLabel(data, row.id)} /> : null}
       {role === "admin" ? <UsageTable title={tx("成本中心用量")} label={tx("成本中心")} rows={breakdown.cost_centers ?? []} paginationKey="usage-cost-centers" name={row => costCenterLabel(data, row.id)} /> : null}
       <DataSection title="Token 类型"><SimpleTable columns={["类型", "Token"]} paginationKey="usage-token-types" rows={[
         [tx("输入（不含缓存）"), compactNumber(Math.max(0, report.summary.input_tokens - (report.summary.cached_input_tokens ?? 0) - (report.summary.cache_write_input_tokens ?? 0)))],
@@ -108,10 +111,10 @@ function UsageReportBreakdowns({ data, user, report }: { data: AppData; user: Ad
   </>;
 }
 
-function UsageTable({ title, label, rows, name, paginationKey }: {
-  title: string; label: string; rows: UsageBreakdownRow[]; name: (row: UsageBreakdownRow) => string; paginationKey: string;
+function UsageTable({ title, label, rows, name, paginationKey, description }: {
+  title: string; label: string; rows: UsageBreakdownRow[]; name: (row: UsageBreakdownRow) => string; paginationKey: string; description?: string;
 }) {
-  return <DataSection title={title}><SimpleTable columns={[label, "用量记录", "Token", "缓存读", "成本"]} paginationKey={paginationKey} rows={rows.map(row => [
+  return <DataSection title={title}>{description ? <p className="diagnostic-caption">{description}</p> : null}<SimpleTable columns={[label, "用量记录", "Token", "缓存读", "成本"]} paginationKey={paginationKey} rows={rows.map(row => [
     name(row), formatNumber(row.request_count), compactNumber(row.total_tokens), compactNumber(row.cached_input_tokens ?? 0), usageMoney(row.estimated_cost_usd),
   ])} /></DataSection>;
 }

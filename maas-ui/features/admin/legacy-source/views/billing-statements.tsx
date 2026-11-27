@@ -1,4 +1,5 @@
 "use client";
+import { useCustomerTerminology } from "../../i18n/customer-copy";
 
 import { BillingProjectPicker } from "../../views/billing-project-picker";
 
@@ -30,6 +31,7 @@ export function StatementLauncher({ renderTrigger, returnFocusRef, onOpen, ...pr
 }
 
 export function BillingStatements({ api, side = "tenant", model = "", providerID = "" }: StatementProps) {
+  const ui = useCustomerTerminology();
   const [query, setQuery] = useState<StatementQuery>(() => ({ side, ...statementMonth(), timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC", customer: "", project_ids: [], provider_id: providerID, resource_id: "", model }));
   const [projects, setProjects] = useState<{ id: string; name: string }[]>([]);
   const [result, setResult] = useState<StatementResult | null>(null);
@@ -46,13 +48,13 @@ export function BillingStatements({ api, side = "tenant", model = "", providerID
     void (async () => {
       try {
         const response = await adminFetch(api, "/api/admin/projects");
-        if (!response.ok) throw new Error(await readAdminError(response, tx("项目加载失败")));
+        if (!response.ok) throw new Error(await readAdminError(response, ui("项目加载失败")));
         const payload = await response.json() as { data: { id: string; name: string }[] };
         if (active) setProjects(payload.data ?? []);
-      } catch (caught) { if (active) setProjectError(caught instanceof Error ? caught.message : tx("项目加载失败")); }
+      } catch (caught) { if (active) setProjectError(caught instanceof Error ? caught.message : ui("项目加载失败")); }
     })();
     return () => { active = false; };
-  }, [api]);
+  }, [api, ui]);
   function change(patch: Partial<StatementQuery>) { setQuery(current => ({ ...current, ...patch })); setResult(null); setError(""); }
   function changeCurrency(preferences: StatementCurrencyPreferences, editedCurrency?: StatementCurrency) {
     setCurrencyPreferences(preferences); setResult(null); setError("");
@@ -77,7 +79,7 @@ export function BillingStatements({ api, side = "tenant", model = "", providerID
   }
   async function preview(event: FormEvent) {
     event.preventDefault(); event.stopPropagation(); setError(""); setResult(null);
-    if (query.side === "tenant" && query.project_ids.length === 0) { setError(tx("请选择至少一个客户项目")); return; }
+    if (query.side === "tenant" && query.project_ids.length === 0) { setError(ui("请选择至少一个客户项目")); return; }
     const currency = currencyPreferences.currency;
     const rate = currencyPreferences.rates[currency] ?? "";
     if (currency !== "USD" && !validStatementExchangeRate(rate)) { setError(tx("请输入大于 0 的手动汇率，最多 18 位整数和 12 位小数。")); return; }
@@ -153,7 +155,7 @@ export function BillingStatements({ api, side = "tenant", model = "", providerID
         <div className="statement-summary">{Object.entries(result.display_totals ?? {}).map(([source, value]) => <span key={source}>{statementSource(source)} · {result.conversion!.currency}: {money(value, result.conversion!.currency)}</span>)}</div>
         {result.query.side === "margin" ? <p><strong>{tx("换算预计毛利")}: {money(result.display_estimated_margin ?? null, result.conversion.currency)}</strong></p> : null}
       </div> : null}
-      <SimpleTable columns={[tx("金额来源"), tx("项目 / 模型"), tx("时间 / 时区"), tx("用量"), tx("金额"), tx("依据")]} paginationKey="billing-statements" rows={result.rows.map(row => [
+      <SimpleTable columns={[tx("金额来源"), ui("项目 / 模型"), tx("时间 / 时区"), tx("用量"), tx("金额"), tx("依据")]} paginationKey="billing-statements" rows={result.rows.map(row => [
         statementSource(row.source), <span key="subject">{row.project_id || row.provider_id}<small>{row.model}</small><small>{row.api_key_id || row.resource_id}</small></span>,
         <span key="time">{date(row.at, row.timezone || "UTC")}<small>{row.timezone}</small>{row.end_at ? <small>{date(row.end_at, row.timezone || "UTC")}</small> : null}</span>,
         row.source === "provider_billed" ? `${number(row.usage_quantity ?? 0)} ${row.usage_unit ?? ""}` : [

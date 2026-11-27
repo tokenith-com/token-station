@@ -1,3 +1,4 @@
+import { useCustomerTerminology } from "../i18n/customer-copy";
 import { Plus, RefreshCw, Search, Trash2, UserRoundCheck, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
@@ -65,6 +66,7 @@ export function CrudView<T>({
   onToolbarAction: (action: ToolbarAction) => void;
   currentUser?: AdminUser | null;
 }) {
+  const ui = useCustomerTerminology();
   const [selectedTeamID, setSelectedTeamID] = useState("");
   const isTeamView = config.view === "teams";
   const isProjectView = config.view === "projects";
@@ -142,12 +144,12 @@ export function CrudView<T>({
                 ? tx("创建 Key")
                 : config.view === "notification-channels"
                   ? `${tx("配置")} ${notificationChannelLabel(categoryFilter)}`
-                  : tx(config.createLabel ?? "新增")}
+                  : ui(config.createLabel ?? "新增")}
             </button>
           ) : null}
           {(config.toolbarActions ?? []).map((action) => (
-            <button className="secondary-button" key={action.label} onClick={() => onToolbarAction(action)} title={tx(action.title ?? action.label)} type="button">
-              {tx(action.label)}
+            <button className="secondary-button" key={action.label} onClick={() => onToolbarAction(action)} title={ui(action.title ?? action.label)} type="button">
+              {ui(action.label)}
             </button>
           ))}
         </div>
@@ -204,15 +206,16 @@ export function CrudView<T>({
 }
 
 export function ProjectTeamFlowHint() {
+  const ui = useCustomerTerminology();
   return (
     <div className="workflow-hint project-team-flow-hint">
       <div>
-        <strong>{tx("团队配置现在是项目设置的一部分")}</strong>
-        <span>{tx("每个项目有 1 个主团队，还可以添加多个协作团队。主团队负责成本与审批，团队角色决定谁能访问项目。")}</span>
+        <strong>{ui("团队配置现在是项目设置的一部分")}</strong>
+        <span>{ui("每个项目有 1 个主团队，还可以添加多个协作团队。主团队负责成本与审批，团队角色决定谁能访问项目。")}</span>
       </div>
       <div className="workflow-hint-stats">
-        <span>{tx("主团队 · 责任归属")}</span>
-        <span>{tx("协作团队 · 访问权限")}</span>
+        <span>{ui("主团队 · 责任归属")}</span>
+        <span>{ui("协作团队 · 访问权限")}</span>
       </div>
     </div>
   );
@@ -283,6 +286,7 @@ export function ProviderChannelTable({
   onDelete: (provider: Provider) => void;
   onEdit: (provider: Provider) => void;
 }) {
+  const ui = useCustomerTerminology();
   const [view, setView] = useState<"manage" | "monitoring">("manage");
   const [quotaOverrides, setQuotaOverrides] = useState<Record<string, ProviderQuotaSummary>>({});
   const [quotaRefreshing, setQuotaRefreshing] = useState<Record<string, boolean>>({});
@@ -433,10 +437,10 @@ export function ProviderChannelTable({
                           className="text-button"
                           key={action.label}
                           onClick={() => onAction(action, row.provider)}
-                          title={tx(action.title ?? action.label)}
+                          title={ui(action.title ?? action.label)}
                           type="button"
                         >
-                          {tx(action.label)}
+                          {ui(action.label)}
                         </button>
                       ))}
                     {config.update && (config.canUpdate?.(row.provider, currentUser, data) ?? true) ? (
@@ -985,6 +989,7 @@ export function clampNumber(value: number, min: number, max: number) {
 }
 
 export function TeamMembersPanel({ data, team, onClose }: { data: AppData; team: AdminResource; onClose: () => void }) {
+  const ui = useCustomerTerminology();
   const users = data.users
     .filter((user) => user.team_id === team.id)
     .sort((left, right) => (left.name || left.username).localeCompare(right.name || right.username));
@@ -992,7 +997,7 @@ export function TeamMembersPanel({ data, team, onClose }: { data: AppData; team:
     <div className="team-members-panel">
       <div className="team-members-head">
         <div>
-          <span>{tx("团队用户")}</span>
+          <span>{ui("团队用户")}</span>
           <strong>{team.name || team.id}</strong>
         </div>
         <span>{countWithUnit(users.length, "人", "member", "人")}</span>
@@ -1070,6 +1075,7 @@ export function ReportsView({
   onAction: (action: ResourceAction<AdminResource>, item: AdminResource) => void;
   onExport: (dataset: string) => void;
 }) {
+  const ui = useCustomerTerminology();
   const savedReports = config.list(data);
   const exports = reportExportDefinitions();
   return (
@@ -1097,7 +1103,7 @@ export function ReportsView({
               </span>
               <span className="report-export-copy">
                 <strong>{item.label}</strong>
-                <span>{tx(item.description)}</span>
+                <span>{ui(item.description)}</span>
               </span>
               <em>CSV</em>
             </button>

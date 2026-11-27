@@ -1,3 +1,6 @@
+import { useCustomerTerminology } from "../i18n/customer-copy";
+import { ResponseUsageDetails } from "./response-usage-details";
+import { RequestPayloadViewer } from "./request-payload-viewer";
 import { RequestErrorSummary } from "./request-error-summary";
 import { Activity, AlertCircle, Check, Copy, Gauge, Search, ShieldCheck } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
@@ -5,6 +8,7 @@ import { appRole, canViewAdminAudit } from "../core/navigation";
 import { type AdminUser, type ApiContext, type AppData, type AppRole, type RequestDetail, type RequestLog, type RequestLogPage, type RequestLogPagination, type RequestLogSummary, type RequestPayloadLog } from "../core/types";
 import { auditRequestPagePath, auditRequestTimeRangeParameters, type AuditRequestStatus, type AuditRequestTimeRange } from "../domain/audit-request-page";
 import { copyText } from "../domain/clipboard";
+import { formatSuccessRate } from "../domain/success-rate";
 import { apiKeyAuditLabel, apiKeyOwnerUserID, ownerUserLabel, projectName, providerAttemptLabel, providerAuditLabel, providerResourceAuditLabel } from "../domain/entities";
 import { compactNumber, formatMoney, formatNumber, formatTime } from "../domain/formatting";
 import { actionLabel, enumValueLabel, resourceTypeLabel } from "../domain/labels";
@@ -161,7 +165,7 @@ export function AuditView({ api, data, user }: { api: ApiContext; data: AppData;
   }, [activeAuditTab, api, selectedRequestID, user.role]);
 
   const requestStats = useMemo(() => {
-    const successRate = requestSummary.all ? Math.round((requestSummary.ok / requestSummary.all) * 100) : 0;
+    const successRate = requestSummary.all ? (requestSummary.ok / requestSummary.all) * 100 : 0;
     return {
       total: requestSummary.all,
       failures: requestSummary.error,
@@ -264,7 +268,7 @@ export function AuditView({ api, data, user }: { api: ApiContext; data: AppData;
 
             <div className="metrics request-metrics">
               <RequestMetric label="总请求" value={formatNumber(requestStats.total)} icon={Activity} />
-              <RequestMetric label="成功率" value={`${requestStats.successRate}%`} icon={Check} />
+              <RequestMetric label="成功率" value={`${formatSuccessRate(requestStats.successRate)}%`} icon={Check} />
               <RequestMetric label="失败请求" value={formatNumber(requestStats.failures)} icon={AlertCircle} />
               <RequestMetric label="平均延迟" value={`${requestStats.averageLatency}ms`} icon={Gauge} />
             </div>
@@ -379,6 +383,7 @@ export function RequestDetailPanel({
   showProviderCost?: boolean;
   role?: AppRole;
 }) {
+  const ui = useCustomerTerminology();
   const [copied, setCopied] = useState(false);
 
   if (!requestID) {
@@ -495,7 +500,7 @@ export function RequestDetailPanel({
         <RequestErrorSummary code={log.error_code} detail={detail.error_detail} />
       ) : null}
 
-      <div className="request-subsection">
+      <div className="request-subsection request-section-card">
         <div className="request-subsection-title">
           <span>{tx("Token 与成本")}</span>
           <strong>{detail.usage.length ? countWithUnit(detail.usage.length, "条记录", "record", "件の記録") : tx("暂无记录")}</strong>
@@ -507,9 +512,8 @@ export function RequestDetailPanel({
         </div>
       </div>
 
-      {role === "admin" ? <RequestPayloadSection key={requestID} payload={detail.payload ?? null} /> : null}
-      <details open className="request-secondary-details" key={`metadata-${requestID}`}><summary>{tx("详情")}</summary><div className="request-detail-grid">
-        {showsProject ? <DetailField label="项目" value={projectName(data, log.project_id)} /> : null}
+      <details open className="request-secondary-details request-section-card" key={`metadata-${requestID}`}><summary>{tx("详情")}</summary><div className="request-detail-grid">
+        {showsProject ? <DetailField label={ui("项目")} value={projectName(data, log.project_id)} /> : null}
         <DetailField label="账户" value={detail.account || requestAccountLabel(data, log)} />
         <DetailField label="API Key" value={apiKeyAuditLabel(data, log.api_key_id)} />
         <DetailField label="Provider 资源" value={providerResourceAuditLabel(data, log.provider_resource_id)} />
@@ -517,8 +521,9 @@ export function RequestDetailPanel({
         <DetailField label="策略作用域 / 优先级" value={log.routing_policy_id ? `${tx(log.routing_policy_scope || "-")} / P${log.routing_policy_priority || 0}` : "-"} />
         <DetailField label="客户端 IP" value={log.client_ip || "-"} />
       </div></details>
-      <details open className="request-secondary-details" key={`usage-${requestID}`}><summary>{tx("Token 与成本")} · {tx("详情")}</summary>
-        <div className="request-usage-breakdown">
+      {role === "admin" ? <RequestPayloadSection key={requestID} payload={detail.payload ?? null} /> : null}
+      <details open className="request-secondary-details request-section-card" key={`usage-${requestID}`}><summary>{tx("Token 与成本")} · {tx("详情")}</summary>
+        {role === "admin" ? <ResponseUsageDetails payload={detail.payload ?? null} /> : <div className="request-usage-breakdown">
           <UsageBreakdownGroup
             label="输入"
             total={usageTotals.input_tokens}
@@ -540,7 +545,7 @@ export function RequestDetailPanel({
               ["output_rejected_prediction_tokens", usageTotals.rejected_prediction_tokens],
             ]}
           />
-        </div>
+        </div>}
       </details>
 
 
@@ -592,18 +597,20 @@ export function RequestDetailPanel({
 }
 
 export function DetailField({ label, value }: { label: string; value: React.ReactNode }) {
+  const ui = useCustomerTerminology();
   return (
     <div className="detail-field">
-      <span>{tx(label)}</span>
+      <span>{ui(label)}</span>
       <strong>{value}</strong>
     </div>
   );
 }
 
 export function UsageStat({ label, value }: { label: string; value: string }) {
+  const ui = useCustomerTerminology();
   return (
     <div className="usage-stat">
-      <span>{tx(label)}</span>
+      <span>{ui(label)}</span>
       <strong>{value}</strong>
     </div>
   );
@@ -618,10 +625,11 @@ export function UsageBreakdownGroup({
   total: number;
   rows: Array<[string, number]>;
 }) {
+  const ui = useCustomerTerminology();
   return (
     <div className="usage-breakdown-group">
       <div className="usage-breakdown-head">
-        <span>{tx(label)}</span>
+        <span>{ui(label)}</span>
         <strong>{formatNumber(total)}</strong>
       </div>
       <div className="usage-breakdown-rows">
@@ -650,7 +658,7 @@ export function requestAccountLabel(data: AppData, log: RequestLog) {
 
 export function RequestPayloadSection({ payload }: { payload: RequestPayloadLog | null }) {
   return (
-    <div className="request-subsection">
+    <div className="request-subsection request-section-card">
       <div className="request-subsection-title">
         <span>{tx("请求与响应")}</span>
         <strong>{payload ? tx("已记录快照") : tx("未记录")}</strong>
@@ -658,18 +666,7 @@ export function RequestPayloadSection({ payload }: { payload: RequestPayloadLog 
       {!payload ? (
         <div className="compact-empty">{tx("这条历史记录没有保存 request / response 快照")}</div>
       ) : (
-        <div className="payload-grid">
-          <PayloadBlock
-            title="Request"
-            body={payload.request_body || tx("未记录请求内容")}
-            truncated={payload.request_truncated}
-          />
-          <PayloadBlock
-            title="Response"
-            body={payload.response_body || tx("未记录响应内容")}
-            truncated={payload.response_truncated}
-          />
-        </div>
+        <RequestPayloadViewer payload={payload} />
       )}
     </div>
   );
@@ -698,11 +695,12 @@ export function RequestMetric({
   value: string;
   icon: React.ComponentType<{ size?: number }>;
 }) {
+  const ui = useCustomerTerminology();
   return (
     <article className="metric compact-metric">
       <div className="metric-label">
         <Icon size={17} />
-        {tx(label)}
+        {ui(label)}
       </div>
       <div className="metric-value">{value}</div>
     </article>

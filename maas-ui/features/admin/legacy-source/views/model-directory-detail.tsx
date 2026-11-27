@@ -1,3 +1,4 @@
+import { useCustomerTerminology } from "../../i18n/customer-copy";
 import { X } from "lucide-react";
 import { createPortal } from "react-dom";
 import type { AppData, Model } from "../core/types";
@@ -10,6 +11,7 @@ import { StatusPill } from "../shared/ui";
 import { ModelDirectoryPrice } from "./model-directory-price";
 
 export function ModelDirectoryDetail({ model, data, readOnly, onClose }: { model: Model; data: AppData; readOnly: boolean; onClose: () => void }) {
+  const ui = useCustomerTerminology();
   const focus = useModalFocus(onClose);
   const routes = readOnly ? [] : modelRoutesFor(model, data);
   const facts = [
@@ -48,7 +50,7 @@ export function ModelDirectoryDetail({ model, data, readOnly, onClose }: { model
                   <div className="model-detail-mapping-heading"><strong>{provider?.name || route.provider_id}</strong><StatusPill status={route.status} /></div>
                   <code>{route.provider_model}</code>
                   {route.provider_resource_id ? <small>{tx("资源实例")}: {resource?.name || route.provider_resource_id}</small> : null}
-                  <small>{tx("项目作用域")}: {routeProjectScopeSummary(route, data)}</small>
+                  <small>{ui("项目作用域")}: {routeProjectScopeSummary(route, data, ui)}</small>
                 </li>;
               })}</ul> : <p className="muted">{tx("尚未映射 Provider")}</p>}
             </section>
