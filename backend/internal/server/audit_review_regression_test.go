@@ -4,8 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
+	"net/http"
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestReviewAuditSSEEventNameRedactsProviderCredential(t *testing.T) {
@@ -116,5 +119,88 @@ func TestReviewAuditMediaVariantsPreserveOriginal(t *testing.T) {
 				t.Fatal("media redaction leaked bytes, lost text or mutated input")
 			}
 		})
+	}
+}
+
+func TestReviewAuditCopilotRuntimeSessionToken(t *testing.T) {
+	for _, mode := range []string{"exchange", "cached", "refresh"} {
+		t.Run(mode, func(t *testing.T) {
+			exchanges := 0
+			adapter, provider := copilotSubscriptionFixture(t, func(w http.ResponseWriter, r *http.Request) {
+				if r.URL.Path == "/token" {
+					exchanges++
+					_, _ = fmt.Fprintf(w, `{"token":"synthetic-runtime-%d","expires_at":%d}`, exchanges, time.Now().Add(time.Hour).Unix())
+					return
+				}
+				if mode == "refresh" && r.Header.Get("Authorization") == "Bearer synthetic-runtime-1" {
+					w.WriteHeader(http.StatusUnauthorized)
+					return
+				}
+				w.Header().Set("Content-Type", "text/event-stream")
+				_, _ = io.WriteString(w, "data: {\"text\":\"synthetic-runtime-1 synthetic-runtime-2 synthetic-auto-token\"}\n\ndata: [DONE]\n\n")
+			})
+			if mode == "cached" {
+				if _, err := adapter.session(t.Context(), ProviderResourceCredentials{AccessToken: "github-secret"}, false); err != nil {
+					t.Fatal(err)
+				}
+			}
+			tracker := &streamWriteTracker{capture: &auditStreamCapture{}}
+			ctx := tracker.auditContext(t.Context())
+			ctx = context.WithValue(ctx, copilotSubscriptionAutoKey{}, copilotSubscriptionAutoSession{Token: "synthetic-auto-token"})
+			response, err := adapter.request(ctx, provider, "/chat/completions", map[string]any{"stream": true}, true)
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer response.Body.Close()
+			wire, err := io.ReadAll(response.Body)
+			if err != nil {
+				t.Fatal(err)
+			}
+			tracker.capture.add(wire)
+			body, _ := auditPayloadBody(tracker.auditPayload(200, "", nil, provider))
+			if strings.Contains(body, "synthetic-auto-token") || strings.Contains(body, "synthetic-runtime-1") {
+				t.Fatal("Copilot runtime or Auto token remained in snapshot")
+			}
+			if mode == "refresh" && (exchanges != 2 || strings.Contains(body, "synthetic-runtime-2")) {
+				t.Fatal("refreshed Copilot token was not captured")
+			}
+			if mode != "refresh" && exchanges != 1 {
+				t.Fatal("session exchange count changed")
+			}
+		})
+	}
+}
+
+func TestReviewAuditResponseMediaShapes(t *testing.T) {
+	const audio = "c3ludGhldGljLWF1ZGlv"
+	const image = "c3ludGhldGljLWltYWdl"
+	value := map[string]any{"output": []any{
+		map[string]any{"type": "message", "content": []any{map[string]any{"type": "output_audio", "audio": audio, "format": "wav", "transcript": "Synthetic transcript"}}},
+		map[string]any{"type": "image_generation_call", "result": image, "status": "completed"},
+	}, "output_audio": map[string]any{"audio": audio, "format": "mp3"}, "result": "Keep ordinary tool output"}
+	for _, stream := range []bool{false, true} {
+		payload := any(value)
+		if stream {
+			raw, err := json.Marshal(value)
+			if err != nil {
+				t.Fatal(err)
+			}
+			tracker := &streamWriteTracker{capture: &auditStreamCapture{}}
+			tracker.capture.add([]byte("data: " + string(raw) + "\n\ndata: [DONE]\n\n"))
+			payload = tracker.auditPayload(200, "", nil, Provider{})
+		}
+		body, _ := auditPayloadBody(payload)
+		if !json.Valid([]byte(body)) || strings.Contains(body, audio) || strings.Contains(body, image) {
+			t.Fatal("encoded response media remained in audit snapshot")
+		}
+		for _, text := range []string{"Synthetic transcript", "completed", "wav", "mp3", "Keep ordinary tool output"} {
+			if !strings.Contains(body, text) {
+				t.Fatal("media redaction discarded non-media metadata")
+			}
+		}
+	}
+	original, err := json.Marshal(value)
+	if err != nil || !strings.Contains(string(original), audio) || !strings.Contains(string(original), image) {
+		t.Fatal("audit redaction mutated response")
 	}
 }

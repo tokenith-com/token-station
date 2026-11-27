@@ -13,6 +13,11 @@ func redactAuditMediaContainer(key string, value any) any {
 			}
 		}
 		if object, ok := value.(map[string]any); ok {
+			if normalized == "outputaudio" {
+				if _, present := object["audio"]; present {
+					object["audio"] = "[redacted]"
+				}
+			}
 			if _, present := object["data"]; present {
 				object["data"] = "[redacted]"
 			}
@@ -24,6 +29,10 @@ func redactAuditMediaContainer(key string, value any) any {
 // Media is described, not archived as encoded bytes in request diagnostics.
 func isAuditMediaField(object map[string]any, key string) bool {
 	normalized := strings.ToLower(strings.ReplaceAll(key, "_", ""))
+	kind, _ := object["type"].(string)
+	if (normalized == "audio" && kind == "output_audio") || (normalized == "result" && kind == "image_generation_call") {
+		return true
+	}
 	switch normalized {
 	case "b64json", "imagedata", "audiodata", "videodata":
 		return true

@@ -56,6 +56,34 @@ describe("UsageView project attribution", () => {
   });
 });
 
+describe("Executive usage source labels", () => {
+  it("labels cost-center rows as cost centers", async () => {
+    const data = emptyData();
+    data.breakdown.cost_centers = [{ id: "cc-finance", request_count: 2, input_tokens: 10, output_tokens: 5, total_tokens: 15, estimated_cost_usd: 1 }];
+    const report = usageReport("all", 15);
+    report.breakdown.cost_centers = data.breakdown.cost_centers;
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(Response.json(report)));
+    render(<UsageView api={api} data={data} user={{ ...member, role: "admin" }} />);
+    expect(await screen.findByText("按成本中心")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "成本中心 Token 消耗对比" })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "客户团队 Token 消耗对比" })).not.toBeInTheDocument();
+  });
+
+  it("labels project fallback rows as customer projects", async () => {
+    const data = emptyData();
+    data.projects = [{ id: "p", name: "Synthetic Project", status: "active" }];
+    data.breakdown.projects = [{ id: "p", request_count: 2, input_tokens: 10, output_tokens: 5, total_tokens: 15, estimated_cost_usd: 1 }];
+    const report = usageReport("all", 15);
+    report.breakdown.projects = data.breakdown.projects;
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(Response.json(report)));
+    render(<UsageView api={api} data={data} user={{ ...member, role: "admin" }} />);
+    expect(await screen.findByText("按客户项目")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "客户项目 Token 消耗对比" })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "客户团队 Token 消耗对比" })).not.toBeInTheDocument();
+  });
+
+});
+
 describe("Usage aligned with the master report page", () => {
   it.each(["admin", "team_leader", "user", "guest"])("uses one selected range for metrics, trends and breakdowns for %s", async (role) => {
     const data = emptyData();
