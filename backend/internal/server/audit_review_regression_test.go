@@ -107,7 +107,7 @@ func TestReviewAuditRetainsRotatedAndAttemptCredentials(t *testing.T) {
 }
 
 func TestReviewAuditMediaVariantsPreserveOriginal(t *testing.T) {
-	for _, key := range []string{"image_url", "image", "audio", "input_audio", "inline_data", "video"} {
+	for _, key := range []string{"image_url", "image", "audio", "input_audio", "inline_data", "video", "voice"} {
 		t.Run(key, func(t *testing.T) {
 			const media = "data:image/png;base64,c3ludGhldGljLW1lZGlh"
 			value := map[string]any{key: media, "text": "Synthetic description"}

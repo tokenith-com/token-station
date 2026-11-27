@@ -6,7 +6,7 @@ import "strings"
 func redactAuditMediaContainer(key string, value any) any {
 	normalized := strings.ToLower(strings.ReplaceAll(key, "_", ""))
 	switch normalized {
-	case "imageurl", "image", "video", "audio", "inputaudio", "outputaudio", "inlinedata":
+	case "imageurl", "image", "video", "audio", "voice", "inputaudio", "outputaudio", "inlinedata":
 		if text, ok := value.(string); ok {
 			if strings.HasPrefix(strings.ToLower(strings.TrimSpace(text)), "data:") {
 				return "[redacted]"

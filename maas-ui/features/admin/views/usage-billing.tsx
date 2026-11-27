@@ -39,6 +39,7 @@ export function UsageView({ api, data, user }: { api: ApiContext; data: AppData;
 export type ExecutiveDepartmentRow = UsageBreakdownRow & {
   name: string;
   member_count: number;
+  sourceLabel: string;
 };
 
 export type ExecutiveMemberRow = UsageBreakdownRow & {
@@ -79,14 +80,14 @@ export function ExecutiveUsageReport({ data, periodLabel = tx("全部") }: { dat
         </div>
         <p className="executive-report-context">
           <span>{periodLabel}</span>
-          <span>{ui("按客户团队")}</span>
+          <span>{ui(`按${topDepartment?.sourceLabel ?? "客户团队"}`)}</span>
           <span>{tx("Token 口径")}</span>
         </p>
       </header>
 
       <div className="executive-kpi-grid">
         <ExecutiveKPI label="总 Token 消耗" value={compactNumber(totalTokens)} detail={tokenDetail} />
-        <ExecutiveKPI label={ui("覆盖客户团队")} value={formatNumber(departments.length)} detail={departmentDetail} />
+        <ExecutiveKPI label={ui(`覆盖${topDepartment?.sourceLabel ?? "客户团队"}`)} value={formatNumber(departments.length)} detail={departmentDetail} />
         <ExecutiveKPI label="活跃成员" value={formatNumber(activeMembers)} detail={generatedDetail} />
         <ExecutiveKPI label="估算成本" value={`$${formatMoney(data.summary.estimated_cost_usd)}`} detail={requestDetail} />
       </div>
@@ -95,7 +96,7 @@ export function ExecutiveUsageReport({ data, periodLabel = tx("全部") }: { dat
         <article className="executive-panel executive-chart-panel department-comparison-panel">
           <div className="executive-panel-head">
             <div>
-              <h3>{ui("客户团队 Token 消耗对比")}</h3>
+              <h3>{ui(`${topDepartment?.sourceLabel ?? "客户团队"} Token 消耗对比`)}</h3>
               <span>{tx("输入与输出共用刻度，按总 Token 排序")}</span>
             </div>
             <div className="executive-legend">
@@ -109,7 +110,7 @@ export function ExecutiveUsageReport({ data, periodLabel = tx("全部") }: { dat
         <article className="executive-panel executive-department-panel">
           <div className="executive-panel-head compact">
             <div>
-              <h3>{ui("客户团队排行")}</h3>
+              <h3>{ui(`${topDepartment?.sourceLabel ?? "客户团队"}排行`)}</h3>
               <span>Top {Math.min(departments.length, 8)} · {tx("Token 消耗")}</span>
             </div>
           </div>
@@ -221,6 +222,7 @@ export function executiveDepartmentRows(data: AppData): ExecutiveDepartmentRow[]
       ...row,
       name: costCenterLabel(data, row.id),
       member_count: membersInCostCenter(data, row.id),
+      sourceLabel: "成本中心",
     }));
   if (costCenterRows.length) return sortUsageRows(costCenterRows);
 
@@ -235,9 +237,9 @@ export function executiveDepartmentRows(data: AppData): ExecutiveDepartmentRow[]
         id: teamID,
         name: teamID === "unknown" ? tx("未归属客户团队") : teamLabel(data, teamID),
         member_count: 0,
+        sourceLabel: "客户团队",
         request_count: 0,
         input_tokens: 0,
-        cached_input_tokens: 0,
         output_tokens: 0,
         total_tokens: 0,
         estimated_cost_usd: 0,
@@ -256,6 +258,8 @@ export function executiveDepartmentRows(data: AppData): ExecutiveDepartmentRow[]
       ...row,
       name: projectName(data, row.id),
       member_count: 0,
+      sourceLabel: "客户项目",
+      request_count: row.request_count,
     }));
   return sortUsageRows(projectRows);
 }
